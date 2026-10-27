@@ -98,3 +98,41 @@ func TestDeleteSQL(t *testing.T) {
 		t.Fatalf("非法方言应失败")
 	}
 }
+
+// TestUpdateSQL 验证乐观锁更新语句。
+// @param t 测试上下文
+func TestUpdateSQL(t *testing.T) {
+	row, _ := NewRow("ACT_RU_JOB")
+	_ = row.Set("ID_", "j1")
+	_ = row.Set("REV_", 2)
+	_ = row.Set("TYPE_", "timer")
+	query, args, err := row.UpdateSQL("mysql", 2)
+	if err != nil {
+		t.Fatalf("生成更新语句失败: %v", err)
+	}
+	if !strings.Contains(query, "UPDATE ACT_RU_JOB") || !strings.Contains(query, "REV_ = ?") || !strings.Contains(query, "WHERE ID_ = ?") {
+		t.Fatalf("更新语句错误: %s", query)
+	}
+	if len(args) != len(row.insertColumns())+1 {
+		t.Fatalf("参数数量错误: %d", len(args))
+	}
+	if args[0] != int64(3) {
+		t.Fatalf("REV_ 应递增: %+v", args[:1])
+	}
+	postgresQuery, _, err := row.UpdateSQL("postgres", 2)
+	if err != nil || !strings.Contains(postgresQuery, "$") {
+		t.Fatalf("PostgreSQL 更新语句错误: %v %s", err, postgresQuery)
+	}
+	missingID := Row{Table: "ACT_RU_JOB", Values: map[string]any{"REV_": 1}}
+	if _, _, err := missingID.UpdateSQL("mysql", 1); err == nil {
+		t.Fatalf("缺 ID 应失败")
+	}
+	missingRev, _ := NewRow("ACT_RU_JOB")
+	_ = missingRev.Set("ID_", "j1")
+	if _, _, err := missingRev.UpdateSQL("mysql", 1); err == nil {
+		t.Fatalf("缺 REV 应失败")
+	}
+	if _, _, err := row.UpdateSQL("oracle", 1); err == nil {
+		t.Fatalf("非法方言应失败")
+	}
+}

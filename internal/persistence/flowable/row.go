@@ -176,6 +176,47 @@ func (r *Row) InsertSQL(dialect string) (string, []any, error) {
 	return query, r.Args(), nil
 }
 
+// UpdateSQL 生成带 REV_ 乐观锁的更新语句。
+// @param dialect 数据库方言
+// @param oldRevision 旧版本号
+// @return SQL
+// @return 参数
+// @return 错误
+func (r *Row) UpdateSQL(dialect string, oldRevision int64) (string, []any, error) {
+	if err := validateDialect(dialect); err != nil {
+		return "", nil, err
+	}
+	id, ok := r.Values["ID_"]
+	if !ok {
+		return "", nil, api.NewError("ROW-0003", "行缺少 ID_", api.ErrBadRequest)
+	}
+	if _, exists := r.Values["REV_"]; !exists {
+		return "", nil, api.NewError("ROW-0006", "行缺少 REV_", api.ErrBadRequest)
+	}
+	columns := r.insertColumns()
+	assignments := make([]string, 0, len(columns))
+	args := make([]any, 0, len(columns)+2)
+	for index, column := range columns {
+		if column == "ID_" {
+			continue
+		}
+		value := r.Values[column]
+		if column == "REV_" {
+			value = oldRevision + 1
+		}
+		assignments = append(assignments, fmt.Sprintf("%s = %s", column, placeholder(dialect, index+1)))
+		args = append(args, value)
+	}
+	if len(assignments) == 0 {
+		return "", nil, api.NewError("ROW-0007", "没有可更新的列", api.ErrBadRequest)
+	}
+	idPlaceholder := placeholder(dialect, len(assignments)+1)
+	revisionPlaceholder := placeholder(dialect, len(assignments)+2)
+	query := fmt.Sprintf("UPDATE %s SET %s WHERE ID_ = %s AND REV_ = %s", r.Table, strings.Join(assignments, ", "), idPlaceholder, revisionPlaceholder)
+	args = append(args, id, oldRevision)
+	return query, args, nil
+}
+
 // DeleteSQL 生成按 ID_ 删除语句。
 // @param dialect 数据库方言
 // @return SQL
