@@ -123,15 +123,15 @@ type HistoricTaskInstance struct {
 
 // HistoricVariableInstance 是历史变量实例。
 type HistoricVariableInstance struct {
-	ID                string         `json:"id"`                // 历史变量 ID
-	Name              string         `json:"name"`              // 变量名
-	Type              string         `json:"type,omitempty"`    // 变量类型
-	ProcessInstanceID string         `json:"processInstanceId"` // 流程实例 ID
-	ExecutionID       string         `json:"executionId,omitempty"` // 执行 ID
-	TaskID            string         `json:"taskId,omitempty"`  // 任务 ID
-	Value             any            `json:"value,omitempty"`   // 变量值
-	CreateTime        time.Time      `json:"createTime"`        // 创建时间
-	LastUpdatedTime   time.Time      `json:"lastUpdatedTime"`   // 最后更新时间
+	ID                string    `json:"id"`                    // 历史变量 ID
+	Name              string    `json:"name"`                  // 变量名
+	Type              string    `json:"type,omitempty"`        // 变量类型
+	ProcessInstanceID string    `json:"processInstanceId"`     // 流程实例 ID
+	ExecutionID       string    `json:"executionId,omitempty"` // 执行 ID
+	TaskID            string    `json:"taskId,omitempty"`      // 任务 ID
+	Value             any       `json:"value,omitempty"`       // 变量值
+	CreateTime        time.Time `json:"createTime"`            // 创建时间
+	LastUpdatedTime   time.Time `json:"lastUpdatedTime"`       // 最后更新时间
 }
 
 // Page 是通用分页结果。

@@ -630,3 +630,26 @@ func TestREST_MigrateErrors(t *testing.T) {
 	}
 	_ = response.Body.Close()
 }
+
+// TestREST_Jobs 验证作业管理端点。
+// @param t 测试上下文
+func TestREST_Jobs(t *testing.T) {
+	server, _ := newTestServer(t)
+	for _, path := range []string{"/service/management/jobs", "/service/management/deadletter-jobs"} {
+		response, err := http.Get(server.URL + path)
+		if err != nil || response.StatusCode != http.StatusOK {
+			t.Fatalf("%s 请求失败: %v %d", path, err, response.StatusCode)
+		}
+		_ = response.Body.Close()
+	}
+	response := postJSON(t, server.URL+"/service/management/jobs/missing", map[string]any{"action": "moveToExecutable"})
+	if response.StatusCode != http.StatusNotFound {
+		t.Fatalf("缺失死信作业应 404: %d", response.StatusCode)
+	}
+	_ = response.Body.Close()
+	response = postJSON(t, server.URL+"/service/management/jobs/missing", map[string]any{"action": "unknown"})
+	if response.StatusCode != http.StatusBadRequest {
+		t.Fatalf("非法作业动作应 400: %d", response.StatusCode)
+	}
+	_ = response.Body.Close()
+}

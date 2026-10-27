@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"time"
 
 	"github.com/flowable-go/flowable/bpmn/model"
 )
@@ -267,6 +268,18 @@ type HistoryService interface {
 	ListHistoricVariableInstances(ctx context.Context, processInstanceID string) ([]HistoricVariableInstance, error)
 }
 
+// JobInfo 是作业信息。
+type JobInfo struct {
+	ID                string    `json:"id"`                          // 作业 ID
+	Type              string    `json:"type,omitempty"`              // 作业类型
+	ProcessInstanceID string    `json:"processInstanceId,omitempty"` // 流程实例 ID
+	ExecutionID       string    `json:"executionId,omitempty"`       // 执行 ID
+	ActivityID        string    `json:"activityId,omitempty"`        // 活动 ID
+	Retries           int       `json:"retries"`                     // 剩余重试次数
+	Exception         string    `json:"exception,omitempty"`         // 最近异常
+	DueDate           time.Time `json:"dueDate"`                     // 到期时间
+}
+
 // ManagementService 提供引擎管理信息。
 type ManagementService interface {
 	// EngineInfo 返回引擎版本与配置摘要。
@@ -279,4 +292,20 @@ type ManagementService interface {
 	// @return 执行数量
 	// @return 执行错误
 	RunDueJobs(ctx context.Context) (int, error)
+	// ListJobs 返回可执行作业。
+	// @param ctx 上下文
+	// @return 作业列表
+	// @return 查询错误
+	ListJobs(ctx context.Context) ([]JobInfo, error)
+	// ListDeadLetterJobs 返回死信作业。
+	// @param ctx 上下文
+	// @return 死信作业列表
+	// @return 查询错误
+	ListDeadLetterJobs(ctx context.Context) ([]JobInfo, error)
+	// MoveDeadLetterJobToExecutable 将死信作业恢复为可执行作业。
+	// @param ctx 上下文
+	// @param jobID 作业 ID
+	// @param retries 恢复后的重试次数
+	// @return 恢复错误
+	MoveDeadLetterJobToExecutable(ctx context.Context, jobID string, retries int) error
 }

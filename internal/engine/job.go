@@ -12,13 +12,93 @@ import (
 	"github.com/flowable-go/flowable/bpmn/model"
 )
 
-// RunDueJobs 执行全部到期的定时器作业。
+// RunDueJobs 执行全部到期作业。
+// 每个作业独立事务，失败只影响该作业。
 // @param ctx 上下文
 // @return 执行数量
 // @return 执行错误
 func (e *Engine) RunDueJobs(ctx context.Context) (int, error) {
+	ids, err := e.dueJobIDs(ctx)
+	if err != nil {
+		return 0, err
+	}
+	total := 0
+	for _, id := range ids {
+		executed, runErr := e.runOneJob(ctx, id)
+		if runErr != nil {
+			return total, runErr
+		}
+		total += executed
+	}
+	return total, nil
+}
+
+// dueJobIDs 返回到期且实例未挂起的作业 ID。
+// @param ctx 上下文
+// @return 作业 ID 列表
+// @return 查询错误
+func (e *Engine) dueJobIDs(ctx context.Context) ([]string, error) {
+	result, err := e.read(func() (any, error) {
+		type dueJob struct {
+			id  string
+			due time.Time
+		}
+		due := make([]dueJob, 0)
+		now := e.cfg.Clock.Now()
+		for _, job := range e.state.Jobs {
+			if job.DueDate.After(now) {
+				continue
+			}
+			if job.ProcessInstanceID != "" {
+				if instance, ok := e.findInstance(job.ProcessInstanceID); ok && instance.Suspended {
+					continue
+				}
+			}
+			due = append(due, dueJob{id: job.ID, due: job.DueDate})
+		}
+		sort.Slice(due, func(i, j int) bool {
+			if due[i].due.Equal(due[j].due) {
+				return due[i].id < due[j].id
+			}
+			return due[i].due.Before(due[j].due)
+		})
+		ids := make([]string, len(due))
+		for i, item := range due {
+			ids[i] = item.id
+		}
+		return ids, nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.([]string), nil
+}
+
+// runOneJob 在独立事务中执行单个作业。
+// @param ctx 上下文
+// @param jobID 作业 ID
+// @return 执行数量
+// @return 执行错误
+func (e *Engine) runOneJob(ctx context.Context, jobID string) (int, error) {
 	result, err := e.execute(ctx, func(cc *commandContext) (any, error) {
-		return e.runDueJobs(cc)
+		job, ok := e.state.Jobs[jobID]
+		if !ok {
+			return 0, nil
+		}
+		backup := cloneState(e.state)
+		delete(e.state.Jobs, job.ID)
+		handleFailure := func(runErr error) (any, error) {
+			e.state = backup
+			e.handleJobFailure(job, runErr, cc.now)
+			return 1, nil
+		}
+		if runErr := e.triggerJob(cc, job); runErr != nil {
+			return handleFailure(runErr)
+		}
+		if runErr := cc.agenda.run(cc); runErr != nil {
+			return handleFailure(runErr)
+		}
+		return 1, nil
 	})
 	if err != nil {
 		return 0, err
@@ -26,43 +106,25 @@ func (e *Engine) RunDueJobs(ctx context.Context) (int, error) {
 	return result.(int), nil
 }
 
-// runDueJobs 在命令内执行到期作业。
-// @param cc 命令上下文
-// @return 执行数量
-// @return 执行错误
-func (e *Engine) runDueJobs(cc *commandContext) (int, error) {
-	jobs := make([]*jobState, 0)
-	for _, job := range e.state.Jobs {
-		if job.DueDate.After(cc.now) {
-			continue
-		}
-		if job.ProcessInstanceID != "" {
-			if instance, ok := e.findInstance(job.ProcessInstanceID); ok && instance.Suspended {
-				continue
-			}
-		}
-		jobs = append(jobs, job)
+// handleJobFailure 处理作业失败：重试或移入死信。
+// @param job 作业
+// @param err 失败原因
+// @param now 当前时间
+func (e *Engine) handleJobFailure(job *jobState, err error, now time.Time) {
+	retries := job.Retries
+	if retries <= 0 {
+		retries = 3
 	}
-	sort.Slice(jobs, func(i, j int) bool {
-		if jobs[i].DueDate.Equal(jobs[j].DueDate) {
-			return jobs[i].ID < jobs[j].ID
-		}
-		return jobs[i].DueDate.Before(jobs[j].DueDate)
-	})
-	executed := 0
-	for _, job := range jobs {
-		delete(e.state.Jobs, job.ID)
-		if err := e.triggerJob(cc, job); err != nil {
-			return 0, err
-		}
-		executed++
+	delete(e.state.Jobs, job.ID)
+	job.Exception = err.Error()
+	if retries <= 1 {
+		job.Retries = 0
+		e.state.DeadLetters[job.ID] = job
+		return
 	}
-	if executed > 0 {
-		if err := cc.agenda.run(cc); err != nil {
-			return 0, err
-		}
-	}
-	return executed, nil
+	job.Retries = retries - 1
+	job.DueDate = now.Add(10 * time.Second)
+	e.state.Jobs[job.ID] = job
 }
 
 // triggerJob 按类型触发作业。
@@ -123,6 +185,7 @@ func (e *Engine) scheduleAsyncJob(cc *commandContext, execution *executionState,
 	job := &jobState{
 		ID:                e.newID(),
 		Type:              jobType,
+		Retries:           3,
 		ProcessInstanceID: execution.ProcessInstanceID,
 		ExecutionID:       execution.ID,
 		ActivityID:        activityID,
@@ -244,6 +307,7 @@ func (e *Engine) scheduleBoundaryEvents(cc *commandContext, execution *execution
 		job := &jobState{
 			ID:                e.newID(),
 			Type:              "boundary-timer",
+			Retries:           3,
 			ProcessInstanceID: execution.ProcessInstanceID,
 			ExecutionID:       execution.ID,
 			BoundaryEventID:   boundary.ID,
@@ -395,6 +459,7 @@ func (e *Engine) scheduleStartTimers(cc *commandContext, definition *definitionS
 		job := &jobState{
 			ID:                  e.newID(),
 			Type:                "timer-start",
+			Retries:             3,
 			ProcessDefinitionID: definition.Info.ID,
 			ActivityID:          start.ID,
 			DueDate:             due,
@@ -422,6 +487,7 @@ func (e *Engine) scheduleTimerCatch(cc *commandContext, execution *executionStat
 	job := &jobState{
 		ID:                e.newID(),
 		Type:              "timer-catch",
+		Retries:           3,
 		ProcessInstanceID: execution.ProcessInstanceID,
 		ExecutionID:       execution.ID,
 		ActivityID:        activityID,

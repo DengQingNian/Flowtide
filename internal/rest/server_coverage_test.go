@@ -40,6 +40,8 @@ func TestREST_ClosedEngine(t *testing.T) {
 		"/service/repository/process-definitions",
 		"/service/repository/deployments",
 		"/service/identity/users",
+		"/service/management/jobs",
+		"/service/management/deadletter-jobs",
 		"/service/identity/groups",
 		"/service/runtime/process-instances",
 		"/service/runtime/tasks",

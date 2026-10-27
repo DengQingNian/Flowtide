@@ -77,6 +77,8 @@ type jobState struct {
 	BoundaryEventID     string    `json:"boundaryEventId"`     // 边界事件 ID
 	ActivityID          string    `json:"activityId"`          // 依附活动 ID
 	CancelActivity      bool      `json:"cancelActivity"`      // 是否中断
+	Retries             int       `json:"retries"`             // 剩余重试次数
+	Exception           string    `json:"exception,omitempty"` // 最近异常
 	DueDate             time.Time `json:"dueDate"`             // 到期时间
 	CreatedAt           time.Time `json:"createdAt"`           // 创建时间
 }
@@ -129,6 +131,7 @@ type state struct {
 	Executions         map[string]*executionState               // 执行
 	Tasks              map[string]*taskState                    // 任务
 	Jobs               map[string]*jobState                     // 定时器作业
+	DeadLetters        map[string]*jobState                     // 死信作业
 	Subscriptions      map[string]*subscriptionState            // 事件订阅
 	Compensations      map[string][]*compensationState          // 补偿登记
 	HistoricProcesses  map[string]*api.HistoricProcessInstance  // 历史流程实例
@@ -151,6 +154,7 @@ func newState() *state {
 		Executions:         make(map[string]*executionState),
 		Tasks:              make(map[string]*taskState),
 		Jobs:               make(map[string]*jobState),
+		DeadLetters:        make(map[string]*jobState),
 		Subscriptions:      make(map[string]*subscriptionState),
 		Compensations:      make(map[string][]*compensationState),
 		HistoricProcesses:  make(map[string]*api.HistoricProcessInstance),
@@ -197,6 +201,10 @@ func cloneState(source *state) *state {
 	for id, job := range source.Jobs {
 		copied := *job
 		target.Jobs[id] = &copied
+	}
+	for id, job := range source.DeadLetters {
+		copied := *job
+		target.DeadLetters[id] = &copied
 	}
 	for id, subscription := range source.Subscriptions {
 		copied := *subscription

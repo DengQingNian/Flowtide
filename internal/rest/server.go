@@ -42,6 +42,9 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("GET /readyz", s.handleReady)
 	s.mux.HandleFunc("GET /service/management/engine", s.handleEngineInfo)
 	s.mux.HandleFunc("POST /service/management/jobs/run", s.handleRunJobs)
+	s.mux.HandleFunc("GET /service/management/jobs", s.handleListJobs)
+	s.mux.HandleFunc("GET /service/management/deadletter-jobs", s.handleListDeadLetterJobs)
+	s.mux.HandleFunc("POST /service/management/jobs/{id}", s.handleJobAction)
 	s.mux.HandleFunc("GET /service/repository/deployments", s.handleListDeployments)
 	s.mux.HandleFunc("POST /service/repository/deployments", s.handleDeploy)
 	s.mux.HandleFunc("GET /service/repository/deployments/{id}", s.handleGetDeployment)
@@ -127,6 +130,58 @@ func (s *Server) handleRunJobs(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, map[string]any{"executed": executed})
+}
+
+// handleListJobs 返回可执行作业。
+// @param w 响应
+// @param r 请求
+func (s *Server) handleListJobs(w http.ResponseWriter, r *http.Request) {
+	jobs, err := s.engine.ManagementService().ListJobs(r.Context())
+	if err != nil {
+		writeError(w, err)
+		return
+	}
+	start, size := pageParams(r)
+	writePage(w, jobs, start, size)
+}
+
+// handleListDeadLetterJobs 返回死信作业。
+// @param w 响应
+// @param r 请求
+func (s *Server) handleListDeadLetterJobs(w http.ResponseWriter, r *http.Request) {
+	jobs, err := s.engine.ManagementService().ListDeadLetterJobs(r.Context())
+	if err != nil {
+		writeError(w, err)
+		return
+	}
+	start, size := pageParams(r)
+	writePage(w, jobs, start, size)
+}
+
+// jobActionPayload 是作业动作请求体。
+type jobActionPayload struct {
+	Action  string `json:"action"`  // 动作
+	Retries int    `json:"retries"` // 重试次数
+}
+
+// handleJobAction 处理作业动作。
+// @param w 响应
+// @param r 请求
+func (s *Server) handleJobAction(w http.ResponseWriter, r *http.Request) {
+	var payload jobActionPayload
+	if err := decodeJSON(r, &payload); err != nil {
+		writeError(w, err)
+		return
+	}
+	if payload.Action != "moveToExecutable" {
+		writeError(w, api.NewError("REST-0112", "不支持的作业动作: "+payload.Action, api.ErrBadRequest))
+		return
+	}
+	if err := s.engine.ManagementService().MoveDeadLetterJobToExecutable(r.Context(), r.PathValue("id"), payload.Retries); err != nil {
+		writeError(w, err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
 }
 
 // handleDeploy 处理部署请求。
@@ -958,6 +1013,12 @@ func reflectSlice(items any) []any {
 		}
 		return out
 	case []api.Group:
+		out := make([]any, len(typed))
+		for i, item := range typed {
+			out[i] = item
+		}
+		return out
+	case []api.JobInfo:
 		out := make([]any, len(typed))
 		for i, item := range typed {
 			out[i] = item
