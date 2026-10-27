@@ -33,9 +33,15 @@ func (e *Engine) RunDueJobs(ctx context.Context) (int, error) {
 func (e *Engine) runDueJobs(cc *commandContext) (int, error) {
 	jobs := make([]*jobState, 0)
 	for _, job := range e.state.Jobs {
-		if !job.DueDate.After(cc.now) {
-			jobs = append(jobs, job)
+		if job.DueDate.After(cc.now) {
+			continue
 		}
+		if job.ProcessInstanceID != "" {
+			if instance, ok := e.findInstance(job.ProcessInstanceID); ok && instance.Suspended {
+				continue
+			}
+		}
+		jobs = append(jobs, job)
 	}
 	sort.Slice(jobs, func(i, j int) bool {
 		if jobs[i].DueDate.Equal(jobs[j].DueDate) {

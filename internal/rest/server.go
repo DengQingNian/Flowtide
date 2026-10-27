@@ -46,10 +46,12 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("GET /service/repository/process-definitions", s.handleListDefinitions)
 	s.mux.HandleFunc("GET /service/repository/process-definitions/{id}", s.handleGetDefinition)
 	s.mux.HandleFunc("GET /service/repository/process-definitions/{id}/xml", s.handleGetDefinitionXML)
+	s.mux.HandleFunc("PUT /service/repository/process-definitions/{id}", s.handleDefinitionAction)
 	s.mux.HandleFunc("POST /service/runtime/process-instances", s.handleStartInstance)
 	s.mux.HandleFunc("GET /service/runtime/process-instances", s.handleListInstances)
 	s.mux.HandleFunc("GET /service/runtime/process-instances/{id}", s.handleGetInstance)
 	s.mux.HandleFunc("DELETE /service/runtime/process-instances/{id}", s.handleDeleteInstance)
+	s.mux.HandleFunc("PUT /service/runtime/process-instances/{id}", s.handleInstanceAction)
 	s.mux.HandleFunc("GET /service/runtime/process-instances/{id}/variables", s.handleGetVariables)
 	s.mux.HandleFunc("POST /service/runtime/messages", s.handleMessage)
 	s.mux.HandleFunc("POST /service/runtime/signals", s.handleSignal)
@@ -213,6 +215,38 @@ func (s *Server) handleGetDefinition(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, definition)
 }
 
+// definitionActionPayload 是流程定义动作请求体。
+type definitionActionPayload struct {
+	Action                  string `json:"action"`                  // suspend/activate
+	IncludeProcessInstances bool   `json:"includeProcessInstances"` // 是否包含实例
+}
+
+// handleDefinitionAction 处理定义挂起/激活。
+// @param w 响应
+// @param r 请求
+func (s *Server) handleDefinitionAction(w http.ResponseWriter, r *http.Request) {
+	var payload definitionActionPayload
+	if err := decodeJSON(r, &payload); err != nil {
+		writeError(w, err)
+		return
+	}
+	var err error
+	switch payload.Action {
+	case "suspend":
+		err = s.engine.RepositoryService().SuspendProcessDefinition(r.Context(), r.PathValue("id"), payload.IncludeProcessInstances)
+	case "activate":
+		err = s.engine.RepositoryService().ActivateProcessDefinition(r.Context(), r.PathValue("id"), payload.IncludeProcessInstances)
+	default:
+		writeError(w, api.NewError("REST-0110", "不支持的定义动作: "+payload.Action, api.ErrBadRequest))
+		return
+	}
+	if err != nil {
+		writeError(w, err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
 // handleGetDefinitionXML 返回流程定义 XML。
 // @param w 响应
 // @param r 请求
@@ -340,6 +374,37 @@ func (s *Server) handleGetInstance(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, instance)
+}
+
+// instanceActionPayload 是实例动作请求体。
+type instanceActionPayload struct {
+	Action string `json:"action"` // suspend/activate
+}
+
+// handleInstanceAction 处理实例挂起/激活。
+// @param w 响应
+// @param r 请求
+func (s *Server) handleInstanceAction(w http.ResponseWriter, r *http.Request) {
+	var payload instanceActionPayload
+	if err := decodeJSON(r, &payload); err != nil {
+		writeError(w, err)
+		return
+	}
+	var err error
+	switch payload.Action {
+	case "suspend":
+		err = s.engine.RuntimeService().SuspendProcessInstance(r.Context(), r.PathValue("id"))
+	case "activate":
+		err = s.engine.RuntimeService().ActivateProcessInstance(r.Context(), r.PathValue("id"))
+	default:
+		writeError(w, api.NewError("REST-0111", "不支持的实例动作: "+payload.Action, api.ErrBadRequest))
+		return
+	}
+	if err != nil {
+		writeError(w, err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
 }
 
 // handleDeleteInstance 删除实例。

@@ -66,6 +66,18 @@ type RepositoryService interface {
 	// @return XML 内容
 	// @return 查询错误
 	GetProcessDefinitionXML(ctx context.Context, definitionID string) ([]byte, error)
+	// SuspendProcessDefinition 挂起流程定义。
+	// @param ctx 上下文
+	// @param definitionID 流程定义 ID
+	// @param includeInstances 是否同时挂起实例
+	// @return 挂起错误
+	SuspendProcessDefinition(ctx context.Context, definitionID string, includeInstances bool) error
+	// ActivateProcessDefinition 激活流程定义。
+	// @param ctx 上下文
+	// @param definitionID 流程定义 ID
+	// @param includeInstances 是否同时激活实例
+	// @return 激活错误
+	ActivateProcessDefinition(ctx context.Context, definitionID string, includeInstances bool) error
 }
 
 // StartRequest 是启动流程实例的请求。
@@ -130,6 +142,16 @@ type RuntimeService interface {
 	// @return 触发数量
 	// @return 投递错误
 	SignalEventReceived(ctx context.Context, signalName string, variables []Variable) (int, error)
+	// SuspendProcessInstance 挂起流程实例。
+	// @param ctx 上下文
+	// @param processInstanceID 实例 ID
+	// @return 挂起错误
+	SuspendProcessInstance(ctx context.Context, processInstanceID string) error
+	// ActivateProcessInstance 激活流程实例。
+	// @param ctx 上下文
+	// @param processInstanceID 实例 ID
+	// @return 激活错误
+	ActivateProcessInstance(ctx context.Context, processInstanceID string) error
 }
 
 // CompleteTaskRequest 是完成任务请求。

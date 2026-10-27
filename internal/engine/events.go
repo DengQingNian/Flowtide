@@ -103,6 +103,9 @@ func (e *Engine) triggerSubscription(cc *commandContext, subscription *subscript
 		delete(e.state.Subscriptions, subscription.ID)
 		return nil
 	}
+	if instance, exists := e.findInstance(execution.ProcessInstanceID); exists && instance.Suspended {
+		return nil
+	}
 	for name, value := range variables {
 		e.setVariable(execution, name, value)
 	}

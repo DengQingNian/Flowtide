@@ -249,6 +249,10 @@ func (e *Engine) Claim(ctx context.Context, taskID, userID string) error {
 		if !ok {
 			return nil, api.NewError("ENGINE-0805", "任务不存在", api.ErrNotFound)
 		}
+		instance, _ := e.findInstance(task.Task.ProcessInstanceID)
+		if instance != nil && instance.Suspended {
+			return nil, api.NewError("ENGINE-0810", "流程实例已挂起", api.ErrConflict)
+		}
 		if strings.TrimSpace(userID) == "" {
 			return nil, api.NewError("ENGINE-0806", "签收人不能为空", api.ErrBadRequest)
 		}
@@ -278,6 +282,10 @@ func (e *Engine) Complete(ctx context.Context, taskID string, req api.CompleteTa
 		execution, ok := e.findExecution(task.ExecutionID)
 		if !ok {
 			return nil, api.NewError("ENGINE-0405", "任务所属执行不存在", nil)
+		}
+		instance, _ := e.findInstance(task.Task.ProcessInstanceID)
+		if instance != nil && instance.Suspended {
+			return nil, api.NewError("ENGINE-0810", "流程实例已挂起", api.ErrConflict)
 		}
 		if req.UserID != "" && task.Task.Assignee != "" && task.Task.Assignee != req.UserID {
 			return nil, api.NewError("ENGINE-0808", "任务处理人不匹配", api.ErrForbidden)
@@ -310,6 +318,10 @@ func (e *Engine) Delegate(ctx context.Context, taskID, userID string) error {
 		task, ok := e.findTask(taskID)
 		if !ok {
 			return nil, api.NewError("ENGINE-0805", "任务不存在", api.ErrNotFound)
+		}
+		instance, _ := e.findInstance(task.Task.ProcessInstanceID)
+		if instance != nil && instance.Suspended {
+			return nil, api.NewError("ENGINE-0810", "流程实例已挂起", api.ErrConflict)
 		}
 		if task.Task.Assignee == "" {
 			return nil, api.NewError("ENGINE-0809", "任务未签收，无法委派", api.ErrConflict)

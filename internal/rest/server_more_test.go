@@ -245,3 +245,131 @@ func TestREST_MessagesAndSignals(t *testing.T) {
 	}
 	_ = response.Body.Close()
 }
+
+// TestREST_Suspension 验证挂起与激活端点。
+// @param t 测试上下文
+func TestREST_Suspension(t *testing.T) {
+	server, _ := newTestServer(t)
+	deployREST(t, server)
+	response, _ := http.Get(server.URL + "/service/repository/process-definitions")
+	var page struct {
+		Data []map[string]any `json:"data"`
+	}
+	_ = json.NewDecoder(response.Body).Decode(&page)
+	_ = response.Body.Close()
+	definitionID, _ := page.Data[0]["id"].(string)
+
+	putJSON := func(path string, body any) *http.Response {
+		data, _ := json.Marshal(body)
+		request, _ := http.NewRequest(http.MethodPut, server.URL+path, bytes.NewReader(data))
+		request.Header.Set("Content-Type", "application/json")
+		response, err := http.DefaultClient.Do(request)
+		if err != nil {
+			t.Fatalf("PUT 请求失败: %v", err)
+		}
+		return response
+	}
+
+	response = putJSON("/service/repository/process-definitions/"+definitionID, map[string]any{"action": "suspend"})
+	if response.StatusCode != http.StatusNoContent {
+		t.Fatalf("挂起定义失败: %d", response.StatusCode)
+	}
+	_ = response.Body.Close()
+	response = postJSON(t, server.URL+"/service/runtime/process-instances", map[string]any{"processDefinitionKey": "rest"})
+	if response.StatusCode != http.StatusConflict {
+		t.Fatalf("挂起定义后启动应 409: %d", response.StatusCode)
+	}
+	_ = response.Body.Close()
+	response = putJSON("/service/repository/process-definitions/"+definitionID, map[string]any{"action": "activate"})
+	_ = response.Body.Close()
+
+	response = postJSON(t, server.URL+"/service/runtime/process-instances", map[string]any{
+		"processDefinitionKey": "rest",
+		"variables":            []map[string]any{{"name": "initiator", "value": "alice"}},
+	})
+	var instance map[string]any
+	_ = json.NewDecoder(response.Body).Decode(&instance)
+	_ = response.Body.Close()
+	instanceID, _ := instance["id"].(string)
+	response, _ = http.Get(server.URL + "/service/runtime/tasks")
+	var tasks struct {
+		Data []map[string]any `json:"data"`
+	}
+	_ = json.NewDecoder(response.Body).Decode(&tasks)
+	_ = response.Body.Close()
+	taskID, _ := tasks.Data[0]["id"].(string)
+
+	response = putJSON("/service/runtime/process-instances/"+instanceID, map[string]any{"action": "suspend"})
+	if response.StatusCode != http.StatusNoContent {
+		t.Fatalf("挂起实例失败: %d", response.StatusCode)
+	}
+	_ = response.Body.Close()
+	response = postJSON(t, server.URL+"/service/runtime/tasks/"+taskID, map[string]any{"action": "complete", "userId": "alice"})
+	if response.StatusCode != http.StatusConflict {
+		t.Fatalf("挂起实例任务应 409: %d", response.StatusCode)
+	}
+	_ = response.Body.Close()
+	response = putJSON("/service/runtime/process-instances/"+instanceID, map[string]any{"action": "activate"})
+	_ = response.Body.Close()
+	response = putJSON("/service/runtime/process-instances/"+instanceID, map[string]any{"action": "invalid"})
+	if response.StatusCode != http.StatusBadRequest {
+		t.Fatalf("非法实例动作应 400: %d", response.StatusCode)
+	}
+	_ = response.Body.Close()
+	response = putJSON("/service/repository/process-definitions/"+definitionID, map[string]any{"action": "invalid"})
+	if response.StatusCode != http.StatusBadRequest {
+		t.Fatalf("非法定义动作应 400: %d", response.StatusCode)
+	}
+	_ = response.Body.Close()
+}
+
+// TestREST_ActionErrors 验证动作错误分支。
+// @param t 测试上下文
+func TestREST_ActionErrors(t *testing.T) {
+	server, _ := newTestServer(t)
+	deployREST(t, server)
+	response := postJSON(t, server.URL+"/service/runtime/process-instances", map[string]any{
+		"processDefinitionKey": "rest",
+		"variables":            []map[string]any{{"name": "initiator", "value": "alice"}},
+	})
+	_ = response.Body.Close()
+	response, _ = http.Get(server.URL + "/service/runtime/tasks")
+	var page struct {
+		Data []map[string]any `json:"data"`
+	}
+	_ = json.NewDecoder(response.Body).Decode(&page)
+	_ = response.Body.Close()
+	taskID, _ := page.Data[0]["id"].(string)
+
+	response = postJSON(t, server.URL+"/service/runtime/tasks/"+taskID, map[string]any{"action": "complete", "userId": "bob"})
+	if response.StatusCode != http.StatusForbidden {
+		t.Fatalf("错误处理人应 403: %d", response.StatusCode)
+	}
+	_ = response.Body.Close()
+	response = postJSON(t, server.URL+"/service/runtime/tasks/"+taskID, map[string]any{"action": "delegate", "userId": ""})
+	if response.StatusCode != http.StatusBadRequest {
+		t.Fatalf("空被委托人应 400: %d", response.StatusCode)
+	}
+	_ = response.Body.Close()
+
+	request, _ := http.NewRequest(http.MethodPut, server.URL+"/service/repository/process-definitions/missing", bytes.NewBufferString(`{"action":"suspend"}`))
+	request.Header.Set("Content-Type", "application/json")
+	response, _ = http.DefaultClient.Do(request)
+	if response.StatusCode != http.StatusNotFound {
+		t.Fatalf("缺失定义应 404: %d", response.StatusCode)
+	}
+	_ = response.Body.Close()
+	request, _ = http.NewRequest(http.MethodPut, server.URL+"/service/runtime/process-instances/missing", bytes.NewBufferString(`{"action":"suspend"}`))
+	request.Header.Set("Content-Type", "application/json")
+	response, _ = http.DefaultClient.Do(request)
+	if response.StatusCode != http.StatusNotFound {
+		t.Fatalf("缺失实例应 404: %d", response.StatusCode)
+	}
+	_ = response.Body.Close()
+
+	response = postJSON(t, server.URL+"/service/runtime/signals", "not-an-object")
+	if response.StatusCode != http.StatusBadRequest {
+		t.Fatalf("非法信号体应 400: %d", response.StatusCode)
+	}
+	_ = response.Body.Close()
+}
