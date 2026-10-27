@@ -51,6 +51,8 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("GET /service/runtime/process-instances/{id}", s.handleGetInstance)
 	s.mux.HandleFunc("DELETE /service/runtime/process-instances/{id}", s.handleDeleteInstance)
 	s.mux.HandleFunc("GET /service/runtime/process-instances/{id}/variables", s.handleGetVariables)
+	s.mux.HandleFunc("POST /service/runtime/messages", s.handleMessage)
+	s.mux.HandleFunc("POST /service/runtime/signals", s.handleSignal)
 	s.mux.HandleFunc("GET /service/runtime/tasks", s.handleListTasks)
 	s.mux.HandleFunc("GET /service/runtime/tasks/{id}", s.handleGetTask)
 	s.mux.HandleFunc("POST /service/runtime/tasks/{id}", s.handleTaskAction)
@@ -262,6 +264,57 @@ func (s *Server) handleStartInstance(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusCreated, instance)
+}
+
+// eventPayload 是消息/信号请求体。
+type eventPayload struct {
+	MessageName string          `json:"messageName"` // 消息名
+	SignalName  string          `json:"signalName"`  // 信号名
+	Variables   json.RawMessage `json:"variables"`   // 变量
+}
+
+// handleMessage 投递消息。
+// @param w 响应
+// @param r 请求
+func (s *Server) handleMessage(w http.ResponseWriter, r *http.Request) {
+	var payload eventPayload
+	if err := decodeJSON(r, &payload); err != nil {
+		writeError(w, err)
+		return
+	}
+	variables, err := parseVariables(payload.Variables)
+	if err != nil {
+		writeError(w, err)
+		return
+	}
+	triggered, err := s.engine.RuntimeService().MessageEventReceived(r.Context(), payload.MessageName, variables)
+	if err != nil {
+		writeError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"triggered": triggered})
+}
+
+// handleSignal 广播信号。
+// @param w 响应
+// @param r 请求
+func (s *Server) handleSignal(w http.ResponseWriter, r *http.Request) {
+	var payload eventPayload
+	if err := decodeJSON(r, &payload); err != nil {
+		writeError(w, err)
+		return
+	}
+	variables, err := parseVariables(payload.Variables)
+	if err != nil {
+		writeError(w, err)
+		return
+	}
+	triggered, err := s.engine.RuntimeService().SignalEventReceived(r.Context(), payload.SignalName, variables)
+	if err != nil {
+		writeError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"triggered": triggered})
 }
 
 // handleListInstances 返回运行中实例。

@@ -37,6 +37,12 @@ func Parse(data []byte) (*model.BpmnModel, error) {
 		return nil, api.NewError("BPMN-1000", "根元素必须是 definitions", nil)
 	}
 	result := &model.BpmnModel{}
+	for _, messageNode := range root.ChildrenNamed("message") {
+		result.Messages = append(result.Messages, &model.Message{ID: messageNode.Attr("id"), Name: messageNode.Attr("name")})
+	}
+	for _, signalNode := range root.ChildrenNamed("signal") {
+		result.Signals = append(result.Signals, &model.Signal{ID: signalNode.Attr("id"), Name: signalNode.Attr("name")})
+	}
 	for _, processNode := range root.ChildrenNamed("process") {
 		process, parseErr := parseProcess(processNode)
 		if parseErr != nil {
@@ -103,7 +109,7 @@ func parseElement(node *Node) (model.FlowElement, error) {
 		parseFlowNodeBase(node, &event.FlowNodeBase)
 		event.FormKey = attrAny(node, "formKey")
 		event.Initiator = attrAny(node, "initiator")
-		event.Timer = parseTimer(node)
+		event.MessageRef, event.SignalRef, event.Timer = parseEventDefinition(node)
 		return event, nil
 	case "endEvent":
 		event := &model.EndEvent{Terminate: hasChild(node, "terminateEventDefinition")}
@@ -158,6 +164,11 @@ func parseElement(node *Node) (model.FlowElement, error) {
 		gateway := &model.ParallelGateway{}
 		parseFlowNodeBase(node, &gateway.FlowNodeBase)
 		return gateway, nil
+	case "intermediateCatchEvent":
+		event := &model.IntermediateCatchEvent{}
+		parseFlowNodeBase(node, &event.FlowNodeBase)
+		event.MessageRef, event.SignalRef, event.Timer = parseEventDefinition(node)
+		return event, nil
 	case "callActivity":
 		activity := &model.CallActivity{
 			CalledElement:    attrAny(node, "calledElement"),
@@ -307,6 +318,36 @@ func lookupFlowNode(elements map[string]model.FlowElement, id string) (model.Flo
 	}
 	node, ok := element.(model.FlowNode)
 	return node, ok
+}
+
+// parseEventDefinition 解析事件定义。
+// @param node 事件节点
+// @return 消息引用
+// @return 信号引用
+// @return 定时器定义
+func parseEventDefinition(node *Node) (string, string, *model.TimerDefinition) {
+	var messageRef string
+	var signalRef string
+	var timer *model.TimerDefinition
+	if child, ok := node.Child("messageEventDefinition"); ok {
+		messageRef = attrAny(child, "messageRef")
+	}
+	if child, ok := node.Child("signalEventDefinition"); ok {
+		signalRef = attrAny(child, "signalRef")
+	}
+	if child, ok := node.Child("timerEventDefinition"); ok {
+		timer = &model.TimerDefinition{}
+		if value, exists := child.Child("timeDate"); exists {
+			timer.TimeDate = value.TextContent()
+		}
+		if value, exists := child.Child("timeDuration"); exists {
+			timer.TimeDuration = value.TextContent()
+		}
+		if value, exists := child.Child("timeCycle"); exists {
+			timer.TimeCycle = value.TextContent()
+		}
+	}
+	return messageRef, signalRef, timer
 }
 
 // parseIOParameters 解析调用活动入参与出参。

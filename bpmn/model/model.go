@@ -5,6 +5,20 @@ package model
 // BpmnModel 是 BPMN 文件的根模型。
 type BpmnModel struct {
 	Processes []*Process // 流程列表
+	Messages  []*Message // 全局消息
+	Signals   []*Signal  // 全局信号
+}
+
+// Message 表示全局消息定义。
+type Message struct {
+	ID   string // 消息 ID
+	Name string // 消息名
+}
+
+// Signal 表示全局信号定义。
+type Signal struct {
+	ID   string // 信号 ID
+	Name string // 信号名
 }
 
 // Process 表示一个可执行流程。
@@ -105,9 +119,11 @@ type FlowNode interface {
 // StartEvent 表示开始事件。
 type StartEvent struct {
 	FlowNodeBase
-	FormKey   string           // 启动表单 Key
-	Initiator string           // 发起人变量名
-	Timer     *TimerDefinition // 定时启动配置
+	FormKey    string           // 启动表单 Key
+	Initiator  string           // 发起人变量名
+	Timer      *TimerDefinition // 定时启动配置
+	MessageRef string           // 消息引用
+	SignalRef  string           // 信号引用
 }
 
 // ElementType 返回元素类型。
@@ -238,6 +254,18 @@ type BoundaryEvent struct {
 // ElementType 返回元素类型。
 // @return 元素类型
 func (e *BoundaryEvent) ElementType() string { return "boundaryEvent" }
+
+// IntermediateCatchEvent 表示中间捕获事件。
+type IntermediateCatchEvent struct {
+	FlowNodeBase
+	MessageRef string           // 消息引用
+	SignalRef  string           // 信号引用
+	Timer      *TimerDefinition // 定时器定义
+}
+
+// ElementType 返回元素类型。
+// @return 元素类型
+func (e *IntermediateCatchEvent) ElementType() string { return "intermediateCatchEvent" }
 
 // SubProcess 表示嵌入式子流程。
 type SubProcess struct {

@@ -44,6 +44,17 @@ func TestREST_ClosedEngine(t *testing.T) {
 		"/service/history/historic-activity-instances",
 		"/service/history/historic-task-instances",
 	}
+	posts := []string{"/service/runtime/messages", "/service/runtime/signals", "/service/management/jobs/run"}
+	for _, path := range posts {
+		response, err := http.Post(server.URL+path, "application/json", bytes.NewBufferString("{}"))
+		if err != nil {
+			t.Fatalf("%s 请求失败: %v", path, err)
+		}
+		if response.StatusCode != http.StatusServiceUnavailable {
+			t.Fatalf("%s 期望 503，实际 %d", path, response.StatusCode)
+		}
+		_ = response.Body.Close()
+	}
 	for _, path := range paths {
 		response, err := http.Get(server.URL + path)
 		if err != nil {

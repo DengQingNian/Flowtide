@@ -170,6 +170,15 @@ func (e *Engine) continueAt(cc *commandContext, executionID, activityID string) 
 		execution.CurrentHistActivityID = ""
 		e.endExecution(cc, execution, node.Terminate)
 		return nil
+	case *model.IntermediateCatchEvent:
+		if node.MessageRef == "" && node.SignalRef == "" {
+			return api.NewError("ENGINE-0622", "中间捕获事件缺少消息或信号定义", nil)
+		}
+		if err := e.createExecutionSubscription(cc, execution, definition, node.MessageRef, node.SignalRef); err != nil {
+			return err
+		}
+		execution.Waiting = true
+		return nil
 	case *model.CallActivity:
 		return e.startCallActivity(cc, execution, node)
 	case *model.BoundaryEvent:
@@ -447,6 +456,7 @@ func (e *Engine) endExecution(cc *commandContext, execution *executionState, ter
 	execution.Active = false
 	execution.Waiting = false
 	e.cancelBoundaryTimers(execution.ID)
+	e.removeSubscriptionsForExecution(execution.ID)
 	// 子流程作用域根结束：恢复父执行并继续子流程之后的路径
 	if execution.ScopeRoot && execution.ParentID != "" {
 		parent, parentOK := e.findExecution(execution.ParentID)
@@ -509,6 +519,7 @@ func (e *Engine) endProcessInstance(cc *commandContext, instance *instanceState)
 			delete(e.state.Jobs, id)
 		}
 	}
+	e.removeSubscriptionsForInstance(instance.ID)
 	e.recordProcessEnd(cc, instance)
 	// 子流程结束后恢复父调用活动
 	if instance.SuperExecutionID != "" {
@@ -648,6 +659,7 @@ func (e *Engine) DeleteProcessInstance(ctx context.Context, id, reason string) e
 				delete(e.state.Jobs, jobID)
 			}
 		}
+		e.removeSubscriptionsForInstance(id)
 		instance.Ended = true
 		instance.EndTime = cloneTime(&cc.now)
 		e.recordProcessEnd(cc, instance)

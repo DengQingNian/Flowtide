@@ -81,6 +81,7 @@ func (e *Engine) deploy(cc *commandContext, req api.DeploymentRequest) (api.Depl
 				XML:   append([]byte(nil), data...),
 			}
 			e.state.Definitions[definitionID] = definition
+			e.createStartSubscriptions(cc, definition, process)
 		}
 	}
 	for key, count := range localVersions {

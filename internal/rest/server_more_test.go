@@ -197,3 +197,51 @@ func TestREST_RunJobs(t *testing.T) {
 		t.Fatalf("期望执行 0 个作业，实际 %+v", body)
 	}
 }
+
+const restMessageXML = `<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"
+             xmlns:flowable="http://flowable.org/bpmn">
+  <message id="rm" name="restMessage"/>
+  <signal id="rs" name="restSignal"/>
+  <process id="restMessageProcess" isExecutable="true">
+    <startEvent id="s"><messageEventDefinition messageRef="rm"/></startEvent>
+    <sequenceFlow id="f1" sourceRef="s" targetRef="task"/>
+    <userTask id="task" name="Task" flowable:assignee="§{assignee}"/>
+    <sequenceFlow id="f2" sourceRef="task" targetRef="e"/>
+    <endEvent id="e"/>
+  </process>
+</definitions>`
+
+// TestREST_MessagesAndSignals 验证消息与信号端点。
+// @param t 测试上下文
+func TestREST_MessagesAndSignals(t *testing.T) {
+	server, _ := newTestServer(t)
+	response, err := http.Post(server.URL+"/service/repository/deployments", "application/xml", bytes.NewBufferString(restMessageXML))
+	if err != nil || response.StatusCode != http.StatusCreated {
+		t.Fatalf("部署失败: %v %d", err, response.StatusCode)
+	}
+	_ = response.Body.Close()
+	response = postJSON(t, server.URL+"/service/runtime/messages", map[string]any{
+		"messageName": "restMessage",
+		"variables":   []map[string]any{{"name": "assignee", "value": "alice"}},
+	})
+	if response.StatusCode != http.StatusOK {
+		t.Fatalf("消息投递失败: %d", response.StatusCode)
+	}
+	var result map[string]any
+	_ = json.NewDecoder(response.Body).Decode(&result)
+	_ = response.Body.Close()
+	if result["triggered"] != float64(1) {
+		t.Fatalf("期望触发 1 个实例: %+v", result)
+	}
+	response = postJSON(t, server.URL+"/service/runtime/signals", map[string]any{"signalName": "unknown"})
+	if response.StatusCode != http.StatusOK {
+		t.Fatalf("信号端点失败: %d", response.StatusCode)
+	}
+	_ = response.Body.Close()
+	response, err = http.Post(server.URL+"/service/runtime/messages", "application/json", bytes.NewBufferString("{"))
+	if err != nil || response.StatusCode != http.StatusBadRequest {
+		t.Fatalf("非法消息请求应返回 400: %v %d", err, response.StatusCode)
+	}
+	_ = response.Body.Close()
+}

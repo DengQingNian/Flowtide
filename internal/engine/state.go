@@ -75,6 +75,20 @@ type jobState struct {
 	CreatedAt         time.Time `json:"createdAt"`         // 创建时间
 }
 
+// subscriptionState 是消息/信号订阅。
+type subscriptionState struct {
+	ID                  string    `json:"id"`                  // 订阅 ID
+	ProcessDefinitionID string    `json:"processDefinitionId"` // 流程定义 ID
+	ProcessInstanceID   string    `json:"processInstanceId"`   // 流程实例 ID，启动订阅为空
+	ExecutionID         string    `json:"executionId"`         // 执行 ID
+	EventType           string    `json:"eventType"`           // message 或 signal
+	EventName           string    `json:"eventName"`           // 事件名
+	ActivityID          string    `json:"activityId"`          // 活动 ID
+	StartEvent          bool      `json:"startEvent"`          // 是否启动订阅
+	TenantID            string    `json:"tenantId"`            // 租户
+	CreatedAt           time.Time `json:"createdAt"`           // 创建时间
+}
+
 // taskState 是用户任务的运行时状态。
 type taskState struct {
 	Task            api.Task       // 任务数据
@@ -94,6 +108,7 @@ type state struct {
 	Executions         map[string]*executionState               // 执行
 	Tasks              map[string]*taskState                    // 任务
 	Jobs               map[string]*jobState                     // 定时器作业
+	Subscriptions      map[string]*subscriptionState            // 事件订阅
 	HistoricProcesses  map[string]*api.HistoricProcessInstance  // 历史流程实例
 	HistoricActivities map[string]*api.HistoricActivityInstance // 历史活动
 	HistoricTasks      map[string]*api.HistoricTaskInstance     // 历史任务
@@ -110,6 +125,7 @@ func newState() *state {
 		Executions:         make(map[string]*executionState),
 		Tasks:              make(map[string]*taskState),
 		Jobs:               make(map[string]*jobState),
+		Subscriptions:      make(map[string]*subscriptionState),
 		HistoricProcesses:  make(map[string]*api.HistoricProcessInstance),
 		HistoricActivities: make(map[string]*api.HistoricActivityInstance),
 		HistoricTasks:      make(map[string]*api.HistoricTaskInstance),
@@ -150,6 +166,10 @@ func cloneState(source *state) *state {
 	for id, job := range source.Jobs {
 		copied := *job
 		target.Jobs[id] = &copied
+	}
+	for id, subscription := range source.Subscriptions {
+		copied := *subscription
+		target.Subscriptions[id] = &copied
 	}
 	for id, historic := range source.HistoricProcesses {
 		copied := *historic

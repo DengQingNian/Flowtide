@@ -116,6 +116,20 @@ type RuntimeService interface {
 	// @param value 变量值
 	// @return 设置错误
 	SetVariable(ctx context.Context, processInstanceID, name string, value any) error
+	// MessageEventReceived 投递消息，触发一个匹配订阅。
+	// @param ctx 上下文
+	// @param messageName 消息名
+	// @param variables 变量
+	// @return 触发数量
+	// @return 投递错误
+	MessageEventReceived(ctx context.Context, messageName string, variables []Variable) (int, error)
+	// SignalEventReceived 广播信号，触发全部匹配订阅。
+	// @param ctx 上下文
+	// @param signalName 信号名
+	// @param variables 变量
+	// @return 触发数量
+	// @return 投递错误
+	SignalEventReceived(ctx context.Context, signalName string, variables []Variable) (int, error)
 }
 
 // CompleteTaskRequest 是完成任务请求。
