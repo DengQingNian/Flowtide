@@ -226,7 +226,15 @@ func (e *Engine) continueAt(cc *commandContext, executionID, activityID string) 
 		execution.CurrentHistActivityID = ""
 		return e.scheduleTakeOutgoing(cc, execution, node)
 	case *model.ScriptTask:
-		return api.NewError("ENGINE-0701", "脚本任务暂未实现", nil)
+		if err := e.executeScriptTask(cc, execution, node); err != nil {
+			return err
+		}
+		e.cancelBoundaryTimers(execution.ID)
+		e.cancelBoundarySubscriptions(execution.ID)
+		e.registerCompensation(cc, execution, node.ID)
+		e.recordActivityEnd(cc, execution.CurrentHistActivityID)
+		execution.CurrentHistActivityID = ""
+		return e.scheduleTakeOutgoing(cc, execution, node)
 	case *model.ManualTask:
 		e.cancelBoundaryTimers(execution.ID)
 		e.cancelBoundarySubscriptions(execution.ID)

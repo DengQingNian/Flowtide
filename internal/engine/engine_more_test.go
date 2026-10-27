@@ -284,14 +284,14 @@ func TestExecutionAccessors(t *testing.T) {
 	}
 }
 
-// TestScriptTask_Unsupported 验证脚本任务占位错误。
+// TestScriptTask_JavaScriptExpression 验证 JS 表达式子集。
 // @param t 测试上下文
-func TestScriptTask_Unsupported(t *testing.T) {
+func TestScriptTask_JavaScriptExpression(t *testing.T) {
 	engine := newTestEngine(t)
 	xml := `<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"><process id="script" isExecutable="true"><startEvent id="start"/><sequenceFlow id="f1" sourceRef="start" targetRef="script"/><scriptTask id="script" scriptFormat="javascript"><script>1+1</script></scriptTask><sequenceFlow id="f2" sourceRef="script" targetRef="end"/><endEvent id="end"/></process></definitions>`
 	deployXML(t, engine, xml)
-	if _, err := engine.StartProcessInstance(context.Background(), api.StartRequest{ProcessDefinitionKey: "script"}); err == nil {
-		t.Fatalf("期望脚本任务返回未实现错误")
+	if _, err := engine.StartProcessInstance(context.Background(), api.StartRequest{ProcessDefinitionKey: "script"}); err != nil {
+		t.Fatalf("JS 表达式脚本失败: %v", err)
 	}
 }
 
