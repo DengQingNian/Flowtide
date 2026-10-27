@@ -266,6 +266,8 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("DELETE /service/runtime/process-instances/{id}", s.handleDeleteInstance)
 	s.mux.HandleFunc("PUT /service/runtime/process-instances/{id}", s.handleInstanceAction)
 	s.mux.HandleFunc("POST /service/runtime/process-instances/{id}/migrate", s.handleMigrate)
+	s.mux.HandleFunc("GET /service/runtime/process-instances/{id}/attachments", s.handleListProcessAttachments)
+	s.mux.HandleFunc("POST /service/runtime/process-instances/{id}/attachments", s.handleAddProcessAttachment)
 	s.mux.HandleFunc("GET /service/runtime/process-instances/{id}/comments", s.handleListProcessComments)
 	s.mux.HandleFunc("POST /service/runtime/process-instances/{id}/comments", s.handleAddProcessComment)
 	s.mux.HandleFunc("GET /service/runtime/process-instances/{id}/tasks", s.handleGetInstanceTasks)
@@ -1361,6 +1363,36 @@ func (s *Server) handleDeleteInstanceVariable(w http.ResponseWriter, r *http.Req
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
+}
+
+// handleListProcessAttachments 返回流程实例附件。
+// @param w 响应
+// @param r 请求
+func (s *Server) handleListProcessAttachments(w http.ResponseWriter, r *http.Request) {
+	attachments, err := s.engine.TaskService().ListProcessAttachments(r.Context(), r.PathValue("id"))
+	if err != nil {
+		writeError(w, err)
+		return
+	}
+	start, size := pageParams(r)
+	writePage(w, attachments, start, size)
+}
+
+// handleAddProcessAttachment 添加流程实例附件。
+// @param w 响应
+// @param r 请求
+func (s *Server) handleAddProcessAttachment(w http.ResponseWriter, r *http.Request) {
+	var attachment api.Attachment
+	if err := decodeJSON(r, &attachment); err != nil {
+		writeError(w, err)
+		return
+	}
+	created, err := s.engine.TaskService().AddProcessAttachment(r.Context(), r.PathValue("id"), attachment)
+	if err != nil {
+		writeError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusCreated, created)
 }
 
 // handleListProcessComments 返回流程实例评论。

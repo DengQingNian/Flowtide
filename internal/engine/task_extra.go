@@ -151,6 +151,64 @@ func (e *Engine) DeleteComment(ctx context.Context, commentID string) error {
 	return err
 }
 
+// AddProcessAttachment 添加流程实例附件。
+// @param ctx 上下文
+// @param processInstanceID 实例 ID
+// @param attachment 附件
+// @return 附件
+// @return 添加错误
+func (e *Engine) AddProcessAttachment(ctx context.Context, processInstanceID string, attachment api.Attachment) (api.Attachment, error) {
+	result, err := e.execute(ctx, func(cc *commandContext) (any, error) {
+		instance, ok := e.findInstance(processInstanceID)
+		if !ok {
+			return nil, api.NewError("ENGINE-0404", "流程实例不存在", api.ErrNotFound)
+		}
+		if err := e.allowTenant(ctx, instance.TenantID); err != nil {
+			return nil, err
+		}
+		if strings.TrimSpace(attachment.Name) == "" {
+			return nil, api.NewError("ENGINE-1102", "附件名称不能为空", api.ErrBadRequest)
+		}
+		attachment.ID = e.newID()
+		attachment.ProcessInstanceID = processInstanceID
+		attachment.Time = cc.now
+		copied := attachment
+		e.state.Attachments[copied.ID] = &copied
+		return copied, nil
+	})
+	if err != nil {
+		return api.Attachment{}, err
+	}
+	return result.(api.Attachment), nil
+}
+
+// ListProcessAttachments 返回流程实例附件。
+// @param ctx 上下文
+// @param processInstanceID 实例 ID
+// @return 附件列表
+// @return 查询错误
+func (e *Engine) ListProcessAttachments(ctx context.Context, processInstanceID string) ([]api.Attachment, error) {
+	result, err := e.read(func() (any, error) {
+		out := make([]api.Attachment, 0)
+		for _, attachment := range e.state.Attachments {
+			if attachment.ProcessInstanceID == processInstanceID && attachment.TaskID == "" {
+				out = append(out, *attachment)
+			}
+		}
+		sort.Slice(out, func(i, j int) bool {
+			if out[i].Time.Equal(out[j].Time) {
+				return out[i].ID < out[j].ID
+			}
+			return out[i].Time.Before(out[j].Time)
+		})
+		return out, nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.([]api.Attachment), nil
+}
+
 // AddAttachment 添加任务附件。
 // @param ctx 上下文
 // @param taskID 任务 ID

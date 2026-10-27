@@ -159,3 +159,54 @@ func TestREST_ProcessComments(t *testing.T) {
 	}
 	_ = response.Body.Close()
 }
+
+// TestREST_ProcessAttachments 验证流程实例附件。
+// @param t 测试上下文
+func TestREST_ProcessAttachments(t *testing.T) {
+	server, _ := newTestServer(t)
+	deployREST(t, server)
+	response := postJSON(t, server.URL+"/service/runtime/process-instances", map[string]any{
+		"processDefinitionKey": "rest",
+		"variables":            []map[string]any{{"name": "initiator", "value": "alice"}},
+	})
+	var instance map[string]any
+	_ = json.NewDecoder(response.Body).Decode(&instance)
+	_ = response.Body.Close()
+	instanceID, _ := instance["id"].(string)
+	response = postJSON(t, server.URL+"/service/runtime/process-instances/"+instanceID+"/attachments", map[string]any{"name": "doc"})
+	if response.StatusCode != http.StatusCreated {
+		t.Fatalf("添加流程附件失败: %d", response.StatusCode)
+	}
+	_ = response.Body.Close()
+	response, _ = http.Get(server.URL + "/service/runtime/process-instances/" + instanceID + "/attachments")
+	var page struct {
+		Total int `json:"total"`
+	}
+	_ = json.NewDecoder(response.Body).Decode(&page)
+	_ = response.Body.Close()
+	if page.Total != 1 {
+		t.Fatalf("流程附件数量错误: %d", page.Total)
+	}
+	response = postJSON(t, server.URL+"/service/runtime/process-instances/missing/attachments", map[string]any{"name": "x"})
+	if response.StatusCode != http.StatusNotFound {
+		t.Fatalf("缺失实例附件应 404: %d", response.StatusCode)
+	}
+	_ = response.Body.Close()
+	response = postJSON(t, server.URL+"/service/runtime/process-instances/"+instanceID+"/attachments", map[string]any{"description": "x"})
+	if response.StatusCode != http.StatusBadRequest {
+		t.Fatalf("空附件名应 400: %d", response.StatusCode)
+	}
+	_ = response.Body.Close()
+	request, _ := http.NewRequest(http.MethodPost, server.URL+"/service/runtime/process-instances/"+instanceID+"/attachments", bytes.NewBufferString("{"))
+	request.Header.Set("Content-Type", "application/json")
+	response, _ = http.DefaultClient.Do(request)
+	if response.StatusCode != http.StatusBadRequest {
+		t.Fatalf("非法附件体应 400: %d", response.StatusCode)
+	}
+	_ = response.Body.Close()
+	response, _ = http.Get(server.URL + "/service/runtime/process-instances/missing/attachments")
+	if response.StatusCode != http.StatusOK {
+		t.Fatalf("缺失实例附件列表应 200: %d", response.StatusCode)
+	}
+	_ = response.Body.Close()
+}

@@ -362,6 +362,19 @@ type TaskService interface {
 	// @param commentID 评论 ID
 	// @return 删除错误
 	DeleteComment(ctx context.Context, commentID string) error
+	// AddProcessAttachment 添加流程实例附件。
+	// @param ctx 上下文
+	// @param processInstanceID 实例 ID
+	// @param attachment 附件
+	// @return 附件
+	// @return 添加错误
+	AddProcessAttachment(ctx context.Context, processInstanceID string, attachment Attachment) (Attachment, error)
+	// ListProcessAttachments 返回流程实例附件。
+	// @param ctx 上下文
+	// @param processInstanceID 实例 ID
+	// @return 附件列表
+	// @return 查询错误
+	ListProcessAttachments(ctx context.Context, processInstanceID string) ([]Attachment, error)
 	// AddAttachment 添加任务附件。
 	// @param ctx 上下文
 	// @param taskID 任务 ID

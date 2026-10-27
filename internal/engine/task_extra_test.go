@@ -148,3 +148,32 @@ func TestProcessComments(t *testing.T) {
 		t.Fatalf("空评论应失败")
 	}
 }
+
+// TestProcessAttachments 验证流程实例附件。
+// @param t 测试上下文
+func TestProcessAttachments(t *testing.T) {
+	engine := newTestEngine(t)
+	deployXML(t, engine, simpleProcess)
+	instance, _ := engine.StartProcessInstance(context.Background(), api.StartRequest{
+		ProcessDefinitionKey: "simple",
+		Variables:            []api.Variable{{Name: "initiator", Value: "alice"}},
+	})
+	attachment, err := engine.AddProcessAttachment(context.Background(), instance.ID, api.Attachment{Name: "proc"})
+	if err != nil || attachment.ProcessInstanceID != instance.ID {
+		t.Fatalf("添加流程附件失败: %v", err)
+	}
+	task := listTasks(t, engine)[0]
+	if _, err := engine.AddAttachment(context.Background(), task.ID, api.Attachment{Name: "task"}); err != nil {
+		t.Fatalf("添加任务附件失败: %v", err)
+	}
+	attachments, err := engine.ListProcessAttachments(context.Background(), instance.ID)
+	if err != nil || len(attachments) != 1 || attachments[0].Name != "proc" {
+		t.Fatalf("流程附件列表错误: %v %+v", err, attachments)
+	}
+	if _, err := engine.AddProcessAttachment(context.Background(), "missing", api.Attachment{Name: "x"}); err == nil {
+		t.Fatalf("缺失实例附件应失败")
+	}
+	if _, err := engine.AddProcessAttachment(context.Background(), instance.ID, api.Attachment{}); err == nil {
+		t.Fatalf("空附件名应失败")
+	}
+}
