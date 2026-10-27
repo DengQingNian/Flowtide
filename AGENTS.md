@@ -25,3 +25,12 @@
 
 - 注释、文档全部用中文
 
+- 阶段性任务完成commit代码
+
+```
+{fix/feat/perf/chore}({模块}): xxxxx
+
+1、xxxx
+2、yyyy
+...
+```
