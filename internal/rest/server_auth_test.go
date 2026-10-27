@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/flowable-go/flowable/api"
 	"github.com/flowable-go/flowable/internal/engine"
 )
 
@@ -166,4 +167,55 @@ func TestPermitted(t *testing.T) {
 	if !server.permitted(request) {
 		t.Fatalf("只读角色查询应允许")
 	}
+}
+
+// TestIdentityAuth 验证身份库认证与 RBAC。
+// @param t 测试上下文
+func TestIdentityAuth(t *testing.T) {
+	app, err := engine.New(engine.Config{HistoryLevel: engine.HistoryAudit})
+	if err != nil {
+		t.Fatalf("创建引擎失败: %v", err)
+	}
+	if _, err := app.IdentityService().CreateUser(context.Background(), api.User{ID: "alice", Password: "secret", Roles: []string{"reader"}}); err != nil {
+		t.Fatalf("创建用户失败: %v", err)
+	}
+	if _, err := app.IdentityService().CreateUser(context.Background(), api.User{ID: "root", Password: "root", Roles: []string{"admin"}}); err != nil {
+		t.Fatalf("创建管理员失败: %v", err)
+	}
+	handler := New(app, WithIdentityAuth(), WithRBAC(nil, map[string][]string{
+		"reader": {"read"}, "admin": {"admin"},
+	}))
+	server := httptest.NewServer(handler.Handler())
+	defer func() {
+		server.Close()
+		_ = app.Close(context.Background())
+	}()
+	request, _ := http.NewRequest(http.MethodGet, server.URL+"/service/repository/deployments", nil)
+	request.SetBasicAuth("alice", "secret")
+	response, _ := http.DefaultClient.Do(request)
+	if response.StatusCode != http.StatusOK {
+		t.Fatalf("身份库只读用户应可查询: %d", response.StatusCode)
+	}
+	_ = response.Body.Close()
+	request, _ = http.NewRequest(http.MethodPost, server.URL+"/service/repository/deployments", strings.NewReader(restProcess))
+	request.SetBasicAuth("alice", "secret")
+	response, _ = http.DefaultClient.Do(request)
+	if response.StatusCode != http.StatusForbidden {
+		t.Fatalf("身份库只读用户写入应 403: %d", response.StatusCode)
+	}
+	_ = response.Body.Close()
+	request, _ = http.NewRequest(http.MethodGet, server.URL+"/service/repository/deployments", nil)
+	request.SetBasicAuth("alice", "bad")
+	response, _ = http.DefaultClient.Do(request)
+	if response.StatusCode != http.StatusUnauthorized {
+		t.Fatalf("错误密码应 401: %d", response.StatusCode)
+	}
+	_ = response.Body.Close()
+	request, _ = http.NewRequest(http.MethodGet, server.URL+"/service/management/engine", nil)
+	request.SetBasicAuth("root", "root")
+	response, _ = http.DefaultClient.Do(request)
+	if response.StatusCode != http.StatusOK {
+		t.Fatalf("身份库管理员应可访问: %d", response.StatusCode)
+	}
+	_ = response.Body.Close()
 }

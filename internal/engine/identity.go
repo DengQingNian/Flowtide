@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/flowable-go/flowable/api"
+	"github.com/flowable-go/flowable/internal/auth"
 )
 
 // IdentityService 返回身份服务。
@@ -26,6 +27,14 @@ func (e *Engine) CreateUser(ctx context.Context, user api.User) (api.User, error
 			return nil, api.NewError("ENGINE-1002", "用户已存在", api.ErrConflict)
 		}
 		copied := user
+		if copied.Password != "" {
+			hashed, hashErr := auth.Hash(copied.Password)
+			if hashErr != nil {
+				return nil, hashErr
+			}
+			copied.PasswordHash = hashed
+			copied.Password = ""
+		}
 		e.state.Users[user.ID] = &copied
 		return copied, nil
 	})
@@ -230,4 +239,20 @@ func (e *Engine) ListMembers(ctx context.Context, groupID string) ([]api.User, e
 		return nil, err
 	}
 	return result.([]api.User), nil
+}
+
+// CheckPassword 校验用户密码。
+// @param ctx 上下文
+// @param userID 用户 ID
+// @param password 密码
+// @return 校验错误
+func (e *Engine) CheckPassword(ctx context.Context, userID, password string) error {
+	_, err := e.read(func() (any, error) {
+		user, ok := e.state.Users[userID]
+		if !ok || user.PasswordHash == "" || !auth.Verify(password, user.PasswordHash) {
+			return nil, api.NewError("AUTH-0003", "用户名或密码错误", api.ErrUnauthorized)
+		}
+		return user, nil
+	})
+	return err
 }

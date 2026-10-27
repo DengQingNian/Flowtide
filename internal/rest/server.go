@@ -27,6 +27,7 @@ type Server struct {
 	bearerToken     string              // Bearer Token
 	userRoles       map[string][]string // 用户到角色
 	rolePermissions map[string][]string // 角色到权限
+	identityAuth    bool                // 使用身份库校验密码
 }
 
 // Option 是 REST 服务选项。
@@ -64,6 +65,14 @@ func WithRBAC(userRoles, rolePermissions map[string][]string) Option {
 	}
 }
 
+// WithIdentityAuth 使用身份库校验 Basic Auth 密码。
+// @return 选项
+func WithIdentityAuth() Option {
+	return func(server *Server) {
+		server.identityAuth = true
+	}
+}
+
 // New 创建 REST 服务。
 // @param engine 引擎
 // @param options 选项
@@ -94,7 +103,7 @@ func (s *Server) withTenant(next http.Handler) http.Handler {
 // @param next 下游处理器
 // @return 处理器
 func (s *Server) authenticate(next http.Handler) http.Handler {
-	if len(s.basicUsers) == 0 && s.bearerToken == "" {
+	if !s.identityAuth && len(s.basicUsers) == 0 && s.bearerToken == "" {
 		return next
 	}
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -131,7 +140,13 @@ func (s *Server) permitted(r *http.Request) bool {
 		return false
 	}
 	required := requiredPermission(r.Method, r.URL.Path)
-	for _, role := range s.userRoles[user] {
+	roles := append([]string(nil), s.userRoles[user]...)
+	if s.identityAuth {
+		if identityUser, err := s.engine.IdentityService().GetUser(r.Context(), user); err == nil {
+			roles = append(roles, identityUser.Roles...)
+		}
+	}
+	for _, role := range roles {
 		for _, permission := range s.rolePermissions[role] {
 			if permission == "admin" || permission == required {
 				return true
@@ -165,13 +180,12 @@ func (s *Server) authorized(r *http.Request) bool {
 			return true
 		}
 	}
-	if len(s.basicUsers) > 0 {
-		user, password, ok := r.BasicAuth()
-		if ok {
-			expected, exists := s.basicUsers[user]
-			if exists && subtle.ConstantTimeCompare([]byte(password), []byte(expected)) == 1 {
-				return true
-			}
+	if user, password, ok := r.BasicAuth(); ok {
+		if expected, exists := s.basicUsers[user]; exists && subtle.ConstantTimeCompare([]byte(password), []byte(expected)) == 1 {
+			return true
+		}
+		if s.identityAuth && s.engine.IdentityService().CheckPassword(r.Context(), user, password) == nil {
+			return true
 		}
 	}
 	return false

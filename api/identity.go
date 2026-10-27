@@ -4,12 +4,15 @@ import "context"
 
 // User 是身份用户。
 type User struct {
-	ID          string `json:"id"`                    // 用户 ID
-	FirstName   string `json:"firstName,omitempty"`   // 名
-	LastName    string `json:"lastName,omitempty"`    // 姓
-	DisplayName string `json:"displayName,omitempty"` // 显示名
-	Email       string `json:"email,omitempty"`       // 邮箱
-	TenantID    string `json:"tenantId,omitempty"`    // 租户
+	ID           string   `json:"id"`                    // 用户 ID
+	FirstName    string   `json:"firstName,omitempty"`   // 名
+	LastName     string   `json:"lastName,omitempty"`    // 姓
+	DisplayName  string   `json:"displayName,omitempty"` // 显示名
+	Email        string   `json:"email,omitempty"`       // 邮箱
+	Password     string   `json:"password,omitempty"`    // 明文密码（仅写入）
+	PasswordHash string   `json:"-"`                     // 密码哈希
+	Roles        []string `json:"roles,omitempty"`       // 角色
+	TenantID     string   `json:"tenantId,omitempty"`    // 租户
 }
 
 // Group 是身份组。
@@ -78,6 +81,12 @@ type IdentityService interface {
 	// @param groupID 组 ID
 	// @return 移除错误
 	RemoveMembership(ctx context.Context, userID, groupID string) error
+	// CheckPassword 校验用户密码。
+	// @param ctx 上下文
+	// @param userID 用户 ID
+	// @param password 密码
+	// @return 校验错误
+	CheckPassword(ctx context.Context, userID, password string) error
 	// ListMembers 返回组成员。
 	// @param ctx 上下文
 	// @param groupID 组 ID

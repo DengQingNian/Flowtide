@@ -110,3 +110,28 @@ func TestIdentity_CandidateGroup(t *testing.T) {
 		t.Fatalf("移除成员后不应匹配")
 	}
 }
+
+// TestIdentityPassword 验证密码哈希与校验。
+// @param t 测试上下文
+func TestIdentityPassword(t *testing.T) {
+	engine := newTestEngine(t)
+	user, err := engine.CreateUser(context.Background(), api.User{ID: "alice", Password: "secret", Roles: []string{"reader"}})
+	if err != nil || user.PasswordHash == "" || user.Password != "" {
+		t.Fatalf("创建密码用户失败: %v %+v", err, user)
+	}
+	if err := engine.CheckPassword(context.Background(), "alice", "secret"); err != nil {
+		t.Fatalf("密码校验失败: %v", err)
+	}
+	if err := engine.CheckPassword(context.Background(), "alice", "bad"); err == nil {
+		t.Fatalf("错误密码应失败")
+	}
+	if err := engine.CheckPassword(context.Background(), "missing", "x"); err == nil {
+		t.Fatalf("缺失用户应失败")
+	}
+	if _, err := engine.CreateUser(context.Background(), api.User{ID: "bob"}); err != nil {
+		t.Fatalf("创建无密码用户失败: %v", err)
+	}
+	if err := engine.CheckPassword(context.Background(), "bob", "x"); err == nil {
+		t.Fatalf("无密码用户应失败")
+	}
+}
