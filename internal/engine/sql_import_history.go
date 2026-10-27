@@ -48,6 +48,13 @@ func (e *Engine) ImportHistoricRows(ctx context.Context, rows []flowablerow.Row)
 			detail := snapshot.Details[i]
 			e.state.HistoricDetails[detail.ID] = &detail
 		}
+		for i := range snapshot.TaskLogs {
+			log := snapshot.TaskLogs[i]
+			e.state.TaskLogs[log.ID] = &log
+			if log.ID > e.state.NextTaskLogID {
+				e.state.NextTaskLogID = log.ID
+			}
+		}
 		return nil, nil
 	})
 	return err

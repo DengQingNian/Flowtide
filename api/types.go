@@ -168,6 +168,20 @@ type ExecutionInfo struct {
 	Waiting             bool   `json:"waiting"`              // 是否等待
 }
 
+// HistoricTaskLog 是任务生命周期日志。
+type HistoricTaskLog struct {
+	ID                  int64     `json:"id"`                            // 日志 ID
+	Type                string    `json:"type"`                          // 事件类型
+	TaskID              string    `json:"taskId,omitempty"`              // 任务 ID
+	Time                time.Time `json:"time"`                          // 时间
+	UserID              string    `json:"userId,omitempty"`              // 操作人
+	Data                string    `json:"data,omitempty"`                // 附加数据
+	ExecutionID         string    `json:"executionId,omitempty"`         // 执行 ID
+	ProcessInstanceID   string    `json:"processInstanceId,omitempty"`   // 实例 ID
+	ProcessDefinitionID string    `json:"processDefinitionId,omitempty"` // 定义 ID
+	TenantID            string    `json:"tenantId,omitempty"`            // 租户
+}
+
 // HistoricDetail 是历史变量明细。
 type HistoricDetail struct {
 	ID                string    `json:"id"`                          // 明细 ID

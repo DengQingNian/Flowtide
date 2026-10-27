@@ -17,6 +17,7 @@ type HistoricSnapshot struct {
 	Attachments []api.Attachment               // 附件
 	Links       []api.IdentityLink             // 身份链接
 	Details     []api.HistoricDetail           // 变量明细
+	TaskLogs    []api.HistoricTaskLog          // 任务日志
 }
 
 // DecodeHistoricRows 将历史行恢复为快照。
@@ -33,6 +34,7 @@ func DecodeHistoricRows(rows []Row) (HistoricSnapshot, error) {
 		Attachments: make([]api.Attachment, 0),
 		Links:       make([]api.IdentityLink, 0),
 		Details:     make([]api.HistoricDetail, 0),
+		TaskLogs:    make([]api.HistoricTaskLog, 0),
 	}
 	for _, row := range rows {
 		switch row.Table {
@@ -66,6 +68,12 @@ func DecodeHistoricRows(rows []Row) (HistoricSnapshot, error) {
 				return HistoricSnapshot{}, err
 			}
 			snapshot.Comments = append(snapshot.Comments, comment)
+		case "ACT_HI_TSK_LOG":
+			log, err := decodeHistoricTaskLog(row)
+			if err != nil {
+				return HistoricSnapshot{}, err
+			}
+			snapshot.TaskLogs = append(snapshot.TaskLogs, log)
 		case "ACT_HI_DETAIL":
 			detail, err := decodeHistoricDetail(row)
 			if err != nil {
@@ -96,6 +104,7 @@ func DecodeHistoricRows(rows []Row) (HistoricSnapshot, error) {
 	sort.Slice(snapshot.Attachments, func(i, j int) bool { return snapshot.Attachments[i].ID < snapshot.Attachments[j].ID })
 	sort.Slice(snapshot.Links, func(i, j int) bool { return snapshot.Links[i].ID < snapshot.Links[j].ID })
 	sort.Slice(snapshot.Details, func(i, j int) bool { return snapshot.Details[i].ID < snapshot.Details[j].ID })
+	sort.Slice(snapshot.TaskLogs, func(i, j int) bool { return snapshot.TaskLogs[i].ID < snapshot.TaskLogs[j].ID })
 	return snapshot, nil
 }
 
@@ -527,5 +536,57 @@ func decodeHistoricDetail(row Row) (api.HistoricDetail, error) {
 		ID: id, Type: detailType, ProcessInstanceID: processInstanceID, ExecutionID: executionID,
 		TaskID: taskID, ActivityID: activityID, Name: name, VariableType: variableType,
 		Value: value, Time: detailTime,
+	}, nil
+}
+
+// decodeHistoricTaskLog 解析任务日志。
+// @param row 行
+// @return 日志
+// @return 错误
+func decodeHistoricTaskLog(row Row) (api.HistoricTaskLog, error) {
+	id, err := intValue(row, "ID_")
+	if err != nil {
+		return api.HistoricTaskLog{}, err
+	}
+	logType, err := stringValue(row, "TYPE_")
+	if err != nil {
+		return api.HistoricTaskLog{}, err
+	}
+	taskID, err := stringValue(row, "TASK_ID_")
+	if err != nil {
+		return api.HistoricTaskLog{}, err
+	}
+	logTime, err := timeValue(row, "TIME_STAMP_")
+	if err != nil {
+		return api.HistoricTaskLog{}, err
+	}
+	userID, err := stringValue(row, "USER_ID_")
+	if err != nil {
+		return api.HistoricTaskLog{}, err
+	}
+	data, err := stringValue(row, "DATA_")
+	if err != nil {
+		return api.HistoricTaskLog{}, err
+	}
+	executionID, err := stringValue(row, "EXECUTION_ID_")
+	if err != nil {
+		return api.HistoricTaskLog{}, err
+	}
+	processInstanceID, err := stringValue(row, "PROC_INST_ID_")
+	if err != nil {
+		return api.HistoricTaskLog{}, err
+	}
+	definitionID, err := stringValue(row, "PROC_DEF_ID_")
+	if err != nil {
+		return api.HistoricTaskLog{}, err
+	}
+	tenant, err := stringValue(row, "TENANT_ID_")
+	if err != nil {
+		return api.HistoricTaskLog{}, err
+	}
+	return api.HistoricTaskLog{
+		ID: int64(id), Type: logType, TaskID: taskID, Time: logTime, UserID: userID,
+		Data: data, ExecutionID: executionID, ProcessInstanceID: processInstanceID,
+		ProcessDefinitionID: definitionID, TenantID: tenant,
 	}, nil
 }

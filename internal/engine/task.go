@@ -64,6 +64,7 @@ func (e *Engine) createUserTask(cc *commandContext, execution *executionState, n
 	task.HistoricTaskID = e.recordTaskStart(cc, task)
 	e.state.Tasks[task.Task.ID] = task
 	e.recordTaskIdentityLinks(cc, task)
+	e.recordTaskLog(cc, task, "create", task.Task.Assignee, "")
 	execution.Waiting = true
 	execution.ActivityID = node.ID
 	return nil
@@ -285,6 +286,7 @@ func (e *Engine) Claim(ctx context.Context, taskID, userID string) error {
 		if historic, exists := e.state.HistoricTasks[task.HistoricTaskID]; exists {
 			historic.Assignee = userID
 		}
+		e.recordTaskLog(cc, task, "claim", userID, "")
 		return nil, nil
 	})
 	return err
@@ -333,6 +335,7 @@ func (e *Engine) completeTask(cc *commandContext, taskID string, req api.Complet
 		task.LocalVariables[variable.Name] = variable.Value
 		e.recordHistoricDetail(task.Task.ProcessInstanceID, task.ExecutionID, task.Task.ID, task.ActivityID, variable.Name, variable.Value, cc.now)
 	}
+	e.recordTaskLog(cc, task, "complete", req.UserID, "")
 	e.recordTaskEnd(cc, task)
 	delete(e.state.Tasks, taskID)
 	e.cancelBoundaryTimers(execution.ID)
@@ -371,6 +374,7 @@ func (e *Engine) Delegate(ctx context.Context, taskID, userID string) error {
 		}
 		task.Task.Owner = task.Task.Assignee
 		task.Task.Assignee = userID
+		e.recordTaskLog(cc, task, "delegate", userID, "")
 		return nil, nil
 	})
 	return err

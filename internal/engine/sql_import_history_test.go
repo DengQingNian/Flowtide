@@ -63,6 +63,10 @@ func TestImportHistoricRows(t *testing.T) {
 	if len(historicLinks) != 1 || historicLinks[0].UserID != "alice" {
 		t.Fatalf("历史身份链接恢复错误: %+v", historicLinks)
 	}
+	logs, _ := target.ListHistoricTaskLogs(context.Background(), tasks[0].ID)
+	if len(logs) < 2 {
+		t.Fatalf("任务日志恢复错误: %+v", logs)
+	}
 	comments, _ := target.ListComments(context.Background(), tasks[0].ID)
 	if len(comments) != 1 || comments[0].Message != "ok" {
 		t.Fatalf("评论恢复错误: %+v", comments)

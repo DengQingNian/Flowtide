@@ -293,8 +293,18 @@ func rowIDValue(row Row) (string, bool) {
 	if !ok {
 		return "", false
 	}
-	id, ok := value.(string)
-	return id, ok
+	switch typed := value.(type) {
+	case string:
+		return typed, true
+	case int:
+		return fmt.Sprint(typed), true
+	case int64:
+		return fmt.Sprint(typed), true
+	case float64:
+		return fmt.Sprint(int64(typed)), true
+	default:
+		return "", false
+	}
 }
 
 // revisionValue 读取行的 REV_。

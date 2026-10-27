@@ -184,6 +184,28 @@ func (e *Engine) historicRowsLocked() ([]flowablerow.Row, error) {
 		_ = row.Set("TIME_", attachment.Time)
 		rows = append(rows, *row)
 	}
+	logs := make([]*api.HistoricTaskLog, 0, len(e.state.TaskLogs))
+	for _, log := range e.state.TaskLogs {
+		logs = append(logs, log)
+	}
+	sort.Slice(logs, func(i, j int) bool { return logs[i].ID < logs[j].ID })
+	for _, log := range logs {
+		row, rowErr := historyRow("ACT_HI_TSK_LOG", []string{"ID_", "TYPE_", "TASK_ID_", "TIME_STAMP_", "USER_ID_", "DATA_", "EXECUTION_ID_", "PROC_INST_ID_", "PROC_DEF_ID_", "TENANT_ID_"})
+		if rowErr != nil {
+			return nil, rowErr
+		}
+		_ = row.Set("ID_", log.ID)
+		_ = row.Set("TYPE_", log.Type)
+		_ = row.Set("TASK_ID_", log.TaskID)
+		_ = row.Set("TIME_STAMP_", log.Time)
+		_ = row.Set("USER_ID_", log.UserID)
+		_ = row.Set("DATA_", log.Data)
+		_ = row.Set("EXECUTION_ID_", log.ExecutionID)
+		_ = row.Set("PROC_INST_ID_", log.ProcessInstanceID)
+		_ = row.Set("PROC_DEF_ID_", log.ProcessDefinitionID)
+		_ = row.Set("TENANT_ID_", log.TenantID)
+		rows = append(rows, *row)
+	}
 	details := make([]*api.HistoricDetail, 0, len(e.state.HistoricDetails))
 	for _, detail := range e.state.HistoricDetails {
 		details = append(details, detail)

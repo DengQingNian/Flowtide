@@ -186,6 +186,22 @@ func TestREST_History(t *testing.T) {
 	if page.Total != 2 {
 		t.Fatalf("期望 2 条历史活动（开始事件与用户任务），实际 %d", page.Total)
 	}
+	response, _ = http.Get(server.URL + "/service/runtime/tasks?processInstanceId=" + instanceID)
+	var tasks struct {
+		Data []map[string]any `json:"data"`
+	}
+	_ = json.NewDecoder(response.Body).Decode(&tasks)
+	_ = response.Body.Close()
+	taskID, _ := tasks.Data[0]["id"].(string)
+	response, _ = http.Get(server.URL + "/service/history/historic-task-log-entries?taskId=" + taskID)
+	var logs struct {
+		Total int `json:"total"`
+	}
+	_ = json.NewDecoder(response.Body).Decode(&logs)
+	_ = response.Body.Close()
+	if logs.Total == 0 {
+		t.Fatalf("任务日志为空")
+	}
 }
 
 // postJSON 发送 JSON POST 请求。

@@ -367,3 +367,23 @@ func TestRepositoryLoadAll(t *testing.T) {
 		t.Fatalf("查询错误应失败")
 	}
 }
+
+// TestRowIDValue 验证数值 ID 处理。
+// @param t 测试上下文
+func TestRowIDValue(t *testing.T) {
+	cases := []struct {
+		value any
+		want  string
+	}{
+		{"s", "s"}, {1, "1"}, {int64(2), "2"}, {3.0, "3"},
+	}
+	for _, tc := range cases {
+		row := Row{Table: "ACT_HI_TSK_LOG", Values: map[string]any{"ID_": tc.value}}
+		if id, ok := rowIDValue(row); !ok || id != tc.want {
+			t.Fatalf("ID 转换错误: %v %s", ok, id)
+		}
+	}
+	if _, ok := rowIDValue(Row{Table: "ACT_HI_TSK_LOG", Values: map[string]any{"ID_": struct{}{}}}); ok {
+		t.Fatalf("非法 ID 应失败")
+	}
+}

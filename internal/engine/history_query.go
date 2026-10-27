@@ -170,3 +170,31 @@ func (e *Engine) ListHistoricDetails(ctx context.Context, processInstanceID stri
 	}
 	return result.([]api.HistoricDetail), nil
 }
+
+// ListHistoricTaskLogs 返回任务生命周期日志。
+// @param ctx 上下文
+// @param taskID 任务 ID
+// @return 日志列表
+// @return 查询错误
+func (e *Engine) ListHistoricTaskLogs(ctx context.Context, taskID string) ([]api.HistoricTaskLog, error) {
+	result, err := e.read(func() (any, error) {
+		out := make([]api.HistoricTaskLog, 0)
+		for _, log := range e.state.TaskLogs {
+			if taskID != "" && log.TaskID != taskID {
+				continue
+			}
+			out = append(out, *log)
+		}
+		sort.Slice(out, func(i, j int) bool {
+			if out[i].Time.Equal(out[j].Time) {
+				return out[i].ID < out[j].ID
+			}
+			return out[i].Time.Before(out[j].Time)
+		})
+		return out, nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.([]api.HistoricTaskLog), nil
+}

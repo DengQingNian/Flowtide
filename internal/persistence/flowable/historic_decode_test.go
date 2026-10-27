@@ -355,3 +355,42 @@ func TestDecodeHistoricDetail(t *testing.T) {
 		}
 	}
 }
+
+// historicTaskLogRow 构造任务日志行。
+// @param id 日志 ID
+// @return 行
+func historicTaskLogRow(t *testing.T, id int64) Row {
+	t.Helper()
+	row, _ := NewRow("ACT_HI_TSK_LOG")
+	_ = row.Set("ID_", id)
+	_ = row.Set("TYPE_", "create")
+	_ = row.Set("TASK_ID_", "t1")
+	_ = row.Set("TIME_STAMP_", time.Date(2026, 10, 28, 0, 0, 0, 0, time.UTC))
+	_ = row.Set("USER_ID_", "alice")
+	_ = row.Set("DATA_", "d")
+	_ = row.Set("EXECUTION_ID_", "e1")
+	_ = row.Set("PROC_INST_ID_", "i1")
+	_ = row.Set("PROC_DEF_ID_", "p1")
+	_ = row.Set("TENANT_ID_", "t1")
+	return *row
+}
+
+// TestDecodeHistoricTaskLog 验证任务日志恢复。
+// @param t 测试上下文
+func TestDecodeHistoricTaskLog(t *testing.T) {
+	snapshot, err := DecodeHistoricRows([]Row{historicTaskLogRow(t, 1)})
+	if err != nil || len(snapshot.TaskLogs) != 1 {
+		t.Fatalf("任务日志恢复失败: %v %+v", err, snapshot.TaskLogs)
+	}
+	if snapshot.TaskLogs[0].ID != 1 || snapshot.TaskLogs[0].UserID != "alice" {
+		t.Fatalf("任务日志内容错误: %+v", snapshot.TaskLogs[0])
+	}
+	columns := []string{"TYPE_", "TASK_ID_", "TIME_STAMP_", "USER_ID_", "DATA_", "EXECUTION_ID_", "PROC_INST_ID_", "PROC_DEF_ID_", "TENANT_ID_"}
+	for _, column := range columns {
+		row := historicTaskLogRow(t, 1)
+		delete(row.Values, column)
+		if _, err := decodeHistoricTaskLog(row); err == nil {
+			t.Fatalf("任务日志缺列 %s 应失败", column)
+		}
+	}
+}

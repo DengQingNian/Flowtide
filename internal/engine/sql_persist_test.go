@@ -141,8 +141,9 @@ func TestPersistDiff(t *testing.T) {
 	if err := engine.PersistDiff(context.Background(), repository, nil); err != nil {
 		t.Fatalf("首次写入失败: %v", err)
 	}
-	if db.tx == nil || !db.tx.committed || db.tx.executed != len(previous) {
-		t.Fatalf("首次写入次数错误: %+v", db.tx)
+	current, _ := engine.SnapshotRows(context.Background())
+	if db.tx == nil || !db.tx.committed || db.tx.executed != len(current) {
+		t.Fatalf("首次写入次数错误: %+v current=%d", db.tx, len(current))
 	}
 	task := listTasks(t, engine)[0]
 	if err := engine.Complete(context.Background(), task.ID, api.CompleteTaskRequest{}); err != nil {
