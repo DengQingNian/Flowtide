@@ -145,6 +145,9 @@ func (e *Engine) GetProcessDefinition(ctx context.Context, id string) (api.Proce
 		if !ok {
 			return nil, api.NewError("ENGINE-0404", "流程定义不存在", api.ErrNotFound)
 		}
+		if err := e.allowTenant(ctx, definition.Info.TenantID); err != nil {
+			return nil, err
+		}
 		return definition.Info, nil
 	})
 	if err != nil {
@@ -163,6 +166,9 @@ func (e *Engine) GetProcessDefinitionByKey(ctx context.Context, key string) (api
 		definition, ok := e.findLatestDefinition(key)
 		if !ok {
 			return nil, api.NewError("ENGINE-0404", "流程定义不存在", api.ErrNotFound)
+		}
+		if err := e.allowTenant(ctx, definition.Info.TenantID); err != nil {
+			return nil, err
 		}
 		return definition.Info, nil
 	})
@@ -201,6 +207,9 @@ func (e *Engine) GetProcessDefinitionXML(ctx context.Context, definitionID strin
 		definition, ok := e.findDefinition(definitionID)
 		if !ok {
 			return nil, api.NewError("ENGINE-0404", "流程定义不存在", api.ErrNotFound)
+		}
+		if err := e.allowTenant(ctx, definition.Info.TenantID); err != nil {
+			return nil, err
 		}
 		return append([]byte(nil), definition.XML...), nil
 	})

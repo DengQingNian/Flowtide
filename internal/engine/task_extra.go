@@ -21,6 +21,9 @@ func (e *Engine) AddComment(ctx context.Context, taskID, userID, message string)
 		if !ok {
 			return nil, api.NewError("ENGINE-0805", "任务不存在", api.ErrNotFound)
 		}
+		if err := e.allowInstance(ctx, task.Task.ProcessInstanceID); err != nil {
+			return nil, err
+		}
 		if strings.TrimSpace(message) == "" {
 			return nil, api.NewError("ENGINE-1101", "评论内容不能为空", api.ErrBadRequest)
 		}
@@ -96,6 +99,9 @@ func (e *Engine) AddAttachment(ctx context.Context, taskID string, attachment ap
 		task, ok := e.findTask(taskID)
 		if !ok {
 			return nil, api.NewError("ENGINE-0805", "任务不存在", api.ErrNotFound)
+		}
+		if err := e.allowInstance(ctx, task.Task.ProcessInstanceID); err != nil {
+			return nil, err
 		}
 		if strings.TrimSpace(attachment.Name) == "" {
 			return nil, api.NewError("ENGINE-1102", "附件名称不能为空", api.ErrBadRequest)

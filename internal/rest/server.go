@@ -13,6 +13,7 @@ import (
 	"strings"
 
 	"github.com/flowable-go/flowable/api"
+	"github.com/flowable-go/flowable/internal/tenant"
 )
 
 // MaxUploadSize 是部署上传的最大字节数。
@@ -65,7 +66,16 @@ func New(engine api.Engine, options ...Option) *Server {
 
 // Handler 返回 HTTP 处理器。
 // @return 处理器
-func (s *Server) Handler() http.Handler { return s.authenticate(s.mux) }
+func (s *Server) Handler() http.Handler { return s.withTenant(s.authenticate(s.mux)) }
+
+// withTenant 将请求租户写入上下文。
+// @param next 下游处理器
+// @return 处理器
+func (s *Server) withTenant(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		next.ServeHTTP(w, r.WithContext(tenant.With(r.Context(), requestTenant(r))))
+	})
+}
 
 // authenticate 对 /service 路径执行认证。
 // @param next 下游处理器

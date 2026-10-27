@@ -42,6 +42,9 @@ func (e *Engine) GetDeployment(ctx context.Context, deploymentID string) (api.De
 		if !ok {
 			return nil, api.NewError("ENGINE-0404", "部署不存在", api.ErrNotFound)
 		}
+		if err := e.allowTenant(ctx, deployment.Info.TenantID); err != nil {
+			return nil, err
+		}
 		return deployment.Info, nil
 	})
 	if err != nil {
@@ -60,6 +63,9 @@ func (e *Engine) ListDeploymentResources(ctx context.Context, deploymentID strin
 		deployment, ok := e.state.Deployments[deploymentID]
 		if !ok {
 			return nil, api.NewError("ENGINE-0404", "部署不存在", api.ErrNotFound)
+		}
+		if err := e.allowTenant(ctx, deployment.Info.TenantID); err != nil {
+			return nil, err
 		}
 		names := make([]string, 0, len(deployment.Resources))
 		for name := range deployment.Resources {
@@ -86,6 +92,9 @@ func (e *Engine) GetDeploymentResource(ctx context.Context, deploymentID, resour
 		if !ok {
 			return nil, api.NewError("ENGINE-0404", "部署不存在", api.ErrNotFound)
 		}
+		if err := e.allowTenant(ctx, deployment.Info.TenantID); err != nil {
+			return nil, err
+		}
 		data, exists := deployment.Resources[resourceName]
 		if !exists {
 			return nil, api.NewError("ENGINE-0404", "部署资源不存在", api.ErrNotFound)
@@ -108,6 +117,9 @@ func (e *Engine) DeleteDeployment(ctx context.Context, deploymentID string, casc
 		deployment, ok := e.state.Deployments[deploymentID]
 		if !ok {
 			return nil, api.NewError("ENGINE-0404", "部署不存在", api.ErrNotFound)
+		}
+		if err := e.allowTenant(ctx, deployment.Info.TenantID); err != nil {
+			return nil, err
 		}
 		definitions := make([]*definitionState, 0)
 		for _, definition := range e.state.Definitions {

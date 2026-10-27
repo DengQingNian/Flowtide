@@ -17,12 +17,18 @@ func (e *Engine) MigrateProcessInstance(ctx context.Context, req api.MigrationRe
 		if !ok {
 			return nil, api.NewError("ENGINE-0404", "流程实例不存在", api.ErrNotFound)
 		}
+		if err := e.allowTenant(ctx, instance.TenantID); err != nil {
+			return nil, err
+		}
 		if instance.Ended {
 			return nil, api.NewError("ENGINE-0640", "已结束实例不能迁移", api.ErrConflict)
 		}
 		target, ok := e.findDefinition(req.TargetProcessDefinitionID)
 		if !ok {
 			return nil, api.NewError("ENGINE-0404", "目标流程定义不存在", api.ErrNotFound)
+		}
+		if err := e.allowTenant(ctx, target.Info.TenantID); err != nil {
+			return nil, err
 		}
 		if target.Info.Suspended {
 			return nil, api.NewError("ENGINE-0641", "目标流程定义已挂起", api.ErrConflict)

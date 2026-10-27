@@ -46,6 +46,9 @@ func (e *Engine) startProcess(cc *commandContext, req api.StartRequest) (api.Pro
 	if !ok {
 		return api.ProcessInstance{}, api.NewError("ENGINE-0404", "流程定义不存在", api.ErrNotFound)
 	}
+	if err := e.allowTenant(cc.ctx, definition.Info.TenantID); err != nil {
+		return api.ProcessInstance{}, err
+	}
 	if definition.Info.Suspended {
 		return api.ProcessInstance{}, api.NewError("ENGINE-0102", "流程定义已挂起", api.ErrConflict)
 	}
@@ -698,6 +701,9 @@ func (e *Engine) GetProcessInstance(ctx context.Context, id string) (api.Process
 		if !ok {
 			return nil, api.NewError("ENGINE-0404", "流程实例不存在", api.ErrNotFound)
 		}
+		if err := e.allowTenant(ctx, instance.TenantID); err != nil {
+			return nil, err
+		}
 		return e.toProcessInstance(instance), nil
 	})
 	if err != nil {
@@ -775,6 +781,9 @@ func (e *Engine) GetVariables(ctx context.Context, processInstanceID string) (ma
 		if !ok {
 			return nil, api.NewError("ENGINE-0404", "流程实例不存在", api.ErrNotFound)
 		}
+		if err := e.allowTenant(ctx, instance.TenantID); err != nil {
+			return nil, err
+		}
 		root, ok := e.rootExecution(instance)
 		if !ok {
 			return map[string]any{}, nil
@@ -799,6 +808,9 @@ func (e *Engine) SetVariable(ctx context.Context, processInstanceID, name string
 		if !ok {
 			return nil, api.NewError("ENGINE-0404", "流程实例不存在", api.ErrNotFound)
 		}
+		if err := e.allowTenant(ctx, instance.TenantID); err != nil {
+			return nil, err
+		}
 		root, ok := e.rootExecution(instance)
 		if !ok {
 			return nil, api.NewError("ENGINE-0405", "根执行不存在", nil)
@@ -819,6 +831,9 @@ func (e *Engine) DeleteVariable(ctx context.Context, processInstanceID, name str
 		instance, ok := e.findInstance(processInstanceID)
 		if !ok {
 			return nil, api.NewError("ENGINE-0404", "流程实例不存在", api.ErrNotFound)
+		}
+		if err := e.allowTenant(ctx, instance.TenantID); err != nil {
+			return nil, err
 		}
 		root, ok := e.rootExecution(instance)
 		if !ok {

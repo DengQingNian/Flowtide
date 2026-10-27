@@ -1090,6 +1090,16 @@ func TestREST_TenantFiltering(t *testing.T) {
 	if response.StatusCode != http.StatusCreated {
 		t.Fatalf("租户启动失败: %d", response.StatusCode)
 	}
+	var instance map[string]any
+	_ = json.NewDecoder(response.Body).Decode(&instance)
+	_ = response.Body.Close()
+	instanceID, _ := instance["id"].(string)
+	request, _ = http.NewRequest(http.MethodGet, server.URL+"/service/runtime/process-instances/"+instanceID, nil)
+	request.Header.Set("X-Tenant-Id", "t2")
+	response, _ = http.DefaultClient.Do(request)
+	if response.StatusCode != http.StatusNotFound {
+		t.Fatalf("跨租户实例应 404: %d", response.StatusCode)
+	}
 	_ = response.Body.Close()
 	response, _ = http.Get(server.URL + "/service/runtime/tasks?tenantId=t1")
 	var tasks struct {
@@ -1100,6 +1110,21 @@ func TestREST_TenantFiltering(t *testing.T) {
 	if tasks.Total != 1 {
 		t.Fatalf("租户任务数量错误: %d", tasks.Total)
 	}
+	taskData := struct {
+		Data []map[string]any `json:"data"`
+	}{}
+	response, _ = http.Get(server.URL + "/service/runtime/tasks?tenantId=t1")
+	_ = json.NewDecoder(response.Body).Decode(&taskData)
+	_ = response.Body.Close()
+	taskID, _ := taskData.Data[0]["id"].(string)
+	request, _ = http.NewRequest(http.MethodPost, server.URL+"/service/runtime/tasks/"+taskID, bytes.NewBufferString(`{"action":"complete"}`))
+	request.Header.Set("Content-Type", "application/json")
+	request.Header.Set("X-Tenant-Id", "t2")
+	response, _ = http.DefaultClient.Do(request)
+	if response.StatusCode != http.StatusNotFound {
+		t.Fatalf("跨租户任务应 404: %d", response.StatusCode)
+	}
+	_ = response.Body.Close()
 	response, _ = http.Get(server.URL + "/service/runtime/tasks?tenantId=t2")
 	_ = json.NewDecoder(response.Body).Decode(&tasks)
 	_ = response.Body.Close()

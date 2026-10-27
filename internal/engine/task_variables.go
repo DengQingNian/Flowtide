@@ -17,6 +17,9 @@ func (e *Engine) GetTaskVariables(ctx context.Context, taskID string) (map[strin
 		if !ok {
 			return nil, api.NewError("ENGINE-0805", "任务不存在", api.ErrNotFound)
 		}
+		if err := e.allowInstance(ctx, task.Task.ProcessInstanceID); err != nil {
+			return nil, err
+		}
 		values := make(map[string]any)
 		if execution, exists := e.findExecution(task.ExecutionID); exists {
 			for name, value := range e.variablesOf(execution) {
@@ -46,6 +49,9 @@ func (e *Engine) SetTaskVariable(ctx context.Context, taskID, name string, value
 		if !ok {
 			return nil, api.NewError("ENGINE-0805", "任务不存在", api.ErrNotFound)
 		}
+		if err := e.allowInstance(ctx, task.Task.ProcessInstanceID); err != nil {
+			return nil, err
+		}
 		if name == "" {
 			return nil, api.NewError("ENGINE-1103", "变量名不能为空", api.ErrBadRequest)
 		}
@@ -66,6 +72,9 @@ func (e *Engine) DeleteTaskVariable(ctx context.Context, taskID, name string) er
 		task, ok := e.findTask(taskID)
 		if !ok {
 			return nil, api.NewError("ENGINE-0805", "任务不存在", api.ErrNotFound)
+		}
+		if err := e.allowInstance(ctx, task.Task.ProcessInstanceID); err != nil {
+			return nil, err
 		}
 		delete(task.LocalVariables, name)
 		return nil, nil

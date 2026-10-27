@@ -17,6 +17,9 @@ func (e *Engine) SuspendProcessDefinition(ctx context.Context, definitionID stri
 		if !ok {
 			return nil, api.NewError("ENGINE-0404", "流程定义不存在", api.ErrNotFound)
 		}
+		if err := e.allowTenant(ctx, definition.Info.TenantID); err != nil {
+			return nil, err
+		}
 		definition.Info.Suspended = true
 		if includeInstances {
 			for _, instance := range e.state.Instances {
@@ -41,6 +44,9 @@ func (e *Engine) ActivateProcessDefinition(ctx context.Context, definitionID str
 		if !ok {
 			return nil, api.NewError("ENGINE-0404", "流程定义不存在", api.ErrNotFound)
 		}
+		if err := e.allowTenant(ctx, definition.Info.TenantID); err != nil {
+			return nil, err
+		}
 		definition.Info.Suspended = false
 		if includeInstances {
 			for _, instance := range e.state.Instances {
@@ -64,6 +70,9 @@ func (e *Engine) SuspendProcessInstance(ctx context.Context, processInstanceID s
 		if !ok {
 			return nil, api.NewError("ENGINE-0404", "流程实例不存在", api.ErrNotFound)
 		}
+		if err := e.allowTenant(ctx, instance.TenantID); err != nil {
+			return nil, err
+		}
 		instance.Suspended = true
 		return nil, nil
 	})
@@ -79,6 +88,9 @@ func (e *Engine) ActivateProcessInstance(ctx context.Context, processInstanceID 
 		instance, ok := e.findInstance(processInstanceID)
 		if !ok {
 			return nil, api.NewError("ENGINE-0404", "流程实例不存在", api.ErrNotFound)
+		}
+		if err := e.allowTenant(ctx, instance.TenantID); err != nil {
+			return nil, err
 		}
 		instance.Suspended = false
 		return nil, nil

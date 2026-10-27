@@ -114,6 +114,9 @@ func (e *Engine) GetTask(ctx context.Context, id string) (api.Task, error) {
 		if !ok {
 			return nil, api.NewError("ENGINE-0805", "任务不存在", api.ErrNotFound)
 		}
+		if err := e.allowInstance(ctx, task.Task.ProcessInstanceID); err != nil {
+			return nil, err
+		}
 		return e.toTaskDTO(task), nil
 	})
 	if err != nil {
@@ -265,6 +268,9 @@ func (e *Engine) Claim(ctx context.Context, taskID, userID string) error {
 		if !ok {
 			return nil, api.NewError("ENGINE-0805", "任务不存在", api.ErrNotFound)
 		}
+		if err := e.allowInstance(ctx, task.Task.ProcessInstanceID); err != nil {
+			return nil, err
+		}
 		instance, _ := e.findInstance(task.Task.ProcessInstanceID)
 		if instance != nil && instance.Suspended {
 			return nil, api.NewError("ENGINE-0810", "流程实例已挂起", api.ErrConflict)
@@ -306,6 +312,9 @@ func (e *Engine) completeTask(cc *commandContext, taskID string, req api.Complet
 	if !ok {
 		return api.NewError("ENGINE-0805", "任务不存在", api.ErrNotFound)
 	}
+	if err := e.allowInstance(cc.ctx, task.Task.ProcessInstanceID); err != nil {
+		return err
+	}
 	execution, ok := e.findExecution(task.ExecutionID)
 	if !ok {
 		return api.NewError("ENGINE-0405", "任务所属执行不存在", nil)
@@ -346,6 +355,9 @@ func (e *Engine) Delegate(ctx context.Context, taskID, userID string) error {
 		task, ok := e.findTask(taskID)
 		if !ok {
 			return nil, api.NewError("ENGINE-0805", "任务不存在", api.ErrNotFound)
+		}
+		if err := e.allowInstance(ctx, task.Task.ProcessInstanceID); err != nil {
+			return nil, err
 		}
 		instance, _ := e.findInstance(task.Task.ProcessInstanceID)
 		if instance != nil && instance.Suspended {
