@@ -474,3 +474,30 @@ func TestREST_Deployments(t *testing.T) {
 	}
 	_ = response.Body.Close()
 }
+
+// TestREST_HistoricVariables 验证历史变量端点。
+// @param t 测试上下文
+func TestREST_HistoricVariables(t *testing.T) {
+	server, _ := newTestServer(t)
+	deployREST(t, server)
+	response := postJSON(t, server.URL+"/service/runtime/process-instances", map[string]any{
+		"processDefinitionKey": "rest",
+		"variables":            []map[string]any{{"name": "initiator", "value": "alice"}},
+	})
+	var instance map[string]any
+	_ = json.NewDecoder(response.Body).Decode(&instance)
+	_ = response.Body.Close()
+	instanceID, _ := instance["id"].(string)
+	response, err := http.Get(server.URL + "/service/history/historic-variable-instances?processInstanceId=" + instanceID)
+	if err != nil {
+		t.Fatalf("历史变量查询失败: %v", err)
+	}
+	var page struct {
+		Total int `json:"total"`
+	}
+	_ = json.NewDecoder(response.Body).Decode(&page)
+	_ = response.Body.Close()
+	if page.Total != 1 {
+		t.Fatalf("期望 1 个历史变量，实际 %d", page.Total)
+	}
+}

@@ -34,6 +34,7 @@ type snapshot struct {
 	HistoricProcesses  []*api.HistoricProcessInstance  `json:"historicProcesses"`  // 历史流程
 	HistoricActivities []*api.HistoricActivityInstance `json:"historicActivities"` // 历史活动
 	HistoricTasks      []*api.HistoricTaskInstance     `json:"historicTasks"`      // 历史任务
+	HistoricVariables  []*api.HistoricVariableInstance `json:"historicVariables"`  // 历史变量
 	Versions           map[string]int                  `json:"versions"`           // 版本号
 }
 
@@ -71,6 +72,9 @@ func (e *Engine) toSnapshot() *snapshot {
 	}
 	for _, historic := range e.state.HistoricTasks {
 		out.HistoricTasks = append(out.HistoricTasks, historic)
+	}
+	for _, historic := range e.state.HistoricVariables {
+		out.HistoricVariables = append(out.HistoricVariables, historic)
 	}
 	for key, version := range e.state.Versions {
 		out.Versions[key] = version
@@ -172,6 +176,9 @@ func (e *Engine) loadState() error {
 	}
 	for _, historic := range stored.HistoricTasks {
 		restored.HistoricTasks[historic.ID] = historic
+	}
+	for _, historic := range stored.HistoricVariables {
+		restored.HistoricVariables[historic.ID] = historic
 	}
 	for key, version := range stored.Versions {
 		restored.Versions[key] = version

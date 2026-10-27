@@ -317,6 +317,7 @@ func (e *Engine) setVariable(execution *executionState, name string, value any) 
 	for current != nil {
 		if _, ok := current.Variables[name]; ok {
 			current.Variables[name] = value
+			e.recordHistoricVariable(current, name, value)
 			return
 		}
 		if current.ParentID == "" {
@@ -324,6 +325,7 @@ func (e *Engine) setVariable(execution *executionState, name string, value any) 
 				current.Variables = make(map[string]any)
 			}
 			current.Variables[name] = value
+			e.recordHistoricVariable(current, name, value)
 			return
 		}
 		parent, ok := e.findExecution(current.ParentID)
@@ -336,6 +338,7 @@ func (e *Engine) setVariable(execution *executionState, name string, value any) 
 		execution.Variables = make(map[string]any)
 	}
 	execution.Variables[name] = value
+	e.recordHistoricVariable(execution, name, value)
 }
 
 // setVariableLocal 写入当前作用域变量。
@@ -347,6 +350,7 @@ func (e *Engine) setVariableLocal(execution *executionState, name string, value 
 		execution.Variables = make(map[string]any)
 	}
 	execution.Variables[name] = value
+	e.recordHistoricVariable(execution, name, value)
 }
 
 // variablesOf 返回执行可见变量快照。

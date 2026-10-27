@@ -256,6 +256,12 @@ type HistoryService interface {
 	// @return 历史任务列表
 	// @return 查询错误
 	ListHistoricTaskInstances(ctx context.Context, processInstanceID string) ([]HistoricTaskInstance, error)
+	// ListHistoricVariableInstances 返回历史变量。
+	// @param ctx 上下文
+	// @param processInstanceID 实例 ID
+	// @return 历史变量列表
+	// @return 查询错误
+	ListHistoricVariableInstances(ctx context.Context, processInstanceID string) ([]HistoricVariableInstance, error)
 }
 
 // ManagementService 提供引擎管理信息。

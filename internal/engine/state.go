@@ -134,6 +134,7 @@ type state struct {
 	HistoricProcesses  map[string]*api.HistoricProcessInstance  // 历史流程实例
 	HistoricActivities map[string]*api.HistoricActivityInstance // 历史活动
 	HistoricTasks      map[string]*api.HistoricTaskInstance     // 历史任务
+	HistoricVariables  map[string]*api.HistoricVariableInstance // 历史变量
 	Versions           map[string]int                           // 流程定义 Key 到最大版本
 }
 
@@ -152,6 +153,7 @@ func newState() *state {
 		HistoricProcesses:  make(map[string]*api.HistoricProcessInstance),
 		HistoricActivities: make(map[string]*api.HistoricActivityInstance),
 		HistoricTasks:      make(map[string]*api.HistoricTaskInstance),
+		HistoricVariables:  make(map[string]*api.HistoricVariableInstance),
 		Versions:           make(map[string]int),
 	}
 }
@@ -216,6 +218,10 @@ func cloneState(source *state) *state {
 		copied := *historic
 		copied.EndTime = cloneTime(historic.EndTime)
 		target.HistoricTasks[id] = &copied
+	}
+	for id, historic := range source.HistoricVariables {
+		copied := *historic
+		target.HistoricVariables[id] = &copied
 	}
 	for key, version := range source.Versions {
 		target.Versions[key] = version

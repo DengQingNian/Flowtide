@@ -86,3 +86,31 @@ func (e *Engine) ListHistoricTaskInstances(ctx context.Context, processInstanceI
 	}
 	return result.([]api.HistoricTaskInstance), nil
 }
+
+// ListHistoricVariableInstances 返回历史变量。
+// @param ctx 上下文
+// @param processInstanceID 实例 ID
+// @return 历史变量列表
+// @return 查询错误
+func (e *Engine) ListHistoricVariableInstances(ctx context.Context, processInstanceID string) ([]api.HistoricVariableInstance, error) {
+	result, err := e.read(func() (any, error) {
+		out := make([]api.HistoricVariableInstance, 0)
+		for _, historic := range e.state.HistoricVariables {
+			if processInstanceID != "" && historic.ProcessInstanceID != processInstanceID {
+				continue
+			}
+			out = append(out, *historic)
+		}
+		sort.Slice(out, func(i, j int) bool {
+			if out[i].Name == out[j].Name {
+				return out[i].ID < out[j].ID
+			}
+			return out[i].Name < out[j].Name
+		})
+		return out, nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.([]api.HistoricVariableInstance), nil
+}

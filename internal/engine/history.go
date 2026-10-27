@@ -120,3 +120,54 @@ func (e *Engine) taskHistoryEnabled() bool {
 	// 与参考实现一致：task 级别或 audit 及以上记录任务历史
 	return e.cfg.HistoryLevel == HistoryTask || e.historyAtLeast(HistoryAudit)
 }
+
+// recordHistoricVariable 记录历史变量。
+// @param execution 执行
+// @param name 变量名
+// @param value 变量值
+func (e *Engine) recordHistoricVariable(execution *executionState, name string, value any) {
+	if !e.historyAtLeast(HistoryActivity) {
+		return
+	}
+	key := execution.ID + "|" + name
+	if existing, ok := e.state.HistoricVariables[key]; ok {
+		existing.Value = value
+		existing.Type = variableTypeName(value)
+		existing.LastUpdatedTime = e.cfg.Clock.Now()
+		return
+	}
+	now := e.cfg.Clock.Now()
+	historic := &api.HistoricVariableInstance{
+		ID:                e.newID(),
+		Name:              name,
+		Type:              variableTypeName(value),
+		ProcessInstanceID: execution.ProcessInstanceID,
+		ExecutionID:       execution.ID,
+		Value:             value,
+		CreateTime:        now,
+		LastUpdatedTime:   now,
+	}
+	e.state.HistoricVariables[key] = historic
+}
+
+// variableTypeName 返回变量类型名。
+// @param value 变量值
+// @return 类型名
+func variableTypeName(value any) string {
+	switch value.(type) {
+	case nil:
+		return "null"
+	case string:
+		return "string"
+	case bool:
+		return "boolean"
+	case int, int8, int16, int32, int64, uint, uint8, uint16, uint32, uint64:
+		return "long"
+	case float32, float64:
+		return "double"
+	case []byte:
+		return "bytes"
+	default:
+		return "json"
+	}
+}

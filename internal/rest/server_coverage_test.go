@@ -44,6 +44,7 @@ func TestREST_ClosedEngine(t *testing.T) {
 		"/service/history/historic-process-instances",
 		"/service/history/historic-activity-instances",
 		"/service/history/historic-task-instances",
+		"/service/history/historic-variable-instances",
 	}
 	posts := []string{"/service/runtime/messages", "/service/runtime/signals", "/service/management/jobs/run"}
 	for _, path := range posts {

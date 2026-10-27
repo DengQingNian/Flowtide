@@ -85,6 +85,9 @@ func (e *Engine) startProcess(cc *commandContext, req api.StartRequest) (api.Pro
 	}
 	e.state.Instances[instanceID] = instance
 	e.state.Executions[executionID] = execution
+	for name, value := range variables {
+		e.recordHistoricVariable(execution, name, value)
+	}
 	e.recordProcessStart(cc, instance)
 	e.scheduleEventSubProcesses(cc, execution, process.Elements, process.Order, definition)
 
