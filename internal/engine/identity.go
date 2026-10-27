@@ -4,6 +4,7 @@ import (
 	"context"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/flowable-go/flowable/api"
 	"github.com/flowable-go/flowable/internal/auth"
@@ -247,12 +248,79 @@ func (e *Engine) ListMembers(ctx context.Context, groupID string) ([]api.User, e
 // @param password 密码
 // @return 校验错误
 func (e *Engine) CheckPassword(ctx context.Context, userID, password string) error {
-	_, err := e.read(func() (any, error) {
+	var authErr error
+	_, err := e.execute(ctx, func(cc *commandContext) (any, error) {
 		user, ok := e.state.Users[userID]
-		if !ok || user.PasswordHash == "" || !auth.Verify(password, user.PasswordHash) {
+		if !ok {
+			authErr = api.NewError("AUTH-0003", "用户名或密码错误", api.ErrUnauthorized)
+			return nil, nil
+		}
+		if user.LockedUntil != nil && user.LockedUntil.After(cc.now) {
+			authErr = api.NewError("AUTH-0004", "用户已锁定", api.ErrUnauthorized)
+			return nil, nil
+		}
+		if user.PasswordHash == "" || !auth.Verify(password, user.PasswordHash) {
+			user.FailedAttempts++
+			if user.FailedAttempts >= 5 {
+				locked := cc.now.Add(5 * time.Minute)
+				user.LockedUntil = &locked
+			}
+			authErr = api.NewError("AUTH-0003", "用户名或密码错误", api.ErrUnauthorized)
+			return nil, nil
+		}
+		user.FailedAttempts = 0
+		user.LockedUntil = nil
+		return nil, nil
+	})
+	if err != nil {
+		return err
+	}
+	return authErr
+}
+
+// UpdatePassword 重置用户密码。
+// @param ctx 上下文
+// @param userID 用户 ID
+// @param newPassword 新密码
+// @return 更新错误
+func (e *Engine) UpdatePassword(ctx context.Context, userID, newPassword string) error {
+	_, err := e.execute(ctx, func(cc *commandContext) (any, error) {
+		user, ok := e.state.Users[userID]
+		if !ok {
+			return nil, api.NewError("ENGINE-0404", "用户不存在", api.ErrNotFound)
+		}
+		hashed, hashErr := auth.Hash(newPassword)
+		if hashErr != nil {
+			return nil, hashErr
+		}
+		user.PasswordHash = hashed
+		user.FailedAttempts = 0
+		user.LockedUntil = nil
+		return nil, nil
+	})
+	return err
+}
+
+// ChangePassword 修改用户密码。
+// @param ctx 上下文
+// @param userID 用户 ID
+// @param oldPassword 旧密码
+// @param newPassword 新密码
+// @return 修改错误
+func (e *Engine) ChangePassword(ctx context.Context, userID, oldPassword, newPassword string) error {
+	_, err := e.execute(ctx, func(cc *commandContext) (any, error) {
+		user, ok := e.state.Users[userID]
+		if !ok || user.PasswordHash == "" || !auth.Verify(oldPassword, user.PasswordHash) {
 			return nil, api.NewError("AUTH-0003", "用户名或密码错误", api.ErrUnauthorized)
 		}
-		return user, nil
+		hashed, hashErr := auth.Hash(newPassword)
+		if hashErr != nil {
+			return nil, hashErr
+		}
+		user.PasswordHash = hashed
+		user.FailedAttempts = 0
+		user.LockedUntil = nil
+		return nil, nil
 	})
 	return err
 }

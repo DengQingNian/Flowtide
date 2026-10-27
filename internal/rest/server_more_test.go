@@ -2,6 +2,7 @@ package rest
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"net/http"
@@ -1130,5 +1131,33 @@ func TestREST_TenantFiltering(t *testing.T) {
 	_ = response.Body.Close()
 	if tasks.Total != 0 {
 		t.Fatalf("其他租户任务不应可见: %d", tasks.Total)
+	}
+}
+
+// TestREST_Password 验证密码修改与重置。
+// @param t 测试上下文
+func TestREST_Password(t *testing.T) {
+	server, app := newTestServer(t)
+	response := postJSON(t, server.URL+"/service/identity/users", map[string]any{"id": "alice", "password": "secret"})
+	_ = response.Body.Close()
+	request, _ := http.NewRequest(http.MethodPut, server.URL+"/service/identity/users/alice/password", bytes.NewBufferString(`{"oldPassword":"secret","newPassword":"new"}`))
+	request.Header.Set("Content-Type", "application/json")
+	response, _ = http.DefaultClient.Do(request)
+	if response.StatusCode != http.StatusNoContent {
+		t.Fatalf("修改密码失败: %d", response.StatusCode)
+	}
+	_ = response.Body.Close()
+	if err := app.IdentityService().CheckPassword(context.Background(), "alice", "new"); err != nil {
+		t.Fatalf("新密码校验失败: %v", err)
+	}
+	request, _ = http.NewRequest(http.MethodPut, server.URL+"/service/identity/users/alice/password", bytes.NewBufferString(`{"newPassword":"reset"}`))
+	request.Header.Set("Content-Type", "application/json")
+	response, _ = http.DefaultClient.Do(request)
+	if response.StatusCode != http.StatusNoContent {
+		t.Fatalf("重置密码失败: %d", response.StatusCode)
+	}
+	_ = response.Body.Close()
+	if err := app.IdentityService().CheckPassword(context.Background(), "alice", "reset"); err != nil {
+		t.Fatalf("重置密码校验失败: %v", err)
 	}
 }

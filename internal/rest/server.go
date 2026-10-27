@@ -228,6 +228,7 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("POST /service/identity/users", s.handleCreateUser)
 	s.mux.HandleFunc("GET /service/identity/users/{id}", s.handleGetUser)
 	s.mux.HandleFunc("DELETE /service/identity/users/{id}", s.handleDeleteUser)
+	s.mux.HandleFunc("PUT /service/identity/users/{id}/password", s.handleChangePassword)
 	s.mux.HandleFunc("GET /service/identity/groups", s.handleListGroups)
 	s.mux.HandleFunc("POST /service/identity/groups", s.handleCreateGroup)
 	s.mux.HandleFunc("GET /service/identity/groups/{id}", s.handleGetGroup)
@@ -744,6 +745,34 @@ func (s *Server) handleGetUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, user)
+}
+
+// passwordPayload 是密码修改请求体。
+type passwordPayload struct {
+	OldPassword string `json:"oldPassword"` // 旧密码
+	NewPassword string `json:"newPassword"` // 新密码
+}
+
+// handleChangePassword 修改或重置密码。
+// @param w 响应
+// @param r 请求
+func (s *Server) handleChangePassword(w http.ResponseWriter, r *http.Request) {
+	var payload passwordPayload
+	if err := decodeJSON(r, &payload); err != nil {
+		writeError(w, err)
+		return
+	}
+	userID := r.PathValue("id")
+	if payload.OldPassword != "" {
+		if err := s.engine.IdentityService().ChangePassword(r.Context(), userID, payload.OldPassword, payload.NewPassword); err != nil {
+			writeError(w, err)
+			return
+		}
+	} else if err := s.engine.IdentityService().UpdatePassword(r.Context(), userID, payload.NewPassword); err != nil {
+		writeError(w, err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
 }
 
 // handleDeleteUser 删除用户。

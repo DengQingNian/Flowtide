@@ -3,6 +3,9 @@ package engine
 import (
 	"context"
 	"testing"
+	"time"
+
+	"github.com/flowable-go/flowable/internal/clock"
 
 	"github.com/flowable-go/flowable/api"
 )
@@ -133,5 +136,54 @@ func TestIdentityPassword(t *testing.T) {
 	}
 	if err := engine.CheckPassword(context.Background(), "bob", "x"); err == nil {
 		t.Fatalf("无密码用户应失败")
+	}
+}
+
+// TestPasswordLockout 验证登录失败锁定。
+// @param t 测试上下文
+func TestPasswordLockout(t *testing.T) {
+	fake := clock.NewFake(time.Date(2026, 10, 28, 0, 0, 0, 0, time.UTC))
+	engine, _ := New(Config{Clock: fake})
+	if _, err := engine.CreateUser(context.Background(), api.User{ID: "alice", Password: "secret"}); err != nil {
+		t.Fatalf("创建用户失败: %v", err)
+	}
+	for i := 0; i < 5; i++ {
+		if err := engine.CheckPassword(context.Background(), "alice", "bad"); err == nil {
+			t.Fatalf("错误密码应失败")
+		}
+	}
+	if err := engine.CheckPassword(context.Background(), "alice", "secret"); err == nil {
+		t.Fatalf("锁定后正确密码也应失败")
+	}
+	fake.Advance(6 * time.Minute)
+	if err := engine.CheckPassword(context.Background(), "alice", "secret"); err != nil {
+		t.Fatalf("锁定过期后应可登录: %v", err)
+	}
+}
+
+// TestPasswordChange 验证密码修改与重置。
+// @param t 测试上下文
+func TestPasswordChange(t *testing.T) {
+	engine := newTestEngine(t)
+	if _, err := engine.CreateUser(context.Background(), api.User{ID: "alice", Password: "secret"}); err != nil {
+		t.Fatalf("创建用户失败: %v", err)
+	}
+	if err := engine.ChangePassword(context.Background(), "alice", "bad", "new"); err == nil {
+		t.Fatalf("旧密码错误应失败")
+	}
+	if err := engine.ChangePassword(context.Background(), "alice", "secret", "new"); err != nil {
+		t.Fatalf("修改密码失败: %v", err)
+	}
+	if err := engine.CheckPassword(context.Background(), "alice", "new"); err != nil {
+		t.Fatalf("新密码应可登录: %v", err)
+	}
+	if err := engine.UpdatePassword(context.Background(), "alice", "reset"); err != nil {
+		t.Fatalf("重置密码失败: %v", err)
+	}
+	if err := engine.CheckPassword(context.Background(), "alice", "reset"); err != nil {
+		t.Fatalf("重置后密码应可登录: %v", err)
+	}
+	if err := engine.UpdatePassword(context.Background(), "missing", "x"); err == nil {
+		t.Fatalf("缺失用户重置应失败")
 	}
 }
