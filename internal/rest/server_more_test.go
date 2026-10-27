@@ -711,3 +711,101 @@ func TestREST_ExecutionAndHistoryDetails(t *testing.T) {
 	}
 	_ = response.Body.Close()
 }
+
+// TestREST_CommentsAttachments 验证评论与附件端点。
+// @param t 测试上下文
+func TestREST_CommentsAttachments(t *testing.T) {
+	server, _ := newTestServer(t)
+	deployREST(t, server)
+	response := postJSON(t, server.URL+"/service/runtime/process-instances", map[string]any{
+		"processDefinitionKey": "rest",
+		"variables":            []map[string]any{{"name": "initiator", "value": "alice"}},
+	})
+	_ = response.Body.Close()
+	response, _ = http.Get(server.URL + "/service/runtime/tasks")
+	var page struct {
+		Data []map[string]any `json:"data"`
+	}
+	_ = json.NewDecoder(response.Body).Decode(&page)
+	_ = response.Body.Close()
+	taskID, _ := page.Data[0]["id"].(string)
+
+	response = postJSON(t, server.URL+"/service/runtime/tasks/"+taskID+"/comments", map[string]any{"message": "ok", "userId": "alice"})
+	if response.StatusCode != http.StatusCreated {
+		t.Fatalf("添加评论失败: %d", response.StatusCode)
+	}
+	var comment map[string]any
+	_ = json.NewDecoder(response.Body).Decode(&comment)
+	_ = response.Body.Close()
+	response, _ = http.Get(server.URL + "/service/runtime/tasks/" + taskID + "/comments")
+	var comments struct {
+		Total int `json:"total"`
+	}
+	_ = json.NewDecoder(response.Body).Decode(&comments)
+	_ = response.Body.Close()
+	if comments.Total != 1 {
+		t.Fatalf("评论列表错误: %d", comments.Total)
+	}
+	commentID, _ := comment["id"].(string)
+	request, _ := http.NewRequest(http.MethodDelete, server.URL+"/service/runtime/tasks/"+taskID+"/comments/"+commentID, nil)
+	response, _ = http.DefaultClient.Do(request)
+	if response.StatusCode != http.StatusNoContent {
+		t.Fatalf("删除评论失败: %d", response.StatusCode)
+	}
+	_ = response.Body.Close()
+
+	response = postJSON(t, server.URL+"/service/runtime/tasks/"+taskID+"/attachments", map[string]any{"name": "doc", "url": "http://example.com"})
+	if response.StatusCode != http.StatusCreated {
+		t.Fatalf("添加附件失败: %d", response.StatusCode)
+	}
+	_ = response.Body.Close()
+	response, _ = http.Get(server.URL + "/service/runtime/tasks/" + taskID + "/attachments")
+	var attachments struct {
+		Total int `json:"total"`
+	}
+	_ = json.NewDecoder(response.Body).Decode(&attachments)
+	_ = response.Body.Close()
+	if attachments.Total != 1 {
+		t.Fatalf("附件列表错误: %d", attachments.Total)
+	}
+}
+
+// TestREST_CommentsErrors 验证评论附件错误。
+// @param t 测试上下文
+func TestREST_CommentsErrors(t *testing.T) {
+	server, _ := newTestServer(t)
+	response := postJSON(t, server.URL+"/service/runtime/tasks/missing/comments", map[string]any{"message": "x"})
+	if response.StatusCode != http.StatusNotFound {
+		t.Fatalf("缺失任务评论应 404: %d", response.StatusCode)
+	}
+	_ = response.Body.Close()
+	deployREST(t, server)
+	response = postJSON(t, server.URL+"/service/runtime/process-instances", map[string]any{
+		"processDefinitionKey": "rest",
+		"variables":            []map[string]any{{"name": "initiator", "value": "alice"}},
+	})
+	_ = response.Body.Close()
+	response, _ = http.Get(server.URL + "/service/runtime/tasks")
+	var page struct {
+		Data []map[string]any `json:"data"`
+	}
+	_ = json.NewDecoder(response.Body).Decode(&page)
+	_ = response.Body.Close()
+	taskID, _ := page.Data[0]["id"].(string)
+	response = postJSON(t, server.URL+"/service/runtime/tasks/"+taskID+"/comments", map[string]any{"message": ""})
+	if response.StatusCode != http.StatusBadRequest {
+		t.Fatalf("空评论应 400: %d", response.StatusCode)
+	}
+	_ = response.Body.Close()
+	request, _ := http.NewRequest(http.MethodDelete, server.URL+"/service/runtime/tasks/"+taskID+"/comments/missing", nil)
+	response, _ = http.DefaultClient.Do(request)
+	if response.StatusCode != http.StatusNotFound {
+		t.Fatalf("缺失评论删除应 404: %d", response.StatusCode)
+	}
+	_ = response.Body.Close()
+	response = postJSON(t, server.URL+"/service/runtime/tasks/"+taskID+"/attachments", map[string]any{"description": "x"})
+	if response.StatusCode != http.StatusBadRequest {
+		t.Fatalf("空附件名应 400: %d", response.StatusCode)
+	}
+	_ = response.Body.Close()
+}

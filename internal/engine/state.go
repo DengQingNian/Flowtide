@@ -138,6 +138,8 @@ type state struct {
 	HistoricActivities map[string]*api.HistoricActivityInstance // 历史活动
 	HistoricTasks      map[string]*api.HistoricTaskInstance     // 历史任务
 	HistoricVariables  map[string]*api.HistoricVariableInstance // 历史变量
+	Comments           map[string]*api.Comment                  // 评论
+	Attachments        map[string]*api.Attachment               // 附件
 	Users              map[string]*api.User                     // 用户
 	Groups             map[string]*api.Group                    // 组
 	Memberships        map[string]bool                          // 成员关系，key=user|group
@@ -161,6 +163,8 @@ func newState() *state {
 		HistoricActivities: make(map[string]*api.HistoricActivityInstance),
 		HistoricTasks:      make(map[string]*api.HistoricTaskInstance),
 		HistoricVariables:  make(map[string]*api.HistoricVariableInstance),
+		Comments:           make(map[string]*api.Comment),
+		Attachments:        make(map[string]*api.Attachment),
 		Users:              make(map[string]*api.User),
 		Groups:             make(map[string]*api.Group),
 		Memberships:        make(map[string]bool),
@@ -240,6 +244,14 @@ func cloneState(source *state) *state {
 	for id, user := range source.Users {
 		copied := *user
 		target.Users[id] = &copied
+	}
+	for id, comment := range source.Comments {
+		copied := *comment
+		target.Comments[id] = &copied
+	}
+	for id, attachment := range source.Attachments {
+		copied := *attachment
+		target.Attachments[id] = &copied
 	}
 	for id, group := range source.Groups {
 		copied := *group

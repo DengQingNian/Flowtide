@@ -79,6 +79,11 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("POST /service/runtime/signals", s.handleSignal)
 	s.mux.HandleFunc("GET /service/runtime/tasks", s.handleListTasks)
 	s.mux.HandleFunc("GET /service/runtime/tasks/{id}", s.handleGetTask)
+	s.mux.HandleFunc("GET /service/runtime/tasks/{id}/comments", s.handleListComments)
+	s.mux.HandleFunc("POST /service/runtime/tasks/{id}/comments", s.handleAddComment)
+	s.mux.HandleFunc("DELETE /service/runtime/tasks/{id}/comments/{commentId}", s.handleDeleteComment)
+	s.mux.HandleFunc("GET /service/runtime/tasks/{id}/attachments", s.handleListAttachments)
+	s.mux.HandleFunc("POST /service/runtime/tasks/{id}/attachments", s.handleAddAttachment)
 	s.mux.HandleFunc("POST /service/runtime/tasks/{id}", s.handleTaskAction)
 	s.mux.HandleFunc("GET /service/history/historic-process-instances", s.handleHistoricProcesses)
 	s.mux.HandleFunc("GET /service/history/historic-process-instances/{id}", s.handleHistoricProcess)
@@ -813,6 +818,83 @@ type taskActionPayload struct {
 	LocalVariables json.RawMessage `json:"localVariables"` // 任务变量
 }
 
+// commentPayload 是评论请求体。
+type commentPayload struct {
+	Message string `json:"message"` // 内容
+	UserID  string `json:"userId"`  // 作者
+}
+
+// handleListComments 返回任务评论。
+// @param w 响应
+// @param r 请求
+func (s *Server) handleListComments(w http.ResponseWriter, r *http.Request) {
+	comments, err := s.engine.TaskService().ListComments(r.Context(), r.PathValue("id"))
+	if err != nil {
+		writeError(w, err)
+		return
+	}
+	start, size := pageParams(r)
+	writePage(w, comments, start, size)
+}
+
+// handleAddComment 添加任务评论。
+// @param w 响应
+// @param r 请求
+func (s *Server) handleAddComment(w http.ResponseWriter, r *http.Request) {
+	var payload commentPayload
+	if err := decodeJSON(r, &payload); err != nil {
+		writeError(w, err)
+		return
+	}
+	comment, err := s.engine.TaskService().AddComment(r.Context(), r.PathValue("id"), payload.UserID, payload.Message)
+	if err != nil {
+		writeError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusCreated, comment)
+}
+
+// handleDeleteComment 删除评论。
+// @param w 响应
+// @param r 请求
+func (s *Server) handleDeleteComment(w http.ResponseWriter, r *http.Request) {
+	if err := s.engine.TaskService().DeleteComment(r.Context(), r.PathValue("commentId")); err != nil {
+		writeError(w, err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
+// handleListAttachments 返回任务附件。
+// @param w 响应
+// @param r 请求
+func (s *Server) handleListAttachments(w http.ResponseWriter, r *http.Request) {
+	attachments, err := s.engine.TaskService().ListAttachments(r.Context(), r.PathValue("id"))
+	if err != nil {
+		writeError(w, err)
+		return
+	}
+	start, size := pageParams(r)
+	writePage(w, attachments, start, size)
+}
+
+// handleAddAttachment 添加任务附件。
+// @param w 响应
+// @param r 请求
+func (s *Server) handleAddAttachment(w http.ResponseWriter, r *http.Request) {
+	var attachment api.Attachment
+	if err := decodeJSON(r, &attachment); err != nil {
+		writeError(w, err)
+		return
+	}
+	created, err := s.engine.TaskService().AddAttachment(r.Context(), r.PathValue("id"), attachment)
+	if err != nil {
+		writeError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusCreated, created)
+}
+
 // handleTaskAction 处理任务动作。
 // @param w 响应
 // @param r 请求
@@ -1066,6 +1148,18 @@ func reflectSlice(items any) []any {
 		}
 		return out
 	case []api.Group:
+		out := make([]any, len(typed))
+		for i, item := range typed {
+			out[i] = item
+		}
+		return out
+	case []api.Comment:
+		out := make([]any, len(typed))
+		for i, item := range typed {
+			out[i] = item
+		}
+		return out
+	case []api.Attachment:
 		out := make([]any, len(typed))
 		for i, item := range typed {
 			out[i] = item

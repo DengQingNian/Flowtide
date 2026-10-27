@@ -36,6 +36,8 @@ type snapshot struct {
 	HistoricActivities []*api.HistoricActivityInstance `json:"historicActivities"` // 历史活动
 	HistoricTasks      []*api.HistoricTaskInstance     `json:"historicTasks"`      // 历史任务
 	HistoricVariables  []*api.HistoricVariableInstance `json:"historicVariables"`  // 历史变量
+	Comments           []*api.Comment                  `json:"comments"`           // 评论
+	Attachments        []*api.Attachment               `json:"attachments"`        // 附件
 	Users              []*api.User                     `json:"users"`              // 用户
 	Groups             []*api.Group                    `json:"groups"`             // 组
 	Memberships        map[string]bool                 `json:"memberships"`        // 成员关系
@@ -82,6 +84,12 @@ func (e *Engine) toSnapshot() *snapshot {
 	}
 	for _, historic := range e.state.HistoricVariables {
 		out.HistoricVariables = append(out.HistoricVariables, historic)
+	}
+	for _, comment := range e.state.Comments {
+		out.Comments = append(out.Comments, comment)
+	}
+	for _, attachment := range e.state.Attachments {
+		out.Attachments = append(out.Attachments, attachment)
 	}
 	for _, user := range e.state.Users {
 		out.Users = append(out.Users, user)
@@ -196,6 +204,12 @@ func (e *Engine) loadState() error {
 	}
 	for _, historic := range stored.HistoricVariables {
 		restored.HistoricVariables[historic.ID] = historic
+	}
+	for _, comment := range stored.Comments {
+		restored.Comments[comment.ID] = comment
+	}
+	for _, attachment := range stored.Attachments {
+		restored.Attachments[attachment.ID] = attachment
 	}
 	for _, user := range stored.Users {
 		restored.Users[user.ID] = user

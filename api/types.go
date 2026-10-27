@@ -121,6 +121,29 @@ type HistoricTaskInstance struct {
 	DurationMillis    int64      `json:"durationMillis"`     // 持续时间毫秒
 }
 
+// Comment 是任务评论。
+type Comment struct {
+	ID                string    `json:"id"`                          // 评论 ID
+	TaskID            string    `json:"taskId,omitempty"`            // 任务 ID
+	ProcessInstanceID string    `json:"processInstanceId,omitempty"` // 流程实例 ID
+	Type              string    `json:"type"`                        // 评论类型
+	Message           string    `json:"message"`                     // 内容
+	UserID            string    `json:"userId,omitempty"`            // 作者
+	Time              time.Time `json:"time"`                        // 创建时间
+}
+
+// Attachment 是任务附件。
+type Attachment struct {
+	ID                string    `json:"id"`                          // 附件 ID
+	TaskID            string    `json:"taskId,omitempty"`            // 任务 ID
+	ProcessInstanceID string    `json:"processInstanceId,omitempty"` // 流程实例 ID
+	Name              string    `json:"name"`                        // 名称
+	Description       string    `json:"description,omitempty"`       // 描述
+	Type              string    `json:"type,omitempty"`              // 类型
+	URL               string    `json:"url,omitempty"`               // URL
+	Time              time.Time `json:"time"`                        // 创建时间
+}
+
 // ExecutionInfo 是执行实例信息。
 type ExecutionInfo struct {
 	ID                  string `json:"id"`                   // 执行 ID

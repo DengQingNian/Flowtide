@@ -251,6 +251,38 @@ type TaskService interface {
 	// @param userID 被委托人
 	// @return 委派错误
 	Delegate(ctx context.Context, taskID, userID string) error
+	// AddComment 添加任务评论。
+	// @param ctx 上下文
+	// @param taskID 任务 ID
+	// @param userID 作者
+	// @param message 内容
+	// @return 评论
+	// @return 添加错误
+	AddComment(ctx context.Context, taskID, userID, message string) (Comment, error)
+	// ListComments 返回任务评论。
+	// @param ctx 上下文
+	// @param taskID 任务 ID
+	// @return 评论列表
+	// @return 查询错误
+	ListComments(ctx context.Context, taskID string) ([]Comment, error)
+	// DeleteComment 删除评论。
+	// @param ctx 上下文
+	// @param commentID 评论 ID
+	// @return 删除错误
+	DeleteComment(ctx context.Context, commentID string) error
+	// AddAttachment 添加任务附件。
+	// @param ctx 上下文
+	// @param taskID 任务 ID
+	// @param attachment 附件
+	// @return 附件
+	// @return 添加错误
+	AddAttachment(ctx context.Context, taskID string, attachment Attachment) (Attachment, error)
+	// ListAttachments 返回任务附件。
+	// @param ctx 上下文
+	// @param taskID 任务 ID
+	// @return 附件列表
+	// @return 查询错误
+	ListAttachments(ctx context.Context, taskID string) ([]Attachment, error)
 }
 
 // HistoryService 提供历史查询。
