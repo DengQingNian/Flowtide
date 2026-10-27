@@ -135,7 +135,7 @@ curl -X POST 'http://localhost:8080/service/runtime/process-instances' \
 - Flowable 8.1 的 41 张 ACT_* 表 DDL（MySQL/PostgreSQL）与 `flowable-migrate` CLI。
 - 可插拔状态存储（文件/内存/SQL），SQL 桥接写入 `ACT_GE_BYTEARRAY`。
 - ACT_* 行映射、导出与导入（仓库、运行时、作业/订阅/死信、历史/评论/附件）。
-- 行级 SQL 仓储、`REV_` 乐观锁与事务工作单元。
+- 行级 SQL 仓储、`REV_` 乐观锁、事务工作单元与整份快照写入。
 - 部署管理（列表、详情、资源下载、级联删除、ZIP/BAR 部署包）。
 - 事件子流程（消息/信号启动、中断/非中断、作用域取消）。
 - 补偿（补偿边界、关联处理器、逆序执行；服务/手动处理器）。

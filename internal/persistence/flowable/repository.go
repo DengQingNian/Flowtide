@@ -183,3 +183,23 @@ func (r *Repository) Apply(ctx context.Context, operations []Operation) error {
 	}
 	return nil
 }
+
+// SnapshotOperations 为整份快照生成"先删后插"操作。
+// @param rows 行列表
+// @return 操作列表
+func SnapshotOperations(rows []Row) []Operation {
+	operations := make([]Operation, 0, len(rows)*2)
+	for _, row := range rows {
+		operations = append(operations, Operation{Kind: OperationDelete, Row: row})
+		operations = append(operations, Operation{Kind: OperationInsert, Row: row})
+	}
+	return operations
+}
+
+// ReplaceAll 在事务中替换整份快照。
+// @param ctx 上下文
+// @param rows 行列表
+// @return 替换错误
+func (r *Repository) ReplaceAll(ctx context.Context, rows []Row) error {
+	return r.Apply(ctx, SnapshotOperations(rows))
+}
