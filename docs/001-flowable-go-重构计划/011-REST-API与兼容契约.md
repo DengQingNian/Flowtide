@@ -93,7 +93,7 @@ Flowable 8.x 提供官方 Swagger/OpenAPI 规范，作为 REST 契约的事实�
 | PUT | `/repository/models/{id}/source` | 保存模型源文件 |
 | GET | `/repository/process-definitions/{id}/model` | 定义对应模型 |
 
-> 仓库组共 22 个资源类、约 33 个方法；上表列出核心路径，完整清单以官方 OpenAPI 为准。
+> 仓库组共 22 个资源类、31 个方法；上表列出核心路径，完整清单以官方 OpenAPI 为准。
 
 ### 3.2 运行时（Runtime）
 
