@@ -83,6 +83,9 @@ func parseProcess(node *Node) (*model.Process, error) {
 	if err := linkSequenceFlows(process); err != nil {
 		return nil, err
 	}
+	if err := attachBoundaryEvents(process.Elements, process.Order); err != nil {
+		return nil, err
+	}
 	if len(process.StartEvents()) == 0 {
 		return nil, api.NewError("BPMN-1003", fmt.Sprintf("流程 %s 缺少开始事件", process.ID), nil)
 	}
@@ -155,6 +158,17 @@ func parseElement(node *Node) (model.FlowElement, error) {
 		gateway := &model.ParallelGateway{}
 		parseFlowNodeBase(node, &gateway.FlowNodeBase)
 		return gateway, nil
+	case "boundaryEvent":
+		event := &model.BoundaryEvent{
+			AttachedToRef:  node.Attr("attachedToRef"),
+			CancelActivity: !strings.EqualFold(node.Attr("cancelActivity"), "false"),
+			Timer:          parseTimer(node),
+		}
+		parseFlowNodeBase(node, &event.FlowNodeBase)
+		if event.AttachedToRef == "" {
+			return nil, api.NewError("BPMN-1006", "边界事件缺少 attachedToRef", nil)
+		}
+		return event, nil
 	case "subProcess":
 		return parseSubProcess(node)
 	case "sequenceFlow":
@@ -285,6 +299,25 @@ func lookupFlowNode(elements map[string]model.FlowElement, id string) (model.Flo
 	return node, ok
 }
 
+// attachBoundaryEvents 将边界事件挂到依附活动。
+// @param elements 元素表
+// @param order 元素顺序
+// @return 挂载错误
+func attachBoundaryEvents(elements map[string]model.FlowElement, order []string) error {
+	for _, id := range order {
+		event, ok := elements[id].(*model.BoundaryEvent)
+		if !ok {
+			continue
+		}
+		node, ok := lookupFlowNode(elements, event.AttachedToRef)
+		if !ok {
+			return api.NewError("BPMN-1007", fmt.Sprintf("边界事件 %s 的依附活动不存在: %s", event.ID, event.AttachedToRef), nil)
+		}
+		node.AddBoundaryEvent(event)
+	}
+	return nil
+}
+
 // parseSubProcess 解析嵌入式子流程。
 // @param node XML 节点
 // @return 子流程
@@ -309,6 +342,9 @@ func parseSubProcess(node *Node) (model.FlowElement, error) {
 		sub.AddElement(element)
 	}
 	if err := linkFlows(sub.Elements, sub.Order); err != nil {
+		return nil, err
+	}
+	if err := attachBoundaryEvents(sub.Elements, sub.Order); err != nil {
 		return nil, err
 	}
 	if len(sub.StartEvents()) == 0 {

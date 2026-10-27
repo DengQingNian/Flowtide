@@ -187,4 +187,9 @@ type ManagementService interface {
 	// @return 引擎信息
 	// @return 查询错误
 	EngineInfo(ctx context.Context) (map[string]any, error)
+	// RunDueJobs 执行全部到期定时器作业。
+	// @param ctx 上下文
+	// @return 执行数量
+	// @return 执行错误
+	RunDueJobs(ctx context.Context) (int, error)
 }

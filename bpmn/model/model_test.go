@@ -7,11 +7,11 @@ import "testing"
 func TestElementTypes(t *testing.T) {
 	elements := []FlowElement{
 		&StartEvent{}, &EndEvent{}, &UserTask{}, &ServiceTask{}, &ScriptTask{},
-		&ManualTask{}, &ExclusiveGateway{}, &ParallelGateway{}, &SequenceFlow{}, &SubProcess{},
+		&ManualTask{}, &ExclusiveGateway{}, &ParallelGateway{}, &SequenceFlow{}, &SubProcess{}, &BoundaryEvent{},
 	}
 	want := []string{
 		"startEvent", "endEvent", "userTask", "serviceTask", "scriptTask",
-		"manualTask", "exclusiveGateway", "parallelGateway", "sequenceFlow", "subProcess",
+		"manualTask", "exclusiveGateway", "parallelGateway", "sequenceFlow", "subProcess", "boundaryEvent",
 	}
 	for i, element := range elements {
 		if element.ElementType() != want[i] {
@@ -87,5 +87,16 @@ func TestSubProcessHelpers(t *testing.T) {
 	}
 	if len(sub.StartEvents()) != 1 {
 		t.Fatalf("子流程开始事件数量错误")
+	}
+}
+
+// TestBoundaryEventHelpers 验证边界事件挂载。
+// @param t 测试上下文
+func TestBoundaryEventHelpers(t *testing.T) {
+	task := &UserTask{FlowNodeBase: FlowNodeBase{BaseElement: BaseElement{ID: "task"}}}
+	event := &BoundaryEvent{FlowNodeBase: FlowNodeBase{BaseElement: BaseElement{ID: "b"}}, AttachedToRef: "task", CancelActivity: true}
+	task.AddBoundaryEvent(event)
+	if len(task.GetBoundaryEvents()) != 1 || task.GetBoundaryEvents()[0].ID != "b" {
+		t.Fatalf("边界事件挂载失败")
 	}
 }

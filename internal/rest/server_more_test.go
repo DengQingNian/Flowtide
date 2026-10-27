@@ -181,3 +181,19 @@ func TestServerString(t *testing.T) {
 		t.Fatalf("服务描述为空")
 	}
 }
+
+// TestREST_RunJobs 验证定时器执行端点。
+// @param t 测试上下文
+func TestREST_RunJobs(t *testing.T) {
+	server, _ := newTestServer(t)
+	response := postJSON(t, server.URL+"/service/management/jobs/run", map[string]any{})
+	if response.StatusCode != http.StatusOK {
+		t.Fatalf("执行作业失败: %d", response.StatusCode)
+	}
+	var body map[string]any
+	_ = json.NewDecoder(response.Body).Decode(&body)
+	_ = response.Body.Close()
+	if body["executed"] != float64(0) {
+		t.Fatalf("期望执行 0 个作业，实际 %+v", body)
+	}
+}

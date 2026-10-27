@@ -48,8 +48,9 @@ func (b *BaseElement) GetName() string { return b.Name }
 // FlowNodeBase 提供流程节点的公共字段与方法。
 type FlowNodeBase struct {
 	BaseElement
-	incoming []*SequenceFlow // 入线
-	outgoing []*SequenceFlow // 出线
+	incoming       []*SequenceFlow  // 入线
+	outgoing       []*SequenceFlow  // 出线
+	BoundaryEvents []*BoundaryEvent // 依附的边界事件
 }
 
 // GetIncoming 返回入线。
@@ -68,6 +69,16 @@ func (n *FlowNodeBase) AddIncoming(flow *SequenceFlow) { n.incoming = append(n.i
 // @param flow 顺序流
 func (n *FlowNodeBase) AddOutgoing(flow *SequenceFlow) { n.outgoing = append(n.outgoing, flow) }
 
+// AddBoundaryEvent 添加边界事件。
+// @param event 边界事件
+func (n *FlowNodeBase) AddBoundaryEvent(event *BoundaryEvent) {
+	n.BoundaryEvents = append(n.BoundaryEvents, event)
+}
+
+// GetBoundaryEvents 返回边界事件。
+// @return 边界事件列表
+func (n *FlowNodeBase) GetBoundaryEvents() []*BoundaryEvent { return n.BoundaryEvents }
+
 // FlowNode 是可被令牌经过的节点。
 type FlowNode interface {
 	FlowElement
@@ -83,6 +94,12 @@ type FlowNode interface {
 	// AddOutgoing 添加出线。
 	// @param flow 顺序流
 	AddOutgoing(flow *SequenceFlow)
+	// AddBoundaryEvent 添加边界事件。
+	// @param event 边界事件
+	AddBoundaryEvent(event *BoundaryEvent)
+	// GetBoundaryEvents 返回边界事件。
+	// @return 边界事件列表
+	GetBoundaryEvents() []*BoundaryEvent
 }
 
 // StartEvent 表示开始事件。
@@ -187,6 +204,18 @@ type ParallelGateway struct {
 // ElementType 返回元素类型。
 // @return 元素类型
 func (g *ParallelGateway) ElementType() string { return "parallelGateway" }
+
+// BoundaryEvent 表示边界事件。
+type BoundaryEvent struct {
+	FlowNodeBase
+	AttachedToRef  string           // 依附活动 ID
+	CancelActivity bool             // 是否中断依附活动
+	Timer          *TimerDefinition // 定时器定义
+}
+
+// ElementType 返回元素类型。
+// @return 元素类型
+func (e *BoundaryEvent) ElementType() string { return "boundaryEvent" }
 
 // SubProcess 表示嵌入式子流程。
 type SubProcess struct {

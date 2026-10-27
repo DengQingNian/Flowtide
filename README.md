@@ -86,7 +86,7 @@ docs/{三位流水号}-{描述}/
 make build
 
 # 运行
-./bin/flowable-server -addr :8080 -history audit -state ./data/engine.json
+./bin/flowable-server -addr :8080 -history audit -state ./data/engine.json -jobs-interval 1s
 
 # 健康检查
 curl http://localhost:8080/healthz
@@ -113,6 +113,7 @@ curl -X POST 'http://localhost:8080/service/runtime/process-instances' \
 - 服务任务：Go 委托注册表与 delegateExpression。
 - 排他网关（条件/默认流）、并行网关（分叉/汇聚）。
 - 嵌入式子流程（含嵌套与内部并行汇聚）、多实例（并行/串行、集合/基数、完成条件）。
+- 边界定时器（中断/非中断）、定时器作业扫描与持久化。
 - 变量作用域、表达式子集、历史记录。
 - JSON 状态文件持久化（原子写入、启动恢复、失败回滚）。
 - REST：部署、流程定义、实例、任务、变量、历史、健康检查。

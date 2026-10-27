@@ -62,6 +62,18 @@ type executionState struct {
 	Variables             map[string]any // 局部变量
 }
 
+// jobState 是定时器作业。
+type jobState struct {
+	ID                string    `json:"id"`                // 作业 ID
+	ProcessInstanceID string    `json:"processInstanceId"` // 流程实例 ID
+	ExecutionID       string    `json:"executionId"`       // 执行 ID
+	BoundaryEventID   string    `json:"boundaryEventId"`   // 边界事件 ID
+	ActivityID        string    `json:"activityId"`        // 依附活动 ID
+	CancelActivity    bool      `json:"cancelActivity"`    // 是否中断
+	DueDate           time.Time `json:"dueDate"`           // 到期时间
+	CreatedAt         time.Time `json:"createdAt"`         // 创建时间
+}
+
 // taskState 是用户任务的运行时状态。
 type taskState struct {
 	Task            api.Task       // 任务数据
@@ -80,6 +92,7 @@ type state struct {
 	Instances          map[string]*instanceState                // 流程实例
 	Executions         map[string]*executionState               // 执行
 	Tasks              map[string]*taskState                    // 任务
+	Jobs               map[string]*jobState                     // 定时器作业
 	HistoricProcesses  map[string]*api.HistoricProcessInstance  // 历史流程实例
 	HistoricActivities map[string]*api.HistoricActivityInstance // 历史活动
 	HistoricTasks      map[string]*api.HistoricTaskInstance     // 历史任务
@@ -95,6 +108,7 @@ func newState() *state {
 		Instances:          make(map[string]*instanceState),
 		Executions:         make(map[string]*executionState),
 		Tasks:              make(map[string]*taskState),
+		Jobs:               make(map[string]*jobState),
 		HistoricProcesses:  make(map[string]*api.HistoricProcessInstance),
 		HistoricActivities: make(map[string]*api.HistoricActivityInstance),
 		HistoricTasks:      make(map[string]*api.HistoricTaskInstance),
@@ -131,6 +145,10 @@ func cloneState(source *state) *state {
 		copied.Task.Variables = cloneAnyMap(task.Task.Variables)
 		copied.LocalVariables = cloneAnyMap(task.LocalVariables)
 		target.Tasks[id] = &copied
+	}
+	for id, job := range source.Jobs {
+		copied := *job
+		target.Jobs[id] = &copied
 	}
 	for id, historic := range source.HistoricProcesses {
 		copied := *historic

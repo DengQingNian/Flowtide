@@ -23,6 +23,7 @@ func main() {
 	historyLevel := flag.String("history", engine.HistoryAudit, "历史级别")
 	tenantID := flag.String("tenant", "", "默认租户")
 	statePath := flag.String("state", "", "状态文件路径，为空时仅使用内存")
+	jobsInterval := flag.Duration("jobs-interval", time.Second, "定时器扫描间隔，0 表示关闭后台扫描")
 	flag.Parse()
 
 	app, err := engine.New(engine.Config{HistoryLevel: *historyLevel, TenantID: *tenantID, StatePath: *statePath})
@@ -34,6 +35,27 @@ func main() {
 		// 关闭引擎，释放内部状态
 		_ = app.Close(context.Background())
 	}()
+
+	jobCtx, stopJobs := context.WithCancel(context.Background())
+	defer stopJobs()
+	if *jobsInterval > 0 {
+		go func() {
+			ticker := time.NewTicker(*jobsInterval)
+			defer ticker.Stop()
+			for {
+				select {
+				case <-jobCtx.Done():
+					return
+				case <-ticker.C:
+					if executed, err := app.RunDueJobs(jobCtx); err != nil {
+						slog.Error("执行定时器作业失败", "error", err)
+					} else if executed > 0 {
+						slog.Info("执行定时器作业", "count", executed)
+					}
+				}
+			}
+		}()
+	}
 
 	server := &http.Server{
 		Addr:              *addr,
@@ -56,6 +78,7 @@ func main() {
 	signal.Notify(stop, syscall.SIGINT, syscall.SIGTERM)
 	<-stop
 	slog.Info("收到退出信号，开始优雅停机")
+	stopJobs()
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 	if err := server.Shutdown(ctx); err != nil {

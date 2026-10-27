@@ -157,6 +157,9 @@ func (e *Engine) continueAt(cc *commandContext, executionID, activityID string) 
 	}
 	execution.ActivityID = activityID
 	execution.CurrentHistActivityID = e.recordActivityStart(cc, execution, element)
+	if err := e.scheduleBoundaryTimers(cc, execution, element); err != nil {
+		return err
+	}
 	switch node := element.(type) {
 	case *model.StartEvent:
 		e.recordActivityEnd(cc, execution.CurrentHistActivityID)
@@ -167,6 +170,10 @@ func (e *Engine) continueAt(cc *commandContext, executionID, activityID string) 
 		execution.CurrentHistActivityID = ""
 		e.endExecution(cc, execution, node.Terminate)
 		return nil
+	case *model.BoundaryEvent:
+		e.recordActivityEnd(cc, execution.CurrentHistActivityID)
+		execution.CurrentHistActivityID = ""
+		return e.scheduleTakeOutgoing(cc, execution, node)
 	case *model.SubProcess:
 		return e.enterSubProcess(cc, execution, node)
 	case *model.UserTask:
@@ -181,12 +188,14 @@ func (e *Engine) continueAt(cc *commandContext, executionID, activityID string) 
 		if err := e.executeServiceTask(cc, execution, node); err != nil {
 			return err
 		}
+		e.cancelBoundaryTimers(execution.ID)
 		e.recordActivityEnd(cc, execution.CurrentHistActivityID)
 		execution.CurrentHistActivityID = ""
 		return e.scheduleTakeOutgoing(cc, execution, node)
 	case *model.ScriptTask:
 		return api.NewError("ENGINE-0701", "脚本任务暂未实现", nil)
 	case *model.ManualTask:
+		e.cancelBoundaryTimers(execution.ID)
 		e.recordActivityEnd(cc, execution.CurrentHistActivityID)
 		execution.CurrentHistActivityID = ""
 		return e.scheduleTakeOutgoing(cc, execution, node)
@@ -435,10 +444,12 @@ func (e *Engine) endExecution(cc *commandContext, execution *executionState, ter
 	execution.Ended = true
 	execution.Active = false
 	execution.Waiting = false
+	e.cancelBoundaryTimers(execution.ID)
 	// 子流程作用域根结束：恢复父执行并继续子流程之后的路径
 	if execution.ScopeRoot && execution.ParentID != "" {
 		parent, parentOK := e.findExecution(execution.ParentID)
 		if parentOK {
+			e.cancelBoundaryTimers(parent.ID)
 			e.recordActivityEnd(cc, parent.CurrentHistActivityID)
 			parent.CurrentHistActivityID = ""
 			parent.Waiting = false
@@ -490,6 +501,11 @@ func (e *Engine) endProcessInstance(cc *commandContext, instance *instanceState)
 		}
 		e.recordTaskEnd(cc, task)
 		delete(e.state.Tasks, id)
+	}
+	for id, job := range e.state.Jobs {
+		if job.ProcessInstanceID == instance.ID {
+			delete(e.state.Jobs, id)
+		}
 	}
 	e.recordProcessEnd(cc, instance)
 }
@@ -619,6 +635,11 @@ func (e *Engine) DeleteProcessInstance(ctx context.Context, id, reason string) e
 			if execution.ProcessInstanceID == id {
 				execution.Ended = true
 				execution.Active = false
+			}
+		}
+		for jobID, job := range e.state.Jobs {
+			if job.ProcessInstanceID == id {
+				delete(e.state.Jobs, jobID)
 			}
 		}
 		instance.Ended = true
@@ -1029,6 +1050,7 @@ func (e *Engine) cancelRemainingMultiInstanceChildren(cc *commandContext, parent
 			delete(e.state.Tasks, taskID)
 		}
 		e.recordActivityEnd(cc, execution.CurrentHistActivityID)
+		e.cancelBoundaryTimers(execution.ID)
 		execution.Ended = true
 		execution.Active = false
 	}

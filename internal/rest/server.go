@@ -41,6 +41,7 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("GET /healthz", s.handleHealth)
 	s.mux.HandleFunc("GET /readyz", s.handleReady)
 	s.mux.HandleFunc("GET /service/management/engine", s.handleEngineInfo)
+	s.mux.HandleFunc("POST /service/management/jobs/run", s.handleRunJobs)
 	s.mux.HandleFunc("POST /service/repository/deployments", s.handleDeploy)
 	s.mux.HandleFunc("GET /service/repository/process-definitions", s.handleListDefinitions)
 	s.mux.HandleFunc("GET /service/repository/process-definitions/{id}", s.handleGetDefinition)
@@ -92,6 +93,18 @@ func (s *Server) handleEngineInfo(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, info)
+}
+
+// handleRunJobs 执行到期定时器作业。
+// @param w 响应
+// @param r 请求
+func (s *Server) handleRunJobs(w http.ResponseWriter, r *http.Request) {
+	executed, err := s.engine.ManagementService().RunDueJobs(r.Context())
+	if err != nil {
+		writeError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"executed": executed})
 }
 
 // handleDeploy 处理部署请求。
