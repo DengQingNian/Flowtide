@@ -414,6 +414,26 @@ type HistoryService interface {
 	// @return 历史任务列表
 	// @return 查询错误
 	ListHistoricTaskInstances(ctx context.Context, processInstanceID string) ([]HistoricTaskInstance, error)
+	// DeleteHistoricProcessInstance 删除历史流程实例及其关联记录。
+	// @param ctx 上下文
+	// @param processInstanceID 实例 ID
+	// @return 删除错误
+	DeleteHistoricProcessInstance(ctx context.Context, processInstanceID string) error
+	// DeleteHistoricTaskInstance 删除历史任务。
+	// @param ctx 上下文
+	// @param taskID 任务 ID
+	// @return 删除错误
+	DeleteHistoricTaskInstance(ctx context.Context, taskID string) error
+	// DeleteHistoricDetail 删除历史变量明细。
+	// @param ctx 上下文
+	// @param detailID 明细 ID
+	// @return 删除错误
+	DeleteHistoricDetail(ctx context.Context, detailID string) error
+	// DeleteHistoricTaskLog 删除任务日志。
+	// @param ctx 上下文
+	// @param logID 日志 ID
+	// @return 删除错误
+	DeleteHistoricTaskLog(ctx context.Context, logID int64) error
 	// GetHistoricProcessInstance 查询历史流程实例。
 	// @param ctx 上下文
 	// @param processInstanceID 实例 ID

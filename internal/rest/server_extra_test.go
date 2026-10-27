@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"net/http"
+	"strconv"
 	"testing"
 )
 
@@ -256,6 +257,103 @@ func TestREST_DeleteExtras(t *testing.T) {
 	response, _ = http.DefaultClient.Do(request)
 	if response.StatusCode != http.StatusNotFound {
 		t.Fatalf("缺失附件应 404: %d", response.StatusCode)
+	}
+	_ = response.Body.Close()
+}
+
+// TestREST_DeleteHistoric 验证历史记录删除。
+// @param t 测试上下文
+func TestREST_DeleteHistoric(t *testing.T) {
+	server, _ := newTestServer(t)
+	deployREST(t, server)
+	response := postJSON(t, server.URL+"/service/runtime/process-instances", map[string]any{
+		"processDefinitionKey": "rest",
+		"variables":            []map[string]any{{"name": "initiator", "value": "alice"}},
+	})
+	var instance map[string]any
+	_ = json.NewDecoder(response.Body).Decode(&instance)
+	_ = response.Body.Close()
+	instanceID, _ := instance["id"].(string)
+	response, _ = http.Get(server.URL + "/service/runtime/tasks")
+	var tasks struct {
+		Data []map[string]any `json:"data"`
+	}
+	_ = json.NewDecoder(response.Body).Decode(&tasks)
+	_ = response.Body.Close()
+	taskID, _ := tasks.Data[0]["id"].(string)
+	response = postJSON(t, server.URL+"/service/runtime/tasks/"+taskID, map[string]any{"action": "complete"})
+	_ = response.Body.Close()
+	response, _ = http.Get(server.URL + "/service/history/historic-task-log-entries?taskId=" + taskID)
+	var logs struct {
+		Data []map[string]any `json:"data"`
+	}
+	_ = json.NewDecoder(response.Body).Decode(&logs)
+	_ = response.Body.Close()
+	if len(logs.Data) == 0 {
+		t.Fatalf("任务日志为空")
+	}
+	logID, _ := logs.Data[0]["id"].(float64)
+	request, _ := http.NewRequest(http.MethodDelete, server.URL+"/service/history/historic-task-log-entries/"+strconv.FormatInt(int64(logID), 10), nil)
+	response, _ = http.DefaultClient.Do(request)
+	if response.StatusCode != http.StatusNoContent {
+		t.Fatalf("删除任务日志失败: %d", response.StatusCode)
+	}
+	_ = response.Body.Close()
+	response, _ = http.Get(server.URL + "/service/history/historic-detail?processInstanceId=" + instanceID)
+	var details struct {
+		Data []map[string]any `json:"data"`
+	}
+	_ = json.NewDecoder(response.Body).Decode(&details)
+	_ = response.Body.Close()
+	if len(details.Data) == 0 {
+		t.Fatalf("历史明细为空")
+	}
+	detailID, _ := details.Data[0]["id"].(string)
+	request, _ = http.NewRequest(http.MethodDelete, server.URL+"/service/history/historic-detail/"+detailID, nil)
+	response, _ = http.DefaultClient.Do(request)
+	if response.StatusCode != http.StatusNoContent {
+		t.Fatalf("删除历史明细失败: %d", response.StatusCode)
+	}
+	_ = response.Body.Close()
+	request, _ = http.NewRequest(http.MethodDelete, server.URL+"/service/history/historic-detail/"+detailID, nil)
+	response, _ = http.DefaultClient.Do(request)
+	if response.StatusCode != http.StatusNotFound {
+		t.Fatalf("重复删除明细应 404: %d", response.StatusCode)
+	}
+	_ = response.Body.Close()
+	request, _ = http.NewRequest(http.MethodDelete, server.URL+"/service/history/historic-task-instances/"+taskID, nil)
+	response, _ = http.DefaultClient.Do(request)
+	if response.StatusCode != http.StatusNoContent {
+		t.Fatalf("删除历史任务失败: %d", response.StatusCode)
+	}
+	_ = response.Body.Close()
+	request, _ = http.NewRequest(http.MethodDelete, server.URL+"/service/history/historic-task-instances/"+taskID, nil)
+	response, _ = http.DefaultClient.Do(request)
+	if response.StatusCode != http.StatusNotFound {
+		t.Fatalf("重复删除历史任务应 404: %d", response.StatusCode)
+	}
+	_ = response.Body.Close()
+	request, _ = http.NewRequest(http.MethodDelete, server.URL+"/service/history/historic-process-instances/"+instanceID, nil)
+	response, _ = http.DefaultClient.Do(request)
+	if response.StatusCode != http.StatusNoContent {
+		t.Fatalf("删除历史流程失败: %d", response.StatusCode)
+	}
+	_ = response.Body.Close()
+	response, _ = http.Get(server.URL + "/service/history/historic-process-instances/" + instanceID)
+	if response.StatusCode != http.StatusNotFound {
+		t.Fatalf("删除后历史流程应 404: %d", response.StatusCode)
+	}
+	_ = response.Body.Close()
+	request, _ = http.NewRequest(http.MethodDelete, server.URL+"/service/history/historic-process-instances/missing", nil)
+	response, _ = http.DefaultClient.Do(request)
+	if response.StatusCode != http.StatusNotFound {
+		t.Fatalf("缺失历史流程删除应 404: %d", response.StatusCode)
+	}
+	_ = response.Body.Close()
+	request, _ = http.NewRequest(http.MethodDelete, server.URL+"/service/history/historic-task-log-entries/bad", nil)
+	response, _ = http.DefaultClient.Do(request)
+	if response.StatusCode != http.StatusBadRequest {
+		t.Fatalf("非法日志 ID 应 400: %d", response.StatusCode)
 	}
 	_ = response.Body.Close()
 }

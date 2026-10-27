@@ -323,12 +323,16 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("POST /service/runtime/tasks/{id}", s.handleTaskAction)
 	s.mux.HandleFunc("GET /service/history/historic-process-instances", s.handleHistoricProcesses)
 	s.mux.HandleFunc("GET /service/history/historic-process-instances/{id}", s.handleHistoricProcess)
+	s.mux.HandleFunc("DELETE /service/history/historic-process-instances/{id}", s.handleDeleteHistoricProcess)
 	s.mux.HandleFunc("GET /service/history/historic-task-instances/{id}", s.handleHistoricTask)
 	s.mux.HandleFunc("GET /service/history/historic-task-instances/{id}/identitylinks", s.handleHistoricTaskLinks)
+	s.mux.HandleFunc("DELETE /service/history/historic-task-instances/{id}", s.handleDeleteHistoricTask)
 	s.mux.HandleFunc("GET /service/history/historic-activity-instances", s.handleHistoricActivities)
 	s.mux.HandleFunc("GET /service/history/historic-task-instances", s.handleHistoricTasks)
 	s.mux.HandleFunc("GET /service/history/historic-task-log-entries", s.handleHistoricTaskLogs)
 	s.mux.HandleFunc("GET /service/history/historic-detail", s.handleHistoricDetails)
+	s.mux.HandleFunc("DELETE /service/history/historic-detail/{id}", s.handleDeleteHistoricDetail)
+	s.mux.HandleFunc("DELETE /service/history/historic-task-log-entries/{id}", s.handleDeleteHistoricTaskLog)
 	s.mux.HandleFunc("GET /service/history/historic-identitylinks", s.handleHistoricIdentityLinks)
 	s.mux.HandleFunc("GET /service/history/historic-variable-instances", s.handleHistoricVariables)
 }
@@ -1839,6 +1843,55 @@ func (s *Server) handleHistoricTaskLinks(w http.ResponseWriter, r *http.Request)
 	}
 	start, size := pageParams(r)
 	writePage(w, links, start, size)
+}
+
+// handleDeleteHistoricProcess 删除历史流程实例。
+// @param w 响应
+// @param r 请求
+func (s *Server) handleDeleteHistoricProcess(w http.ResponseWriter, r *http.Request) {
+	if err := s.engine.HistoryService().DeleteHistoricProcessInstance(r.Context(), r.PathValue("id")); err != nil {
+		writeError(w, err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
+// handleDeleteHistoricTask 删除历史任务。
+// @param w 响应
+// @param r 请求
+func (s *Server) handleDeleteHistoricTask(w http.ResponseWriter, r *http.Request) {
+	if err := s.engine.HistoryService().DeleteHistoricTaskInstance(r.Context(), r.PathValue("id")); err != nil {
+		writeError(w, err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
+// handleDeleteHistoricDetail 删除历史明细。
+// @param w 响应
+// @param r 请求
+func (s *Server) handleDeleteHistoricDetail(w http.ResponseWriter, r *http.Request) {
+	if err := s.engine.HistoryService().DeleteHistoricDetail(r.Context(), r.PathValue("id")); err != nil {
+		writeError(w, err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
+// handleDeleteHistoricTaskLog 删除任务日志。
+// @param w 响应
+// @param r 请求
+func (s *Server) handleDeleteHistoricTaskLog(w http.ResponseWriter, r *http.Request) {
+	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
+	if err != nil {
+		writeError(w, api.NewError("REST-0118", "非法日志 ID", api.ErrBadRequest))
+		return
+	}
+	if err := s.engine.HistoryService().DeleteHistoricTaskLog(r.Context(), id); err != nil {
+		writeError(w, err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
 }
 
 // handleHistoricActivities 返回历史活动。
