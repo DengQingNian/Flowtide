@@ -88,6 +88,7 @@ type subscriptionState struct {
 	EventName           string    `json:"eventName"`           // 事件名
 	ActivityID          string    `json:"activityId"`          // 活动 ID
 	BoundaryEventID     string    `json:"boundaryEventId"`     // 边界事件 ID
+	GatewayGroup        string    `json:"gatewayGroup"`        // 事件网关竞争组
 	StartEvent          bool      `json:"startEvent"`          // 是否启动订阅
 	TenantID            string    `json:"tenantId"`            // 租户
 	CreatedAt           time.Time `json:"createdAt"`           // 创建时间

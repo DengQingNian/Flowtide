@@ -244,6 +244,15 @@ type ExclusiveGateway struct {
 // @return 元素类型
 func (g *ExclusiveGateway) ElementType() string { return "exclusiveGateway" }
 
+// EventGateway 表示事件网关。
+type EventGateway struct {
+	FlowNodeBase
+}
+
+// ElementType 返回元素类型。
+// @return 元素类型
+func (g *EventGateway) ElementType() string { return "eventGateway" }
+
 // InclusiveGateway 表示包容网关。
 type InclusiveGateway struct {
 	FlowNodeBase

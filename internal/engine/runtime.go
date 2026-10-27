@@ -226,6 +226,10 @@ func (e *Engine) continueAt(cc *commandContext, executionID, activityID string) 
 		e.recordActivityEnd(cc, execution.CurrentHistActivityID)
 		execution.CurrentHistActivityID = ""
 		return e.scheduleTakeOutgoingExclusive(cc, execution, node)
+	case *model.EventGateway:
+		e.recordActivityEnd(cc, execution.CurrentHistActivityID)
+		execution.CurrentHistActivityID = ""
+		return e.enterEventGateway(cc, execution, node)
 	case *model.InclusiveGateway:
 		e.recordActivityEnd(cc, execution.CurrentHistActivityID)
 		execution.CurrentHistActivityID = ""

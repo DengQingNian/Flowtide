@@ -166,6 +166,10 @@ func parseElement(node *Node) (model.FlowElement, error) {
 		gateway := &model.ExclusiveGateway{DefaultFlow: node.Attr("default")}
 		parseFlowNodeBase(node, &gateway.FlowNodeBase)
 		return gateway, nil
+	case "eventBasedGateway":
+		gateway := &model.EventGateway{}
+		parseFlowNodeBase(node, &gateway.FlowNodeBase)
+		return gateway, nil
 	case "inclusiveGateway":
 		gateway := &model.InclusiveGateway{DefaultFlow: node.Attr("default")}
 		parseFlowNodeBase(node, &gateway.FlowNodeBase)

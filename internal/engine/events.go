@@ -90,6 +90,9 @@ func (e *Engine) subscriptionsFor(eventType, name string) []*subscriptionState {
 // @param variables 变量
 // @return 触发错误
 func (e *Engine) triggerSubscription(cc *commandContext, subscription *subscriptionState, variables map[string]any) error {
+	if subscription.GatewayGroup != "" {
+		return e.triggerGatewaySubscription(cc, subscription, variables)
+	}
 	if subscription.BoundaryEventID != "" {
 		return e.triggerBoundarySubscription(cc, subscription)
 	}
@@ -116,6 +119,82 @@ func (e *Engine) triggerSubscription(cc *commandContext, subscription *subscript
 	execution.CurrentHistActivityID = ""
 	execution.Waiting = false
 	delete(e.state.Subscriptions, subscription.ID)
+	cc.agenda.schedule(&takeOutgoingOperation{executionID: execution.ID, activityID: subscription.ActivityID})
+	return nil
+}
+
+// enterEventGateway 进入事件网关，为出线捕获事件创建竞争订阅。
+// @param cc 命令上下文
+// @param execution 执行
+// @param gateway 事件网关
+// @return 进入错误
+func (e *Engine) enterEventGateway(cc *commandContext, execution *executionState, gateway *model.EventGateway) error {
+	definition, ok := e.findDefinition(execution.DefinitionID)
+	if !ok {
+		return api.NewError("ENGINE-0404", "流程定义不存在", api.ErrNotFound)
+	}
+	process := processOfDefinition(definition)
+	if process == nil {
+		return api.NewError("ENGINE-0501", "流程定义不包含流程", nil)
+	}
+	group := execution.ID + ":" + gateway.ID
+	created := 0
+	for _, flow := range gateway.GetOutgoing() {
+		element, exists := findElement(process, flow.TargetRef)
+		if !exists {
+			continue
+		}
+		catch, isCatch := element.(*model.IntermediateCatchEvent)
+		if !isCatch {
+			continue
+		}
+		eventType, name := e.eventTypeAndName(definition.Model, catch.MessageRef, catch.SignalRef)
+		if eventType == "" {
+			continue
+		}
+		subscription := &subscriptionState{
+			ID:                  e.newID(),
+			ProcessDefinitionID: definition.Info.ID,
+			ProcessInstanceID:   execution.ProcessInstanceID,
+			ExecutionID:         execution.ID,
+			EventType:           eventType,
+			EventName:           name,
+			ActivityID:          catch.ID,
+			GatewayGroup:        group,
+			TenantID:            definition.Info.TenantID,
+			CreatedAt:           cc.now,
+		}
+		e.state.Subscriptions[subscription.ID] = subscription
+		created++
+	}
+	if created == 0 {
+		return api.NewError("ENGINE-0630", "事件网关没有可等待的捕获事件", nil)
+	}
+	execution.Waiting = true
+	execution.ActivityID = gateway.ID
+	return nil
+}
+
+// triggerGatewaySubscription 触发事件网关的胜出分支。
+// @param cc 命令上下文
+// @param subscription 订阅
+// @return 触发错误
+func (e *Engine) triggerGatewaySubscription(cc *commandContext, subscription *subscriptionState, variables map[string]any) error {
+	// 取消同组其他竞争订阅
+	for id, other := range e.state.Subscriptions {
+		if other.GatewayGroup == subscription.GatewayGroup {
+			delete(e.state.Subscriptions, id)
+		}
+	}
+	execution, ok := e.findExecution(subscription.ExecutionID)
+	if !ok || execution.Ended {
+		return nil
+	}
+	for name, value := range variables {
+		e.setVariable(execution, name, value)
+	}
+	execution.Waiting = false
+	execution.ActivityID = subscription.ActivityID
 	cc.agenda.schedule(&takeOutgoingOperation{executionID: execution.ID, activityID: subscription.ActivityID})
 	return nil
 }
