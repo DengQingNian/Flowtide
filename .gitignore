@@ -1,0 +1,9 @@
+.zed/
+.vimrc
+.vscode/
+tmp/
+temp/
+*.log
+*.exe
+*.o
+
