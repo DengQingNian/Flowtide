@@ -500,6 +500,15 @@ func TestREST_HistoricVariables(t *testing.T) {
 	if page.Total != 1 {
 		t.Fatalf("期望 1 个历史变量，实际 %d", page.Total)
 	}
+	response, _ = http.Get(server.URL + "/service/history/historic-detail?processInstanceId=" + instanceID)
+	var detailPage struct {
+		Total int `json:"total"`
+	}
+	_ = json.NewDecoder(response.Body).Decode(&detailPage)
+	_ = response.Body.Close()
+	if detailPage.Total == 0 {
+		t.Fatalf("历史明细为空")
+	}
 }
 
 // TestREST_Identity 验证身份端点。

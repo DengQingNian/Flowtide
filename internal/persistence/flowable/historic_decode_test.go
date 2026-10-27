@@ -316,3 +316,42 @@ func TestDecodeHistoricIdentityLink(t *testing.T) {
 		}
 	}
 }
+
+// historicDetailRow 构造历史明细行。
+// @param id 明细 ID
+// @return 行
+func historicDetailRow(t *testing.T, id string) Row {
+	t.Helper()
+	row, _ := NewRow("ACT_HI_DETAIL")
+	_ = row.Set("ID_", id)
+	_ = row.Set("TYPE_", "variableUpdate")
+	_ = row.Set("PROC_INST_ID_", "i1")
+	_ = row.Set("EXECUTION_ID_", "e1")
+	_ = row.Set("TASK_ID_", "t1")
+	_ = row.Set("ACT_INST_ID_", "a1")
+	_ = row.Set("NAME_", "v")
+	_ = row.Set("VAR_TYPE_", "string")
+	_ = row.Set("TIME_", time.Date(2026, 10, 28, 0, 0, 0, 0, time.UTC))
+	_ = row.Set("TEXT_", "x")
+	return *row
+}
+
+// TestDecodeHistoricDetail 验证历史明细恢复。
+// @param t 测试上下文
+func TestDecodeHistoricDetail(t *testing.T) {
+	snapshot, err := DecodeHistoricRows([]Row{historicDetailRow(t, "d1")})
+	if err != nil || len(snapshot.Details) != 1 {
+		t.Fatalf("明细恢复失败: %v %+v", err, snapshot.Details)
+	}
+	if snapshot.Details[0].Name != "v" || snapshot.Details[0].Value != "x" {
+		t.Fatalf("明细内容错误: %+v", snapshot.Details[0])
+	}
+	columns := []string{"TYPE_", "PROC_INST_ID_", "EXECUTION_ID_", "TASK_ID_", "ACT_INST_ID_", "NAME_", "VAR_TYPE_", "TIME_"}
+	for _, column := range columns {
+		row := historicDetailRow(t, "d1")
+		delete(row.Values, column)
+		if _, err := decodeHistoricDetail(row); err == nil {
+			t.Fatalf("明细缺列 %s 应失败", column)
+		}
+	}
+}

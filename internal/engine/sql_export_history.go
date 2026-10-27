@@ -184,6 +184,32 @@ func (e *Engine) historicRowsLocked() ([]flowablerow.Row, error) {
 		_ = row.Set("TIME_", attachment.Time)
 		rows = append(rows, *row)
 	}
+	details := make([]*api.HistoricDetail, 0, len(e.state.HistoricDetails))
+	for _, detail := range e.state.HistoricDetails {
+		details = append(details, detail)
+	}
+	sort.Slice(details, func(i, j int) bool { return details[i].ID < details[j].ID })
+	for _, detail := range details {
+		row, rowErr := historyRow("ACT_HI_DETAIL", []string{"ID_", "TYPE_", "PROC_INST_ID_", "EXECUTION_ID_", "TASK_ID_", "ACT_INST_ID_", "NAME_", "VAR_TYPE_", "REV_", "TIME_", "LONG_", "DOUBLE_", "TEXT_"})
+		if rowErr != nil {
+			return nil, rowErr
+		}
+		varType, longValue, doubleValue, textValue := variableColumns(detail.Value)
+		_ = row.Set("ID_", detail.ID)
+		_ = row.Set("TYPE_", detail.Type)
+		_ = row.Set("PROC_INST_ID_", detail.ProcessInstanceID)
+		_ = row.Set("EXECUTION_ID_", detail.ExecutionID)
+		_ = row.Set("TASK_ID_", detail.TaskID)
+		_ = row.Set("ACT_INST_ID_", detail.ActivityID)
+		_ = row.Set("NAME_", detail.Name)
+		_ = row.Set("VAR_TYPE_", varType)
+		_ = row.Set("REV_", 1)
+		_ = row.Set("TIME_", detail.Time)
+		_ = row.Set("LONG_", longValue)
+		_ = row.Set("DOUBLE_", doubleValue)
+		_ = row.Set("TEXT_", textValue)
+		rows = append(rows, *row)
+	}
 	links := make([]*api.IdentityLink, 0, len(e.state.HistoricLinks))
 	for _, link := range e.state.HistoricLinks {
 		links = append(links, link)

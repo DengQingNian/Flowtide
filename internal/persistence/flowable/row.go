@@ -64,6 +64,10 @@ var tables = map[string]Table{
 		Name:    "ACT_HI_COMMENT",
 		Columns: []string{"ID_", "TYPE_", "TIME_", "USER_ID_", "TASK_ID_", "PROC_INST_ID_", "ACTION_", "MESSAGE_", "FULL_MSG_"},
 	},
+	"ACT_HI_DETAIL": {
+		Name:    "ACT_HI_DETAIL",
+		Columns: []string{"ID_", "TYPE_", "PROC_INST_ID_", "EXECUTION_ID_", "TASK_ID_", "ACT_INST_ID_", "NAME_", "VAR_TYPE_", "REV_", "TIME_", "BYTEARRAY_ID_", "DOUBLE_", "LONG_", "TEXT_", "TEXT2_"},
+	},
 	"ACT_HI_IDENTITYLINK": {
 		Name:    "ACT_HI_IDENTITYLINK",
 		Columns: []string{"ID_", "GROUP_ID_", "TYPE_", "USER_ID_", "TASK_ID_", "CREATE_TIME_", "PROC_INST_ID_", "SCOPE_ID_", "SUB_SCOPE_ID_", "SCOPE_TYPE_", "SCOPE_DEFINITION_ID_"},

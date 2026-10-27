@@ -142,3 +142,31 @@ func (e *Engine) ListHistoricIdentityLinks(ctx context.Context, taskID string) (
 	}
 	return result.([]api.IdentityLink), nil
 }
+
+// ListHistoricDetails 返回历史变量明细。
+// @param ctx 上下文
+// @param processInstanceID 实例 ID
+// @return 明细列表
+// @return 查询错误
+func (e *Engine) ListHistoricDetails(ctx context.Context, processInstanceID string) ([]api.HistoricDetail, error) {
+	result, err := e.read(func() (any, error) {
+		out := make([]api.HistoricDetail, 0)
+		for _, detail := range e.state.HistoricDetails {
+			if processInstanceID != "" && detail.ProcessInstanceID != processInstanceID {
+				continue
+			}
+			out = append(out, *detail)
+		}
+		sort.Slice(out, func(i, j int) bool {
+			if out[i].Time.Equal(out[j].Time) {
+				return out[i].ID < out[j].ID
+			}
+			return out[i].Time.Before(out[j].Time)
+		})
+		return out, nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.([]api.HistoricDetail), nil
+}

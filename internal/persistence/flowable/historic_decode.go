@@ -16,6 +16,7 @@ type HistoricSnapshot struct {
 	Comments    []api.Comment                  // 评论
 	Attachments []api.Attachment               // 附件
 	Links       []api.IdentityLink             // 身份链接
+	Details     []api.HistoricDetail           // 变量明细
 }
 
 // DecodeHistoricRows 将历史行恢复为快照。
@@ -31,6 +32,7 @@ func DecodeHistoricRows(rows []Row) (HistoricSnapshot, error) {
 		Comments:    make([]api.Comment, 0),
 		Attachments: make([]api.Attachment, 0),
 		Links:       make([]api.IdentityLink, 0),
+		Details:     make([]api.HistoricDetail, 0),
 	}
 	for _, row := range rows {
 		switch row.Table {
@@ -64,6 +66,12 @@ func DecodeHistoricRows(rows []Row) (HistoricSnapshot, error) {
 				return HistoricSnapshot{}, err
 			}
 			snapshot.Comments = append(snapshot.Comments, comment)
+		case "ACT_HI_DETAIL":
+			detail, err := decodeHistoricDetail(row)
+			if err != nil {
+				return HistoricSnapshot{}, err
+			}
+			snapshot.Details = append(snapshot.Details, detail)
 		case "ACT_HI_IDENTITYLINK":
 			link, err := decodeHistoricIdentityLink(row)
 			if err != nil {
@@ -87,6 +95,7 @@ func DecodeHistoricRows(rows []Row) (HistoricSnapshot, error) {
 	sort.Slice(snapshot.Comments, func(i, j int) bool { return snapshot.Comments[i].ID < snapshot.Comments[j].ID })
 	sort.Slice(snapshot.Attachments, func(i, j int) bool { return snapshot.Attachments[i].ID < snapshot.Attachments[j].ID })
 	sort.Slice(snapshot.Links, func(i, j int) bool { return snapshot.Links[i].ID < snapshot.Links[j].ID })
+	sort.Slice(snapshot.Details, func(i, j int) bool { return snapshot.Details[i].ID < snapshot.Details[j].ID })
 	return snapshot, nil
 }
 
@@ -455,4 +464,68 @@ func decodeHistoricIdentityLink(row Row) (api.IdentityLink, error) {
 		return api.IdentityLink{}, err
 	}
 	return api.IdentityLink{ID: id, GroupID: groupID, Type: linkType, UserID: userID, TaskID: taskID, ProcessInstanceID: processInstanceID, CreateTime: created}, nil
+}
+
+// decodeHistoricDetail 解析历史变量明细。
+// @param row 行
+// @return 明细
+// @return 错误
+func decodeHistoricDetail(row Row) (api.HistoricDetail, error) {
+	id, err := stringValue(row, "ID_")
+	if err != nil {
+		return api.HistoricDetail{}, err
+	}
+	detailType, err := stringValue(row, "TYPE_")
+	if err != nil {
+		return api.HistoricDetail{}, err
+	}
+	processInstanceID, err := stringValue(row, "PROC_INST_ID_")
+	if err != nil {
+		return api.HistoricDetail{}, err
+	}
+	executionID, err := stringValue(row, "EXECUTION_ID_")
+	if err != nil {
+		return api.HistoricDetail{}, err
+	}
+	taskID, err := stringValue(row, "TASK_ID_")
+	if err != nil {
+		return api.HistoricDetail{}, err
+	}
+	activityID, err := stringValue(row, "ACT_INST_ID_")
+	if err != nil {
+		return api.HistoricDetail{}, err
+	}
+	name, err := stringValue(row, "NAME_")
+	if err != nil {
+		return api.HistoricDetail{}, err
+	}
+	variableType, err := stringValue(row, "VAR_TYPE_")
+	if err != nil {
+		return api.HistoricDetail{}, err
+	}
+	detailTime, err := timeValue(row, "TIME_")
+	if err != nil {
+		return api.HistoricDetail{}, err
+	}
+	longValue, err := optionalInt(row, "LONG_")
+	if err != nil {
+		return api.HistoricDetail{}, err
+	}
+	doubleValue, err := optionalFloat(row, "DOUBLE_")
+	if err != nil {
+		return api.HistoricDetail{}, err
+	}
+	textValue, err := optionalString(row, "TEXT_")
+	if err != nil {
+		return api.HistoricDetail{}, err
+	}
+	value, err := historicVariableValue(variableType, longValue, doubleValue, textValue)
+	if err != nil {
+		return api.HistoricDetail{}, err
+	}
+	return api.HistoricDetail{
+		ID: id, Type: detailType, ProcessInstanceID: processInstanceID, ExecutionID: executionID,
+		TaskID: taskID, ActivityID: activityID, Name: name, VariableType: variableType,
+		Value: value, Time: detailTime,
+	}, nil
 }

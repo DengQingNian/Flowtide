@@ -102,6 +102,7 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("GET /service/history/historic-task-instances/{id}", s.handleHistoricTask)
 	s.mux.HandleFunc("GET /service/history/historic-activity-instances", s.handleHistoricActivities)
 	s.mux.HandleFunc("GET /service/history/historic-task-instances", s.handleHistoricTasks)
+	s.mux.HandleFunc("GET /service/history/historic-detail", s.handleHistoricDetails)
 	s.mux.HandleFunc("GET /service/history/historic-identitylinks", s.handleHistoricIdentityLinks)
 	s.mux.HandleFunc("GET /service/history/historic-variable-instances", s.handleHistoricVariables)
 }
@@ -1245,6 +1246,19 @@ func (s *Server) handleHistoricTasks(w http.ResponseWriter, r *http.Request) {
 	writePage(w, items, start, size)
 }
 
+// handleHistoricDetails 返回历史变量明细。
+// @param w 响应
+// @param r 请求
+func (s *Server) handleHistoricDetails(w http.ResponseWriter, r *http.Request) {
+	details, err := s.engine.HistoryService().ListHistoricDetails(r.Context(), r.URL.Query().Get("processInstanceId"))
+	if err != nil {
+		writeError(w, err)
+		return
+	}
+	start, size := pageParams(r)
+	writePage(w, details, start, size)
+}
+
 // handleHistoricIdentityLinks 返回历史身份链接。
 // @param w 响应
 // @param r 请求
@@ -1451,6 +1465,12 @@ func reflectSlice(items any) []any {
 		}
 		return out
 	case []api.HistoricActivityInstance:
+		out := make([]any, len(typed))
+		for i, item := range typed {
+			out[i] = item
+		}
+		return out
+	case []api.HistoricDetail:
 		out := make([]any, len(typed))
 		for i, item := range typed {
 			out[i] = item

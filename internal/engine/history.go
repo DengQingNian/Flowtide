@@ -3,6 +3,7 @@ package engine
 import (
 	"github.com/flowable-go/flowable/api"
 	"github.com/flowable-go/flowable/bpmn/model"
+	"time"
 )
 
 // recordProcessStart 写入历史流程实例。
@@ -131,13 +132,14 @@ func (e *Engine) recordHistoricVariable(execution *executionState, name string, 
 		return
 	}
 	key := execution.ID + "|" + name
+	now := e.cfg.Clock.Now()
 	if existing, ok := e.state.HistoricVariables[key]; ok {
 		existing.Value = value
 		existing.Type = variableTypeName(value)
-		existing.LastUpdatedTime = e.cfg.Clock.Now()
+		existing.LastUpdatedTime = now
+		e.recordHistoricDetail(execution.ProcessInstanceID, execution.ID, "", execution.ActivityID, name, value, now)
 		return
 	}
-	now := e.cfg.Clock.Now()
 	historic := &api.HistoricVariableInstance{
 		ID:                e.newID(),
 		Name:              name,
@@ -149,6 +151,31 @@ func (e *Engine) recordHistoricVariable(execution *executionState, name string, 
 		LastUpdatedTime:   now,
 	}
 	e.state.HistoricVariables[key] = historic
+	e.recordHistoricDetail(execution.ProcessInstanceID, execution.ID, "", execution.ActivityID, name, value, now)
+}
+
+// recordHistoricDetail 记录变量明细。
+// @param processInstanceID 实例 ID
+// @param executionID 执行 ID
+// @param taskID 任务 ID
+// @param activityID 活动 ID
+// @param name 变量名
+// @param value 变量值
+// @param now 时间
+func (e *Engine) recordHistoricDetail(processInstanceID, executionID, taskID, activityID, name string, value any, now time.Time) {
+	detail := &api.HistoricDetail{
+		ID:                e.newID(),
+		Type:              "variableUpdate",
+		ProcessInstanceID: processInstanceID,
+		ExecutionID:       executionID,
+		TaskID:            taskID,
+		ActivityID:        activityID,
+		Name:              name,
+		VariableType:      variableTypeName(value),
+		Value:             value,
+		Time:              now,
+	}
+	e.state.HistoricDetails[detail.ID] = detail
 }
 
 // variableTypeName 返回变量类型名。

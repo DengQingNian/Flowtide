@@ -316,6 +316,7 @@ func (e *Engine) completeTask(cc *commandContext, taskID string, req api.Complet
 	}
 	for _, variable := range req.LocalVariables {
 		task.LocalVariables[variable.Name] = variable.Value
+		e.recordHistoricDetail(task.Task.ProcessInstanceID, task.ExecutionID, task.Task.ID, task.ActivityID, variable.Name, variable.Value, cc.now)
 	}
 	e.recordTaskEnd(cc, task)
 	delete(e.state.Tasks, taskID)

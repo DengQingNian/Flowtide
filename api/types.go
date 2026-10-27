@@ -167,6 +167,20 @@ type ExecutionInfo struct {
 	Waiting             bool   `json:"waiting"`              // 是否等待
 }
 
+// HistoricDetail 是历史变量明细。
+type HistoricDetail struct {
+	ID                string    `json:"id"`                          // 明细 ID
+	Type              string    `json:"type"`                        // 类型
+	ProcessInstanceID string    `json:"processInstanceId,omitempty"` // 流程实例 ID
+	ExecutionID       string    `json:"executionId,omitempty"`       // 执行 ID
+	TaskID            string    `json:"taskId,omitempty"`            // 任务 ID
+	ActivityID        string    `json:"activityId,omitempty"`        // 活动 ID
+	Name              string    `json:"name"`                        // 变量名
+	VariableType      string    `json:"variableType,omitempty"`      // 变量类型
+	Value             any       `json:"value,omitempty"`             // 变量值
+	Time              time.Time `json:"time"`                        // 记录时间
+}
+
 // HistoricVariableInstance 是历史变量实例。
 type HistoricVariableInstance struct {
 	ID                string    `json:"id"`                    // 历史变量 ID

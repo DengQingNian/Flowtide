@@ -44,6 +44,10 @@ func (e *Engine) ImportHistoricRows(ctx context.Context, rows []flowablerow.Row)
 			link := snapshot.Links[i]
 			e.state.HistoricLinks[link.ID] = &link
 		}
+		for i := range snapshot.Details {
+			detail := snapshot.Details[i]
+			e.state.HistoricDetails[detail.ID] = &detail
+		}
 		return nil, nil
 	})
 	return err

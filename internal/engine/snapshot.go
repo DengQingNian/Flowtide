@@ -36,6 +36,7 @@ type snapshot struct {
 	HistoricTasks      []*api.HistoricTaskInstance     `json:"historicTasks"`      // 历史任务
 	HistoricVariables  []*api.HistoricVariableInstance `json:"historicVariables"`  // 历史变量
 	HistoricLinks      []*api.IdentityLink             `json:"historicLinks"`      // 历史身份链接
+	HistoricDetails    []*api.HistoricDetail           `json:"historicDetails"`    // 历史变量明细
 	Comments           []*api.Comment                  `json:"comments"`           // 评论
 	Attachments        []*api.Attachment               `json:"attachments"`        // 附件
 	Users              []*api.User                     `json:"users"`              // 用户
@@ -87,6 +88,9 @@ func (e *Engine) toSnapshot() *snapshot {
 	}
 	for _, link := range e.state.HistoricLinks {
 		out.HistoricLinks = append(out.HistoricLinks, link)
+	}
+	for _, detail := range e.state.HistoricDetails {
+		out.HistoricDetails = append(out.HistoricDetails, detail)
 	}
 	for _, comment := range e.state.Comments {
 		out.Comments = append(out.Comments, comment)
@@ -191,6 +195,9 @@ func (e *Engine) loadState(ctx context.Context) error {
 	}
 	for _, link := range stored.HistoricLinks {
 		restored.HistoricLinks[link.ID] = link
+	}
+	for _, detail := range stored.HistoricDetails {
+		restored.HistoricDetails[detail.ID] = detail
 	}
 	for _, comment := range stored.Comments {
 		restored.Comments[comment.ID] = comment

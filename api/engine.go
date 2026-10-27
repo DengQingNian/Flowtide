@@ -374,6 +374,12 @@ type HistoryService interface {
 	// @return 历史任务
 	// @return 查询错误
 	GetHistoricTaskInstance(ctx context.Context, taskID string) (HistoricTaskInstance, error)
+	// ListHistoricDetails 返回历史变量明细。
+	// @param ctx 上下文
+	// @param processInstanceID 实例 ID
+	// @return 明细列表
+	// @return 查询错误
+	ListHistoricDetails(ctx context.Context, processInstanceID string) ([]HistoricDetail, error)
 	// ListHistoricIdentityLinks 返回历史身份链接。
 	// @param ctx 上下文
 	// @param taskID 任务 ID，空串表示全部

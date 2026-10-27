@@ -55,6 +55,10 @@ func TestImportHistoricRows(t *testing.T) {
 	if len(variables) != 1 || variables[0].Value != "alice" {
 		t.Fatalf("历史变量恢复错误: %+v", variables)
 	}
+	details, _ := target.ListHistoricDetails(context.Background(), instance.ID)
+	if len(details) == 0 || details[0].Name != "initiator" {
+		t.Fatalf("历史变量明细恢复错误: %+v", details)
+	}
 	historicLinks, _ := target.ListHistoricIdentityLinks(context.Background(), tasks[0].ID)
 	if len(historicLinks) != 1 || historicLinks[0].UserID != "alice" {
 		t.Fatalf("历史身份链接恢复错误: %+v", historicLinks)

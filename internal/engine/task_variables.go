@@ -50,6 +50,7 @@ func (e *Engine) SetTaskVariable(ctx context.Context, taskID, name string, value
 			return nil, api.NewError("ENGINE-1103", "变量名不能为空", api.ErrBadRequest)
 		}
 		task.LocalVariables[name] = value
+		e.recordHistoricDetail(task.Task.ProcessInstanceID, task.ExecutionID, task.Task.ID, task.ActivityID, name, value, cc.now)
 		return nil, nil
 	})
 	return err
