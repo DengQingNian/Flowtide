@@ -3,6 +3,7 @@ package engine
 import (
 	"context"
 	"errors"
+	"strings"
 	"testing"
 
 	"github.com/flowable-go/flowable/api"
@@ -204,5 +205,116 @@ func TestEngine_AutoPersistError(t *testing.T) {
 	}
 	if len(engine.state.Deployments) != 0 {
 		t.Fatalf("失败后部署应回滚")
+	}
+}
+
+// rowSet 是快照查询结果集。
+type rowSet struct {
+	values [][]any // 行
+	index  int     // 当前行
+}
+
+// Next 前进到下一行。
+// @return 是否有下一行
+func (r *rowSet) Next() bool {
+	if r.index >= len(r.values) {
+		return false
+	}
+	r.index++
+	return true
+}
+
+// Scan 扫描当前行。
+// @param dest 目标
+// @return 错误
+func (r *rowSet) Scan(dest ...any) error {
+	for i, value := range r.values[r.index-1] {
+		target, ok := dest[i].(*any)
+		if !ok {
+			return errors.New("目标类型错误")
+		}
+		*target = value
+	}
+	return nil
+}
+
+// Close 关闭结果集。
+// @return 错误
+func (r *rowSet) Close() error { return nil }
+
+// Err 返回错误。
+// @return 错误
+func (r *rowSet) Err() error { return nil }
+
+// snapshotQueryDB 是按表提供快照行的数据库。
+type snapshotQueryDB struct {
+	rows map[string][]flowablerow.Row // 表到行
+}
+
+// ExecContext 执行 SQL。
+// @param ctx 上下文
+// @param query SQL
+// @param args 参数
+// @return 结果
+// @return 错误
+func (d *snapshotQueryDB) ExecContext(ctx context.Context, query string, args ...any) (flowablerow.Result, error) {
+	return persistResult{}, nil
+}
+
+// QueryContext 执行查询。
+// @param ctx 上下文
+// @param query SQL
+// @param args 参数
+// @return 结果集
+// @return 错误
+func (d *snapshotQueryDB) QueryContext(ctx context.Context, query string, args ...any) (flowablerow.Rows, error) {
+	index := strings.LastIndex(query, " FROM ")
+	if index < 0 {
+		return &rowSet{}, nil
+	}
+	table := strings.TrimSpace(query[index+6:])
+	rows := d.rows[table]
+	values := make([][]any, 0, len(rows))
+	for _, row := range rows {
+		columns := row.Columns()
+		line := make([]any, len(columns))
+		for i, column := range columns {
+			line[i] = row.Values[column]
+		}
+		values = append(values, line)
+	}
+	return &rowSet{values: values}, nil
+}
+
+// TestEngine_LoadRows 验证启动时从行恢复。
+// @param t 测试上下文
+func TestEngine_LoadRows(t *testing.T) {
+	source := newTestEngine(t)
+	deployXML(t, source, simpleProcess)
+	instance, _ := source.StartProcessInstance(context.Background(), api.StartRequest{
+		ProcessDefinitionKey: "simple",
+		Variables:            []api.Variable{{Name: "initiator", Value: "alice"}},
+	})
+	rows, _ := source.SnapshotRows(context.Background())
+	grouped := make(map[string][]flowablerow.Row)
+	for _, row := range rows {
+		grouped[row.Table] = append(grouped[row.Table], row)
+	}
+	repository, _ := flowablerow.NewRepository(&snapshotQueryDB{rows: grouped}, "mysql")
+	target, err := New(Config{RowRepository: repository, LoadRows: true})
+	if err != nil {
+		t.Fatalf("从行恢复失败: %v", err)
+	}
+	definition, err := target.GetProcessDefinitionByKey(context.Background(), "simple")
+	if err != nil || definition.Key != "simple" {
+		t.Fatalf("恢复定义错误: %v", err)
+	}
+	tasks, _ := target.ListTasks(context.Background(), api.TaskFilter{})
+	if tasks.Total != 1 {
+		t.Fatalf("恢复任务错误: %+v", tasks)
+	}
+	values, _ := target.GetVariables(context.Background(), instance.ID)
+	if values["initiator"] != "alice" {
+		t.Fatalf("恢复变量错误: %+v", values)
 	}
 }

@@ -36,6 +36,7 @@ type Config struct {
 	StatePath      string                  // 状态文件路径，为空时仅使用内存
 	StateStore     statestore.Store        // 状态存储，优先于 StatePath
 	RowRepository  *flowablerow.Repository // 按表行仓储，可选
+	LoadRows       bool                    // 启动时从行仓储恢复
 }
 
 // Delegate 是服务任务委托。
@@ -80,13 +81,14 @@ func (e *Execution) ActivityID() string { return e.state.ActivityID }
 
 // Engine 是流程引擎实现。
 type Engine struct {
-	mu            sync.RWMutex            // 保护全部状态
-	cfg           Config                  // 配置
-	state         *state                  // 可变状态
-	delegates     map[string]Delegate     // 服务任务委托
-	closed        bool                    // 是否关闭
-	rowRepository *flowablerow.Repository // 行仓储
-	lastRows      []flowablerow.Row       // 上次持久化行
+	mu              sync.RWMutex            // 保护全部状态
+	cfg             Config                  // 配置
+	state           *state                  // 可变状态
+	delegates       map[string]Delegate     // 服务任务委托
+	closed          bool                    // 是否关闭
+	rowRepository   *flowablerow.Repository // 行仓储
+	lastRows        []flowablerow.Row       // 上次持久化行
+	suppressPersist bool                    // 导入期间暂停持久化
 }
 
 // commandContext 是单条命令的上下文。
@@ -126,7 +128,17 @@ func New(cfg Config) (*Engine, error) {
 		delegates:     make(map[string]Delegate),
 		rowRepository: cfg.RowRepository,
 	}
-	if err := engine.loadState(context.Background()); err != nil {
+	if cfg.LoadRows && cfg.RowRepository != nil {
+		rows, err := cfg.RowRepository.LoadAll(context.Background())
+		if err != nil {
+			return nil, err
+		}
+		if len(rows) > 0 {
+			if err := engine.RestoreRows(context.Background(), rows); err != nil {
+				return nil, err
+			}
+		}
+	} else if err := engine.loadState(context.Background()); err != nil {
 		return nil, err
 	}
 	return engine, nil
@@ -221,9 +233,11 @@ func (e *Engine) execute(ctx context.Context, fn func(*commandContext) (any, err
 		e.state = backup
 		return nil, err
 	}
-	if err := e.persistRows(ctx); err != nil {
-		e.state = backup
-		return nil, err
+	if !e.suppressPersist {
+		if err := e.persistRows(ctx); err != nil {
+			e.state = backup
+			return nil, err
+		}
 	}
 	return result, nil
 }

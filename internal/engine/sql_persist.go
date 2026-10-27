@@ -2,6 +2,7 @@ package engine
 
 import (
 	"context"
+	"strings"
 
 	"github.com/flowable-go/flowable/api"
 	flowablerow "github.com/flowable-go/flowable/internal/persistence/flowable"
@@ -63,5 +64,44 @@ func (e *Engine) persistRows(ctx context.Context) error {
 		return api.NewError("ENGINE-0915", "写入行仓储失败", err)
 	}
 	e.lastRows = current
+	return nil
+}
+
+// RestoreRows 从行仓储恢复完整引擎状态。
+// @param ctx 上下文
+// @param rows 行列表
+// @return 恢复错误
+func (e *Engine) RestoreRows(ctx context.Context, rows []flowablerow.Row) error {
+	repositoryRows := make([]flowablerow.Row, 0)
+	runtimeRows := make([]flowablerow.Row, 0)
+	historicRows := make([]flowablerow.Row, 0)
+	for _, row := range rows {
+		switch {
+		case strings.HasPrefix(row.Table, "ACT_RE_"), strings.HasPrefix(row.Table, "ACT_GE_"):
+			repositoryRows = append(repositoryRows, row)
+		case strings.HasPrefix(row.Table, "ACT_RU_"):
+			runtimeRows = append(runtimeRows, row)
+		case strings.HasPrefix(row.Table, "ACT_HI_"):
+			historicRows = append(historicRows, row)
+		}
+	}
+	e.suppressPersist = true
+	defer func() { e.suppressPersist = false }()
+	if len(repositoryRows) > 0 {
+		if err := e.ImportRows(ctx, repositoryRows); err != nil {
+			return err
+		}
+	}
+	if len(runtimeRows) > 0 {
+		if err := e.ImportRuntimeRows(ctx, runtimeRows); err != nil {
+			return err
+		}
+	}
+	if len(historicRows) > 0 {
+		if err := e.ImportHistoricRows(ctx, historicRows); err != nil {
+			return err
+		}
+	}
+	e.lastRows = rows
 	return nil
 }

@@ -3,7 +3,9 @@ package flowable
 import (
 	"context"
 	"errors"
+	"strings"
 	"testing"
+	"time"
 )
 
 // fakeResult 是测试结果。
@@ -274,5 +276,94 @@ func TestDiffOperations(t *testing.T) {
 	}
 	if operations := DiffOperations([]Row{{Table: "ACT_RU_JOB"}}, nil); len(operations) != 0 {
 		t.Fatalf("无 ID 行应忽略")
+	}
+}
+
+// queryRows 是测试查询结果集。
+type queryRows struct {
+	values [][]any // 行值
+	index  int     // 当前行
+	err    error   // 错误
+	closed bool    // 是否关闭
+}
+
+// Next 前进到下一行。
+// @return 是否有下一行
+func (r *queryRows) Next() bool {
+	if r.index >= len(r.values) {
+		return false
+	}
+	r.index++
+	return true
+}
+
+// Scan 扫描当前行。
+// @param dest 目标
+// @return 错误
+func (r *queryRows) Scan(dest ...any) error {
+	if len(dest) != len(r.values[r.index-1]) {
+		return errors.New("列数量不匹配")
+	}
+	for i, value := range r.values[r.index-1] {
+		target, ok := dest[i].(*any)
+		if !ok {
+			return errors.New("目标类型错误")
+		}
+		*target = value
+	}
+	return nil
+}
+
+// Close 关闭结果集。
+// @return 错误
+func (r *queryRows) Close() error {
+	r.closed = true
+	return nil
+}
+
+// Err 返回错误。
+// @return 错误
+func (r *queryRows) Err() error { return r.err }
+
+// queryDB 是测试查询数据库。
+type queryDB struct {
+	fakeDB
+	deployment [][]any // 部署行
+	queryErr   error   // 查询错误
+}
+
+// QueryContext 执行查询。
+// @param ctx 上下文
+// @param query SQL
+// @param args 参数
+// @return 结果集
+// @return 错误
+func (d *queryDB) QueryContext(ctx context.Context, query string, args ...any) (Rows, error) {
+	if d.queryErr != nil {
+		return nil, d.queryErr
+	}
+	if strings.Contains(query, "ACT_RE_DEPLOYMENT") {
+		return &queryRows{values: d.deployment}, nil
+	}
+	return &queryRows{}, nil
+}
+
+// TestRepositoryLoadAll 验证行加载。
+// @param t 测试上下文
+func TestRepositoryLoadAll(t *testing.T) {
+	db := &queryDB{deployment: [][]any{{"d1", "demo", "", "", "t1", time.Now(), "", "", "", "8.1.0.3"}}}
+	repository, _ := NewRepository(db, "mysql")
+	rows, err := repository.LoadAll(context.Background())
+	if err != nil {
+		t.Fatalf("加载失败: %v", err)
+	}
+	if len(rows) != 1 || rows[0].Table != "ACT_RE_DEPLOYMENT" || rows[0].Values["ID_"] != "d1" {
+		t.Fatalf("加载行错误: %+v", rows)
+	}
+	if _, err := (&Repository{db: &fakeDB{}, dialect: "mysql"}).LoadAll(context.Background()); err == nil {
+		t.Fatalf("不支持查询应失败")
+	}
+	if _, err := (&Repository{db: &queryDB{queryErr: errors.New("q")}, dialect: "mysql"}).LoadAll(context.Background()); err == nil {
+		t.Fatalf("查询错误应失败")
 	}
 }

@@ -2,7 +2,9 @@ package flowable
 
 import (
 	"context"
+	"fmt"
 	"reflect"
+	"strings"
 
 	"github.com/flowable-go/flowable/api"
 )
@@ -59,6 +61,35 @@ type Operation struct {
 	Kind        string // 类型
 	Row         Row    // 行
 	OldRevision int64  // 更新时旧版本
+}
+
+// Rows 是查询结果集。
+type Rows interface {
+	// Next 前进到下一行。
+	// @return 是否有下一行
+	Next() bool
+	// Scan 扫描当前行。
+	// @param dest 目标
+	// @return 扫描错误
+	Scan(dest ...any) error
+	// Close 关闭结果集。
+	// @return 关闭错误
+	Close() error
+	// Err 返回遍历错误。
+	// @return 遍历错误
+	Err() error
+}
+
+// QueryDB 是支持查询的数据库。
+type QueryDB interface {
+	DB
+	// QueryContext 执行查询。
+	// @param ctx 上下文
+	// @param query SQL
+	// @param args 参数
+	// @return 结果集
+	// @return 错误
+	QueryContext(ctx context.Context, query string, args ...any) (Rows, error)
 }
 
 // Repository 提供 ACT 行的插入、更新与删除。
@@ -284,5 +315,67 @@ func revisionValue(row Row) (int64, bool) {
 		return int64(typed), true
 	default:
 		return 0, false
+	}
+}
+
+// LoadAll 读取全部支持表的行。
+// @param ctx 上下文
+// @return 行列表
+// @return 读取错误
+func (r *Repository) LoadAll(ctx context.Context) ([]Row, error) {
+	queryDB, ok := r.db.(QueryDB)
+	if !ok {
+		return nil, api.NewError("ROW-0017", "数据库不支持查询", api.ErrBadRequest)
+	}
+	rows := make([]Row, 0)
+	for _, tableName := range Tables() {
+		table := tables[tableName]
+		query := fmt.Sprintf("SELECT %s FROM %s", strings.Join(table.Columns, ", "), table.Name)
+		result, err := queryDB.QueryContext(ctx, query)
+		if err != nil {
+			return nil, api.NewError("ROW-0018", "查询表失败: "+table.Name, err)
+		}
+		for result.Next() {
+			values := make([]any, len(table.Columns))
+			targets := make([]any, len(table.Columns))
+			for i := range values {
+				targets[i] = &values[i]
+			}
+			if err := result.Scan(targets...); err != nil {
+				_ = result.Close()
+				return nil, api.NewError("ROW-0019", "扫描表失败: "+table.Name, err)
+			}
+			row, err := NewRow(table.Name)
+			if err != nil {
+				_ = result.Close()
+				return nil, err
+			}
+			for i, column := range table.Columns {
+				row.Values[column] = normalizeValue(column, values[i])
+			}
+			rows = append(rows, *row)
+		}
+		if err := result.Err(); err != nil {
+			_ = result.Close()
+			return nil, api.NewError("ROW-0020", "遍历表失败: "+table.Name, err)
+		}
+		_ = result.Close()
+	}
+	return rows, nil
+}
+
+// normalizeValue 将驱动返回值统一为通用类型。
+// @param column 列名
+// @param value 驱动值
+// @return 通用值
+func normalizeValue(column string, value any) any {
+	if column == "BYTES_" || column == "FULL_MSG_" {
+		return value
+	}
+	switch typed := value.(type) {
+	case []byte:
+		return string(typed)
+	default:
+		return value
 	}
 }
