@@ -278,7 +278,6 @@ func (e *Engine) runtimeRowsLocked() ([]flowablerow.Row, error) {
 		return rows[i].Table < rows[j].Table
 	})
 	return rows, nil
-	return rows, nil
 }
 
 // runtimeRow 创建带插入列的行。

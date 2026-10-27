@@ -209,6 +209,20 @@ type HistoricVariableInstance struct {
 	LastUpdatedTime   time.Time `json:"lastUpdatedTime"`       // 最后更新时间
 }
 
+// TableInfo 描述一张 ACT_* 表及当前行数。
+type TableInfo struct {
+	Name  string `json:"name"`          // 表名
+	Count int64  `json:"count"`         // 行数
+	URL   string `json:"url,omitempty"` // 资源地址
+}
+
+// TableMetaData 描述表的列元数据。
+type TableMetaData struct {
+	TableName   string   `json:"tableName"`   // 表名
+	ColumnNames []string `json:"columnNames"` // 列名
+	ColumnTypes []string `json:"columnTypes"` // 列类型
+}
+
 // Page 是通用分页结果。
 type Page[T any] struct {
 	Data  []T    `json:"data"`            // 数据

@@ -143,6 +143,34 @@ func (e *Engine) ListHistoricIdentityLinks(ctx context.Context, taskID string) (
 	return result.([]api.IdentityLink), nil
 }
 
+// ListHistoricProcessIdentityLinks 返回流程实例的历史身份链接。
+// @param ctx 上下文
+// @param processInstanceID 实例 ID
+// @return 链接列表
+// @return 查询错误
+func (e *Engine) ListHistoricProcessIdentityLinks(ctx context.Context, processInstanceID string) ([]api.IdentityLink, error) {
+	result, err := e.read(func() (any, error) {
+		out := make([]api.IdentityLink, 0)
+		for _, link := range e.state.HistoricLinks {
+			if link.ProcessInstanceID != processInstanceID {
+				continue
+			}
+			out = append(out, *link)
+		}
+		sort.Slice(out, func(i, j int) bool {
+			if out[i].CreateTime.Equal(out[j].CreateTime) {
+				return out[i].ID < out[j].ID
+			}
+			return out[i].CreateTime.Before(out[j].CreateTime)
+		})
+		return out, nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.([]api.IdentityLink), nil
+}
+
 // ListHistoricDetails 返回历史变量明细。
 // @param ctx 上下文
 // @param processInstanceID 实例 ID

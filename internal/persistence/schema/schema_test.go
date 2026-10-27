@@ -49,6 +49,49 @@ func TestChecksum(t *testing.T) {
 	}
 }
 
+// TestTableColumns 验证表列解析。
+// @param t 测试上下文
+func TestTableColumns(t *testing.T) {
+	for _, dialect := range Dialects() {
+		columns, types, err := TableColumns(dialect, "act_ru_task")
+		if err != nil {
+			t.Fatalf("解析 %s 列失败: %v", dialect, err)
+		}
+		if len(columns) != len(types) || len(columns) == 0 {
+			t.Fatalf("%s 列数量错误: %d/%d", dialect, len(columns), len(types))
+		}
+		if columns[0] != "ID_" || types[0] == "" {
+			t.Fatalf("%s 首列解析错误: %s %s", dialect, columns[0], types[0])
+		}
+		if columns[len(columns)-1] == "PRIMARY" {
+			t.Fatalf("%s 不应包含约束声明", dialect)
+		}
+	}
+}
+
+// TestTableColumnsMissing 验证未知表返回未找到。
+// @param t 测试上下文
+func TestTableColumnsMissing(t *testing.T) {
+	if _, _, err := TableColumns("postgres", "ACT_UNKNOWN"); err == nil {
+		t.Fatalf("未知表应返回错误")
+	}
+	if _, _, err := TableColumns("oracle", "ACT_RU_TASK"); err == nil {
+		t.Fatalf("不支持方言应返回错误")
+	}
+}
+
+// TestSplitColumnDefinitions 验证列定义拆分。
+// @param t 测试上下文
+func TestSplitColumnDefinitions(t *testing.T) {
+	parts := splitColumnDefinitions("A numeric(10,2), B varchar(32), primary key (A)")
+	if len(parts) != 3 {
+		t.Fatalf("拆分数量错误: %d", len(parts))
+	}
+	if !isConstraint("Primary") || isConstraint("A") {
+		t.Fatalf("约束判断错误")
+	}
+}
+
 // TestErrors 验证方言错误。
 // @param t 测试上下文
 func TestErrors(t *testing.T) {

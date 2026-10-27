@@ -239,6 +239,12 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("GET /metrics", s.handleMetrics)
 	s.mux.HandleFunc("GET /readyz", s.handleReady)
 	s.mux.HandleFunc("GET /service/management/engine", s.handleEngineInfo)
+	s.mux.HandleFunc("GET /service/management/properties", s.handleEngineProperties)
+	s.mux.HandleFunc("GET /service/management/engine-properties", s.handleEngineProperties)
+	s.mux.HandleFunc("GET /service/management/tables", s.handleListTables)
+	s.mux.HandleFunc("GET /service/management/tables/{name}", s.handleGetTable)
+	s.mux.HandleFunc("GET /service/management/tables/{name}/columns", s.handleTableColumns)
+	s.mux.HandleFunc("GET /service/management/tables/{name}/data", s.handleTableData)
 	s.mux.HandleFunc("GET /service/management/audit-logs", s.handleAuditLogs)
 	s.mux.HandleFunc("POST /service/management/jobs/run", s.handleRunJobs)
 	s.mux.HandleFunc("GET /service/management/jobs", s.handleListJobs)
@@ -306,6 +312,7 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("POST /service/runtime/signals", s.handleSignal)
 	s.mux.HandleFunc("GET /service/runtime/tasks", s.handleListTasks)
 	s.mux.HandleFunc("GET /service/runtime/tasks/{id}", s.handleGetTask)
+	s.mux.HandleFunc("GET /service/runtime/tasks/{id}/form", s.handleGetTaskForm)
 	s.mux.HandleFunc("GET /service/runtime/tasks/{id}/identitylinks", s.handleListIdentityLinks)
 	s.mux.HandleFunc("POST /service/runtime/tasks/{id}/identitylinks", s.handleAddIdentityLink)
 	s.mux.HandleFunc("DELETE /service/runtime/tasks/{id}/identitylinks/{family}/{identityId}", s.handleDeleteIdentityLink)
@@ -323,6 +330,9 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("POST /service/runtime/tasks/{id}", s.handleTaskAction)
 	s.mux.HandleFunc("GET /service/history/historic-process-instances", s.handleHistoricProcesses)
 	s.mux.HandleFunc("GET /service/history/historic-process-instances/{id}", s.handleHistoricProcess)
+	s.mux.HandleFunc("GET /service/history/historic-process-instances/{id}/variables", s.handleHistoricProcessVariables)
+	s.mux.HandleFunc("GET /service/history/historic-process-instances/{id}/identitylinks", s.handleHistoricProcessLinks)
+	s.mux.HandleFunc("GET /service/history/historic-process-instances/{id}/comments", s.handleHistoricProcessComments)
 	s.mux.HandleFunc("DELETE /service/history/historic-process-instances/{id}", s.handleDeleteHistoricProcess)
 	s.mux.HandleFunc("GET /service/history/historic-task-instances/{id}", s.handleHistoricTask)
 	s.mux.HandleFunc("GET /service/history/historic-task-instances/{id}/identitylinks", s.handleHistoricTaskLinks)
@@ -338,6 +348,178 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("GET /service/history/historic-variable-instances", s.handleHistoricVariables)
 	s.mux.HandleFunc("GET /service/history/historic-variable-instances/{id}", s.handleHistoricVariable)
 	s.mux.HandleFunc("DELETE /service/history/historic-variable-instances/{id}", s.handleDeleteHistoricVariable)
+}
+
+// handleEngineProperties 返回引擎属性。
+// @param w 响应
+// @param r 请求
+func (s *Server) handleEngineProperties(w http.ResponseWriter, r *http.Request) {
+	properties, err := s.engine.ManagementService().Properties(r.Context())
+	if err != nil {
+		writeError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, properties)
+}
+
+// handleListTables 返回 ACT_* 表及行数。
+// @param w 响应
+// @param r 请求
+func (s *Server) handleListTables(w http.ResponseWriter, r *http.Request) {
+	counts, err := s.engine.ManagementService().TableCount(r.Context())
+	if err != nil {
+		writeError(w, err)
+		return
+	}
+	names := make([]string, 0, len(counts))
+	for name := range counts {
+		names = append(names, name)
+	}
+	sort.Strings(names)
+	tables := make([]api.TableInfo, 0, len(names))
+	for _, name := range names {
+		tables = append(tables, api.TableInfo{
+			Name:  name,
+			Count: counts[name],
+			URL:   "/service/management/tables/" + name,
+		})
+	}
+	writeJSON(w, http.StatusOK, tables)
+}
+
+// handleGetTable 返回单张表的行数。
+// @param w 响应
+// @param r 请求
+func (s *Server) handleGetTable(w http.ResponseWriter, r *http.Request) {
+	name := strings.ToUpper(r.PathValue("name"))
+	counts, err := s.engine.ManagementService().TableCount(r.Context())
+	if err != nil {
+		writeError(w, err)
+		return
+	}
+	count, ok := counts[name]
+	if !ok {
+		writeError(w, api.NewError("ENGINE-0918", "表不存在: "+name, api.ErrNotFound))
+		return
+	}
+	writeJSON(w, http.StatusOK, api.TableInfo{Name: name, Count: count, URL: "/service/management/tables/" + name})
+}
+
+// handleTableColumns 返回表列元数据。
+// @param w 响应
+// @param r 请求
+func (s *Server) handleTableColumns(w http.ResponseWriter, r *http.Request) {
+	meta, err := s.engine.ManagementService().GetTableMetaData(r.Context(), r.PathValue("name"))
+	if err != nil {
+		writeError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, meta)
+}
+
+// handleTableData 分页返回表数据。
+// @param w 响应
+// @param r 请求
+func (s *Server) handleTableData(w http.ResponseWriter, r *http.Request) {
+	ascending := r.URL.Query().Get("orderAscendingColumn")
+	descending := r.URL.Query().Get("orderDescendingColumn")
+	if ascending != "" && descending != "" {
+		writeError(w, api.NewError("REST-0405", "只能指定一个排序方向", api.ErrBadRequest))
+		return
+	}
+	sortColumn, order := ascending, "asc"
+	if descending != "" {
+		sortColumn, order = descending, "desc"
+	}
+	start, size := pageParams(r)
+	page, err := s.engine.ManagementService().QueryTableData(r.Context(), r.PathValue("name"), start, size, sortColumn, order)
+	if err != nil {
+		writeError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, page)
+}
+
+// handleGetTaskForm 返回任务表单。
+// @param w 响应
+// @param r 请求
+func (s *Server) handleGetTaskForm(w http.ResponseWriter, r *http.Request) {
+	data, err := s.engine.FormService().GetTaskFormData(r.Context(), r.PathValue("id"))
+	if err != nil {
+		writeError(w, err)
+		return
+	}
+	if data.FormKey == "" {
+		writeError(w, api.NewError("REST-0406", "任务未定义表单", api.ErrBadRequest))
+		return
+	}
+	writeJSON(w, http.StatusOK, data)
+}
+
+// historicProcessForRequest 查询历史流程实例并校验租户。
+// @param r 请求
+// @return 历史实例
+// @return 查询错误
+func (s *Server) historicProcessForRequest(r *http.Request) (api.HistoricProcessInstance, error) {
+	instance, err := s.engine.HistoryService().GetHistoricProcessInstance(r.Context(), r.PathValue("id"))
+	if err != nil {
+		return api.HistoricProcessInstance{}, err
+	}
+	if tenant := requestTenant(r); tenant != "" && instance.TenantID != tenant {
+		return api.HistoricProcessInstance{}, api.NewError("ENGINE-0919", "历史流程实例不存在", api.ErrNotFound)
+	}
+	return instance, nil
+}
+
+// handleHistoricProcessVariables 返回历史流程实例变量。
+// @param w 响应
+// @param r 请求
+func (s *Server) handleHistoricProcessVariables(w http.ResponseWriter, r *http.Request) {
+	if _, err := s.historicProcessForRequest(r); err != nil {
+		writeError(w, err)
+		return
+	}
+	variables, err := s.engine.HistoryService().ListHistoricVariableInstances(r.Context(), r.PathValue("id"))
+	if err != nil {
+		writeError(w, err)
+		return
+	}
+	start, size := pageParams(r)
+	writePage(w, variables, start, size)
+}
+
+// handleHistoricProcessLinks 返回历史流程实例身份链接。
+// @param w 响应
+// @param r 请求
+func (s *Server) handleHistoricProcessLinks(w http.ResponseWriter, r *http.Request) {
+	if _, err := s.historicProcessForRequest(r); err != nil {
+		writeError(w, err)
+		return
+	}
+	links, err := s.engine.HistoryService().ListHistoricProcessIdentityLinks(r.Context(), r.PathValue("id"))
+	if err != nil {
+		writeError(w, err)
+		return
+	}
+	start, size := pageParams(r)
+	writePage(w, links, start, size)
+}
+
+// handleHistoricProcessComments 返回历史流程实例评论。
+// @param w 响应
+// @param r 请求
+func (s *Server) handleHistoricProcessComments(w http.ResponseWriter, r *http.Request) {
+	if _, err := s.historicProcessForRequest(r); err != nil {
+		writeError(w, err)
+		return
+	}
+	comments, err := s.engine.TaskService().ListInstanceComments(r.Context(), r.PathValue("id"))
+	if err != nil {
+		writeError(w, err)
+		return
+	}
+	start, size := pageParams(r)
+	writePage(w, comments, start, size)
 }
 
 // handleHealth 返回存活状态。

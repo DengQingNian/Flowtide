@@ -21,6 +21,9 @@ var assets embed.FS
 
 var tablePattern = regexp.MustCompile(`(?i)create\s+table\s+([a-zA-Z0-9_]+)`)
 
+// 约束声明前缀，解析列时跳过
+var constraintPrefixes = []string{"primary", "constraint", "unique", "foreign", "check", "key", "index"}
+
 // Dialects 返回支持的数据库方言。
 // @return 方言列表
 func Dialects() []string { return []string{"mysql", "postgres"} }
@@ -63,6 +66,85 @@ func Tables(dialect string) ([]string, error) {
 	}
 	sort.Strings(tables)
 	return tables, nil
+}
+
+// TableColumns 返回指定表的列名与列类型。
+// 列名与类型保持 DDL 中的顺序，便于管理端点展示。
+// @param dialect 数据库方言
+// @param table 表名
+// @return 列名列表
+// @return 列类型列表
+// @return 查询错误
+func TableColumns(dialect, table string) ([]string, []string, error) {
+	content, err := Load(dialect)
+	if err != nil {
+		return nil, nil, err
+	}
+	name := strings.ToUpper(strings.TrimSpace(table))
+	pattern := regexp.MustCompile(`(?is)create\s+table\s+` + regexp.QuoteMeta(name) + `\s*\((.*?)\)\s*;`)
+	match := pattern.FindStringSubmatch(content)
+	if match == nil {
+		return nil, nil, api.NewError("SCHEMA-0003", "表不存在: "+name, api.ErrNotFound)
+	}
+	definitions := splitColumnDefinitions(match[1])
+	columns := make([]string, 0, len(definitions))
+	types := make([]string, 0, len(definitions))
+	for _, definition := range definitions {
+		fields := strings.Fields(strings.TrimSpace(definition))
+		if len(fields) < 2 {
+			continue
+		}
+		// 跳过主键、唯一约束、外键等声明
+		if isConstraint(fields[0]) {
+			continue
+		}
+		columns = append(columns, strings.ToUpper(fields[0]))
+		types = append(types, strings.ToLower(fields[1]))
+	}
+	return columns, types, nil
+}
+
+// splitColumnDefinitions 按顶层逗号拆分列定义。
+// 括号内逗号（如 numeric(10,2)）不拆分。
+// @param body CREATE TABLE 括号内容
+// @return 列定义列表
+func splitColumnDefinitions(body string) []string {
+	definitions := make([]string, 0)
+	depth := 0
+	start := 0
+	for index, char := range body {
+		switch char {
+		case '(':
+			depth++
+		case ')':
+			if depth > 0 {
+				depth--
+			}
+		case ',':
+			// 仅在顶层逗号处切分列定义
+			if depth == 0 {
+				definitions = append(definitions, body[start:index])
+				start = index + 1
+			}
+		}
+	}
+	if strings.TrimSpace(body[start:]) != "" {
+		definitions = append(definitions, body[start:])
+	}
+	return definitions
+}
+
+// isConstraint 判断列定义是否为约束声明。
+// @param token 首字段
+// @return 是否为约束
+func isConstraint(token string) bool {
+	lower := strings.ToLower(token)
+	for _, prefix := range constraintPrefixes {
+		if lower == prefix {
+			return true
+		}
+	}
+	return false
 }
 
 // Checksum 返回 Schema SQL 的 SHA-256。

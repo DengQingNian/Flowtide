@@ -351,6 +351,12 @@ type TaskService interface {
 	// @return 评论列表
 	// @return 查询错误
 	ListProcessComments(ctx context.Context, processInstanceID string) ([]Comment, error)
+	// ListInstanceComments 返回流程实例下的全部评论，含任务评论。
+	// @param ctx 上下文
+	// @param processInstanceID 实例 ID
+	// @return 评论列表
+	// @return 查询错误
+	ListInstanceComments(ctx context.Context, processInstanceID string) ([]Comment, error)
 	// ListComments 返回任务评论。
 	// @param ctx 上下文
 	// @param taskID 任务 ID
@@ -481,6 +487,12 @@ type HistoryService interface {
 	// @return 链接列表
 	// @return 查询错误
 	ListHistoricIdentityLinks(ctx context.Context, taskID string) ([]IdentityLink, error)
+	// ListHistoricProcessIdentityLinks 返回流程实例的历史身份链接。
+	// @param ctx 上下文
+	// @param processInstanceID 实例 ID
+	// @return 链接列表
+	// @return 查询错误
+	ListHistoricProcessIdentityLinks(ctx context.Context, processInstanceID string) ([]IdentityLink, error)
 	// ListHistoricVariableInstances 返回历史变量。
 	// @param ctx 上下文
 	// @param processInstanceID 实例 ID
@@ -547,4 +559,30 @@ type ManagementService interface {
 	// @param retries 恢复后的重试次数
 	// @return 恢复错误
 	MoveDeadLetterJobToExecutable(ctx context.Context, jobID string, retries int) error
+	// Properties 返回引擎属性键值。
+	// @param ctx 上下文
+	// @return 属性映射
+	// @return 查询错误
+	Properties(ctx context.Context) (map[string]string, error)
+	// TableCount 返回各 ACT_* 表的行数。
+	// @param ctx 上下文
+	// @return 表名到行数
+	// @return 查询错误
+	TableCount(ctx context.Context) (map[string]int64, error)
+	// GetTableMetaData 返回表的列元数据。
+	// @param ctx 上下文
+	// @param tableName 表名
+	// @return 列元数据
+	// @return 查询错误
+	GetTableMetaData(ctx context.Context, tableName string) (TableMetaData, error)
+	// QueryTableData 分页查询表数据。
+	// @param ctx 上下文
+	// @param tableName 表名
+	// @param start 偏移
+	// @param size 每页数量
+	// @param sortColumn 排序列，空串表示默认顺序
+	// @param order 排序方向，asc 或 desc
+	// @return 分页数据
+	// @return 查询错误
+	QueryTableData(ctx context.Context, tableName string, start, size int, sortColumn, order string) (Page[map[string]any], error)
 }

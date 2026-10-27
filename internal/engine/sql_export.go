@@ -105,7 +105,6 @@ func (e *Engine) repositoryRowsLocked() ([]flowablerow.Row, error) {
 		return rows[i].Table < rows[j].Table
 	})
 	return rows, nil
-	return rows, nil
 }
 
 // byteArrayID 生成部署资源的稳定字节数组 ID。

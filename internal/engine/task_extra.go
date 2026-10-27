@@ -108,6 +108,33 @@ func (e *Engine) ListProcessComments(ctx context.Context, processInstanceID stri
 	return result.([]api.Comment), nil
 }
 
+// ListInstanceComments 返回流程实例下的全部评论，含任务评论。
+// @param ctx 上下文
+// @param processInstanceID 实例 ID
+// @return 评论列表
+// @return 查询错误
+func (e *Engine) ListInstanceComments(ctx context.Context, processInstanceID string) ([]api.Comment, error) {
+	result, err := e.read(func() (any, error) {
+		out := make([]api.Comment, 0)
+		for _, comment := range e.state.Comments {
+			if comment.ProcessInstanceID == processInstanceID {
+				out = append(out, *comment)
+			}
+		}
+		sort.Slice(out, func(i, j int) bool {
+			if out[i].Time.Equal(out[j].Time) {
+				return out[i].ID < out[j].ID
+			}
+			return out[i].Time.Before(out[j].Time)
+		})
+		return out, nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.([]api.Comment), nil
+}
+
 // ListComments 返回任务评论。
 // @param ctx 上下文
 // @param taskID 任务 ID

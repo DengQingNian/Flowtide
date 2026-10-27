@@ -2,10 +2,14 @@ package rest
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"net/http"
+	"net/http/httptest"
 	"strconv"
 	"testing"
+
+	"github.com/flowable-go/flowable/internal/engine"
 )
 
 // TestREST_InstanceTasksAndExecutionVars 验证实例任务与执行变量。
@@ -420,6 +424,271 @@ func TestREST_HistoricDetailLookup(t *testing.T) {
 	response, _ = http.DefaultClient.Do(request)
 	if response.StatusCode != http.StatusNotFound {
 		t.Fatalf("缺失历史变量删除应 404: %d", response.StatusCode)
+	}
+	_ = response.Body.Close()
+}
+
+// TestREST_ManagementMetadata 验证管理属性与表元数据端点。
+// @param t 测试上下文
+func TestREST_ManagementMetadata(t *testing.T) {
+	server, _ := newTestServer(t)
+	deployREST(t, server)
+
+	response, _ := http.Get(server.URL + "/service/management/properties")
+	var properties map[string]string
+	_ = json.NewDecoder(response.Body).Decode(&properties)
+	_ = response.Body.Close()
+	if response.StatusCode != http.StatusOK || properties["schema.version"] == "" {
+		t.Fatalf("引擎属性错误: %d %+v", response.StatusCode, properties)
+	}
+	response, _ = http.Get(server.URL + "/service/management/engine-properties")
+	if response.StatusCode != http.StatusOK {
+		t.Fatalf("引擎属性端点错误: %d", response.StatusCode)
+	}
+	_ = response.Body.Close()
+
+	response, _ = http.Get(server.URL + "/service/management/tables")
+	var tables []struct {
+		Name  string `json:"name"`
+		Count int64  `json:"count"`
+	}
+	_ = json.NewDecoder(response.Body).Decode(&tables)
+	_ = response.Body.Close()
+	found := false
+	for _, table := range tables {
+		if table.Name == "ACT_RE_DEPLOYMENT" && table.Count == 1 {
+			found = true
+		}
+	}
+	if !found {
+		t.Fatalf("表列表缺少部署表: %+v", tables)
+	}
+
+	response, _ = http.Get(server.URL + "/service/management/tables/act_re_deployment")
+	var table struct {
+		Name  string `json:"name"`
+		Count int64  `json:"count"`
+	}
+	_ = json.NewDecoder(response.Body).Decode(&table)
+	_ = response.Body.Close()
+	if response.StatusCode != http.StatusOK || table.Count != 1 || table.Name != "ACT_RE_DEPLOYMENT" {
+		t.Fatalf("单表查询错误: %d %+v", response.StatusCode, table)
+	}
+
+	response, _ = http.Get(server.URL + "/service/management/tables/ACT_RE_PROCDEF/columns")
+	var meta struct {
+		TableName   string   `json:"tableName"`
+		ColumnNames []string `json:"columnNames"`
+	}
+	_ = json.NewDecoder(response.Body).Decode(&meta)
+	_ = response.Body.Close()
+	if response.StatusCode != http.StatusOK || len(meta.ColumnNames) == 0 {
+		t.Fatalf("列元数据错误: %d %+v", response.StatusCode, meta)
+	}
+
+	response, _ = http.Get(server.URL + "/service/management/tables/ACT_RE_PROCDEF/data?orderDescendingColumn=KEY_")
+	var page struct {
+		Data  []map[string]any `json:"data"`
+		Total int              `json:"total"`
+		Sort  string           `json:"sort"`
+		Order string           `json:"order"`
+	}
+	_ = json.NewDecoder(response.Body).Decode(&page)
+	_ = response.Body.Close()
+	if response.StatusCode != http.StatusOK || page.Total != 1 || len(page.Data) != 1 {
+		t.Fatalf("表数据错误: %d %+v", response.StatusCode, page)
+	}
+	if page.Sort != "KEY_" || page.Order != "desc" || page.Data[0]["KEY_"] != "rest" {
+		t.Fatalf("表数据排序错误: %+v", page)
+	}
+
+	response, _ = http.Get(server.URL + "/service/management/tables/ACT_UNKNOWN")
+	if response.StatusCode != http.StatusNotFound {
+		t.Fatalf("未知表应 404: %d", response.StatusCode)
+	}
+	_ = response.Body.Close()
+	response, _ = http.Get(server.URL + "/service/management/tables/ACT_UNKNOWN/columns")
+	if response.StatusCode != http.StatusNotFound {
+		t.Fatalf("未知表列应 404: %d", response.StatusCode)
+	}
+	_ = response.Body.Close()
+	response, _ = http.Get(server.URL + "/service/management/tables/ACT_RE_PROCDEF/data?orderAscendingColumn=ID_&orderDescendingColumn=KEY_")
+	if response.StatusCode != http.StatusBadRequest {
+		t.Fatalf("同时排序应 400: %d", response.StatusCode)
+	}
+	_ = response.Body.Close()
+}
+
+// TestREST_ManagementErrors 验证关闭引擎后的管理端点错误。
+// @param t 测试上下文
+func TestREST_ManagementErrors(t *testing.T) {
+	app, err := engine.New(engine.Config{HistoryLevel: engine.HistoryAudit})
+	if err != nil {
+		t.Fatalf("创建引擎失败: %v", err)
+	}
+	server := httptest.NewServer(New(app).Handler())
+	defer server.Close()
+	_ = app.Close(context.Background())
+	paths := []string{
+		"/service/management/properties",
+		"/service/management/tables",
+		"/service/management/tables/ACT_RE_PROCDEF",
+		"/service/management/tables/ACT_RE_PROCDEF/data",
+	}
+	for _, path := range paths {
+		response, _ := http.Get(server.URL + path)
+		if response.StatusCode != http.StatusServiceUnavailable {
+			t.Fatalf("%s 关闭后应 503: %d", path, response.StatusCode)
+		}
+		_ = response.Body.Close()
+	}
+}
+
+// TestREST_HistoricTenantIsolation 验证历史子资源租户隔离。
+// @param t 测试上下文
+func TestREST_HistoricTenantIsolation(t *testing.T) {
+	server, _ := newTestServer(t)
+	deployREST(t, server)
+	request, _ := http.NewRequest(http.MethodPost, server.URL+"/service/runtime/process-instances", bytes.NewBufferString("{\"processDefinitionKey\":\"rest\",\"variables\":[{\"name\":\"initiator\",\"value\":\"alice\"}]}"))
+	request.Header.Set("Content-Type", "application/json")
+	response, _ := http.DefaultClient.Do(request)
+	var instance struct {
+		ID string `json:"id"`
+	}
+	_ = json.NewDecoder(response.Body).Decode(&instance)
+	_ = response.Body.Close()
+	if instance.ID == "" {
+		t.Fatalf("启动实例失败")
+	}
+	for _, suffix := range []string{"variables", "identitylinks", "comments"} {
+		request, _ = http.NewRequest(http.MethodGet, server.URL+"/service/history/historic-process-instances/"+instance.ID+"/"+suffix, nil)
+		request.Header.Set("X-Tenant-Id", "tenant-b")
+		response, _ = http.DefaultClient.Do(request)
+		if response.StatusCode != http.StatusNotFound {
+			t.Fatalf("%s 跨租户应 404: %d", suffix, response.StatusCode)
+		}
+		_ = response.Body.Close()
+	}
+}
+
+// TestREST_TaskFormAndHistoricSubresources 验证任务表单与历史子资源端点。
+// @param t 测试上下文
+func TestREST_TaskFormAndHistoricSubresources(t *testing.T) {
+	server, _ := newTestServer(t)
+	response, _ := http.Post(server.URL+"/service/repository/deployments", "application/xml", bytes.NewBufferString(restFormXML))
+	_ = response.Body.Close()
+	response = postJSON(t, server.URL+"/service/runtime/process-instances", map[string]any{
+		"processDefinitionKey": "restForm",
+		"variables":            []map[string]any{{"name": "initiator", "value": "alice"}},
+	})
+	var instance struct {
+		ID string `json:"id"`
+	}
+	_ = json.NewDecoder(response.Body).Decode(&instance)
+	_ = response.Body.Close()
+
+	response, _ = http.Get(server.URL + "/service/runtime/tasks")
+	var tasks struct {
+		Data []struct {
+			ID string `json:"id"`
+		} `json:"data"`
+	}
+	_ = json.NewDecoder(response.Body).Decode(&tasks)
+	_ = response.Body.Close()
+	if len(tasks.Data) == 0 {
+		t.Fatalf("任务为空")
+	}
+	taskID := tasks.Data[0].ID
+
+	response, _ = http.Get(server.URL + "/service/runtime/tasks/" + taskID + "/form")
+	var form struct {
+		FormKey    string `json:"formKey"`
+		Properties []struct {
+			ID string `json:"id"`
+		} `json:"formProperties"`
+	}
+	_ = json.NewDecoder(response.Body).Decode(&form)
+	_ = response.Body.Close()
+	if response.StatusCode != http.StatusOK || form.FormKey != "task" || len(form.Properties) != 1 {
+		t.Fatalf("任务表单错误: %d %+v", response.StatusCode, form)
+	}
+
+	response = postJSON(t, server.URL+"/service/runtime/tasks/"+taskID+"/comments", map[string]any{"message": "hello", "userId": "alice"})
+	_ = response.Body.Close()
+
+	response, _ = http.Get(server.URL + "/service/history/historic-process-instances/" + instance.ID + "/comments")
+	var comments struct {
+		Total int `json:"total"`
+	}
+	_ = json.NewDecoder(response.Body).Decode(&comments)
+	_ = response.Body.Close()
+	if response.StatusCode != http.StatusOK || comments.Total != 1 {
+		t.Fatalf("历史评论错误: %d %+v", response.StatusCode, comments)
+	}
+
+	response, _ = http.Get(server.URL + "/service/history/historic-process-instances/" + instance.ID + "/identitylinks")
+	var links struct {
+		Total int `json:"total"`
+	}
+	_ = json.NewDecoder(response.Body).Decode(&links)
+	_ = response.Body.Close()
+	if response.StatusCode != http.StatusOK || links.Total == 0 {
+		t.Fatalf("历史身份链接错误: %d %+v", response.StatusCode, links)
+	}
+
+	response, _ = http.Get(server.URL + "/service/history/historic-process-instances/" + instance.ID + "/variables")
+	var variables struct {
+		Total int `json:"total"`
+	}
+	_ = json.NewDecoder(response.Body).Decode(&variables)
+	_ = response.Body.Close()
+	if response.StatusCode != http.StatusOK || variables.Total == 0 {
+		t.Fatalf("历史变量错误: %d %+v", response.StatusCode, variables)
+	}
+
+	response, _ = http.Get(server.URL + "/service/history/historic-process-instances/missing/comments")
+	if response.StatusCode != http.StatusNotFound {
+		t.Fatalf("缺失历史实例应 404: %d", response.StatusCode)
+	}
+	_ = response.Body.Close()
+	response, _ = http.Get(server.URL + "/service/history/historic-process-instances/missing/identitylinks")
+	if response.StatusCode != http.StatusNotFound {
+		t.Fatalf("缺失历史实例链接应 404: %d", response.StatusCode)
+	}
+	_ = response.Body.Close()
+	response, _ = http.Get(server.URL + "/service/history/historic-process-instances/missing/variables")
+	if response.StatusCode != http.StatusNotFound {
+		t.Fatalf("缺失历史实例变量应 404: %d", response.StatusCode)
+	}
+	_ = response.Body.Close()
+}
+
+// TestREST_TaskFormMissing 验证无表单任务返回 400。
+// @param t 测试上下文
+func TestREST_TaskFormMissing(t *testing.T) {
+	server, _ := newTestServer(t)
+	deployREST(t, server)
+	response := postJSON(t, server.URL+"/service/runtime/process-instances", map[string]any{
+		"processDefinitionKey": "rest",
+		"variables":            []map[string]any{{"name": "initiator", "value": "alice"}},
+	})
+	_ = response.Body.Close()
+	response, _ = http.Get(server.URL + "/service/runtime/tasks")
+	var tasks struct {
+		Data []struct {
+			ID string `json:"id"`
+		} `json:"data"`
+	}
+	_ = json.NewDecoder(response.Body).Decode(&tasks)
+	_ = response.Body.Close()
+	response, _ = http.Get(server.URL + "/service/runtime/tasks/" + tasks.Data[0].ID + "/form")
+	if response.StatusCode != http.StatusBadRequest {
+		t.Fatalf("无表单任务应 400: %d", response.StatusCode)
+	}
+	_ = response.Body.Close()
+	response, _ = http.Get(server.URL + "/service/runtime/tasks/missing/form")
+	if response.StatusCode != http.StatusNotFound {
+		t.Fatalf("缺失任务应 404: %d", response.StatusCode)
 	}
 	_ = response.Body.Close()
 }
