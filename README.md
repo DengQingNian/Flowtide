@@ -2,7 +2,7 @@
 
 用**纯 Go** 重构 [Flowable](https://www.flowable.org/) 工作流引擎。目标是提供一个不依赖 JVM、不依赖 CGO、可直接读写 Flowable 8.x 数据库、并对流程 REST API 保持兼容的 BPMN 2.0 引擎。
 
-> 当前状态：**MVP 实现阶段**。已完成纯 Go 的 BPMN 解析、部署、执行树、用户任务、服务任务、排他/并行网关、历史、JSON 状态持久化与 REST 垂直切片。  
+> 当前状态：**BPMN 内核扩展实现阶段**。已完成纯 Go 的 BPMN 解析、部署、执行树、任务、网关、子流程、多实例、调用活动、消息/信号、定时器、错误、补偿、事件子流程、迁移、身份、历史、JSON 状态持久化与 REST 核心端点。  
 > 参考基线：Flowable 8.1.0-SNAPSHOT（Apache-2.0），位于 `/root/src/public/flowable-engine`。
 
 ## 为什么做
@@ -102,7 +102,7 @@ curl -X POST 'http://localhost:8080/service/runtime/process-instances' \
   -d '{"processDefinitionKey":"demo","variables":[{"name":"initiator","value":"alice"}]}'
 ```
 
-当前实现范围、限制与覆盖率见 [MVP 实现说明](docs/002-迁移实施/001-MVP实现说明.md)。
+当前实现范围、限制与覆盖率见 [MVP 实现说明](docs/002-迁移实施/001-MVP实现说明.md)；整体进度与剩余差距见 [实施进度与差距](docs/002-迁移实施/002-实施进度与差距.md)。
 
 ## 已实现能力
 
