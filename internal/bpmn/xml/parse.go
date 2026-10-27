@@ -43,6 +43,9 @@ func Parse(data []byte) (*model.BpmnModel, error) {
 	for _, signalNode := range root.ChildrenNamed("signal") {
 		result.Signals = append(result.Signals, &model.Signal{ID: signalNode.Attr("id"), Name: signalNode.Attr("name")})
 	}
+	for _, errorNode := range root.ChildrenNamed("error") {
+		result.Errors = append(result.Errors, &model.Error{ID: errorNode.Attr("id"), ErrorCode: errorNode.Attr("errorCode")})
+	}
 	for _, processNode := range root.ChildrenNamed("process") {
 		process, parseErr := parseProcess(processNode)
 		if parseErr != nil {
@@ -112,7 +115,10 @@ func parseElement(node *Node) (model.FlowElement, error) {
 		event.MessageRef, event.SignalRef, event.Timer = parseEventDefinition(node)
 		return event, nil
 	case "endEvent":
-		event := &model.EndEvent{Terminate: hasChild(node, "terminateEventDefinition")}
+		event := &model.EndEvent{
+			Terminate: hasChild(node, "terminateEventDefinition"),
+			ErrorRef:  parseErrorRef(node),
+		}
 		parseFlowNodeBase(node, &event.FlowNodeBase)
 		return event, nil
 	case "userTask":
@@ -188,6 +194,7 @@ func parseElement(node *Node) (model.FlowElement, error) {
 			AttachedToRef:  node.Attr("attachedToRef"),
 			CancelActivity: !strings.EqualFold(node.Attr("cancelActivity"), "false"),
 			Timer:          parseTimer(node),
+			ErrorRef:       parseErrorRef(node),
 		}
 		parseFlowNodeBase(node, &event.FlowNodeBase)
 		if event.AttachedToRef == "" {
@@ -333,6 +340,16 @@ func lookupFlowNode(elements map[string]model.FlowElement, id string) (model.Flo
 	}
 	node, ok := element.(model.FlowNode)
 	return node, ok
+}
+
+// parseErrorRef 解析错误引用。
+// @param node 事件节点
+// @return 错误引用
+func parseErrorRef(node *Node) string {
+	if child, ok := node.Child("errorEventDefinition"); ok {
+		return attrAny(child, "errorRef")
+	}
+	return ""
 }
 
 // parseEventDefinition 解析事件定义。

@@ -7,6 +7,13 @@ type BpmnModel struct {
 	Processes []*Process // 流程列表
 	Messages  []*Message // 全局消息
 	Signals   []*Signal  // 全局信号
+	Errors    []*Error   // 全局错误
+}
+
+// Error 表示 BPMN 错误定义。
+type Error struct {
+	ID        string // 错误 ID
+	ErrorCode string // 错误码
 }
 
 // Message 表示全局消息定义。
@@ -157,7 +164,8 @@ func (e *StartEvent) ElementType() string { return "startEvent" }
 // EndEvent 表示结束事件。
 type EndEvent struct {
 	FlowNodeBase
-	Terminate bool // 是否终止整个流程实例
+	Terminate bool   // 是否终止整个流程实例
+	ErrorRef  string // 错误引用
 }
 
 // ElementType 返回元素类型。
@@ -283,6 +291,7 @@ type BoundaryEvent struct {
 	AttachedToRef  string           // 依附活动 ID
 	CancelActivity bool             // 是否中断依附活动
 	Timer          *TimerDefinition // 定时器定义
+	ErrorRef       string           // 错误引用
 }
 
 // ElementType 返回元素类型。
