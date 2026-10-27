@@ -211,3 +211,72 @@ func ptrInt(value int64) *int64 { return &value }
 // @param value 值
 // @return 指针
 func ptrFloat(value float64) *float64 { return &value }
+
+// historicCommentRow 构造历史评论行。
+// @param id 评论 ID
+// @return 行
+func historicCommentRow(t *testing.T, id string) Row {
+	t.Helper()
+	row, _ := NewRow("ACT_HI_COMMENT")
+	_ = row.Set("ID_", id)
+	_ = row.Set("TYPE_", "comment")
+	_ = row.Set("TIME_", time.Date(2026, 10, 28, 0, 0, 0, 0, time.UTC))
+	_ = row.Set("USER_ID_", "alice")
+	_ = row.Set("TASK_ID_", "t1")
+	_ = row.Set("PROC_INST_ID_", "i1")
+	_ = row.Set("MESSAGE_", "ok")
+	return *row
+}
+
+// historicAttachmentRow 构造历史附件行。
+// @param id 附件 ID
+// @return 行
+func historicAttachmentRow(t *testing.T, id string) Row {
+	t.Helper()
+	row, _ := NewRow("ACT_HI_ATTACHMENT")
+	_ = row.Set("ID_", id)
+	_ = row.Set("NAME_", "doc")
+	_ = row.Set("DESCRIPTION_", "desc")
+	_ = row.Set("TYPE_", "url")
+	_ = row.Set("TASK_ID_", "t1")
+	_ = row.Set("PROC_INST_ID_", "i1")
+	_ = row.Set("URL_", "http://example.com")
+	_ = row.Set("TIME_", time.Date(2026, 10, 28, 0, 0, 0, 0, time.UTC))
+	return *row
+}
+
+// TestDecodeHistoricCommentAttachment 验证评论/附件恢复。
+// @param t 测试上下文
+func TestDecodeHistoricCommentAttachment(t *testing.T) {
+	snapshot, err := DecodeHistoricRows([]Row{historicCommentRow(t, "c1"), historicAttachmentRow(t, "a1")})
+	if err != nil {
+		t.Fatalf("恢复失败: %v", err)
+	}
+	if len(snapshot.Comments) != 1 || snapshot.Comments[0].Message != "ok" {
+		t.Fatalf("评论恢复错误: %+v", snapshot.Comments)
+	}
+	if len(snapshot.Attachments) != 1 || snapshot.Attachments[0].Name != "doc" {
+		t.Fatalf("附件恢复错误: %+v", snapshot.Attachments)
+	}
+}
+
+// TestDecodeHistoricCommentAttachmentErrors 验证评论/附件错误。
+// @param t 测试上下文
+func TestDecodeHistoricCommentAttachmentErrors(t *testing.T) {
+	commentColumns := []string{"TYPE_", "TIME_", "USER_ID_", "TASK_ID_", "PROC_INST_ID_", "MESSAGE_"}
+	for _, column := range commentColumns {
+		row := historicCommentRow(t, "c1")
+		delete(row.Values, column)
+		if _, err := decodeHistoricComment(row); err == nil {
+			t.Fatalf("评论缺列 %s 应失败", column)
+		}
+	}
+	attachmentColumns := []string{"NAME_", "DESCRIPTION_", "TYPE_", "TASK_ID_", "PROC_INST_ID_", "URL_", "TIME_"}
+	for _, column := range attachmentColumns {
+		row := historicAttachmentRow(t, "a1")
+		delete(row.Values, column)
+		if _, err := decodeHistoricAttachment(row); err == nil {
+			t.Fatalf("附件缺列 %s 应失败", column)
+		}
+	}
+}

@@ -32,6 +32,14 @@ func (e *Engine) ImportHistoricRows(ctx context.Context, rows []flowablerow.Row)
 			variable := snapshot.Variables[i]
 			e.state.HistoricVariables[variable.ID] = &variable
 		}
+		for i := range snapshot.Comments {
+			comment := snapshot.Comments[i]
+			e.state.Comments[comment.ID] = &comment
+		}
+		for i := range snapshot.Attachments {
+			attachment := snapshot.Attachments[i]
+			e.state.Attachments[attachment.ID] = &attachment
+		}
 		return nil, nil
 	})
 	return err

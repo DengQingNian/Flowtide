@@ -18,6 +18,12 @@ func TestImportHistoricRows(t *testing.T) {
 		Variables:            []api.Variable{{Name: "initiator", Value: "alice"}},
 	})
 	tasks := listTasks(t, source)
+	if _, err := source.AddComment(context.Background(), tasks[0].ID, "alice", "ok"); err != nil {
+		t.Fatalf("添加评论失败: %v", err)
+	}
+	if _, err := source.AddAttachment(context.Background(), tasks[0].ID, api.Attachment{Name: "doc", URL: "http://example.com"}); err != nil {
+		t.Fatalf("添加附件失败: %v", err)
+	}
 	if err := source.Complete(context.Background(), tasks[0].ID, api.CompleteTaskRequest{}); err != nil {
 		t.Fatalf("完成任务失败: %v", err)
 	}
@@ -48,6 +54,14 @@ func TestImportHistoricRows(t *testing.T) {
 	variables, _ := target.ListHistoricVariableInstances(context.Background(), instance.ID)
 	if len(variables) != 1 || variables[0].Value != "alice" {
 		t.Fatalf("历史变量恢复错误: %+v", variables)
+	}
+	comments, _ := target.ListComments(context.Background(), tasks[0].ID)
+	if len(comments) != 1 || comments[0].Message != "ok" {
+		t.Fatalf("评论恢复错误: %+v", comments)
+	}
+	attachments, _ := target.ListAttachments(context.Background(), tasks[0].ID)
+	if len(attachments) != 1 || attachments[0].Name != "doc" {
+		t.Fatalf("附件恢复错误: %+v", attachments)
 	}
 }
 

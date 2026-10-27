@@ -136,6 +136,47 @@ func (e *Engine) ExportHistoricRows(ctx context.Context) ([]flowablerow.Row, err
 			_ = row.Set("LAST_UPDATED_TIME_", historic.LastUpdatedTime)
 			rows = append(rows, *row)
 		}
+		comments := make([]*api.Comment, 0, len(e.state.Comments))
+		for _, comment := range e.state.Comments {
+			comments = append(comments, comment)
+		}
+		sort.Slice(comments, func(i, j int) bool { return comments[i].ID < comments[j].ID })
+		for _, comment := range comments {
+			row, rowErr := historyRow("ACT_HI_COMMENT", []string{"ID_", "TYPE_", "TIME_", "USER_ID_", "TASK_ID_", "PROC_INST_ID_", "ACTION_", "MESSAGE_"})
+			if rowErr != nil {
+				return nil, rowErr
+			}
+			_ = row.Set("ID_", comment.ID)
+			_ = row.Set("TYPE_", comment.Type)
+			_ = row.Set("TIME_", comment.Time)
+			_ = row.Set("USER_ID_", comment.UserID)
+			_ = row.Set("TASK_ID_", comment.TaskID)
+			_ = row.Set("PROC_INST_ID_", comment.ProcessInstanceID)
+			_ = row.Set("ACTION_", "AddComment")
+			_ = row.Set("MESSAGE_", comment.Message)
+			rows = append(rows, *row)
+		}
+		attachments := make([]*api.Attachment, 0, len(e.state.Attachments))
+		for _, attachment := range e.state.Attachments {
+			attachments = append(attachments, attachment)
+		}
+		sort.Slice(attachments, func(i, j int) bool { return attachments[i].ID < attachments[j].ID })
+		for _, attachment := range attachments {
+			row, rowErr := historyRow("ACT_HI_ATTACHMENT", []string{"ID_", "REV_", "NAME_", "DESCRIPTION_", "TYPE_", "TASK_ID_", "PROC_INST_ID_", "URL_", "TIME_"})
+			if rowErr != nil {
+				return nil, rowErr
+			}
+			_ = row.Set("ID_", attachment.ID)
+			_ = row.Set("REV_", 1)
+			_ = row.Set("NAME_", attachment.Name)
+			_ = row.Set("DESCRIPTION_", attachment.Description)
+			_ = row.Set("TYPE_", attachment.Type)
+			_ = row.Set("TASK_ID_", attachment.TaskID)
+			_ = row.Set("PROC_INST_ID_", attachment.ProcessInstanceID)
+			_ = row.Set("URL_", attachment.URL)
+			_ = row.Set("TIME_", attachment.Time)
+			rows = append(rows, *row)
+		}
 		sort.Slice(rows, func(i, j int) bool {
 			if rows[i].Table == rows[j].Table {
 				return rowID(rows[i]) < rowID(rows[j])

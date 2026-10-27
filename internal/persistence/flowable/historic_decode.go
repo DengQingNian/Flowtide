@@ -9,10 +9,12 @@ import (
 
 // HistoricSnapshot 是历史行恢复结果。
 type HistoricSnapshot struct {
-	Processes  []api.HistoricProcessInstance  // 历史流程
-	Activities []api.HistoricActivityInstance // 历史活动
-	Tasks      []api.HistoricTaskInstance     // 历史任务
-	Variables  []api.HistoricVariableInstance // 历史变量
+	Processes   []api.HistoricProcessInstance  // 历史流程
+	Activities  []api.HistoricActivityInstance // 历史活动
+	Tasks       []api.HistoricTaskInstance     // 历史任务
+	Variables   []api.HistoricVariableInstance // 历史变量
+	Comments    []api.Comment                  // 评论
+	Attachments []api.Attachment               // 附件
 }
 
 // DecodeHistoricRows 将历史行恢复为快照。
@@ -21,10 +23,12 @@ type HistoricSnapshot struct {
 // @return 解析错误
 func DecodeHistoricRows(rows []Row) (HistoricSnapshot, error) {
 	snapshot := HistoricSnapshot{
-		Processes:  make([]api.HistoricProcessInstance, 0),
-		Activities: make([]api.HistoricActivityInstance, 0),
-		Tasks:      make([]api.HistoricTaskInstance, 0),
-		Variables:  make([]api.HistoricVariableInstance, 0),
+		Processes:   make([]api.HistoricProcessInstance, 0),
+		Activities:  make([]api.HistoricActivityInstance, 0),
+		Tasks:       make([]api.HistoricTaskInstance, 0),
+		Variables:   make([]api.HistoricVariableInstance, 0),
+		Comments:    make([]api.Comment, 0),
+		Attachments: make([]api.Attachment, 0),
 	}
 	for _, row := range rows {
 		switch row.Table {
@@ -52,6 +56,18 @@ func DecodeHistoricRows(rows []Row) (HistoricSnapshot, error) {
 				return HistoricSnapshot{}, err
 			}
 			snapshot.Variables = append(snapshot.Variables, variable)
+		case "ACT_HI_COMMENT":
+			comment, err := decodeHistoricComment(row)
+			if err != nil {
+				return HistoricSnapshot{}, err
+			}
+			snapshot.Comments = append(snapshot.Comments, comment)
+		case "ACT_HI_ATTACHMENT":
+			attachment, err := decodeHistoricAttachment(row)
+			if err != nil {
+				return HistoricSnapshot{}, err
+			}
+			snapshot.Attachments = append(snapshot.Attachments, attachment)
 		default:
 			return HistoricSnapshot{}, api.NewError("ROW-0030", "不支持的历史表: "+row.Table, api.ErrBadRequest)
 		}
@@ -60,6 +76,8 @@ func DecodeHistoricRows(rows []Row) (HistoricSnapshot, error) {
 	sort.Slice(snapshot.Activities, func(i, j int) bool { return snapshot.Activities[i].ID < snapshot.Activities[j].ID })
 	sort.Slice(snapshot.Tasks, func(i, j int) bool { return snapshot.Tasks[i].ID < snapshot.Tasks[j].ID })
 	sort.Slice(snapshot.Variables, func(i, j int) bool { return snapshot.Variables[i].ID < snapshot.Variables[j].ID })
+	sort.Slice(snapshot.Comments, func(i, j int) bool { return snapshot.Comments[i].ID < snapshot.Comments[j].ID })
+	sort.Slice(snapshot.Attachments, func(i, j int) bool { return snapshot.Attachments[i].ID < snapshot.Attachments[j].ID })
 	return snapshot, nil
 }
 
@@ -316,4 +334,80 @@ func historicVariableValue(variableType string, longValue *int64, doubleValue *f
 		}
 		return nil, nil
 	}
+}
+
+// decodeHistoricComment 解析历史评论行。
+// @param row 行
+// @return 评论
+// @return 错误
+func decodeHistoricComment(row Row) (api.Comment, error) {
+	id, err := stringValue(row, "ID_")
+	if err != nil {
+		return api.Comment{}, err
+	}
+	commentType, err := stringValue(row, "TYPE_")
+	if err != nil {
+		return api.Comment{}, err
+	}
+	commentTime, err := timeValue(row, "TIME_")
+	if err != nil {
+		return api.Comment{}, err
+	}
+	userID, err := stringValue(row, "USER_ID_")
+	if err != nil {
+		return api.Comment{}, err
+	}
+	taskID, err := stringValue(row, "TASK_ID_")
+	if err != nil {
+		return api.Comment{}, err
+	}
+	processInstanceID, err := stringValue(row, "PROC_INST_ID_")
+	if err != nil {
+		return api.Comment{}, err
+	}
+	message, err := stringValue(row, "MESSAGE_")
+	if err != nil {
+		return api.Comment{}, err
+	}
+	return api.Comment{ID: id, Type: commentType, Time: commentTime, UserID: userID, TaskID: taskID, ProcessInstanceID: processInstanceID, Message: message}, nil
+}
+
+// decodeHistoricAttachment 解析历史附件行。
+// @param row 行
+// @return 附件
+// @return 错误
+func decodeHistoricAttachment(row Row) (api.Attachment, error) {
+	id, err := stringValue(row, "ID_")
+	if err != nil {
+		return api.Attachment{}, err
+	}
+	name, err := stringValue(row, "NAME_")
+	if err != nil {
+		return api.Attachment{}, err
+	}
+	description, err := stringValue(row, "DESCRIPTION_")
+	if err != nil {
+		return api.Attachment{}, err
+	}
+	attachmentType, err := stringValue(row, "TYPE_")
+	if err != nil {
+		return api.Attachment{}, err
+	}
+	taskID, err := stringValue(row, "TASK_ID_")
+	if err != nil {
+		return api.Attachment{}, err
+	}
+	processInstanceID, err := stringValue(row, "PROC_INST_ID_")
+	if err != nil {
+		return api.Attachment{}, err
+	}
+	url, err := stringValue(row, "URL_")
+	if err != nil {
+		return api.Attachment{}, err
+	}
+	attachmentTime, err := timeValue(row, "TIME_")
+	if err != nil {
+		return api.Attachment{}, err
+	}
+	return api.Attachment{ID: id, Name: name, Description: description, Type: attachmentType, TaskID: taskID, ProcessInstanceID: processInstanceID, URL: url, Time: attachmentTime}, nil
 }
