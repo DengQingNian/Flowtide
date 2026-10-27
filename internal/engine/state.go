@@ -78,6 +78,9 @@ type jobState struct {
 	ActivityID          string    `json:"activityId"`          // 依附活动 ID
 	CancelActivity      bool      `json:"cancelActivity"`      // 是否中断
 	Retries             int       `json:"retries"`             // 剩余重试次数
+	RepeatRemaining     int       `json:"repeatRemaining"`     // 剩余重复次数
+	RepeatInfinite      bool      `json:"repeatInfinite"`      // 是否无限重复
+	IntervalMillis      int64     `json:"intervalMillis"`      // 重复间隔毫秒
 	Exception           string    `json:"exception,omitempty"` // 最近异常
 	DueDate             time.Time `json:"dueDate"`             // 到期时间
 	CreatedAt           time.Time `json:"createdAt"`           // 创建时间

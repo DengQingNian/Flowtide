@@ -148,7 +148,11 @@ func (e *Engine) triggerJob(cc *commandContext, job *jobState) error {
 			return nil
 		}
 		_, err := e.startProcess(cc, api.StartRequest{ProcessDefinitionID: job.ProcessDefinitionID})
-		return err
+		if err != nil {
+			return err
+		}
+		e.rescheduleTimerJob(job, cc.now)
+		return nil
 	case "timer-catch":
 		execution, ok := e.findExecution(job.ExecutionID)
 		if !ok || execution.Ended {
@@ -253,6 +257,8 @@ func (e *Engine) triggerBoundaryJob(cc *commandContext, job *jobState) error {
 	}
 	e.state.Executions[child.ID] = child
 	cc.agenda.schedule(&continueOperation{executionID: child.ID, activityID: boundary.ID})
+	// 非中断重复边界定时器：重新排期
+	e.rescheduleTimerJob(job, cc.now)
 	return nil
 }
 
@@ -315,6 +321,15 @@ func (e *Engine) scheduleBoundaryEvents(cc *commandContext, execution *execution
 			CancelActivity:    boundary.CancelActivity,
 			DueDate:           due,
 			CreatedAt:         cc.now,
+		}
+		if boundary.Timer.TimeCycle != "" {
+			cycle, cycleErr := parseTimerCycle(boundary.Timer.TimeCycle)
+			if cycleErr != nil {
+				return api.NewError("ENGINE-0605", "边界定时器重复周期解析失败", cycleErr)
+			}
+			job.RepeatRemaining = cycle.remaining
+			job.RepeatInfinite = cycle.infinite
+			job.IntervalMillis = cycle.interval.Milliseconds()
 		}
 		e.state.Jobs[job.ID] = job
 	}
@@ -465,6 +480,15 @@ func (e *Engine) scheduleStartTimers(cc *commandContext, definition *definitionS
 			DueDate:             due,
 			CreatedAt:           cc.now,
 		}
+		if start.Timer.TimeCycle != "" {
+			cycle, cycleErr := parseTimerCycle(start.Timer.TimeCycle)
+			if cycleErr != nil {
+				return api.NewError("ENGINE-0604", "定时启动重复周期解析失败", cycleErr)
+			}
+			job.RepeatRemaining = cycle.remaining
+			job.RepeatInfinite = cycle.infinite
+			job.IntervalMillis = cycle.interval.Milliseconds()
+		}
 		e.state.Jobs[job.ID] = job
 	}
 	return nil
@@ -496,4 +520,56 @@ func (e *Engine) scheduleTimerCatch(cc *commandContext, execution *executionStat
 	}
 	e.state.Jobs[job.ID] = job
 	return nil
+}
+
+// timerCycle 是重复定时器配置。
+type timerCycle struct {
+	interval  time.Duration // 间隔
+	remaining int           // 首次触发后的剩余次数
+	infinite  bool          // 是否无限
+}
+
+// parseTimerCycle 解析 ISO-8601 重复周期。
+// @param value 重复表达式，如 R3/PT1M
+// @return 周期配置
+// @return 解析错误
+func parseTimerCycle(value string) (timerCycle, error) {
+	parts := strings.Split(value, "/")
+	if len(parts) < 2 {
+		return timerCycle{}, fmt.Errorf("非法重复周期: %s", value)
+	}
+	interval, err := parseISODuration(parts[len(parts)-1])
+	if err != nil {
+		return timerCycle{}, err
+	}
+	countPart := parts[0]
+	if !strings.HasPrefix(strings.ToUpper(countPart), "R") {
+		return timerCycle{}, fmt.Errorf("重复周期缺少 R 前缀: %s", value)
+	}
+	digits := countPart[1:]
+	if digits == "" {
+		return timerCycle{interval: interval, infinite: true}, nil
+	}
+	count, err := strconv.Atoi(digits)
+	if err != nil || count <= 0 {
+		return timerCycle{}, fmt.Errorf("非法重复次数: %s", countPart)
+	}
+	return timerCycle{interval: interval, remaining: count - 1}, nil
+}
+
+// rescheduleTimerJob 为重复定时器创建下一次作业。
+// @param job 已触发的作业
+// @param now 当前时间
+func (e *Engine) rescheduleTimerJob(job *jobState, now time.Time) {
+	if job.IntervalMillis <= 0 || (!job.RepeatInfinite && job.RepeatRemaining <= 0) {
+		return
+	}
+	next := *job
+	next.ID = e.newID()
+	next.DueDate = now.Add(time.Duration(job.IntervalMillis) * time.Millisecond)
+	next.Exception = ""
+	if !next.RepeatInfinite {
+		next.RepeatRemaining--
+	}
+	e.state.Jobs[next.ID] = &next
 }
