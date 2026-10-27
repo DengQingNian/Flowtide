@@ -121,6 +121,18 @@ type HistoricTaskInstance struct {
 	DurationMillis    int64      `json:"durationMillis"`     // 持续时间毫秒
 }
 
+// ExecutionInfo 是执行实例信息。
+type ExecutionInfo struct {
+	ID                  string `json:"id"`                   // 执行 ID
+	ProcessInstanceID   string `json:"processInstanceId"`    // 流程实例 ID
+	ProcessDefinitionID string `json:"processDefinitionId"`  // 流程定义 ID
+	ParentID            string `json:"parentId,omitempty"`   // 父执行 ID
+	ActivityID          string `json:"activityId,omitempty"` // 当前活动 ID
+	Active              bool   `json:"active"`               // 是否活跃
+	Ended               bool   `json:"ended"`                // 是否结束
+	Waiting             bool   `json:"waiting"`              // 是否等待
+}
+
 // HistoricVariableInstance 是历史变量实例。
 type HistoricVariableInstance struct {
 	ID                string    `json:"id"`                    // 历史变量 ID

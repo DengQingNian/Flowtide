@@ -41,6 +41,8 @@ func TestREST_ClosedEngine(t *testing.T) {
 		"/service/repository/deployments",
 		"/service/identity/users",
 		"/service/management/jobs",
+		"/service/runtime/executions",
+		"/service/history/historic-process-instances",
 		"/service/management/deadletter-jobs",
 		"/service/identity/groups",
 		"/service/runtime/process-instances",

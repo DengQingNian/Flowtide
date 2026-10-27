@@ -55,6 +55,8 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("GET /service/repository/process-definitions/{id}", s.handleGetDefinition)
 	s.mux.HandleFunc("GET /service/repository/process-definitions/{id}/xml", s.handleGetDefinitionXML)
 	s.mux.HandleFunc("PUT /service/repository/process-definitions/{id}", s.handleDefinitionAction)
+	s.mux.HandleFunc("GET /service/runtime/executions", s.handleListExecutions)
+	s.mux.HandleFunc("GET /service/runtime/executions/{id}", s.handleGetExecution)
 	s.mux.HandleFunc("POST /service/runtime/process-instances", s.handleStartInstance)
 	s.mux.HandleFunc("GET /service/runtime/process-instances", s.handleListInstances)
 	s.mux.HandleFunc("GET /service/runtime/process-instances/{id}", s.handleGetInstance)
@@ -79,6 +81,8 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("GET /service/runtime/tasks/{id}", s.handleGetTask)
 	s.mux.HandleFunc("POST /service/runtime/tasks/{id}", s.handleTaskAction)
 	s.mux.HandleFunc("GET /service/history/historic-process-instances", s.handleHistoricProcesses)
+	s.mux.HandleFunc("GET /service/history/historic-process-instances/{id}", s.handleHistoricProcess)
+	s.mux.HandleFunc("GET /service/history/historic-task-instances/{id}", s.handleHistoricTask)
 	s.mux.HandleFunc("GET /service/history/historic-activity-instances", s.handleHistoricActivities)
 	s.mux.HandleFunc("GET /service/history/historic-task-instances", s.handleHistoricTasks)
 	s.mux.HandleFunc("GET /service/history/historic-variable-instances", s.handleHistoricVariables)
@@ -405,6 +409,31 @@ type startPayload struct {
 	Name                 string          `json:"name"`                 // 名称
 	TenantID             string          `json:"tenantId"`             // 租户
 	Variables            json.RawMessage `json:"variables"`            // 变量
+}
+
+// handleListExecutions 返回执行列表。
+// @param w 响应
+// @param r 请求
+func (s *Server) handleListExecutions(w http.ResponseWriter, r *http.Request) {
+	items, err := s.engine.RuntimeService().ListExecutions(r.Context(), r.URL.Query().Get("processInstanceId"))
+	if err != nil {
+		writeError(w, err)
+		return
+	}
+	start, size := pageParams(r)
+	writePage(w, items, start, size)
+}
+
+// handleGetExecution 返回执行详情。
+// @param w 响应
+// @param r 请求
+func (s *Server) handleGetExecution(w http.ResponseWriter, r *http.Request) {
+	execution, err := s.engine.RuntimeService().GetExecution(r.Context(), r.PathValue("id"))
+	if err != nil {
+		writeError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, execution)
 }
 
 // handleStartInstance 启动流程实例。
@@ -848,6 +877,30 @@ func (s *Server) handleHistoricProcesses(w http.ResponseWriter, r *http.Request)
 	writePage(w, items, start, size)
 }
 
+// handleHistoricProcess 返回历史流程实例详情。
+// @param w 响应
+// @param r 请求
+func (s *Server) handleHistoricProcess(w http.ResponseWriter, r *http.Request) {
+	item, err := s.engine.HistoryService().GetHistoricProcessInstance(r.Context(), r.PathValue("id"))
+	if err != nil {
+		writeError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, item)
+}
+
+// handleHistoricTask 返回历史任务详情。
+// @param w 响应
+// @param r 请求
+func (s *Server) handleHistoricTask(w http.ResponseWriter, r *http.Request) {
+	item, err := s.engine.HistoryService().GetHistoricTaskInstance(r.Context(), r.PathValue("id"))
+	if err != nil {
+		writeError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, item)
+}
+
 // handleHistoricActivities 返回历史活动。
 // @param w 响应
 // @param r 请求
@@ -1013,6 +1066,12 @@ func reflectSlice(items any) []any {
 		}
 		return out
 	case []api.Group:
+		out := make([]any, len(typed))
+		for i, item := range typed {
+			out[i] = item
+		}
+		return out
+	case []api.ExecutionInfo:
 		out := make([]any, len(typed))
 		for i, item := range typed {
 			out[i] = item

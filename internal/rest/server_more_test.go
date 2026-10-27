@@ -653,3 +653,61 @@ func TestREST_Jobs(t *testing.T) {
 	}
 	_ = response.Body.Close()
 }
+
+// TestREST_ExecutionAndHistoryDetails 验证执行与历史详情端点。
+// @param t 测试上下文
+func TestREST_ExecutionAndHistoryDetails(t *testing.T) {
+	server, _ := newTestServer(t)
+	deployREST(t, server)
+	response := postJSON(t, server.URL+"/service/runtime/process-instances", map[string]any{
+		"processDefinitionKey": "rest",
+		"variables":            []map[string]any{{"name": "initiator", "value": "alice"}},
+	})
+	var instance map[string]any
+	_ = json.NewDecoder(response.Body).Decode(&instance)
+	_ = response.Body.Close()
+	instanceID, _ := instance["id"].(string)
+
+	response, _ = http.Get(server.URL + "/service/runtime/executions?processInstanceId=" + instanceID)
+	var executions struct {
+		Data []map[string]any `json:"data"`
+	}
+	_ = json.NewDecoder(response.Body).Decode(&executions)
+	_ = response.Body.Close()
+	if len(executions.Data) == 0 {
+		t.Fatalf("执行列表为空")
+	}
+	executionID, _ := executions.Data[0]["id"].(string)
+	response, _ = http.Get(server.URL + "/service/runtime/executions/" + executionID)
+	if response.StatusCode != http.StatusOK {
+		t.Fatalf("执行详情失败: %d", response.StatusCode)
+	}
+	_ = response.Body.Close()
+	response, _ = http.Get(server.URL + "/service/history/historic-process-instances/" + instanceID)
+	if response.StatusCode != http.StatusOK {
+		t.Fatalf("历史流程详情失败: %d", response.StatusCode)
+	}
+	_ = response.Body.Close()
+	response, _ = http.Get(server.URL + "/service/runtime/tasks")
+	var page struct {
+		Data []map[string]any `json:"data"`
+	}
+	_ = json.NewDecoder(response.Body).Decode(&page)
+	_ = response.Body.Close()
+	taskID, _ := page.Data[0]["id"].(string)
+	response, _ = http.Get(server.URL + "/service/history/historic-task-instances/" + taskID)
+	if response.StatusCode != http.StatusOK {
+		t.Fatalf("历史任务详情失败: %d", response.StatusCode)
+	}
+	_ = response.Body.Close()
+	response, _ = http.Get(server.URL + "/service/runtime/executions/missing")
+	if response.StatusCode != http.StatusNotFound {
+		t.Fatalf("缺失执行应 404: %d", response.StatusCode)
+	}
+	_ = response.Body.Close()
+	response, _ = http.Get(server.URL + "/service/history/historic-process-instances/missing")
+	if response.StatusCode != http.StatusNotFound {
+		t.Fatalf("缺失历史流程应 404: %d", response.StatusCode)
+	}
+	_ = response.Body.Close()
+}

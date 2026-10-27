@@ -138,6 +138,18 @@ type RuntimeService interface {
 	// @return 流程实例
 	// @return 查询错误
 	GetProcessInstance(ctx context.Context, id string) (ProcessInstance, error)
+	// ListExecutions 返回指定实例的执行树。
+	// @param ctx 上下文
+	// @param processInstanceID 流程实例 ID，空串表示全部
+	// @return 执行列表
+	// @return 查询错误
+	ListExecutions(ctx context.Context, processInstanceID string) ([]ExecutionInfo, error)
+	// GetExecution 查询执行。
+	// @param ctx 上下文
+	// @param executionID 执行 ID
+	// @return 执行信息
+	// @return 查询错误
+	GetExecution(ctx context.Context, executionID string) (ExecutionInfo, error)
 	// ListProcessInstances 返回全部运行中实例。
 	// @param ctx 上下文
 	// @return 实例列表
@@ -260,6 +272,18 @@ type HistoryService interface {
 	// @return 历史任务列表
 	// @return 查询错误
 	ListHistoricTaskInstances(ctx context.Context, processInstanceID string) ([]HistoricTaskInstance, error)
+	// GetHistoricProcessInstance 查询历史流程实例。
+	// @param ctx 上下文
+	// @param processInstanceID 实例 ID
+	// @return 历史实例
+	// @return 查询错误
+	GetHistoricProcessInstance(ctx context.Context, processInstanceID string) (HistoricProcessInstance, error)
+	// GetHistoricTaskInstance 查询历史任务。
+	// @param ctx 上下文
+	// @param taskID 任务 ID
+	// @return 历史任务
+	// @return 查询错误
+	GetHistoricTaskInstance(ctx context.Context, taskID string) (HistoricTaskInstance, error)
 	// ListHistoricVariableInstances 返回历史变量。
 	// @param ctx 上下文
 	// @param processInstanceID 实例 ID
