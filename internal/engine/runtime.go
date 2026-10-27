@@ -695,7 +695,7 @@ func parseDueDate(raw string, vars map[string]any) *time.Time {
 // @param definition 流程定义状态
 // @return 流程
 func processOfDefinition(definition *definitionState) *model.Process {
-	if len(definition.Model.Processes) == 0 {
+	if definition == nil || definition.Model == nil || len(definition.Model.Processes) == 0 {
 		return nil
 	}
 	for _, process := range definition.Model.Processes {

@@ -395,6 +395,10 @@ func applyBinary(op string, left, right any) (any, error) {
 		return arithmetic(op, left, right)
 	case "-", "*", "/", "%":
 		return arithmetic(op, left, right)
+	case "div":
+		return arithmetic("/", left, right)
+	case "mod":
+		return arithmetic("%", left, right)
 	default:
 		return nil, fmt.Errorf("未知二元运算符: %s", op)
 	}
@@ -740,7 +744,13 @@ func lex(source string) ([]token, error) {
 			for i < len(runes) && (unicode.IsLetter(runes[i]) || unicode.IsDigit(runes[i]) || runes[i] == '_') {
 				i++
 			}
-			tokens = append(tokens, token{kind: tokenIdent, text: string(runes[start:i]), pos: start})
+			text := string(runes[start:i])
+			switch text {
+			case "and", "or", "eq", "ne", "lt", "gt", "le", "ge", "div", "mod":
+				tokens = append(tokens, token{kind: tokenOperator, text: text, pos: start})
+			default:
+				tokens = append(tokens, token{kind: tokenIdent, text: text, pos: start})
+			}
 			continue
 		}
 		if unicode.IsDigit(ch) || (ch == '.' && i+1 < len(runes) && unicode.IsDigit(runes[i+1])) {
@@ -1097,7 +1107,7 @@ func (p *parser) parseMultiplicative() (node, error) {
 // @return 解析错误
 func (p *parser) parseUnary() (node, error) {
 	current := p.peek()
-	if current.kind == tokenOperator && (current.text == "!" || current.text == "-") {
+	if current.kind == tokenOperator && (current.text == "!" || current.text == "-" || current.text == "not") {
 		p.next()
 		child, err := p.parseUnary()
 		if err != nil {

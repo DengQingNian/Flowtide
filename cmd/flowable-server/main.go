@@ -22,9 +22,10 @@ func main() {
 	addr := flag.String("addr", ":8080", "HTTP 监听地址")
 	historyLevel := flag.String("history", engine.HistoryAudit, "历史级别")
 	tenantID := flag.String("tenant", "", "默认租户")
+	statePath := flag.String("state", "", "状态文件路径，为空时仅使用内存")
 	flag.Parse()
 
-	app, err := engine.New(engine.Config{HistoryLevel: *historyLevel, TenantID: *tenantID})
+	app, err := engine.New(engine.Config{HistoryLevel: *historyLevel, TenantID: *tenantID, StatePath: *statePath})
 	if err != nil {
 		slog.Error("创建引擎失败", "error", err)
 		os.Exit(1)

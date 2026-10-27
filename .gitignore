@@ -6,4 +6,6 @@ temp/
 *.log
 *.exe
 *.o
-
+coverage.out
+bin/
+data/

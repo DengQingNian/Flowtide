@@ -31,6 +31,7 @@ type Config struct {
 	IDs            idgen.Generator // ID 生成器，默认 UUIDv7
 	MaxAgendaSteps int             // 单命令最大议程步数，默认 10000
 	TenantID       string          // 默认租户
+	StatePath      string          // 状态文件路径，为空时仅使用内存
 }
 
 // Delegate 是服务任务委托。
@@ -110,11 +111,15 @@ func New(cfg Config) (*Engine, error) {
 	if !validHistoryLevel(cfg.HistoryLevel) {
 		return nil, api.NewError("ENGINE-0001", "非法历史级别: "+cfg.HistoryLevel, api.ErrBadRequest)
 	}
-	return &Engine{
+	engine := &Engine{
 		cfg:       cfg,
 		state:     newState(),
 		delegates: make(map[string]Delegate),
-	}, nil
+	}
+	if err := engine.loadState(); err != nil {
+		return nil, err
+	}
+	return engine, nil
 }
 
 // RegisterDelegate 注册服务任务委托。
@@ -152,6 +157,9 @@ func (e *Engine) ManagementService() api.ManagementService { return e }
 func (e *Engine) Close(ctx context.Context) error {
 	e.mu.Lock()
 	defer e.mu.Unlock()
+	if err := e.saveState(); err != nil {
+		return err
+	}
 	e.closed = true
 	return nil
 }
@@ -192,6 +200,11 @@ func (e *Engine) execute(ctx context.Context, fn func(*commandContext) (any, err
 	result, err := fn(cc)
 	if err != nil {
 		// 任一操作失败，回滚到命令开始前的状态
+		e.state = backup
+		return nil, err
+	}
+	// 命令成功后落盘；落盘失败同样回滚，保证内存与磁盘一致
+	if err := e.saveState(); err != nil {
 		e.state = backup
 		return nil, err
 	}
@@ -374,10 +387,6 @@ func validHistoryLevel(level string) bool {
 		return false
 	}
 }
-
-// historyEnabled 判断是否写入历史。
-// @return 是否启用
-func (e *Engine) historyEnabled() bool { return e.cfg.HistoryLevel != HistoryNone }
 
 // historyAtLeast 判断历史级别是否达到指定级别。
 // @param level 目标级别

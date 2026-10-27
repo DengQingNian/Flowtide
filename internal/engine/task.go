@@ -150,7 +150,7 @@ func (e *Engine) ListTasks(ctx context.Context, filter api.TaskFilter) (api.Page
 	result, err := e.read(func() (any, error) {
 		tasks := make([]api.Task, 0)
 		for _, task := range e.state.Tasks {
-			if !matchesTask(task, filter) {
+			if !e.matchesTask(task, filter) {
 				continue
 			}
 			tasks = append(tasks, e.toTaskDTO(task))
@@ -183,7 +183,7 @@ func (e *Engine) ListTasks(ctx context.Context, filter api.TaskFilter) (api.Page
 // @param task 任务
 // @param filter 过滤条件
 // @return 是否匹配
-func matchesTask(task *taskState, filter api.TaskFilter) bool {
+func (e *Engine) matchesTask(task *taskState, filter api.TaskFilter) bool {
 	if filter.Assignee != "" && task.Task.Assignee != filter.Assignee {
 		return false
 	}
@@ -193,8 +193,11 @@ func matchesTask(task *taskState, filter api.TaskFilter) bool {
 	if filter.ProcessInstanceID != "" && task.Task.ProcessInstanceID != filter.ProcessInstanceID {
 		return false
 	}
-	if filter.ProcessDefinitionKey != "" && task.Task.ProcessDefinitionID != filter.ProcessDefinitionKey {
-		return false
+	if filter.ProcessDefinitionKey != "" {
+		instance, ok := e.state.Instances[task.Task.ProcessInstanceID]
+		if !ok || instance.ProcessDefinitionKey != filter.ProcessDefinitionKey {
+			return false
+		}
 	}
 	if filter.CandidateUser != "" {
 		if task.Task.Assignee != "" || !contains(task.CandidateUsers, filter.CandidateUser) {

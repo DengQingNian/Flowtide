@@ -2,7 +2,7 @@
 
 用**纯 Go** 重构 [Flowable](https://www.flowable.org/) 工作流引擎。目标是提供一个不依赖 JVM、不依赖 CGO、可直接读写 Flowable 8.x 数据库、并对流程 REST API 保持兼容的 BPMN 2.0 引擎。
 
-> 当前状态：**MVP 实现阶段**。已完成纯 Go 的 BPMN 解析、部署、执行树、用户任务、服务任务、排他/并行网关、历史与 REST 垂直切片。  
+> 当前状态：**MVP 实现阶段**。已完成纯 Go 的 BPMN 解析、部署、执行树、用户任务、服务任务、排他/并行网关、历史、JSON 状态持久化与 REST 垂直切片。  
 > 参考基线：Flowable 8.1.0-SNAPSHOT（Apache-2.0），位于 `/root/src/public/flowable-engine`。
 
 ## 为什么做
@@ -86,7 +86,7 @@ docs/{三位流水号}-{描述}/
 make build
 
 # 运行
-./bin/flowable-server -addr :8080 -history audit
+./bin/flowable-server -addr :8080 -history audit -state ./data/engine.json
 
 # 健康检查
 curl http://localhost:8080/healthz
@@ -113,5 +113,6 @@ curl -X POST 'http://localhost:8080/service/runtime/process-instances' \
 - 服务任务：Go 委托注册表与 delegateExpression。
 - 排他网关（条件/默认流）、并行网关（分叉/汇聚）。
 - 变量作用域、表达式子集、历史记录。
+- JSON 状态文件持久化（原子写入、启动恢复、失败回滚）。
 - REST：部署、流程定义、实例、任务、变量、历史、健康检查。
 - 纯标准库实现，`CGO_ENABLED=0` 可构建。

@@ -10,14 +10,6 @@ type operation interface {
 	run(cc *commandContext) error
 }
 
-// operationFunc 将函数适配为 operation。
-type operationFunc func(cc *commandContext) error
-
-// run 执行函数。
-// @param cc 命令上下文
-// @return 执行错误
-func (f operationFunc) run(cc *commandContext) error { return f(cc) }
-
 // agenda 串行执行操作队列。
 type agenda struct {
 	operations []operation // 待执行操作

@@ -74,6 +74,11 @@ func (s *Server) handleReady(w http.ResponseWriter, r *http.Request) {
 		writeError(w, err)
 		return
 	}
+	// 引擎关闭后不应再接收流量
+	if closed, ok := info["closed"].(bool); ok && closed {
+		writeJSON(w, http.StatusServiceUnavailable, map[string]any{"status": "DOWN", "engine": info})
+		return
+	}
 	writeJSON(w, http.StatusOK, map[string]any{"status": "UP", "engine": info})
 }
 
@@ -607,6 +612,15 @@ func writeError(w http.ResponseWriter, err error) {
 // @param err 错误
 // @return HTTP 状态码
 func statusFor(err error) int {
+	var engineErr *api.Error
+	if errors.As(err, &engineErr) {
+		switch {
+		case strings.HasPrefix(engineErr.Code, "BPMN-"):
+			return http.StatusBadRequest
+		case strings.HasPrefix(engineErr.Code, "REST-"):
+			return http.StatusBadRequest
+		}
+	}
 	switch {
 	case errors.Is(err, api.ErrBadRequest):
 		return http.StatusBadRequest
