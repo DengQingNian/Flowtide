@@ -284,39 +284,48 @@ func (e *Engine) Claim(ctx context.Context, taskID, userID string) error {
 // @return 完成错误
 func (e *Engine) Complete(ctx context.Context, taskID string, req api.CompleteTaskRequest) error {
 	_, err := e.execute(ctx, func(cc *commandContext) (any, error) {
-		task, ok := e.findTask(taskID)
-		if !ok {
-			return nil, api.NewError("ENGINE-0805", "任务不存在", api.ErrNotFound)
-		}
-		execution, ok := e.findExecution(task.ExecutionID)
-		if !ok {
-			return nil, api.NewError("ENGINE-0405", "任务所属执行不存在", nil)
-		}
-		instance, _ := e.findInstance(task.Task.ProcessInstanceID)
-		if instance != nil && instance.Suspended {
-			return nil, api.NewError("ENGINE-0810", "流程实例已挂起", api.ErrConflict)
-		}
-		if req.UserID != "" && task.Task.Assignee != "" && task.Task.Assignee != req.UserID {
-			return nil, api.NewError("ENGINE-0808", "任务处理人不匹配", api.ErrForbidden)
-		}
-		for _, variable := range req.Variables {
-			e.setVariable(execution, variable.Name, variable.Value)
-		}
-		for _, variable := range req.LocalVariables {
-			task.LocalVariables[variable.Name] = variable.Value
-		}
-		e.recordTaskEnd(cc, task)
-		delete(e.state.Tasks, taskID)
-		e.cancelBoundaryTimers(execution.ID)
-		e.cancelBoundarySubscriptions(execution.ID)
-		e.registerCompensation(cc, execution, task.ActivityID)
-		execution.Waiting = false
-		e.recordActivityEnd(cc, execution.CurrentHistActivityID)
-		execution.CurrentHistActivityID = ""
-		cc.agenda.schedule(&takeOutgoingOperation{executionID: execution.ID, activityID: task.ActivityID})
-		return nil, cc.agenda.run(cc)
+		return nil, e.completeTask(cc, taskID, req)
 	})
 	return err
+}
+
+// completeTask 在命令内完成任务。
+// @param cc 命令上下文
+// @param taskID 任务 ID
+// @param req 完成请求
+// @return 完成错误
+func (e *Engine) completeTask(cc *commandContext, taskID string, req api.CompleteTaskRequest) error {
+	task, ok := e.findTask(taskID)
+	if !ok {
+		return api.NewError("ENGINE-0805", "任务不存在", api.ErrNotFound)
+	}
+	execution, ok := e.findExecution(task.ExecutionID)
+	if !ok {
+		return api.NewError("ENGINE-0405", "任务所属执行不存在", nil)
+	}
+	instance, _ := e.findInstance(task.Task.ProcessInstanceID)
+	if instance != nil && instance.Suspended {
+		return api.NewError("ENGINE-0810", "流程实例已挂起", api.ErrConflict)
+	}
+	if req.UserID != "" && task.Task.Assignee != "" && task.Task.Assignee != req.UserID {
+		return api.NewError("ENGINE-0808", "任务处理人不匹配", api.ErrForbidden)
+	}
+	for _, variable := range req.Variables {
+		e.setVariable(execution, variable.Name, variable.Value)
+	}
+	for _, variable := range req.LocalVariables {
+		task.LocalVariables[variable.Name] = variable.Value
+	}
+	e.recordTaskEnd(cc, task)
+	delete(e.state.Tasks, taskID)
+	e.cancelBoundaryTimers(execution.ID)
+	e.cancelBoundarySubscriptions(execution.ID)
+	e.registerCompensation(cc, execution, task.ActivityID)
+	execution.Waiting = false
+	e.recordActivityEnd(cc, execution.CurrentHistActivityID)
+	execution.CurrentHistActivityID = ""
+	cc.agenda.schedule(&takeOutgoingOperation{executionID: execution.ID, activityID: task.ActivityID})
+	return cc.agenda.run(cc)
 }
 
 // Delegate 委派任务。

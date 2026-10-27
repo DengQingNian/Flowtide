@@ -148,15 +148,34 @@ type FlowNode interface {
 	IsExclusive() bool
 }
 
+// FormValue 是表单枚举值。
+type FormValue struct {
+	ID   string // 值 ID
+	Name string // 显示名
+}
+
+// FormProperty 是 BPMN 表单属性。
+type FormProperty struct {
+	ID         string       // 字段 ID
+	Name       string       // 显示名
+	Type       string       // 类型
+	Required   bool         // 是否必填
+	Readable   bool         // 是否可读
+	Writable   bool         // 是否可写
+	Value      string       // 默认值
+	EnumValues []*FormValue // 枚举值
+}
+
 // StartEvent 表示开始事件。
 type StartEvent struct {
 	FlowNodeBase
-	FormKey      string           // 启动表单 Key
-	Initiator    string           // 发起人变量名
-	Timer        *TimerDefinition // 定时启动配置
-	MessageRef   string           // 消息引用
-	SignalRef    string           // 信号引用
-	Interrupting bool             // 是否中断作用域
+	FormKey        string           // 启动表单 Key
+	Initiator      string           // 发起人变量名
+	Timer          *TimerDefinition // 定时启动配置
+	MessageRef     string           // 消息引用
+	SignalRef      string           // 信号引用
+	Interrupting   bool             // 是否中断作用域
+	FormProperties []*FormProperty  // 启动表单字段
 }
 
 // ElementType 返回元素类型。
@@ -194,6 +213,7 @@ type UserTask struct {
 	Priority            string                            // 优先级表达式
 	FormKey             string                            // 表单 Key
 	Category            string                            // 分类
+	FormProperties      []*FormProperty                   // 表单字段
 }
 
 // ElementType 返回元素类型。

@@ -809,3 +809,73 @@ func TestREST_CommentsErrors(t *testing.T) {
 	}
 	_ = response.Body.Close()
 }
+
+const restFormXML = `<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:flowable="http://flowable.org/bpmn"><process id="restForm" isExecutable="true"><startEvent id="s" flowable:formKey="start"/><sequenceFlow id="f1" sourceRef="s" targetRef="task"/><userTask id="task" flowable:formKey="task" flowable:assignee="§{initiator}"><extensionElements><flowable:formProperty id="approved" name="通过" type="boolean" required="true"/></extensionElements></userTask><sequenceFlow id="f2" sourceRef="task" targetRef="e"/><endEvent id="e"/></process></definitions>`
+
+// TestREST_FormData 验证表单端点。
+// @param t 测试上下文
+func TestREST_FormData(t *testing.T) {
+	server, _ := newTestServer(t)
+	response, _ := http.Post(server.URL+"/service/repository/deployments", "application/xml", bytes.NewBufferString(restFormXML))
+	_ = response.Body.Close()
+	response, _ = http.Get(server.URL + "/service/repository/process-definitions")
+	var page struct {
+		Data []map[string]any `json:"data"`
+	}
+	_ = json.NewDecoder(response.Body).Decode(&page)
+	_ = response.Body.Close()
+	definitionID, _ := page.Data[0]["id"].(string)
+	response, _ = http.Get(server.URL + "/service/form/form-data?processDefinitionId=" + definitionID)
+	if response.StatusCode != http.StatusOK {
+		t.Fatalf("启动表单失败: %d", response.StatusCode)
+	}
+	_ = response.Body.Close()
+	response = postJSON(t, server.URL+"/service/runtime/process-instances", map[string]any{
+		"processDefinitionKey": "restForm",
+		"variables":            []map[string]any{{"name": "initiator", "value": "alice"}},
+	})
+	_ = response.Body.Close()
+	response, _ = http.Get(server.URL + "/service/runtime/tasks")
+	var tasks struct {
+		Data []map[string]any `json:"data"`
+	}
+	_ = json.NewDecoder(response.Body).Decode(&tasks)
+	_ = response.Body.Close()
+	taskID, _ := tasks.Data[0]["id"].(string)
+	response, _ = http.Get(server.URL + "/service/form/form-data?taskId=" + taskID)
+	if response.StatusCode != http.StatusOK {
+		t.Fatalf("任务表单失败: %d", response.StatusCode)
+	}
+	_ = response.Body.Close()
+	response = postJSON(t, server.URL+"/service/form/form-data", map[string]any{"taskId": taskID, "values": map[string]any{"approved": true}})
+	if response.StatusCode != http.StatusNoContent {
+		t.Fatalf("提交表单失败: %d", response.StatusCode)
+	}
+	_ = response.Body.Close()
+	response, _ = http.Get(server.URL + "/service/form/form-data")
+	if response.StatusCode != http.StatusBadRequest {
+		t.Fatalf("缺少参数应 400: %d", response.StatusCode)
+	}
+	_ = response.Body.Close()
+}
+
+// TestREST_FormErrors 验证表单错误。
+// @param t 测试上下文
+func TestREST_FormErrors(t *testing.T) {
+	server, _ := newTestServer(t)
+	response := postJSON(t, server.URL+"/service/form/form-data", map[string]any{})
+	if response.StatusCode != http.StatusBadRequest {
+		t.Fatalf("缺少 taskId 应 400: %d", response.StatusCode)
+	}
+	_ = response.Body.Close()
+	response = postJSON(t, server.URL+"/service/form/form-data", map[string]any{"taskId": "missing"})
+	if response.StatusCode != http.StatusNotFound {
+		t.Fatalf("缺失任务应 404: %d", response.StatusCode)
+	}
+	_ = response.Body.Close()
+	response, err := http.Post(server.URL+"/service/form/form-data", "application/json", bytes.NewBufferString("{"))
+	if err != nil || response.StatusCode != http.StatusBadRequest {
+		t.Fatalf("非法表单体应 400: %v %d", err, response.StatusCode)
+	}
+	_ = response.Body.Close()
+}

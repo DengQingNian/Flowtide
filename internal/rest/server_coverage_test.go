@@ -42,6 +42,7 @@ func TestREST_ClosedEngine(t *testing.T) {
 		"/service/identity/users",
 		"/service/management/jobs",
 		"/service/runtime/executions",
+		"/service/form/form-data?processDefinitionId=x",
 		"/service/runtime/tasks/x/comments",
 		"/service/runtime/tasks/x/attachments",
 		"/service/history/historic-process-instances",

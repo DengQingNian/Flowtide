@@ -64,6 +64,8 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("PUT /service/runtime/process-instances/{id}", s.handleInstanceAction)
 	s.mux.HandleFunc("POST /service/runtime/process-instances/{id}/migrate", s.handleMigrate)
 	s.mux.HandleFunc("GET /service/runtime/process-instances/{id}/variables", s.handleGetVariables)
+	s.mux.HandleFunc("GET /service/form/form-data", s.handleGetFormData)
+	s.mux.HandleFunc("POST /service/form/form-data", s.handleSubmitFormData)
 	s.mux.HandleFunc("GET /service/identity/users", s.handleListUsers)
 	s.mux.HandleFunc("POST /service/identity/users", s.handleCreateUser)
 	s.mux.HandleFunc("GET /service/identity/users/{id}", s.handleGetUser)
@@ -475,6 +477,58 @@ type eventPayload struct {
 	MessageName string          `json:"messageName"` // 消息名
 	SignalName  string          `json:"signalName"`  // 信号名
 	Variables   json.RawMessage `json:"variables"`   // 变量
+}
+
+// handleGetFormData 返回表单数据。
+// @param w 响应
+// @param r 请求
+func (s *Server) handleGetFormData(w http.ResponseWriter, r *http.Request) {
+	if taskID := r.URL.Query().Get("taskId"); taskID != "" {
+		data, err := s.engine.FormService().GetTaskFormData(r.Context(), taskID)
+		if err != nil {
+			writeError(w, err)
+			return
+		}
+		writeJSON(w, http.StatusOK, data)
+		return
+	}
+	definitionID := r.URL.Query().Get("processDefinitionId")
+	if definitionID == "" {
+		writeError(w, api.NewError("REST-0113", "缺少 taskId 或 processDefinitionId", api.ErrBadRequest))
+		return
+	}
+	data, err := s.engine.FormService().GetStartFormData(r.Context(), definitionID)
+	if err != nil {
+		writeError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, data)
+}
+
+// formSubmitPayload 是表单提交请求体。
+type formSubmitPayload struct {
+	TaskID string         `json:"taskId"` // 任务 ID
+	Values map[string]any `json:"values"` // 字段值
+}
+
+// handleSubmitFormData 提交任务表单。
+// @param w 响应
+// @param r 请求
+func (s *Server) handleSubmitFormData(w http.ResponseWriter, r *http.Request) {
+	var payload formSubmitPayload
+	if err := decodeJSON(r, &payload); err != nil {
+		writeError(w, err)
+		return
+	}
+	if payload.TaskID == "" {
+		writeError(w, api.NewError("REST-0114", "缺少 taskId", api.ErrBadRequest))
+		return
+	}
+	if err := s.engine.FormService().SubmitTaskFormData(r.Context(), payload.TaskID, payload.Values); err != nil {
+		writeError(w, err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
 }
 
 // handleListUsers 返回用户列表。

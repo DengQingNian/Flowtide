@@ -27,6 +27,9 @@ type Engine interface {
 	// IdentityService 返回身份服务。
 	// @return 身份服务
 	IdentityService() IdentityService
+	// FormService 返回表单服务。
+	// @return 表单服务
+	FormService() FormService
 	// Close 关闭引擎。
 	// @param ctx 关闭上下文
 	// @return 关闭错误

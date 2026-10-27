@@ -117,6 +117,7 @@ func parseElement(node *Node) (model.FlowElement, error) {
 		event.Initiator = attrAny(node, "initiator")
 		event.MessageRef, event.SignalRef, event.Timer = parseEventDefinition(node)
 		event.Interrupting = !strings.EqualFold(node.Attr("isInterrupting"), "false")
+		event.FormProperties = parseFormProperties(node)
 		return event, nil
 	case "endEvent":
 		event := &model.EndEvent{
@@ -136,6 +137,7 @@ func parseElement(node *Node) (model.FlowElement, error) {
 		task.FormKey = attrAny(node, "formKey")
 		task.Category = attrAny(node, "category")
 		task.LoopCharacteristics = parseMultiInstance(node)
+		task.FormProperties = parseFormProperties(node)
 		return task, nil
 	case "serviceTask":
 		task := &model.ServiceTask{}
@@ -257,6 +259,39 @@ func parseFlowNodeBase(node *Node, base *model.FlowNodeBase) {
 	if doc, ok := node.Child("documentation"); ok {
 		base.Documentation = doc.TextContent()
 	}
+}
+
+// parseFormProperties 解析表单字段。
+// @param node 活动节点
+// @return 表单字段列表
+func parseFormProperties(node *Node) []*model.FormProperty {
+	extension, ok := node.Child("extensionElements")
+	if !ok {
+		return nil
+	}
+	properties := make([]*model.FormProperty, 0)
+	for _, child := range extension.Children {
+		if child.Name.Local != "formProperty" {
+			continue
+		}
+		property := &model.FormProperty{
+			ID:       child.Attr("id"),
+			Name:     child.Attr("name"),
+			Type:     child.Attr("type"),
+			Required: strings.EqualFold(child.Attr("required"), "true"),
+			Readable: !strings.EqualFold(child.Attr("readable"), "false"),
+			Writable: !strings.EqualFold(child.Attr("writable"), "false"),
+			Value:    child.Attr("value"),
+		}
+		if property.Type == "" {
+			property.Type = "string"
+		}
+		for _, valueNode := range child.ChildrenNamed("value") {
+			property.EnumValues = append(property.EnumValues, &model.FormValue{ID: valueNode.Attr("id"), Name: valueNode.Attr("name")})
+		}
+		properties = append(properties, property)
+	}
+	return properties
 }
 
 // parseMultiInstance 解析多实例配置。
