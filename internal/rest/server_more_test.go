@@ -1052,3 +1052,58 @@ func TestREST_InstanceVariables(t *testing.T) {
 	}
 	_ = response.Body.Close()
 }
+
+// TestREST_TenantFiltering 验证租户过滤。
+// @param t 测试上下文
+func TestREST_TenantFiltering(t *testing.T) {
+	server, _ := newTestServer(t)
+	request, _ := http.NewRequest(http.MethodPost, server.URL+"/service/repository/deployments", bytes.NewBufferString(restProcess))
+	request.Header.Set("Content-Type", "application/xml")
+	request.Header.Set("X-Tenant-Id", "t1")
+	response, _ := http.DefaultClient.Do(request)
+	if response.StatusCode != http.StatusCreated {
+		t.Fatalf("租户部署失败: %d", response.StatusCode)
+	}
+	var deployment map[string]any
+	_ = json.NewDecoder(response.Body).Decode(&deployment)
+	_ = response.Body.Close()
+	if deployment["tenantId"] != "t1" {
+		t.Fatalf("部署租户错误: %+v", deployment)
+	}
+	for tenant, want := range map[string]int{"t1": 1, "t2": 0} {
+		request, _ = http.NewRequest(http.MethodGet, server.URL+"/service/repository/deployments", nil)
+		request.Header.Set("X-Tenant-Id", tenant)
+		response, _ = http.DefaultClient.Do(request)
+		var page struct {
+			Total int `json:"total"`
+		}
+		_ = json.NewDecoder(response.Body).Decode(&page)
+		_ = response.Body.Close()
+		if page.Total != want {
+			t.Fatalf("租户 %s 部署数量错误: %d", tenant, page.Total)
+		}
+	}
+	request, _ = http.NewRequest(http.MethodPost, server.URL+"/service/runtime/process-instances", bytes.NewBufferString(`{"processDefinitionKey":"rest","variables":[{"name":"initiator","value":"alice"}]}`))
+	request.Header.Set("Content-Type", "application/json")
+	request.Header.Set("X-Tenant-Id", "t1")
+	response, _ = http.DefaultClient.Do(request)
+	if response.StatusCode != http.StatusCreated {
+		t.Fatalf("租户启动失败: %d", response.StatusCode)
+	}
+	_ = response.Body.Close()
+	response, _ = http.Get(server.URL + "/service/runtime/tasks?tenantId=t1")
+	var tasks struct {
+		Total int `json:"total"`
+	}
+	_ = json.NewDecoder(response.Body).Decode(&tasks)
+	_ = response.Body.Close()
+	if tasks.Total != 1 {
+		t.Fatalf("租户任务数量错误: %d", tasks.Total)
+	}
+	response, _ = http.Get(server.URL + "/service/runtime/tasks?tenantId=t2")
+	_ = json.NewDecoder(response.Body).Decode(&tasks)
+	_ = response.Body.Close()
+	if tasks.Total != 0 {
+		t.Fatalf("其他租户任务不应可见: %d", tasks.Total)
+	}
+}

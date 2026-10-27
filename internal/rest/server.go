@@ -290,6 +290,9 @@ func (s *Server) handleDeploy(w http.ResponseWriter, r *http.Request) {
 		writeError(w, err)
 		return
 	}
+	if request.TenantID == "" {
+		request.TenantID = requestTenant(r)
+	}
 	deployment, err := s.engine.RepositoryService().Deploy(r.Context(), request)
 	if err != nil {
 		writeError(w, err)
@@ -307,6 +310,7 @@ func (s *Server) handleListDeployments(w http.ResponseWriter, r *http.Request) {
 		writeError(w, err)
 		return
 	}
+	deployments = filterDeployments(deployments, requestTenant(r))
 	start, size := pageParams(r)
 	writePage(w, deployments, start, size)
 }
@@ -432,6 +436,7 @@ func (s *Server) handleListDefinitions(w http.ResponseWriter, r *http.Request) {
 		writeError(w, err)
 		return
 	}
+	definitions = filterDefinitions(definitions, requestTenant(r))
 	start, size := pageParams(r)
 	writePage(w, definitions, start, size)
 }
@@ -548,7 +553,7 @@ func (s *Server) handleStartInstance(w http.ResponseWriter, r *http.Request) {
 		ProcessDefinitionID:  payload.ProcessDefinitionID,
 		BusinessKey:          payload.BusinessKey,
 		Name:                 payload.Name,
-		TenantID:             payload.TenantID,
+		TenantID:             firstNonEmpty(payload.TenantID, requestTenant(r)),
 		Variables:            variables,
 	})
 	if err != nil {
@@ -820,6 +825,7 @@ func (s *Server) handleListInstances(w http.ResponseWriter, r *http.Request) {
 		writeError(w, err)
 		return
 	}
+	instances = filterInstances(instances, requestTenant(r))
 	start, size := pageParams(r)
 	writePage(w, instances, start, size)
 }
@@ -971,6 +977,7 @@ func (s *Server) handleListTasks(w http.ResponseWriter, r *http.Request) {
 		ProcessInstanceID:    r.URL.Query().Get("processInstanceId"),
 		ProcessDefinitionKey: r.URL.Query().Get("processDefinitionKey"),
 		CandidateUser:        r.URL.Query().Get("candidateUser"),
+		TenantID:             requestTenant(r),
 		Start:                start,
 		Size:                 size,
 	})
@@ -1594,6 +1601,79 @@ func writeError(w http.ResponseWriter, err error) {
 		body["exception"] = err.Error()
 	}
 	writeJSON(w, status, body)
+}
+
+// requestTenant 返回请求租户。
+// @param r 请求
+// @return 租户
+func requestTenant(r *http.Request) string {
+	if tenant := r.Header.Get("X-Tenant-Id"); tenant != "" {
+		return tenant
+	}
+	return r.URL.Query().Get("tenantId")
+}
+
+// firstNonEmpty 返回第一个非空字符串。
+// @param values 候选值
+// @return 非空值
+func firstNonEmpty(values ...string) string {
+	for _, value := range values {
+		if value != "" {
+			return value
+		}
+	}
+	return ""
+}
+
+// filterDeployments 按租户过滤部署。
+// @param items 部署
+// @param tenant 租户
+// @return 过滤结果
+func filterDeployments(items []api.Deployment, tenant string) []api.Deployment {
+	if tenant == "" {
+		return items
+	}
+	out := make([]api.Deployment, 0, len(items))
+	for _, item := range items {
+		if item.TenantID == tenant {
+			out = append(out, item)
+		}
+	}
+	return out
+}
+
+// filterDefinitions 按租户过滤流程定义。
+// @param items 定义
+// @param tenant 租户
+// @return 过滤结果
+func filterDefinitions(items []api.ProcessDefinition, tenant string) []api.ProcessDefinition {
+	if tenant == "" {
+		return items
+	}
+	out := make([]api.ProcessDefinition, 0, len(items))
+	for _, item := range items {
+		if item.TenantID == tenant {
+			out = append(out, item)
+		}
+	}
+	return out
+}
+
+// filterInstances 按租户过滤流程实例。
+// @param items 实例
+// @param tenant 租户
+// @return 过滤结果
+func filterInstances(items []api.ProcessInstance, tenant string) []api.ProcessInstance {
+	if tenant == "" {
+		return items
+	}
+	out := make([]api.ProcessInstance, 0, len(items))
+	for _, item := range items {
+		if item.TenantID == tenant {
+			out = append(out, item)
+		}
+	}
+	return out
 }
 
 // statusFor 将错误映射为 HTTP 状态码。

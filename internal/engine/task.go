@@ -200,6 +200,12 @@ func (e *Engine) matchesTask(task *taskState, filter api.TaskFilter) bool {
 			return false
 		}
 	}
+	if filter.TenantID != "" {
+		instance, ok := e.findInstance(task.Task.ProcessInstanceID)
+		if !ok || instance.TenantID != filter.TenantID {
+			return false
+		}
+	}
 	if filter.CandidateUser != "" {
 		if task.Task.Assignee != "" {
 			return false

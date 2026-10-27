@@ -79,6 +79,7 @@ type TaskFilter struct {
 	ProcessInstanceID    string // 流程实例 ID
 	ProcessDefinitionKey string // 流程定义 Key
 	CandidateUser        string // 候选人
+	TenantID             string // 租户
 	Start                int    // 偏移量
 	Size                 int    // 每页数量
 }
