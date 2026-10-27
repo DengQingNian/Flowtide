@@ -3,6 +3,7 @@ package engine
 import (
 	"context"
 	"sort"
+	"time"
 
 	"github.com/flowable-go/flowable/api"
 	flowablerow "github.com/flowable-go/flowable/internal/persistence/flowable"
@@ -36,7 +37,7 @@ func (e *Engine) ExportHistoricRows(ctx context.Context) ([]flowablerow.Row, err
 			_ = row.Set("BUSINESS_KEY_", historic.BusinessKey)
 			_ = row.Set("PROC_DEF_ID_", historic.ProcessDefinitionID)
 			_ = row.Set("START_TIME_", historic.StartTime)
-			_ = row.Set("END_TIME_", historic.EndTime)
+			_ = row.Set("END_TIME_", optionalTimeValue(historic.EndTime))
 			_ = row.Set("DURATION_", duration)
 			_ = row.Set("DELETE_REASON_", historic.DeleteReason)
 			_ = row.Set("TENANT_ID_", historic.TenantID)
@@ -74,7 +75,7 @@ func (e *Engine) ExportHistoricRows(ctx context.Context) ([]flowablerow.Row, err
 			_ = row.Set("ACT_NAME_", historic.ActivityName)
 			_ = row.Set("ACT_TYPE_", historic.ActivityType)
 			_ = row.Set("START_TIME_", historic.StartTime)
-			_ = row.Set("END_TIME_", historic.EndTime)
+			_ = row.Set("END_TIME_", optionalTimeValue(historic.EndTime))
 			_ = row.Set("DURATION_", duration)
 			_ = row.Set("TENANT_ID_", tenant)
 			rows = append(rows, *row)
@@ -104,7 +105,7 @@ func (e *Engine) ExportHistoricRows(ctx context.Context) ([]flowablerow.Row, err
 			_ = row.Set("NAME_", historic.Name)
 			_ = row.Set("ASSIGNEE_", historic.Assignee)
 			_ = row.Set("START_TIME_", historic.StartTime)
-			_ = row.Set("END_TIME_", historic.EndTime)
+			_ = row.Set("END_TIME_", optionalTimeValue(historic.EndTime))
 			_ = row.Set("DURATION_", historic.DurationMillis)
 			_ = row.Set("TENANT_ID_", tenant)
 			rows = append(rows, *row)
@@ -163,4 +164,14 @@ func historyRow(table string, columns []string) (*flowablerow.Row, error) {
 		return nil, err
 	}
 	return row, nil
+}
+
+// optionalTimeValue 将时间指针转换为可空值。
+// @param value 时间指针
+// @return 时间或 nil
+func optionalTimeValue(value *time.Time) any {
+	if value == nil {
+		return nil
+	}
+	return *value
 }
