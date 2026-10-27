@@ -2,6 +2,7 @@ package flowable
 
 import (
 	"context"
+	"reflect"
 
 	"github.com/flowable-go/flowable/api"
 )
@@ -202,4 +203,86 @@ func SnapshotOperations(rows []Row) []Operation {
 // @return 替换错误
 func (r *Repository) ReplaceAll(ctx context.Context, rows []Row) error {
 	return r.Apply(ctx, SnapshotOperations(rows))
+}
+
+// DiffOperations 计算新旧行快照的增量操作。
+// @param oldRows 旧行
+// @param newRows 新行
+// @return 操作列表
+func DiffOperations(oldRows, newRows []Row) []Operation {
+	oldIndex := make(map[string]Row, len(oldRows))
+	for _, row := range oldRows {
+		if id, ok := rowIDValue(row); ok {
+			oldIndex[row.Table+"\x00"+id] = row
+		}
+	}
+	operations := make([]Operation, 0)
+	seen := make(map[string]bool, len(newRows))
+	for _, row := range newRows {
+		id, ok := rowIDValue(row)
+		if !ok {
+			continue
+		}
+		key := row.Table + "\x00" + id
+		seen[key] = true
+		old, exists := oldIndex[key]
+		if !exists {
+			operations = append(operations, Operation{Kind: OperationInsert, Row: row})
+			continue
+		}
+		if reflect.DeepEqual(old.Values, row.Values) {
+			continue
+		}
+		revision, hasRevision := revisionValue(old)
+		if !hasRevision {
+			operations = append(operations, Operation{Kind: OperationDelete, Row: old})
+			operations = append(operations, Operation{Kind: OperationInsert, Row: row})
+			continue
+		}
+		operations = append(operations, Operation{Kind: OperationUpdate, Row: row, OldRevision: revision})
+	}
+	for _, row := range oldRows {
+		id, ok := rowIDValue(row)
+		if !ok {
+			continue
+		}
+		if !seen[row.Table+"\x00"+id] {
+			operations = append(operations, Operation{Kind: OperationDelete, Row: row})
+		}
+	}
+	return operations
+}
+
+// rowIDValue 读取行的 ID_。
+// @param row 行
+// @return ID
+// @return 是否存在
+func rowIDValue(row Row) (string, bool) {
+	value, ok := row.Values["ID_"]
+	if !ok {
+		return "", false
+	}
+	id, ok := value.(string)
+	return id, ok
+}
+
+// revisionValue 读取行的 REV_。
+// @param row 行
+// @return 版本
+// @return 是否存在
+func revisionValue(row Row) (int64, bool) {
+	value, ok := row.Values["REV_"]
+	if !ok {
+		return 0, false
+	}
+	switch typed := value.(type) {
+	case int:
+		return int64(typed), true
+	case int64:
+		return typed, true
+	case float64:
+		return int64(typed), true
+	default:
+		return 0, false
+	}
 }

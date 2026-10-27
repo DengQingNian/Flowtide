@@ -228,3 +228,51 @@ func (d *commitErrorDB) ExecContext(ctx context.Context, query string, args ...a
 // @return 事务
 // @return 错误
 func (d *commitErrorDB) BeginTx(ctx context.Context) (Transaction, error) { return d.tx, nil }
+
+// TestDiffOperations 验证增量操作。
+// @param t 测试上下文
+func TestDiffOperations(t *testing.T) {
+	row := func(id string, revision int, name string) Row {
+		row, _ := NewRow("ACT_RU_JOB")
+		_ = row.Set("ID_", id)
+		_ = row.Set("REV_", revision)
+		_ = row.Set("TYPE_", name)
+		return *row
+	}
+	first := row("j1", 1, "timer")
+	changed := row("j1", 1, "async")
+	added := row("j2", 1, "timer")
+	operations := DiffOperations(nil, []Row{first})
+	if len(operations) != 1 || operations[0].Kind != OperationInsert {
+		t.Fatalf("新增操作错误: %+v", operations)
+	}
+	operations = DiffOperations([]Row{first}, []Row{first})
+	if len(operations) != 0 {
+		t.Fatalf("无变化应无操作: %+v", operations)
+	}
+	operations = DiffOperations([]Row{first}, []Row{changed})
+	if len(operations) != 1 || operations[0].Kind != OperationUpdate || operations[0].OldRevision != 1 {
+		t.Fatalf("更新操作错误: %+v", operations)
+	}
+	operations = DiffOperations([]Row{first}, []Row{changed, added})
+	if len(operations) != 2 {
+		t.Fatalf("更新+新增操作错误: %+v", operations)
+	}
+	operations = DiffOperations([]Row{first}, nil)
+	if len(operations) != 1 || operations[0].Kind != OperationDelete {
+		t.Fatalf("删除操作错误: %+v", operations)
+	}
+	noRevision, _ := NewRow("ACT_RE_DEPLOYMENT")
+	_ = noRevision.Set("ID_", "d1")
+	_ = noRevision.Set("NAME_", "a")
+	changedNoRevision, _ := NewRow("ACT_RE_DEPLOYMENT")
+	_ = changedNoRevision.Set("ID_", "d1")
+	_ = changedNoRevision.Set("NAME_", "b")
+	operations = DiffOperations([]Row{*noRevision}, []Row{*changedNoRevision})
+	if len(operations) != 2 || operations[0].Kind != OperationDelete || operations[1].Kind != OperationInsert {
+		t.Fatalf("无 REV 更新应删插: %+v", operations)
+	}
+	if operations := DiffOperations([]Row{{Table: "ACT_RU_JOB"}}, nil); len(operations) != 0 {
+		t.Fatalf("无 ID 行应忽略")
+	}
+}

@@ -109,3 +109,43 @@ func TestPersistSnapshot_Errors(t *testing.T) {
 		t.Fatalf("关闭后写入应失败")
 	}
 }
+
+// TestPersistDiff 验证增量快照写入。
+// @param t 测试上下文
+func TestPersistDiff(t *testing.T) {
+	engine := newTestEngine(t)
+	deployXML(t, engine, simpleProcess)
+	if _, err := engine.StartProcessInstance(context.Background(), api.StartRequest{
+		ProcessDefinitionKey: "simple",
+		Variables:            []api.Variable{{Name: "initiator", Value: "alice"}},
+	}); err != nil {
+		t.Fatalf("启动失败: %v", err)
+	}
+	previous, err := engine.SnapshotRows(context.Background())
+	if err != nil {
+		t.Fatalf("读取快照失败: %v", err)
+	}
+	db := &persistDB{}
+	repository, _ := flowablerow.NewRepository(db, "mysql")
+	if err := engine.PersistDiff(context.Background(), repository, nil); err != nil {
+		t.Fatalf("首次写入失败: %v", err)
+	}
+	if db.tx == nil || !db.tx.committed || db.tx.executed != len(previous) {
+		t.Fatalf("首次写入次数错误: %+v", db.tx)
+	}
+	task := listTasks(t, engine)[0]
+	if err := engine.Complete(context.Background(), task.ID, api.CompleteTaskRequest{}); err != nil {
+		t.Fatalf("完成任务失败: %v", err)
+	}
+	db = &persistDB{}
+	repository, _ = flowablerow.NewRepository(db, "mysql")
+	if err := engine.PersistDiff(context.Background(), repository, previous); err != nil {
+		t.Fatalf("增量写入失败: %v", err)
+	}
+	if db.tx == nil || !db.tx.committed || db.tx.executed == 0 {
+		t.Fatalf("增量写入无操作: %+v", db.tx)
+	}
+	if err := engine.PersistDiff(context.Background(), nil, nil); err == nil {
+		t.Fatalf("空仓储应失败")
+	}
+}
