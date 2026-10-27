@@ -2,7 +2,7 @@
 
 用**纯 Go** 重构 [Flowable](https://www.flowable.org/) 工作流引擎。目标是提供一个不依赖 JVM、不依赖 CGO、可直接读写 Flowable 8.x 数据库、并对流程 REST API 保持兼容的 BPMN 2.0 引擎。
 
-> 当前状态：**规划阶段**。仓库中只有开发计划文档，尚未开始编写 Go 代码。  
+> 当前状态：**MVP 实现阶段**。已完成纯 Go 的 BPMN 解析、部署、执行树、用户任务、服务任务、排他/并行网关、历史与 REST 垂直切片。  
 > 参考基线：Flowable 8.1.0-SNAPSHOT（Apache-2.0），位于 `/root/src/public/flowable-engine`。
 
 ## 为什么做
@@ -78,3 +78,40 @@ docs/{三位流水号}-{描述}/
 ## 许可证
 
 本项目遵循 Apache License 2.0。参考 Flowable 的代码、测试语料与文档均保留其原始版权与许可声明。
+
+## 快速开始
+
+```bash
+# 构建（无 CGO、无第三方依赖）
+make build
+
+# 运行
+./bin/flowable-server -addr :8080 -history audit
+
+# 健康检查
+curl http://localhost:8080/healthz
+
+# 部署 BPMN
+curl -X POST 'http://localhost:8080/service/repository/deployments?deploymentName=demo' \
+  -H 'Content-Type: application/xml' \
+  --data-binary @process.bpmn20.xml
+
+# 启动实例
+curl -X POST 'http://localhost:8080/service/runtime/process-instances' \
+  -H 'Content-Type: application/json' \
+  -d '{"processDefinitionKey":"demo","variables":[{"name":"initiator","value":"alice"}]}'
+```
+
+当前实现范围、限制与覆盖率见 [MVP 实现说明](docs/002-迁移实施/001-MVP实现说明.md)。
+
+## 已实现能力
+
+- BPMN XML 安全解析：命名空间、DTD 拒绝、深度/大小限制。
+- 流程部署、版本管理、按 Key/ID 启动。
+- 执行树、Agenda 操作循环、命令级回滚。
+- 用户任务：创建、签收、完成、委派、候选人、查询。
+- 服务任务：Go 委托注册表与 delegateExpression。
+- 排他网关（条件/默认流）、并行网关（分叉/汇聚）。
+- 变量作用域、表达式子集、历史记录。
+- REST：部署、流程定义、实例、任务、变量、历史、健康检查。
+- 纯标准库实现，`CGO_ENABLED=0` 可构建。
