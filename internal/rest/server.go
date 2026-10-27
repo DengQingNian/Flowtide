@@ -42,7 +42,12 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("GET /readyz", s.handleReady)
 	s.mux.HandleFunc("GET /service/management/engine", s.handleEngineInfo)
 	s.mux.HandleFunc("POST /service/management/jobs/run", s.handleRunJobs)
+	s.mux.HandleFunc("GET /service/repository/deployments", s.handleListDeployments)
 	s.mux.HandleFunc("POST /service/repository/deployments", s.handleDeploy)
+	s.mux.HandleFunc("GET /service/repository/deployments/{id}", s.handleGetDeployment)
+	s.mux.HandleFunc("DELETE /service/repository/deployments/{id}", s.handleDeleteDeployment)
+	s.mux.HandleFunc("GET /service/repository/deployments/{id}/resources", s.handleListDeploymentResources)
+	s.mux.HandleFunc("GET /service/repository/deployments/{id}/resources/{name}", s.handleGetDeploymentResource)
 	s.mux.HandleFunc("GET /service/repository/process-definitions", s.handleListDefinitions)
 	s.mux.HandleFunc("GET /service/repository/process-definitions/{id}", s.handleGetDefinition)
 	s.mux.HandleFunc("GET /service/repository/process-definitions/{id}/xml", s.handleGetDefinitionXML)
@@ -127,6 +132,69 @@ func (s *Server) handleDeploy(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusCreated, deployment)
+}
+
+// handleListDeployments 返回部署列表。
+// @param w 响应
+// @param r 请求
+func (s *Server) handleListDeployments(w http.ResponseWriter, r *http.Request) {
+	deployments, err := s.engine.RepositoryService().ListDeployments(r.Context())
+	if err != nil {
+		writeError(w, err)
+		return
+	}
+	start, size := pageParams(r)
+	writePage(w, deployments, start, size)
+}
+
+// handleGetDeployment 返回部署详情。
+// @param w 响应
+// @param r 请求
+func (s *Server) handleGetDeployment(w http.ResponseWriter, r *http.Request) {
+	deployment, err := s.engine.RepositoryService().GetDeployment(r.Context(), r.PathValue("id"))
+	if err != nil {
+		writeError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, deployment)
+}
+
+// handleDeleteDeployment 删除部署。
+// @param w 响应
+// @param r 请求
+func (s *Server) handleDeleteDeployment(w http.ResponseWriter, r *http.Request) {
+	cascade := r.URL.Query().Get("cascade") == "true"
+	if err := s.engine.RepositoryService().DeleteDeployment(r.Context(), r.PathValue("id"), cascade); err != nil {
+		writeError(w, err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
+// handleListDeploymentResources 返回部署资源列表。
+// @param w 响应
+// @param r 请求
+func (s *Server) handleListDeploymentResources(w http.ResponseWriter, r *http.Request) {
+	names, err := s.engine.RepositoryService().ListDeploymentResources(r.Context(), r.PathValue("id"))
+	if err != nil {
+		writeError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, names)
+}
+
+// handleGetDeploymentResource 返回部署资源内容。
+// @param w 响应
+// @param r 请求
+func (s *Server) handleGetDeploymentResource(w http.ResponseWriter, r *http.Request) {
+	data, err := s.engine.RepositoryService().GetDeploymentResource(r.Context(), r.PathValue("id"), r.PathValue("name"))
+	if err != nil {
+		writeError(w, err)
+		return
+	}
+	w.Header().Set("Content-Type", "application/octet-stream")
+	w.WriteHeader(http.StatusOK)
+	_, _ = w.Write(data)
 }
 
 // parseDeploymentRequest 解析部署请求。
@@ -702,6 +770,12 @@ func writePage(w http.ResponseWriter, items any, start, size int) {
 // @return 元素列表
 func reflectSlice(items any) []any {
 	switch typed := items.(type) {
+	case []api.Deployment:
+		out := make([]any, len(typed))
+		for i, item := range typed {
+			out[i] = item
+		}
+		return out
 	case []api.ProcessDefinition:
 		out := make([]any, len(typed))
 		for i, item := range typed {

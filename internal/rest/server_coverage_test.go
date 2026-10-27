@@ -38,6 +38,7 @@ func TestREST_ClosedEngine(t *testing.T) {
 	paths := []string{
 		"/readyz",
 		"/service/repository/process-definitions",
+		"/service/repository/deployments",
 		"/service/runtime/process-instances",
 		"/service/runtime/tasks",
 		"/service/history/historic-process-instances",

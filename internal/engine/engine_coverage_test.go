@@ -23,6 +23,21 @@ func TestClosedEngineQueries(t *testing.T) {
 	if _, err := app.ListTasks(context.Background(), api.TaskFilter{}); err == nil {
 		t.Fatalf("任务列表应报错")
 	}
+	if _, err := app.ListDeployments(context.Background()); err == nil {
+		t.Fatalf("部署列表应报错")
+	}
+	if _, err := app.GetDeployment(context.Background(), "x"); err == nil {
+		t.Fatalf("部署查询应报错")
+	}
+	if _, err := app.ListDeploymentResources(context.Background(), "x"); err == nil {
+		t.Fatalf("部署资源列表应报错")
+	}
+	if _, err := app.GetDeploymentResource(context.Background(), "x", "y"); err == nil {
+		t.Fatalf("部署资源读取应报错")
+	}
+	if err := app.DeleteDeployment(context.Background(), "x", true); err == nil {
+		t.Fatalf("部署删除应报错")
+	}
 	if _, err := app.ListHistoricProcessInstances(context.Background()); err == nil {
 		t.Fatalf("历史流程应报错")
 	}

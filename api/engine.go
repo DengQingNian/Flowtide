@@ -66,6 +66,36 @@ type RepositoryService interface {
 	// @return XML 内容
 	// @return 查询错误
 	GetProcessDefinitionXML(ctx context.Context, definitionID string) ([]byte, error)
+	// ListDeployments 返回全部部署。
+	// @param ctx 上下文
+	// @return 部署列表
+	// @return 查询错误
+	ListDeployments(ctx context.Context) ([]Deployment, error)
+	// GetDeployment 查询部署。
+	// @param ctx 上下文
+	// @param deploymentID 部署 ID
+	// @return 部署信息
+	// @return 查询错误
+	GetDeployment(ctx context.Context, deploymentID string) (Deployment, error)
+	// ListDeploymentResources 返回部署资源名列表。
+	// @param ctx 上下文
+	// @param deploymentID 部署 ID
+	// @return 资源名列表
+	// @return 查询错误
+	ListDeploymentResources(ctx context.Context, deploymentID string) ([]string, error)
+	// GetDeploymentResource 返回部署资源内容。
+	// @param ctx 上下文
+	// @param deploymentID 部署 ID
+	// @param resourceName 资源名
+	// @return 资源内容
+	// @return 查询错误
+	GetDeploymentResource(ctx context.Context, deploymentID, resourceName string) ([]byte, error)
+	// DeleteDeployment 删除部署。
+	// @param ctx 上下文
+	// @param deploymentID 部署 ID
+	// @param cascade 是否级联删除流程定义
+	// @return 删除错误
+	DeleteDeployment(ctx context.Context, deploymentID string, cascade bool) error
 	// SuspendProcessDefinition 挂起流程定义。
 	// @param ctx 上下文
 	// @param definitionID 流程定义 ID

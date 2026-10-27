@@ -68,6 +68,10 @@ func TestREST_MoreErrors(t *testing.T) {
 		{"POST", "/service/runtime/tasks/missing", `{"action":"complete"}`, http.StatusNotFound},
 		{"POST", "/service/runtime/tasks/missing", `{"action":"unknown"}`, http.StatusBadRequest},
 		{"POST", "/service/runtime/process-instances", `{"processDefinitionKey":"missing"}`, http.StatusNotFound},
+		{"GET", "/service/repository/deployments/missing", "", http.StatusNotFound},
+		{"GET", "/service/repository/deployments/missing/resources", "", http.StatusNotFound},
+		{"GET", "/service/repository/deployments/missing/resources/x", "", http.StatusNotFound},
+		{"DELETE", "/service/repository/deployments/missing", "", http.StatusNotFound},
 	}
 	for _, tc := range requests {
 		request, err := http.NewRequest(tc.method, server.URL+tc.path, bytes.NewBufferString(tc.body))
@@ -419,4 +423,54 @@ func TestREST_Migrate(t *testing.T) {
 	if len(tasks.Data) != 1 || tasks.Data[0]["taskDefinitionKey"] != "newTask" {
 		t.Fatalf("迁移后任务错误: %+v", tasks.Data)
 	}
+}
+
+// TestREST_Deployments 验证部署端点。
+// @param t 测试上下文
+func TestREST_Deployments(t *testing.T) {
+	server, _ := newTestServer(t)
+	deployREST(t, server)
+	response, err := http.Get(server.URL + "/service/repository/deployments")
+	if err != nil {
+		t.Fatalf("部署列表失败: %v", err)
+	}
+	var page struct {
+		Data  []map[string]any `json:"data"`
+		Total int              `json:"total"`
+	}
+	_ = json.NewDecoder(response.Body).Decode(&page)
+	_ = response.Body.Close()
+	if page.Total != 1 {
+		t.Fatalf("期望 1 个部署，实际 %d", page.Total)
+	}
+	deploymentID, _ := page.Data[0]["id"].(string)
+	response, _ = http.Get(server.URL + "/service/repository/deployments/" + deploymentID)
+	if response.StatusCode != http.StatusOK {
+		t.Fatalf("部署详情失败: %d", response.StatusCode)
+	}
+	_ = response.Body.Close()
+	response, _ = http.Get(server.URL + "/service/repository/deployments/" + deploymentID + "/resources")
+	var names []string
+	_ = json.NewDecoder(response.Body).Decode(&names)
+	_ = response.Body.Close()
+	if len(names) != 1 {
+		t.Fatalf("资源列表错误: %+v", names)
+	}
+	response, _ = http.Get(server.URL + "/service/repository/deployments/" + deploymentID + "/resources/" + names[0])
+	if response.StatusCode != http.StatusOK {
+		t.Fatalf("资源内容失败: %d", response.StatusCode)
+	}
+	_ = response.Body.Close()
+	request, _ := http.NewRequest(http.MethodDelete, server.URL+"/service/repository/deployments/"+deploymentID, nil)
+	response, _ = http.DefaultClient.Do(request)
+	if response.StatusCode != http.StatusConflict {
+		t.Fatalf("未级联删除应 409: %d", response.StatusCode)
+	}
+	_ = response.Body.Close()
+	request, _ = http.NewRequest(http.MethodDelete, server.URL+"/service/repository/deployments/"+deploymentID+"?cascade=true", nil)
+	response, _ = http.DefaultClient.Do(request)
+	if response.StatusCode != http.StatusNoContent {
+		t.Fatalf("级联删除失败: %d", response.StatusCode)
+	}
+	_ = response.Body.Close()
 }
