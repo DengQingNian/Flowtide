@@ -43,12 +43,24 @@ func TestMetricsEndpoint(t *testing.T) {
 		server.Close()
 		_ = app.Close(context.Background())
 	}()
-	response, _ := http.Get(server.URL + "/healthz")
+	response, _ := http.Post(server.URL+"/service/repository/deployments", "application/xml", strings.NewReader(restProcess))
+	_ = response.Body.Close()
+	response = postJSON(t, server.URL+"/service/runtime/process-instances", map[string]any{
+		"processDefinitionKey": "rest",
+		"variables":            []map[string]any{{"name": "initiator", "value": "alice"}},
+	})
+	_ = response.Body.Close()
+	response, _ = http.Get(server.URL + "/healthz")
 	_ = response.Body.Close()
 	response, _ = http.Get(server.URL + "/metrics")
 	body, _ := io.ReadAll(response.Body)
 	_ = response.Body.Close()
 	if !strings.Contains(string(body), "flowable_http_requests_total") {
 		t.Fatalf("指标端点缺少指标: %s", body)
+	}
+	for _, metric := range []string{"flowable_deployments 1", "flowable_process_definitions 1", "flowable_process_instances_active 1", "flowable_tasks_active 1"} {
+		if !strings.Contains(string(body), metric) {
+			t.Fatalf("引擎指标缺少 %s: %s", metric, body)
+		}
 	}
 }

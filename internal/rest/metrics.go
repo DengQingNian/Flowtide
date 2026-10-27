@@ -1,12 +1,15 @@
 package rest
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"sort"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/flowable-go/flowable/api"
 )
 
 // httpMetrics 是 HTTP 指标。
@@ -109,4 +112,37 @@ func (s *Server) handleMetrics(w http.ResponseWriter, r *http.Request) {
 	if s.httpMetrics != nil {
 		_, _ = w.Write([]byte(s.httpMetrics.render()))
 	}
+	_, _ = w.Write([]byte(s.engineMetrics(r.Context())))
+}
+
+// engineMetrics 输出引擎 gauge。
+// @param ctx 上下文
+// @return 文本
+func (s *Server) engineMetrics(ctx context.Context) string {
+	var builder strings.Builder
+	writeGauge := func(name string, value int) {
+		fmt.Fprintf(&builder, "%s %d\n", name, value)
+	}
+	if deployments, err := s.engine.RepositoryService().ListDeployments(ctx); err == nil {
+		writeGauge("flowable_deployments", len(deployments))
+	}
+	if definitions, err := s.engine.RepositoryService().ListProcessDefinitions(ctx); err == nil {
+		writeGauge("flowable_process_definitions", len(definitions))
+	}
+	if instances, err := s.engine.RuntimeService().ListProcessInstances(ctx); err == nil {
+		writeGauge("flowable_process_instances_active", len(instances))
+	}
+	if tasks, err := s.engine.TaskService().ListTasks(ctx, api.TaskFilter{}); err == nil {
+		writeGauge("flowable_tasks_active", int(tasks.Total))
+	}
+	if jobs, err := s.engine.ManagementService().ListJobs(ctx); err == nil {
+		writeGauge("flowable_jobs_active", len(jobs))
+	}
+	if dead, err := s.engine.ManagementService().ListDeadLetterJobs(ctx); err == nil {
+		writeGauge("flowable_deadletter_jobs", len(dead))
+	}
+	if historic, err := s.engine.HistoryService().ListHistoricProcessInstances(ctx); err == nil {
+		writeGauge("flowable_historic_process_instances", len(historic))
+	}
+	return builder.String()
 }
