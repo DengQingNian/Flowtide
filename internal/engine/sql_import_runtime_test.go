@@ -2,10 +2,12 @@ package engine
 
 import (
 	"context"
+	"errors"
 	"testing"
 	"time"
 
 	"github.com/flowable-go/flowable/api"
+	"github.com/flowable-go/flowable/internal/clock"
 	flowablerow "github.com/flowable-go/flowable/internal/persistence/flowable"
 )
 
@@ -318,5 +320,57 @@ func TestImportRuntimeRows_JobInstanceError(t *testing.T) {
 	}
 	if err := target.ImportRuntimeRows(context.Background(), withoutExecution); err == nil {
 		t.Fatalf("作业缺失实例应失败")
+	}
+}
+
+// TestImportRuntimeRows_DeadLetter 验证死信恢复。
+// @param t 测试上下文
+func TestImportRuntimeRows_DeadLetter(t *testing.T) {
+	fake := clock.NewFake(time.Date(2026, 10, 28, 0, 0, 0, 0, time.UTC))
+	fail := true
+	source, _ := New(Config{Clock: fake})
+	source.RegisterDelegate("noop", func(ctx context.Context, execution *Execution) error {
+		if fail {
+			return errors.New("fail")
+		}
+		return nil
+	})
+	deployXML(t, source, asyncServiceXML("deadLetter", `flowable:asyncBefore="true"`))
+	instance, _ := source.StartProcessInstance(context.Background(), api.StartRequest{ProcessDefinitionKey: "deadLetter"})
+	for i := 0; i < 3; i++ {
+		_, _ = source.RunDueJobs(context.Background())
+		fake.Advance(10 * time.Second)
+	}
+	repositoryRows, _ := source.ExportRows(context.Background())
+	runtimeRows, _ := source.ExportRuntimeRows(context.Background())
+	count := 0
+	for _, row := range runtimeRows {
+		if row.Table == "ACT_RU_DEADLETTER_JOB" {
+			count++
+		}
+	}
+	if count != 1 {
+		t.Fatalf("期望 1 条死信行，实际 %d", count)
+	}
+	target, _ := New(Config{})
+	target.RegisterDelegate("noop", func(ctx context.Context, execution *Execution) error { return nil })
+	_ = target.ImportRows(context.Background(), repositoryRows)
+	if err := target.ImportRuntimeRows(context.Background(), runtimeRows); err != nil {
+		t.Fatalf("导入死信失败: %v", err)
+	}
+	dead, _ := target.ListDeadLetterJobs(context.Background())
+	if len(dead) != 1 {
+		t.Fatalf("恢复死信错误: %+v", dead)
+	}
+	fail = false
+	if err := target.MoveDeadLetterJobToExecutable(context.Background(), dead[0].ID, 1); err != nil {
+		t.Fatalf("恢复死信失败: %v", err)
+	}
+	if executed, err := target.RunDueJobs(context.Background()); err != nil || executed != 1 {
+		t.Fatalf("恢复后执行失败: %v %d", err, executed)
+	}
+	got, _ := target.GetProcessInstance(context.Background(), instance.ID)
+	if !got.Ended {
+		t.Fatalf("死信恢复后流程应结束")
 	}
 }

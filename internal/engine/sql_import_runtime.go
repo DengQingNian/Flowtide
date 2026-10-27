@@ -136,6 +136,27 @@ func (e *Engine) ImportRuntimeRows(ctx context.Context, rows []flowablerow.Row) 
 				IntervalMillis:      job.IntervalMillis,
 			}
 		}
+		for _, job := range snapshot.DeadLetters {
+			due := time.Time{}
+			if job.DueDate != nil {
+				due = *job.DueDate
+			}
+			e.state.DeadLetters[job.ID] = &jobState{
+				ID:                  job.ID,
+				Type:                job.Type,
+				ProcessInstanceID:   job.ProcessInstanceID,
+				ProcessDefinitionID: job.DefinitionID,
+				ExecutionID:         job.ExecutionID,
+				ActivityID:          job.ActivityID,
+				Retries:             0,
+				Exception:           job.Exception,
+				DueDate:             due,
+				CreatedAt:           job.CreatedAt,
+				RepeatRemaining:     job.RepeatRemaining,
+				RepeatInfinite:      job.RepeatInfinite,
+				IntervalMillis:      job.IntervalMillis,
+			}
+		}
 		for _, subscription := range snapshot.Subscriptions {
 			if _, ok := e.findDefinition(subscription.DefinitionID); !ok {
 				return nil, api.NewError("ENGINE-0404", "导入订阅缺少流程定义: "+subscription.DefinitionID, api.ErrBadRequest)

@@ -179,6 +179,47 @@ func (e *Engine) ExportRuntimeRows(ctx context.Context) ([]flowablerow.Row, erro
 			rows = append(rows, *row)
 		}
 
+		deadLetters := make([]*jobState, 0, len(e.state.DeadLetters))
+		for _, job := range e.state.DeadLetters {
+			deadLetters = append(deadLetters, job)
+		}
+		sort.Slice(deadLetters, func(i, j int) bool { return deadLetters[i].ID < deadLetters[j].ID })
+		for _, job := range deadLetters {
+			row, rowErr := runtimeRow("ACT_RU_DEADLETTER_JOB", []string{"ID_", "REV_", "TYPE_", "EXCLUSIVE_", "EXECUTION_ID_", "PROCESS_INSTANCE_ID_", "PROC_DEF_ID_", "ELEMENT_ID_", "EXCEPTION_MSG_", "DUEDATE_", "HANDLER_TYPE_", "HANDLER_CFG_", "CREATE_TIME_", "TENANT_ID_"})
+			if rowErr != nil {
+				return nil, rowErr
+			}
+			tenant := ""
+			if job.ProcessInstanceID != "" {
+				if instance, ok := e.findInstance(job.ProcessInstanceID); ok {
+					tenant = instance.TenantID
+				}
+			}
+			if tenant == "" && job.ProcessDefinitionID != "" {
+				if definition, ok := e.findDefinition(job.ProcessDefinitionID); ok {
+					tenant = definition.Info.TenantID
+				}
+			}
+			config, _ := json.Marshal(timerHandlerConfig{
+				Remaining: job.RepeatRemaining, Infinite: job.RepeatInfinite, IntervalMillis: job.IntervalMillis,
+			})
+			_ = row.Set("ID_", job.ID)
+			_ = row.Set("REV_", 1)
+			_ = row.Set("TYPE_", "deadletter")
+			_ = row.Set("EXCLUSIVE_", true)
+			_ = row.Set("EXECUTION_ID_", job.ExecutionID)
+			_ = row.Set("PROCESS_INSTANCE_ID_", job.ProcessInstanceID)
+			_ = row.Set("PROC_DEF_ID_", job.ProcessDefinitionID)
+			_ = row.Set("ELEMENT_ID_", job.ActivityID)
+			_ = row.Set("EXCEPTION_MSG_", job.Exception)
+			_ = row.Set("DUEDATE_", job.DueDate)
+			_ = row.Set("HANDLER_TYPE_", job.Type)
+			_ = row.Set("HANDLER_CFG_", string(config))
+			_ = row.Set("CREATE_TIME_", job.CreatedAt)
+			_ = row.Set("TENANT_ID_", tenant)
+			rows = append(rows, *row)
+		}
+
 		subscriptions := make([]*subscriptionState, 0, len(e.state.Subscriptions))
 		for _, subscription := range e.state.Subscriptions {
 			subscriptions = append(subscriptions, subscription)
