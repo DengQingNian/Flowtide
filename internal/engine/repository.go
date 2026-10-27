@@ -1,8 +1,12 @@
 package engine
 
 import (
+	"archive/zip"
+	"bytes"
 	"context"
 	"fmt"
+	"io"
+	"path"
 	"sort"
 	"strings"
 
@@ -42,16 +46,20 @@ func (e *Engine) deploy(cc *commandContext, req api.DeploymentRequest) (api.Depl
 		TenantID:   e.tenantOf(req.TenantID),
 		DeployTime: cc.now,
 	}
-	resources := make(map[string][]byte, len(req.Resources))
-	names := make([]string, 0, len(req.Resources))
-	for name := range req.Resources {
+	expanded, err := expandResources(req.Resources)
+	if err != nil {
+		return api.Deployment{}, err
+	}
+	resources := make(map[string][]byte, len(expanded))
+	names := make([]string, 0, len(expanded))
+	for name := range expanded {
 		names = append(names, name)
 	}
 	sort.Strings(names)
 	// 版本号在同一部署内按 Key 递增
 	localVersions := make(map[string]int)
 	for _, name := range names {
-		data := req.Resources[name]
+		data := expanded[name]
 		resources[name] = append([]byte(nil), data...)
 		if !isBPMNResource(name) {
 			continue
@@ -200,4 +208,59 @@ func (e *Engine) GetProcessDefinitionXML(ctx context.Context, definitionID strin
 		return nil, err
 	}
 	return result.([]byte), nil
+}
+
+// expandResources 展开 ZIP/BAR 资源。
+// @param resources 原始资源
+// @return 展开后的资源
+// @return 展开错误
+func expandResources(resources map[string][]byte) (map[string][]byte, error) {
+	out := make(map[string][]byte)
+	total := int64(0)
+	for name, data := range resources {
+		if !isArchiveResource(name) {
+			out[name] = data
+			total += int64(len(data))
+			if total > 100<<20 {
+				return nil, api.NewError("ENGINE-0203", "部署资源总大小超过限制", api.ErrBadRequest)
+			}
+			continue
+		}
+		reader, err := zip.NewReader(bytes.NewReader(data), int64(len(data)))
+		if err != nil {
+			return nil, api.NewError("ENGINE-0204", "ZIP 部署包解析失败: "+name, err)
+		}
+		for _, file := range reader.File {
+			clean := path.Clean(file.Name)
+			if clean == "." || strings.HasPrefix(clean, "..") || path.IsAbs(clean) || strings.Contains(clean, "\\..") {
+				return nil, api.NewError("ENGINE-0205", "ZIP 包含非法路径: "+file.Name, api.ErrBadRequest)
+			}
+			if file.FileInfo().IsDir() {
+				continue
+			}
+			opened, openErr := file.Open()
+			if openErr != nil {
+				return nil, api.NewError("ENGINE-0206", "打开 ZIP 条目失败: "+file.Name, openErr)
+			}
+			content, readErr := io.ReadAll(io.LimitReader(opened, 20<<20))
+			_ = opened.Close()
+			if readErr != nil {
+				return nil, api.NewError("ENGINE-0207", "读取 ZIP 条目失败: "+file.Name, readErr)
+			}
+			total += int64(len(content))
+			if total > 100<<20 {
+				return nil, api.NewError("ENGINE-0203", "部署资源总大小超过限制", api.ErrBadRequest)
+			}
+			out[clean] = content
+		}
+	}
+	return out, nil
+}
+
+// isArchiveResource 判断是否为 ZIP/BAR 部署包。
+// @param name 资源名
+// @return 是否为压缩包
+func isArchiveResource(name string) bool {
+	lower := strings.ToLower(name)
+	return strings.HasSuffix(lower, ".zip") || strings.HasSuffix(lower, ".bar")
 }
