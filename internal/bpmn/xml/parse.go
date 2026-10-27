@@ -116,6 +116,7 @@ func parseElement(node *Node) (model.FlowElement, error) {
 		task.Priority = attrAny(node, "priority")
 		task.FormKey = attrAny(node, "formKey")
 		task.Category = attrAny(node, "category")
+		task.LoopCharacteristics = parseMultiInstance(node)
 		return task, nil
 	case "serviceTask":
 		task := &model.ServiceTask{}
@@ -124,6 +125,7 @@ func parseElement(node *Node) (model.FlowElement, error) {
 		task.Expression = attrAny(node, "expression")
 		task.ClassName = attrAny(node, "class")
 		task.ResultVariable = attrAny(node, "resultVariable")
+		task.LoopCharacteristics = parseMultiInstance(node)
 		switch {
 		case task.DelegateExpression != "":
 			task.ImplementationType = "delegateExpression"
@@ -153,6 +155,8 @@ func parseElement(node *Node) (model.FlowElement, error) {
 		gateway := &model.ParallelGateway{}
 		parseFlowNodeBase(node, &gateway.FlowNodeBase)
 		return gateway, nil
+	case "subProcess":
+		return parseSubProcess(node)
 	case "sequenceFlow":
 		flow := &model.SequenceFlow{
 			SourceRef: node.Attr("sourceRef"),
@@ -183,6 +187,28 @@ func parseFlowNodeBase(node *Node, base *model.FlowNodeBase) {
 	}
 }
 
+// parseMultiInstance 解析多实例配置。
+// @param node 活动节点
+// @return 多实例配置，不存在时为 nil
+func parseMultiInstance(node *Node) *model.MultiInstanceLoopCharacteristics {
+	loopNode, ok := node.Child("multiInstanceLoopCharacteristics")
+	if !ok {
+		return nil
+	}
+	loop := &model.MultiInstanceLoopCharacteristics{
+		Sequential:      strings.EqualFold(loopNode.Attr("isSequential"), "true"),
+		Collection:      attrAny(loopNode, "collection"),
+		ElementVariable: attrAny(loopNode, "elementVariable"),
+	}
+	if child, exists := loopNode.Child("loopCardinality"); exists {
+		loop.LoopCardinality = child.TextContent()
+	}
+	if child, exists := loopNode.Child("completionCondition"); exists {
+		loop.CompletionCondition = child.TextContent()
+	}
+	return loop
+}
+
 // parseTimer 解析定时器定义。
 // @param node 事件节点
 // @return 定时器定义，不存在时为 nil
@@ -204,20 +230,28 @@ func parseTimer(node *Node) *model.TimerDefinition {
 	return timer
 }
 
-// linkSequenceFlows 解析顺序流并建立节点连接。
+// linkSequenceFlows 解析流程顺序流并建立节点连接。
 // @param process 流程
 // @return 连接错误
 func linkSequenceFlows(process *model.Process) error {
-	for _, id := range process.Order {
-		flow, ok := process.Elements[id].(*model.SequenceFlow)
+	return linkFlows(process.Elements, process.Order)
+}
+
+// linkFlows 解析指定容器的顺序流并建立连接。
+// @param elements 元素表
+// @param order 元素顺序
+// @return 连接错误
+func linkFlows(elements map[string]model.FlowElement, order []string) error {
+	for _, id := range order {
+		flow, ok := elements[id].(*model.SequenceFlow)
 		if !ok {
 			continue
 		}
-		source, ok := process.GetFlowNode(flow.SourceRef)
+		source, ok := lookupFlowNode(elements, flow.SourceRef)
 		if !ok {
 			return api.NewError("BPMN-1005", fmt.Sprintf("顺序流 %s 的源节点不存在: %s", flow.ID, flow.SourceRef), nil)
 		}
-		target, ok := process.GetFlowNode(flow.TargetRef)
+		target, ok := lookupFlowNode(elements, flow.TargetRef)
 		if !ok {
 			return api.NewError("BPMN-1005", fmt.Sprintf("顺序流 %s 的目标节点不存在: %s", flow.ID, flow.TargetRef), nil)
 		}
@@ -225,16 +259,62 @@ func linkSequenceFlows(process *model.Process) error {
 		target.AddIncoming(flow)
 	}
 	// 标记默认流，供排他网关与条件分支使用
-	for _, id := range process.Order {
-		gateway, ok := process.Elements[id].(*model.ExclusiveGateway)
+	for _, id := range order {
+		gateway, ok := elements[id].(*model.ExclusiveGateway)
 		if !ok || gateway.DefaultFlow == "" {
 			continue
 		}
-		if flow, exists := process.GetSequenceFlow(gateway.DefaultFlow); exists {
+		if flow, exists := elements[gateway.DefaultFlow].(*model.SequenceFlow); exists {
 			flow.IsDefault = true
 		}
 	}
 	return nil
+}
+
+// lookupFlowNode 在元素表中查找流程节点。
+// @param elements 元素表
+// @param id 元素 ID
+// @return 流程节点
+// @return 是否存在
+func lookupFlowNode(elements map[string]model.FlowElement, id string) (model.FlowNode, bool) {
+	element, ok := elements[id]
+	if !ok {
+		return nil, false
+	}
+	node, ok := element.(model.FlowNode)
+	return node, ok
+}
+
+// parseSubProcess 解析嵌入式子流程。
+// @param node XML 节点
+// @return 子流程
+// @return 解析错误
+func parseSubProcess(node *Node) (model.FlowElement, error) {
+	sub := &model.SubProcess{
+		TriggeredByEvent: strings.EqualFold(node.Attr("triggeredByEvent"), "true"),
+		Elements:         make(map[string]model.FlowElement),
+	}
+	parseFlowNodeBase(node, &sub.FlowNodeBase)
+	for _, child := range node.Children {
+		element, err := parseElement(child)
+		if err != nil {
+			return nil, err
+		}
+		if element == nil {
+			continue
+		}
+		if _, exists := sub.Elements[element.GetID()]; exists {
+			return nil, api.NewError("BPMN-1002", fmt.Sprintf("子流程元素 ID 重复: %s", element.GetID()), nil)
+		}
+		sub.AddElement(element)
+	}
+	if err := linkFlows(sub.Elements, sub.Order); err != nil {
+		return nil, err
+	}
+	if len(sub.StartEvents()) == 0 {
+		return nil, api.NewError("BPMN-1003", fmt.Sprintf("子流程 %s 缺少开始事件", sub.ID), nil)
+	}
+	return sub, nil
 }
 
 // attrAny 依次尝试 Flowable、Activiti 与无命名空间属性。

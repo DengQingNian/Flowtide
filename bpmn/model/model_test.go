@@ -7,11 +7,11 @@ import "testing"
 func TestElementTypes(t *testing.T) {
 	elements := []FlowElement{
 		&StartEvent{}, &EndEvent{}, &UserTask{}, &ServiceTask{}, &ScriptTask{},
-		&ManualTask{}, &ExclusiveGateway{}, &ParallelGateway{}, &SequenceFlow{},
+		&ManualTask{}, &ExclusiveGateway{}, &ParallelGateway{}, &SequenceFlow{}, &SubProcess{},
 	}
 	want := []string{
 		"startEvent", "endEvent", "userTask", "serviceTask", "scriptTask",
-		"manualTask", "exclusiveGateway", "parallelGateway", "sequenceFlow",
+		"manualTask", "exclusiveGateway", "parallelGateway", "sequenceFlow", "subProcess",
 	}
 	for i, element := range elements {
 		if element.ElementType() != want[i] {
@@ -57,5 +57,35 @@ func TestProcessHelpers(t *testing.T) {
 	end.AddIncoming(flow)
 	if len(start.GetOutgoing()) != 1 || len(end.GetIncoming()) != 1 {
 		t.Fatalf("连线添加失败")
+	}
+}
+
+// TestSubProcessHelpers 验证子流程容器方法。
+// @param t 测试上下文
+func TestSubProcessHelpers(t *testing.T) {
+	sub := &SubProcess{TriggeredByEvent: true}
+	start := &StartEvent{FlowNodeBase: FlowNodeBase{BaseElement: BaseElement{ID: "s"}}}
+	end := &EndEvent{FlowNodeBase: FlowNodeBase{BaseElement: BaseElement{ID: "e"}}}
+	flow := &SequenceFlow{BaseElement: BaseElement{ID: "f"}, SourceRef: "s", TargetRef: "e"}
+	sub.AddElement(start)
+	sub.AddElement(end)
+	sub.AddElement(flow)
+	if len(sub.Order) != 3 || !sub.TriggeredByEvent {
+		t.Fatalf("子流程字段错误")
+	}
+	if node, ok := sub.GetFlowNode("s"); !ok || node.GetID() != "s" {
+		t.Fatalf("子流程节点查询失败")
+	}
+	if _, ok := sub.GetFlowNode("f"); ok {
+		t.Fatalf("顺序流不是流程节点")
+	}
+	if got, ok := sub.GetSequenceFlow("f"); !ok || got.ID != "f" {
+		t.Fatalf("子流程顺序流查询失败")
+	}
+	if _, ok := sub.GetSequenceFlow("s"); ok {
+		t.Fatalf("节点不是顺序流")
+	}
+	if len(sub.StartEvents()) != 1 {
+		t.Fatalf("子流程开始事件数量错误")
 	}
 }

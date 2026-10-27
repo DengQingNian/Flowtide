@@ -107,16 +107,26 @@ type EndEvent struct {
 // @return 元素类型
 func (e *EndEvent) ElementType() string { return "endEvent" }
 
+// MultiInstanceLoopCharacteristics 表示多实例配置。
+type MultiInstanceLoopCharacteristics struct {
+	Sequential          bool   // 是否串行
+	Collection          string // 集合表达式
+	ElementVariable     string // 元素变量名
+	LoopCardinality     string // 实例数量表达式
+	CompletionCondition string // 完成条件
+}
+
 // UserTask 表示用户任务。
 type UserTask struct {
 	FlowNodeBase
-	Assignee        string   // 处理人表达式
-	CandidateUsers  []string // 候选用户
-	CandidateGroups []string // 候选组
-	DueDate         string   // 到期时间表达式
-	Priority        string   // 优先级表达式
-	FormKey         string   // 表单 Key
-	Category        string   // 分类
+	LoopCharacteristics *MultiInstanceLoopCharacteristics // 多实例配置
+	Assignee            string                            // 处理人表达式
+	CandidateUsers      []string                          // 候选用户
+	CandidateGroups     []string                          // 候选组
+	DueDate             string                            // 到期时间表达式
+	Priority            string                            // 优先级表达式
+	FormKey             string                            // 表单 Key
+	Category            string                            // 分类
 }
 
 // ElementType 返回元素类型。
@@ -126,11 +136,12 @@ func (t *UserTask) ElementType() string { return "userTask" }
 // ServiceTask 表示服务任务。
 type ServiceTask struct {
 	FlowNodeBase
-	ImplementationType string // 实现类型：delegateExpression/expression/class
-	DelegateExpression string // 委托表达式
-	Expression         string // 表达式
-	ClassName          string // 类名（Java 兼容标记）
-	ResultVariable     string // 结果变量名
+	LoopCharacteristics *MultiInstanceLoopCharacteristics // 多实例配置
+	ImplementationType  string                            // 实现类型：delegateExpression/expression/class
+	DelegateExpression  string                            // 委托表达式
+	Expression          string                            // 表达式
+	ClassName           string                            // 类名（Java 兼容标记）
+	ResultVariable      string                            // 结果变量名
 }
 
 // ElementType 返回元素类型。
@@ -176,6 +187,66 @@ type ParallelGateway struct {
 // ElementType 返回元素类型。
 // @return 元素类型
 func (g *ParallelGateway) ElementType() string { return "parallelGateway" }
+
+// SubProcess 表示嵌入式子流程。
+type SubProcess struct {
+	FlowNodeBase
+	Elements         map[string]FlowElement // 子元素
+	Order            []string               // 子元素顺序
+	TriggeredByEvent bool                   // 是否事件子流程
+}
+
+// ElementType 返回元素类型。
+// @return 元素类型
+func (s *SubProcess) ElementType() string { return "subProcess" }
+
+// AddElement 添加子元素。
+// @param element 流程元素
+func (s *SubProcess) AddElement(element FlowElement) {
+	if s.Elements == nil {
+		s.Elements = make(map[string]FlowElement)
+	}
+	s.Elements[element.GetID()] = element
+	s.Order = append(s.Order, element.GetID())
+}
+
+// GetFlowNode 按 ID 获取子流程节点。
+// @param id 元素 ID
+// @return 流程节点
+// @return 是否存在
+func (s *SubProcess) GetFlowNode(id string) (FlowNode, bool) {
+	element, ok := s.Elements[id]
+	if !ok {
+		return nil, false
+	}
+	node, ok := element.(FlowNode)
+	return node, ok
+}
+
+// GetSequenceFlow 按 ID 获取子流程顺序流。
+// @param id 元素 ID
+// @return 顺序流
+// @return 是否存在
+func (s *SubProcess) GetSequenceFlow(id string) (*SequenceFlow, bool) {
+	element, ok := s.Elements[id]
+	if !ok {
+		return nil, false
+	}
+	flow, ok := element.(*SequenceFlow)
+	return flow, ok
+}
+
+// StartEvents 返回子流程开始事件。
+// @return 开始事件列表
+func (s *SubProcess) StartEvents() []*StartEvent {
+	events := make([]*StartEvent, 0)
+	for _, id := range s.Order {
+		if event, ok := s.Elements[id].(*StartEvent); ok {
+			events = append(events, event)
+		}
+	}
+	return events
+}
 
 // SequenceFlow 表示顺序流。
 type SequenceFlow struct {

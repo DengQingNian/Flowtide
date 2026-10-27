@@ -48,6 +48,15 @@ type executionState struct {
 	Concurrent            bool           // 是否并发分支
 	Ended                 bool           // 是否结束
 	Waiting               bool           // 是否等待外部事件
+	ScopeRoot             bool           // 是否子流程作用域根执行
+	MultiInstanceRoot     bool           // 是否多实例根执行
+	MIChild               bool           // 是否多实例子执行
+	MIValues              []any          // 多实例元素值
+	MISequential          bool           // 是否串行多实例
+	MIActivityID          string         // 多实例活动 ID
+	MIElementVariable     string         // 元素变量名
+	MICompletionCondition string         // 完成条件
+	MIIndex               int            // 子实例序号
 	PendingBranches       int            // 等待的并行分支数
 	CurrentHistActivityID string         // 当前活动历史记录 ID
 	Variables             map[string]any // 局部变量
