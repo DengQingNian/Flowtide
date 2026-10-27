@@ -236,6 +236,16 @@ type ExclusiveGateway struct {
 // @return 元素类型
 func (g *ExclusiveGateway) ElementType() string { return "exclusiveGateway" }
 
+// InclusiveGateway 表示包容网关。
+type InclusiveGateway struct {
+	FlowNodeBase
+	DefaultFlow string // 默认流出线 ID
+}
+
+// ElementType 返回元素类型。
+// @return 元素类型
+func (g *InclusiveGateway) ElementType() string { return "inclusiveGateway" }
+
 // ParallelGateway 表示并行网关。
 type ParallelGateway struct {
 	FlowNodeBase

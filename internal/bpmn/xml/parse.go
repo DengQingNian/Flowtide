@@ -160,6 +160,10 @@ func parseElement(node *Node) (model.FlowElement, error) {
 		gateway := &model.ExclusiveGateway{DefaultFlow: node.Attr("default")}
 		parseFlowNodeBase(node, &gateway.FlowNodeBase)
 		return gateway, nil
+	case "inclusiveGateway":
+		gateway := &model.InclusiveGateway{DefaultFlow: node.Attr("default")}
+		parseFlowNodeBase(node, &gateway.FlowNodeBase)
+		return gateway, nil
 	case "parallelGateway":
 		gateway := &model.ParallelGateway{}
 		parseFlowNodeBase(node, &gateway.FlowNodeBase)
@@ -299,12 +303,19 @@ func linkFlows(elements map[string]model.FlowElement, order []string) error {
 	}
 	// 标记默认流，供排他网关与条件分支使用
 	for _, id := range order {
-		gateway, ok := elements[id].(*model.ExclusiveGateway)
-		if !ok || gateway.DefaultFlow == "" {
-			continue
-		}
-		if flow, exists := elements[gateway.DefaultFlow].(*model.SequenceFlow); exists {
-			flow.IsDefault = true
+		switch gateway := elements[id].(type) {
+		case *model.ExclusiveGateway:
+			if gateway.DefaultFlow != "" {
+				if flow, exists := elements[gateway.DefaultFlow].(*model.SequenceFlow); exists {
+					flow.IsDefault = true
+				}
+			}
+		case *model.InclusiveGateway:
+			if gateway.DefaultFlow != "" {
+				if flow, exists := elements[gateway.DefaultFlow].(*model.SequenceFlow); exists {
+					flow.IsDefault = true
+				}
+			}
 		}
 	}
 	return nil

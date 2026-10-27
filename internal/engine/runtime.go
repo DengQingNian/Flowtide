@@ -221,6 +221,13 @@ func (e *Engine) continueAt(cc *commandContext, executionID, activityID string) 
 		e.recordActivityEnd(cc, execution.CurrentHistActivityID)
 		execution.CurrentHistActivityID = ""
 		return e.scheduleTakeOutgoingExclusive(cc, execution, node)
+	case *model.InclusiveGateway:
+		e.recordActivityEnd(cc, execution.CurrentHistActivityID)
+		execution.CurrentHistActivityID = ""
+		if len(node.GetIncoming()) > 1 && execution.ParentID != "" {
+			return e.joinBranches(cc, execution, "inclusive")
+		}
+		return e.scheduleTakeOutgoingInclusive(cc, execution, node)
 	case *model.ParallelGateway:
 		e.recordActivityEnd(cc, execution.CurrentHistActivityID)
 		execution.CurrentHistActivityID = ""
@@ -234,14 +241,14 @@ func (e *Engine) continueAt(cc *commandContext, executionID, activityID string) 
 type takeOutgoingOperation struct {
 	executionID string // 执行 ID
 	activityID  string // 活动 ID
-	exclusive   bool   // 是否排他选择
+	mode        string // 选择模式：空/parallel、exclusive、inclusive
 }
 
 // run 执行出线处理。
 // @param cc 命令上下文
 // @return 执行错误
 func (op *takeOutgoingOperation) run(cc *commandContext) error {
-	return cc.engine.takeOutgoing(cc, op.executionID, op.activityID, op.exclusive)
+	return cc.engine.takeOutgoing(cc, op.executionID, op.activityID, op.mode)
 }
 
 // scheduleTakeOutgoing 调度普通出线处理。
@@ -260,7 +267,17 @@ func (e *Engine) scheduleTakeOutgoing(cc *commandContext, execution *executionSt
 // @param node 网关
 // @return 错误
 func (e *Engine) scheduleTakeOutgoingExclusive(cc *commandContext, execution *executionState, node model.FlowNode) error {
-	cc.agenda.schedule(&takeOutgoingOperation{executionID: execution.ID, activityID: node.GetID(), exclusive: true})
+	cc.agenda.schedule(&takeOutgoingOperation{executionID: execution.ID, activityID: node.GetID(), mode: "exclusive"})
+	return nil
+}
+
+// scheduleTakeOutgoingInclusive 调度包容网关出线处理。
+// @param cc 命令上下文
+// @param execution 执行
+// @param node 网关
+// @return 错误
+func (e *Engine) scheduleTakeOutgoingInclusive(cc *commandContext, execution *executionState, node model.FlowNode) error {
+	cc.agenda.schedule(&takeOutgoingOperation{executionID: execution.ID, activityID: node.GetID(), mode: "inclusive"})
 	return nil
 }
 
@@ -268,9 +285,9 @@ func (e *Engine) scheduleTakeOutgoingExclusive(cc *commandContext, execution *ex
 // @param cc 命令上下文
 // @param executionID 执行 ID
 // @param activityID 活动 ID
-// @param exclusive 是否排他
+// @param mode 选择模式
 // @return 执行错误
-func (e *Engine) takeOutgoing(cc *commandContext, executionID, activityID string, exclusive bool) error {
+func (e *Engine) takeOutgoing(cc *commandContext, executionID, activityID string, mode string) error {
 	execution, ok := e.findExecution(executionID)
 	if !ok || execution.Ended {
 		return nil
@@ -308,7 +325,7 @@ func (e *Engine) takeOutgoing(cc *commandContext, executionID, activityID string
 		return nil
 	}
 	var selected []*model.SequenceFlow
-	if exclusive {
+	if mode == "exclusive" {
 		flow, err := e.selectExclusive(execution, flows)
 		if err != nil {
 			return err
@@ -426,16 +443,17 @@ func (e *Engine) dispatchFlows(cc *commandContext, execution *executionState, fl
 // @return 执行错误
 func (e *Engine) handleParallelGateway(cc *commandContext, execution *executionState, gateway *model.ParallelGateway) error {
 	if len(gateway.GetIncoming()) > 1 && execution.ParentID != "" {
-		return e.joinParallel(cc, execution)
+		return e.joinBranches(cc, execution, "")
 	}
 	return e.scheduleTakeOutgoing(cc, execution, gateway)
 }
 
-// joinParallel 执行并行汇聚。
+// joinBranches 执行并行/包容汇聚。
 // @param cc 命令上下文
 // @param execution 到达网关的子执行
+// @param mode 后续出线选择模式
 // @return 执行错误
-func (e *Engine) joinParallel(cc *commandContext, execution *executionState) error {
+func (e *Engine) joinBranches(cc *commandContext, execution *executionState, mode string) error {
 	execution.Ended = true
 	execution.Active = false
 	parent, ok := e.findExecution(execution.ParentID)
@@ -449,7 +467,7 @@ func (e *Engine) joinParallel(cc *commandContext, execution *executionState) err
 	parent.Active = true
 	parent.Waiting = false
 	// 父执行直接从网关继续，不重复记录网关进入历史
-	cc.agenda.schedule(&takeOutgoingOperation{executionID: parent.ID, activityID: execution.ActivityID})
+	cc.agenda.schedule(&takeOutgoingOperation{executionID: parent.ID, activityID: execution.ActivityID, mode: mode})
 	return nil
 }
 

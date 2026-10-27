@@ -80,13 +80,13 @@ func TestTakeOutgoingDirect(t *testing.T) {
 	app.state.Executions["e"] = &executionState{ID: "e", ProcessInstanceID: "i", DefinitionID: "d", Active: true}
 	cc := &commandContext{engine: app, ctx: context.Background(), now: time.Now()}
 
-	if err := app.takeOutgoing(cc, "missing", "task", false); err != nil {
+	if err := app.takeOutgoing(cc, "missing", "task", ""); err != nil {
 		t.Fatalf("缺失执行不应报错: %v", err)
 	}
-	if err := app.takeOutgoing(cc, "e", "missing", false); err == nil {
+	if err := app.takeOutgoing(cc, "e", "missing", ""); err == nil {
 		t.Fatalf("缺失节点应报错")
 	}
-	if err := app.takeOutgoing(cc, "e", "task", false); err != nil {
+	if err := app.takeOutgoing(cc, "e", "task", ""); err != nil {
 		t.Fatalf("无出线应结束执行: %v", err)
 	}
 	if !app.state.Instances["i"].Ended {
@@ -95,7 +95,7 @@ func TestTakeOutgoingDirect(t *testing.T) {
 
 	app.state.Instances["i2"] = &instanceState{ID: "i2", RootExecutionID: "e2"}
 	app.state.Executions["e2"] = &executionState{ID: "e2", ProcessInstanceID: "i2", DefinitionID: "missing"}
-	if err := app.takeOutgoing(cc, "e2", "task", false); err == nil {
+	if err := app.takeOutgoing(cc, "e2", "task", ""); err == nil {
 		t.Fatalf("缺失定义应报错")
 	}
 }
