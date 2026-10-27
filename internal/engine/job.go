@@ -46,7 +46,7 @@ func (e *Engine) runDueJobs(cc *commandContext) (int, error) {
 	executed := 0
 	for _, job := range jobs {
 		delete(e.state.Jobs, job.ID)
-		if err := e.triggerBoundaryJob(cc, job); err != nil {
+		if err := e.triggerJob(cc, job); err != nil {
 			return 0, err
 		}
 		executed++
@@ -57,6 +57,53 @@ func (e *Engine) runDueJobs(cc *commandContext) (int, error) {
 		}
 	}
 	return executed, nil
+}
+
+// triggerJob 按类型触发作业。
+// @param cc 命令上下文
+// @param job 作业
+// @return 触发错误
+func (e *Engine) triggerJob(cc *commandContext, job *jobState) error {
+	switch job.Type {
+	case "async-before":
+		execution, ok := e.findExecution(job.ExecutionID)
+		if !ok || execution.Ended {
+			return nil
+		}
+		execution.Waiting = false
+		execution.SkipAsyncBefore = true
+		cc.agenda.schedule(&continueOperation{executionID: execution.ID, activityID: job.ActivityID})
+		return nil
+	case "async-after":
+		execution, ok := e.findExecution(job.ExecutionID)
+		if !ok || execution.Ended {
+			return nil
+		}
+		execution.Waiting = false
+		execution.SkipAsyncAfter = true
+		cc.agenda.schedule(&takeOutgoingOperation{executionID: execution.ID, activityID: job.ActivityID})
+		return nil
+	default:
+		return e.triggerBoundaryJob(cc, job)
+	}
+}
+
+// scheduleAsyncJob 创建异步续跑作业。
+// @param cc 命令上下文
+// @param execution 执行
+// @param activityID 活动 ID
+// @param jobType 作业类型
+func (e *Engine) scheduleAsyncJob(cc *commandContext, execution *executionState, activityID, jobType string) {
+	job := &jobState{
+		ID:                e.newID(),
+		Type:              jobType,
+		ProcessInstanceID: execution.ProcessInstanceID,
+		ExecutionID:       execution.ID,
+		ActivityID:        activityID,
+		DueDate:           cc.now,
+		CreatedAt:         cc.now,
+	}
+	e.state.Jobs[job.ID] = job
 }
 
 // triggerBoundaryJob 触发定时器边界事件。
@@ -146,6 +193,7 @@ func (e *Engine) scheduleBoundaryTimers(cc *commandContext, execution *execution
 		}
 		job := &jobState{
 			ID:                e.newID(),
+			Type:              "boundary-timer",
 			ProcessInstanceID: execution.ProcessInstanceID,
 			ExecutionID:       execution.ID,
 			BoundaryEventID:   boundary.ID,

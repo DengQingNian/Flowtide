@@ -155,6 +155,13 @@ func (e *Engine) continueAt(cc *commandContext, executionID, activityID string) 
 	if !ok {
 		return api.NewError("ENGINE-0501", "活动不存在: "+activityID, api.ErrNotFound)
 	}
+	if node, isNode := element.(model.FlowNode); isNode && node.IsAsyncBefore() && !execution.SkipAsyncBefore {
+		execution.SkipAsyncBefore = false
+		execution.Waiting = true
+		e.scheduleAsyncJob(cc, execution, activityID, "async-before")
+		return nil
+	}
+	execution.SkipAsyncBefore = false
 	execution.ActivityID = activityID
 	execution.CurrentHistActivityID = e.recordActivityStart(cc, execution, element)
 	if err := e.scheduleBoundaryTimers(cc, execution, element); err != nil {
@@ -288,6 +295,13 @@ func (e *Engine) takeOutgoing(cc *commandContext, executionID, activityID string
 	if !ok {
 		return api.NewError("ENGINE-0501", "流程节点不存在: "+activityID, api.ErrNotFound)
 	}
+	if node.IsAsyncAfter() && !execution.SkipAsyncAfter {
+		execution.SkipAsyncAfter = false
+		execution.Waiting = true
+		e.scheduleAsyncJob(cc, execution, activityID, "async-after")
+		return nil
+	}
+	execution.SkipAsyncAfter = false
 	flows := node.GetOutgoing()
 	if len(flows) == 0 {
 		e.endExecution(cc, execution, false)

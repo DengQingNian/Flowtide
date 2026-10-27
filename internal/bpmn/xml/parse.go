@@ -217,6 +217,10 @@ func parseElement(node *Node) (model.FlowElement, error) {
 func parseFlowNodeBase(node *Node, base *model.FlowNodeBase) {
 	base.ID = node.Attr("id")
 	base.Name = node.Attr("name")
+	async := strings.EqualFold(attrAny(node, "async"), "true")
+	base.AsyncBefore = async || strings.EqualFold(attrAny(node, "asyncBefore"), "true")
+	base.AsyncAfter = strings.EqualFold(attrAny(node, "asyncAfter"), "true")
+	base.Exclusive = !strings.EqualFold(attrAny(node, "exclusive"), "false")
 	if doc, ok := node.Child("documentation"); ok {
 		base.Documentation = doc.TextContent()
 	}

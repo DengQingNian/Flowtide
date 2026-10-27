@@ -58,6 +58,8 @@ type executionState struct {
 	MIElementVariable     string         // 元素变量名
 	MICompletionCondition string         // 完成条件
 	MIIndex               int            // 子实例序号
+	SkipAsyncBefore       bool           // 本次进入跳过异步前
+	SkipAsyncAfter        bool           // 本次离开跳过异步后
 	PendingBranches       int            // 等待的并行分支数
 	CurrentHistActivityID string         // 当前活动历史记录 ID
 	Variables             map[string]any // 局部变量
@@ -66,6 +68,7 @@ type executionState struct {
 // jobState 是定时器作业。
 type jobState struct {
 	ID                string    `json:"id"`                // 作业 ID
+	Type              string    `json:"type"`              // 作业类型：boundary-timer/async-before/async-after
 	ProcessInstanceID string    `json:"processInstanceId"` // 流程实例 ID
 	ExecutionID       string    `json:"executionId"`       // 执行 ID
 	BoundaryEventID   string    `json:"boundaryEventId"`   // 边界事件 ID

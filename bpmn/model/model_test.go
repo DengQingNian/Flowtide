@@ -100,3 +100,12 @@ func TestBoundaryEventHelpers(t *testing.T) {
 		t.Fatalf("边界事件挂载失败")
 	}
 }
+
+// TestAsyncFlags 验证异步标记。
+// @param t 测试上下文
+func TestAsyncFlags(t *testing.T) {
+	node := &FlowNodeBase{AsyncBefore: true, AsyncAfter: true, Exclusive: true}
+	if !node.IsAsyncBefore() || !node.IsAsyncAfter() || !node.IsExclusive() {
+		t.Fatalf("异步标记读取错误")
+	}
+}

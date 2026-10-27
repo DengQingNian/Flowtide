@@ -65,6 +65,9 @@ type FlowNodeBase struct {
 	incoming       []*SequenceFlow  // 入线
 	outgoing       []*SequenceFlow  // 出线
 	BoundaryEvents []*BoundaryEvent // 依附的边界事件
+	AsyncBefore    bool             // 进入前异步
+	AsyncAfter     bool             // 完成后异步
+	Exclusive      bool             // 是否独占作业
 }
 
 // GetIncoming 返回入线。
@@ -82,6 +85,18 @@ func (n *FlowNodeBase) AddIncoming(flow *SequenceFlow) { n.incoming = append(n.i
 // AddOutgoing 添加出线。
 // @param flow 顺序流
 func (n *FlowNodeBase) AddOutgoing(flow *SequenceFlow) { n.outgoing = append(n.outgoing, flow) }
+
+// IsAsyncBefore 返回是否异步进入。
+// @return 是否异步进入
+func (n *FlowNodeBase) IsAsyncBefore() bool { return n.AsyncBefore }
+
+// IsAsyncAfter 返回是否异步离开。
+// @return 是否异步离开
+func (n *FlowNodeBase) IsAsyncAfter() bool { return n.AsyncAfter }
+
+// IsExclusive 返回是否独占作业。
+// @return 是否独占
+func (n *FlowNodeBase) IsExclusive() bool { return n.Exclusive }
 
 // AddBoundaryEvent 添加边界事件。
 // @param event 边界事件
@@ -114,6 +129,15 @@ type FlowNode interface {
 	// GetBoundaryEvents 返回边界事件。
 	// @return 边界事件列表
 	GetBoundaryEvents() []*BoundaryEvent
+	// IsAsyncBefore 返回是否异步进入。
+	// @return 是否异步进入
+	IsAsyncBefore() bool
+	// IsAsyncAfter 返回是否异步离开。
+	// @return 是否异步离开
+	IsAsyncAfter() bool
+	// IsExclusive 返回是否独占作业。
+	// @return 是否独占
+	IsExclusive() bool
 }
 
 // StartEvent 表示开始事件。
