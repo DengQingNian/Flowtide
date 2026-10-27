@@ -45,6 +45,69 @@ func (e *Engine) AddComment(ctx context.Context, taskID, userID, message string)
 	return result.(api.Comment), nil
 }
 
+// AddProcessComment 添加流程实例评论。
+// @param ctx 上下文
+// @param processInstanceID 实例 ID
+// @param userID 作者
+// @param message 内容
+// @return 评论
+// @return 添加错误
+func (e *Engine) AddProcessComment(ctx context.Context, processInstanceID, userID, message string) (api.Comment, error) {
+	result, err := e.execute(ctx, func(cc *commandContext) (any, error) {
+		instance, ok := e.findInstance(processInstanceID)
+		if !ok {
+			return nil, api.NewError("ENGINE-0404", "流程实例不存在", api.ErrNotFound)
+		}
+		if err := e.allowTenant(ctx, instance.TenantID); err != nil {
+			return nil, err
+		}
+		if strings.TrimSpace(message) == "" {
+			return nil, api.NewError("ENGINE-1101", "评论内容不能为空", api.ErrBadRequest)
+		}
+		comment := &api.Comment{
+			ID:                e.newID(),
+			ProcessInstanceID: processInstanceID,
+			Type:              "comment",
+			Message:           message,
+			UserID:            userID,
+			Time:              cc.now,
+		}
+		e.state.Comments[comment.ID] = comment
+		return *comment, nil
+	})
+	if err != nil {
+		return api.Comment{}, err
+	}
+	return result.(api.Comment), nil
+}
+
+// ListProcessComments 返回流程实例评论。
+// @param ctx 上下文
+// @param processInstanceID 实例 ID
+// @return 评论列表
+// @return 查询错误
+func (e *Engine) ListProcessComments(ctx context.Context, processInstanceID string) ([]api.Comment, error) {
+	result, err := e.read(func() (any, error) {
+		out := make([]api.Comment, 0)
+		for _, comment := range e.state.Comments {
+			if comment.ProcessInstanceID == processInstanceID && comment.TaskID == "" {
+				out = append(out, *comment)
+			}
+		}
+		sort.Slice(out, func(i, j int) bool {
+			if out[i].Time.Equal(out[j].Time) {
+				return out[i].ID < out[j].ID
+			}
+			return out[i].Time.Before(out[j].Time)
+		})
+		return out, nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.([]api.Comment), nil
+}
+
 // ListComments 返回任务评论。
 // @param ctx 上下文
 // @param taskID 任务 ID

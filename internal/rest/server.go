@@ -266,6 +266,8 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("DELETE /service/runtime/process-instances/{id}", s.handleDeleteInstance)
 	s.mux.HandleFunc("PUT /service/runtime/process-instances/{id}", s.handleInstanceAction)
 	s.mux.HandleFunc("POST /service/runtime/process-instances/{id}/migrate", s.handleMigrate)
+	s.mux.HandleFunc("GET /service/runtime/process-instances/{id}/comments", s.handleListProcessComments)
+	s.mux.HandleFunc("POST /service/runtime/process-instances/{id}/comments", s.handleAddProcessComment)
 	s.mux.HandleFunc("GET /service/runtime/process-instances/{id}/tasks", s.handleGetInstanceTasks)
 	s.mux.HandleFunc("GET /service/runtime/process-instances/{id}/variables", s.handleGetVariables)
 	s.mux.HandleFunc("POST /service/runtime/process-instances/{id}/variables", s.handleCreateInstanceVariable)
@@ -1359,6 +1361,36 @@ func (s *Server) handleDeleteInstanceVariable(w http.ResponseWriter, r *http.Req
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
+}
+
+// handleListProcessComments 返回流程实例评论。
+// @param w 响应
+// @param r 请求
+func (s *Server) handleListProcessComments(w http.ResponseWriter, r *http.Request) {
+	comments, err := s.engine.TaskService().ListProcessComments(r.Context(), r.PathValue("id"))
+	if err != nil {
+		writeError(w, err)
+		return
+	}
+	start, size := pageParams(r)
+	writePage(w, comments, start, size)
+}
+
+// handleAddProcessComment 添加流程实例评论。
+// @param w 响应
+// @param r 请求
+func (s *Server) handleAddProcessComment(w http.ResponseWriter, r *http.Request) {
+	var payload commentPayload
+	if err := decodeJSON(r, &payload); err != nil {
+		writeError(w, err)
+		return
+	}
+	comment, err := s.engine.TaskService().AddProcessComment(r.Context(), r.PathValue("id"), payload.UserID, payload.Message)
+	if err != nil {
+		writeError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusCreated, comment)
 }
 
 // handleGetInstanceTasks 返回实例任务。

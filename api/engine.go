@@ -337,6 +337,20 @@ type TaskService interface {
 	// @return 评论
 	// @return 添加错误
 	AddComment(ctx context.Context, taskID, userID, message string) (Comment, error)
+	// AddProcessComment 添加流程实例评论。
+	// @param ctx 上下文
+	// @param processInstanceID 实例 ID
+	// @param userID 作者
+	// @param message 内容
+	// @return 评论
+	// @return 添加错误
+	AddProcessComment(ctx context.Context, processInstanceID, userID, message string) (Comment, error)
+	// ListProcessComments 返回流程实例评论。
+	// @param ctx 上下文
+	// @param processInstanceID 实例 ID
+	// @return 评论列表
+	// @return 查询错误
+	ListProcessComments(ctx context.Context, processInstanceID string) ([]Comment, error)
 	// ListComments 返回任务评论。
 	// @param ctx 上下文
 	// @param taskID 任务 ID

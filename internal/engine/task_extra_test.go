@@ -119,3 +119,32 @@ func TestTaskExtra_Closed(t *testing.T) {
 		t.Fatalf("关闭后附件列表应报错")
 	}
 }
+
+// TestProcessComments 验证流程实例评论。
+// @param t 测试上下文
+func TestProcessComments(t *testing.T) {
+	engine := newTestEngine(t)
+	deployXML(t, engine, simpleProcess)
+	instance, _ := engine.StartProcessInstance(context.Background(), api.StartRequest{
+		ProcessDefinitionKey: "simple",
+		Variables:            []api.Variable{{Name: "initiator", Value: "alice"}},
+	})
+	comment, err := engine.AddProcessComment(context.Background(), instance.ID, "alice", "proc")
+	if err != nil || comment.ProcessInstanceID != instance.ID {
+		t.Fatalf("添加流程评论失败: %v", err)
+	}
+	task := listTasks(t, engine)[0]
+	if _, err := engine.AddComment(context.Background(), task.ID, "alice", "task"); err != nil {
+		t.Fatalf("添加任务评论失败: %v", err)
+	}
+	comments, err := engine.ListProcessComments(context.Background(), instance.ID)
+	if err != nil || len(comments) != 1 || comments[0].Message != "proc" {
+		t.Fatalf("流程评论列表错误: %v %+v", err, comments)
+	}
+	if _, err := engine.AddProcessComment(context.Background(), "missing", "u", "m"); err == nil {
+		t.Fatalf("缺失实例评论应失败")
+	}
+	if _, err := engine.AddProcessComment(context.Background(), instance.ID, "u", ""); err == nil {
+		t.Fatalf("空评论应失败")
+	}
+}
