@@ -21,6 +21,14 @@ type User struct {
 	TenantID       string     `json:"tenantId,omitempty"`    // 租户
 }
 
+// Role 是角色与权限。
+type Role struct {
+	ID          string   `json:"id"`                    // 角色 ID
+	Name        string   `json:"name,omitempty"`        // 名称
+	Permissions []string `json:"permissions,omitempty"` // 权限
+	TenantID    string   `json:"tenantId,omitempty"`    // 租户
+}
+
 // Group 是身份组。
 type Group struct {
 	ID       string `json:"id"`                 // 组 ID
@@ -65,6 +73,34 @@ type IdentityService interface {
 	// @param userID 用户 ID
 	// @return 删除错误
 	DeleteUser(ctx context.Context, userID string) error
+	// CreateRole 创建角色。
+	// @param ctx 上下文
+	// @param role 角色
+	// @return 角色
+	// @return 创建错误
+	CreateRole(ctx context.Context, role Role) (Role, error)
+	// GetRole 查询角色。
+	// @param ctx 上下文
+	// @param roleID 角色 ID
+	// @return 角色
+	// @return 查询错误
+	GetRole(ctx context.Context, roleID string) (Role, error)
+	// ListRoles 返回全部角色。
+	// @param ctx 上下文
+	// @return 角色列表
+	// @return 查询错误
+	ListRoles(ctx context.Context) ([]Role, error)
+	// UpdateRole 更新角色。
+	// @param ctx 上下文
+	// @param role 角色
+	// @return 角色
+	// @return 更新错误
+	UpdateRole(ctx context.Context, role Role) (Role, error)
+	// DeleteRole 删除角色。
+	// @param ctx 上下文
+	// @param roleID 角色 ID
+	// @return 删除错误
+	DeleteRole(ctx context.Context, roleID string) error
 	// CreateGroup 创建组。
 	// @param ctx 上下文
 	// @param group 组

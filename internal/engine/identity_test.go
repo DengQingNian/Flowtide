@@ -224,3 +224,40 @@ func TestUpdateUser(t *testing.T) {
 		t.Fatalf("禁用用户登录应失败")
 	}
 }
+
+// TestRoleCRUD 验证角色管理。
+// @param t 测试上下文
+func TestRoleCRUD(t *testing.T) {
+	engine := newTestEngine(t)
+	role, err := engine.CreateRole(context.Background(), api.Role{ID: "reader", Name: "Reader", Permissions: []string{"read"}})
+	if err != nil || role.ID != "reader" {
+		t.Fatalf("创建角色失败: %v", err)
+	}
+	if _, err := engine.CreateRole(context.Background(), api.Role{ID: "reader"}); err == nil {
+		t.Fatalf("重复角色应失败")
+	}
+	if _, err := engine.CreateRole(context.Background(), api.Role{}); err == nil {
+		t.Fatalf("空角色 ID 应失败")
+	}
+	if got, err := engine.GetRole(context.Background(), "reader"); err != nil || got.Name != "Reader" {
+		t.Fatalf("查询角色失败: %v", err)
+	}
+	if roles, err := engine.ListRoles(context.Background()); err != nil || len(roles) != 1 {
+		t.Fatalf("角色列表错误: %v %d", err, len(roles))
+	}
+	if updated, err := engine.UpdateRole(context.Background(), api.Role{ID: "reader", Name: "R2", Permissions: []string{"read", "write"}}); err != nil || updated.Name != "R2" {
+		t.Fatalf("更新角色失败: %v", err)
+	}
+	if _, err := engine.UpdateRole(context.Background(), api.Role{ID: "missing"}); err == nil {
+		t.Fatalf("缺失角色更新应失败")
+	}
+	if err := engine.DeleteRole(context.Background(), "reader"); err != nil {
+		t.Fatalf("删除角色失败: %v", err)
+	}
+	if _, err := engine.GetRole(context.Background(), "reader"); err == nil {
+		t.Fatalf("删除后角色应不存在")
+	}
+	if err := engine.DeleteRole(context.Background(), "missing"); err == nil {
+		t.Fatalf("删除缺失角色应失败")
+	}
+}

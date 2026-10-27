@@ -383,3 +383,102 @@ func (e *Engine) ChangePassword(ctx context.Context, userID, oldPassword, newPas
 	})
 	return err
 }
+
+// CreateRole 创建角色。
+// @param ctx 上下文
+// @param role 角色
+// @return 角色
+// @return 创建错误
+func (e *Engine) CreateRole(ctx context.Context, role api.Role) (api.Role, error) {
+	result, err := e.execute(ctx, func(cc *commandContext) (any, error) {
+		if role.ID == "" {
+			return nil, api.NewError("ENGINE-1005", "角色 ID 不能为空", api.ErrBadRequest)
+		}
+		if _, exists := e.state.Roles[role.ID]; exists {
+			return nil, api.NewError("ENGINE-1006", "角色已存在", api.ErrConflict)
+		}
+		copied := role
+		copied.Permissions = append([]string(nil), role.Permissions...)
+		e.state.Roles[copied.ID] = &copied
+		return copied, nil
+	})
+	if err != nil {
+		return api.Role{}, err
+	}
+	return result.(api.Role), nil
+}
+
+// GetRole 查询角色。
+// @param ctx 上下文
+// @param roleID 角色 ID
+// @return 角色
+// @return 查询错误
+func (e *Engine) GetRole(ctx context.Context, roleID string) (api.Role, error) {
+	result, err := e.read(func() (any, error) {
+		role, ok := e.state.Roles[roleID]
+		if !ok {
+			return nil, api.NewError("ENGINE-0404", "角色不存在", api.ErrNotFound)
+		}
+		return *role, nil
+	})
+	if err != nil {
+		return api.Role{}, err
+	}
+	return result.(api.Role), nil
+}
+
+// ListRoles 返回全部角色。
+// @param ctx 上下文
+// @return 角色列表
+// @return 查询错误
+func (e *Engine) ListRoles(ctx context.Context) ([]api.Role, error) {
+	result, err := e.read(func() (any, error) {
+		out := make([]api.Role, 0, len(e.state.Roles))
+		for _, role := range e.state.Roles {
+			out = append(out, *role)
+		}
+		sort.Slice(out, func(i, j int) bool { return out[i].ID < out[j].ID })
+		return out, nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.([]api.Role), nil
+}
+
+// UpdateRole 更新角色。
+// @param ctx 上下文
+// @param role 角色
+// @return 角色
+// @return 更新错误
+func (e *Engine) UpdateRole(ctx context.Context, role api.Role) (api.Role, error) {
+	result, err := e.execute(ctx, func(cc *commandContext) (any, error) {
+		existing, ok := e.state.Roles[role.ID]
+		if !ok {
+			return nil, api.NewError("ENGINE-0404", "角色不存在", api.ErrNotFound)
+		}
+		existing.Name = role.Name
+		existing.TenantID = role.TenantID
+		existing.Permissions = append([]string(nil), role.Permissions...)
+		return *existing, nil
+	})
+	if err != nil {
+		return api.Role{}, err
+	}
+	return result.(api.Role), nil
+}
+
+// DeleteRole 删除角色。
+// @param ctx 上下文
+// @param roleID 角色 ID
+// @return 删除错误
+func (e *Engine) DeleteRole(ctx context.Context, roleID string) error {
+	_, err := e.execute(ctx, func(cc *commandContext) (any, error) {
+		if _, ok := e.state.Roles[roleID]; !ok {
+			return nil, api.NewError("ENGINE-0404", "角色不存在", api.ErrNotFound)
+		}
+		delete(e.state.Roles, roleID)
+		return nil, nil
+	})
+	return err
+}

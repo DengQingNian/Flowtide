@@ -149,6 +149,7 @@ type state struct {
 	Attachments        map[string]*api.Attachment               // 附件
 	Users              map[string]*api.User                     // 用户
 	Groups             map[string]*api.Group                    // 组
+	Roles              map[string]*api.Role                     // 角色
 	Memberships        map[string]bool                          // 成员关系，key=user|group
 	Versions           map[string]int                           // 流程定义 Key 到最大版本
 }
@@ -177,6 +178,7 @@ func newState() *state {
 		Attachments:        make(map[string]*api.Attachment),
 		Users:              make(map[string]*api.User),
 		Groups:             make(map[string]*api.Group),
+		Roles:              make(map[string]*api.Role),
 		Memberships:        make(map[string]bool),
 		Versions:           make(map[string]int),
 	}
@@ -279,6 +281,11 @@ func cloneState(source *state) *state {
 	for id, group := range source.Groups {
 		copied := *group
 		target.Groups[id] = &copied
+	}
+	for id, role := range source.Roles {
+		copied := *role
+		copied.Permissions = append([]string(nil), role.Permissions...)
+		target.Roles[id] = &copied
 	}
 	for key, value := range source.Memberships {
 		target.Memberships[key] = value

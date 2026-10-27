@@ -128,7 +128,7 @@ func (s *Server) authenticate(next http.Handler) http.Handler {
 // @param r 请求
 // @return 是否允许
 func (s *Server) permitted(r *http.Request) bool {
-	if len(s.rolePermissions) == 0 {
+	if len(s.rolePermissions) == 0 && !s.identityAuth {
 		return true
 	}
 	// Bearer Token 视为服务账号，拥有全部权限
@@ -147,7 +147,13 @@ func (s *Server) permitted(r *http.Request) bool {
 		}
 	}
 	for _, role := range roles {
-		for _, permission := range s.rolePermissions[role] {
+		permissions := append([]string(nil), s.rolePermissions[role]...)
+		if s.identityAuth {
+			if roleEntity, err := s.engine.IdentityService().GetRole(r.Context(), role); err == nil {
+				permissions = append(permissions, roleEntity.Permissions...)
+			}
+		}
+		for _, permission := range permissions {
 			if permission == "admin" || permission == required {
 				return true
 			}
@@ -224,6 +230,11 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("DELETE /service/runtime/process-instances/{id}/variables/{name}", s.handleDeleteInstanceVariable)
 	s.mux.HandleFunc("GET /service/form/form-data", s.handleGetFormData)
 	s.mux.HandleFunc("POST /service/form/form-data", s.handleSubmitFormData)
+	s.mux.HandleFunc("GET /service/identity/roles", s.handleListRoles)
+	s.mux.HandleFunc("POST /service/identity/roles", s.handleCreateRole)
+	s.mux.HandleFunc("GET /service/identity/roles/{id}", s.handleGetRole)
+	s.mux.HandleFunc("PUT /service/identity/roles/{id}", s.handleUpdateRole)
+	s.mux.HandleFunc("DELETE /service/identity/roles/{id}", s.handleDeleteRole)
 	s.mux.HandleFunc("GET /service/identity/users", s.handleListUsers)
 	s.mux.HandleFunc("POST /service/identity/users", s.handleCreateUser)
 	s.mux.HandleFunc("GET /service/identity/users/{id}", s.handleGetUser)
@@ -701,6 +712,77 @@ func (s *Server) handleSubmitFormData(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err := s.engine.FormService().SubmitTaskFormData(r.Context(), payload.TaskID, payload.Values); err != nil {
+		writeError(w, err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
+// handleListRoles 返回角色列表。
+// @param w 响应
+// @param r 请求
+func (s *Server) handleListRoles(w http.ResponseWriter, r *http.Request) {
+	roles, err := s.engine.IdentityService().ListRoles(r.Context())
+	if err != nil {
+		writeError(w, err)
+		return
+	}
+	start, size := pageParams(r)
+	writePage(w, roles, start, size)
+}
+
+// handleCreateRole 创建角色。
+// @param w 响应
+// @param r 请求
+func (s *Server) handleCreateRole(w http.ResponseWriter, r *http.Request) {
+	var role api.Role
+	if err := decodeJSON(r, &role); err != nil {
+		writeError(w, err)
+		return
+	}
+	created, err := s.engine.IdentityService().CreateRole(r.Context(), role)
+	if err != nil {
+		writeError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusCreated, created)
+}
+
+// handleGetRole 查询角色。
+// @param w 响应
+// @param r 请求
+func (s *Server) handleGetRole(w http.ResponseWriter, r *http.Request) {
+	role, err := s.engine.IdentityService().GetRole(r.Context(), r.PathValue("id"))
+	if err != nil {
+		writeError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, role)
+}
+
+// handleUpdateRole 更新角色。
+// @param w 响应
+// @param r 请求
+func (s *Server) handleUpdateRole(w http.ResponseWriter, r *http.Request) {
+	var role api.Role
+	if err := decodeJSON(r, &role); err != nil {
+		writeError(w, err)
+		return
+	}
+	role.ID = r.PathValue("id")
+	updated, err := s.engine.IdentityService().UpdateRole(r.Context(), role)
+	if err != nil {
+		writeError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, updated)
+}
+
+// handleDeleteRole 删除角色。
+// @param w 响应
+// @param r 请求
+func (s *Server) handleDeleteRole(w http.ResponseWriter, r *http.Request) {
+	if err := s.engine.IdentityService().DeleteRole(r.Context(), r.PathValue("id")); err != nil {
 		writeError(w, err)
 		return
 	}
@@ -1651,6 +1733,12 @@ func reflectSlice(items any) []any {
 		}
 		return out
 	case []api.User:
+		out := make([]any, len(typed))
+		for i, item := range typed {
+			out[i] = item
+		}
+		return out
+	case []api.Role:
 		out := make([]any, len(typed))
 		for i, item := range typed {
 			out[i] = item
