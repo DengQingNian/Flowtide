@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"sort"
+	"strings"
 	"time"
 
 	flowablerow "github.com/flowable-go/flowable/internal/persistence/flowable"
@@ -132,6 +133,96 @@ func (e *Engine) ExportRuntimeRows(ctx context.Context) ([]flowablerow.Row, erro
 				rows = append(rows, *row)
 			}
 		}
+		jobs := make([]*jobState, 0, len(e.state.Jobs))
+		for _, job := range e.state.Jobs {
+			jobs = append(jobs, job)
+		}
+		sort.Slice(jobs, func(i, j int) bool { return jobs[i].ID < jobs[j].ID })
+		for _, job := range jobs {
+			row, rowErr := runtimeRow("ACT_RU_JOB", []string{"ID_", "REV_", "TYPE_", "EXCLUSIVE_", "EXECUTION_ID_", "PROCESS_INSTANCE_ID_", "PROC_DEF_ID_", "ELEMENT_ID_", "RETRIES_", "EXCEPTION_MSG_", "DUEDATE_", "HANDLER_TYPE_", "HANDLER_CFG_", "CREATE_TIME_", "TENANT_ID_"})
+			if rowErr != nil {
+				return nil, rowErr
+			}
+			jobType := "async"
+			if strings.Contains(job.Type, "timer") {
+				jobType = "timer"
+			}
+			tenant := ""
+			if job.ProcessInstanceID != "" {
+				if instance, ok := e.findInstance(job.ProcessInstanceID); ok {
+					tenant = instance.TenantID
+				}
+			}
+			if tenant == "" && job.ProcessDefinitionID != "" {
+				if definition, ok := e.findDefinition(job.ProcessDefinitionID); ok {
+					tenant = definition.Info.TenantID
+				}
+			}
+			config, _ := json.Marshal(timerHandlerConfig{
+				Remaining: job.RepeatRemaining, Infinite: job.RepeatInfinite, IntervalMillis: job.IntervalMillis,
+			})
+			_ = row.Set("ID_", job.ID)
+			_ = row.Set("REV_", 1)
+			_ = row.Set("TYPE_", jobType)
+			_ = row.Set("EXCLUSIVE_", true)
+			_ = row.Set("EXECUTION_ID_", job.ExecutionID)
+			_ = row.Set("PROCESS_INSTANCE_ID_", job.ProcessInstanceID)
+			_ = row.Set("PROC_DEF_ID_", job.ProcessDefinitionID)
+			_ = row.Set("ELEMENT_ID_", job.ActivityID)
+			_ = row.Set("RETRIES_", job.Retries)
+			_ = row.Set("EXCEPTION_MSG_", job.Exception)
+			_ = row.Set("DUEDATE_", job.DueDate)
+			_ = row.Set("HANDLER_TYPE_", job.Type)
+			_ = row.Set("HANDLER_CFG_", string(config))
+			_ = row.Set("CREATE_TIME_", job.CreatedAt)
+			_ = row.Set("TENANT_ID_", tenant)
+			rows = append(rows, *row)
+		}
+
+		subscriptions := make([]*subscriptionState, 0, len(e.state.Subscriptions))
+		for _, subscription := range e.state.Subscriptions {
+			subscriptions = append(subscriptions, subscription)
+		}
+		sort.Slice(subscriptions, func(i, j int) bool { return subscriptions[i].ID < subscriptions[j].ID })
+		for _, subscription := range subscriptions {
+			row, rowErr := runtimeRow("ACT_RU_EVENT_SUBSCR", []string{"ID_", "REV_", "EVENT_TYPE_", "EVENT_NAME_", "EXECUTION_ID_", "PROC_INST_ID_", "ACTIVITY_ID_", "CONFIGURATION_", "CREATED_", "PROC_DEF_ID_", "SUB_SCOPE_ID_", "SCOPE_ID_", "SCOPE_DEFINITION_ID_", "SCOPE_DEFINITION_KEY_", "SCOPE_TYPE_", "TENANT_ID_"})
+			if rowErr != nil {
+				return nil, rowErr
+			}
+			scopeType := "catch"
+			scopeDefinitionID := ""
+			scopeDefinitionKey := ""
+			switch {
+			case subscription.StartEvent:
+				scopeType = "start"
+			case subscription.BoundaryEventID != "":
+				scopeType = "boundary"
+				scopeDefinitionID = subscription.BoundaryEventID
+			case subscription.EventSubProcessStartID != "":
+				scopeType = "event-subprocess"
+				scopeDefinitionID = subscription.EventSubProcessStartID
+				scopeDefinitionKey = subscription.EventSubProcessID
+			case subscription.GatewayGroup != "":
+				scopeType = "gateway"
+			}
+			_ = row.Set("ID_", subscription.ID)
+			_ = row.Set("REV_", 1)
+			_ = row.Set("EVENT_TYPE_", subscription.EventType)
+			_ = row.Set("EVENT_NAME_", subscription.EventName)
+			_ = row.Set("EXECUTION_ID_", subscription.ExecutionID)
+			_ = row.Set("PROC_INST_ID_", subscription.ProcessInstanceID)
+			_ = row.Set("ACTIVITY_ID_", subscription.ActivityID)
+			_ = row.Set("CONFIGURATION_", subscription.EventName)
+			_ = row.Set("CREATED_", subscription.CreatedAt)
+			_ = row.Set("PROC_DEF_ID_", subscription.ProcessDefinitionID)
+			_ = row.Set("SUB_SCOPE_ID_", subscription.GatewayGroup)
+			_ = row.Set("SCOPE_ID_", subscription.ScopeExecutionID)
+			_ = row.Set("SCOPE_DEFINITION_ID_", scopeDefinitionID)
+			_ = row.Set("SCOPE_DEFINITION_KEY_", scopeDefinitionKey)
+			_ = row.Set("SCOPE_TYPE_", scopeType)
+			_ = row.Set("TENANT_ID_", subscription.TenantID)
+			rows = append(rows, *row)
+		}
 		sort.Slice(rows, func(i, j int) bool {
 			if rows[i].Table == rows[j].Table {
 				return rowID(rows[i]) < rowID(rows[j])
@@ -229,4 +320,11 @@ func variableColumns(value any) (string, any, any, any) {
 func variableID(executionID, taskID, name string) string {
 	sum := sha256.Sum256([]byte(executionID + "|" + taskID + "|" + name))
 	return "var-" + hex.EncodeToString(sum[:])[:32]
+}
+
+// timerHandlerConfig 是定时作业配置。
+type timerHandlerConfig struct {
+	Remaining      int   // 剩余次数
+	Infinite       bool  // 是否无限
+	IntervalMillis int64 // 间隔毫秒
 }

@@ -3,6 +3,7 @@ package engine
 import (
 	"context"
 	"encoding/json"
+	"time"
 
 	"github.com/flowable-go/flowable/api"
 	flowablerow "github.com/flowable-go/flowable/internal/persistence/flowable"
@@ -103,6 +104,71 @@ func (e *Engine) ImportRuntimeRows(ctx context.Context, rows []flowablerow.Row) 
 			if execution, ok := e.state.Executions[task.ExecutionID]; ok {
 				execution.Waiting = true
 			}
+		}
+		for _, job := range snapshot.Jobs {
+			if job.DefinitionID != "" {
+				if _, ok := e.findDefinition(job.DefinitionID); !ok {
+					return nil, api.NewError("ENGINE-0404", "导入作业缺少流程定义: "+job.DefinitionID, api.ErrBadRequest)
+				}
+			}
+			if job.ProcessInstanceID != "" {
+				if _, ok := e.findInstance(job.ProcessInstanceID); !ok {
+					return nil, api.NewError("ENGINE-0404", "导入作业缺少实例: "+job.ProcessInstanceID, api.ErrBadRequest)
+				}
+			}
+			due := time.Time{}
+			if job.DueDate != nil {
+				due = *job.DueDate
+			}
+			e.state.Jobs[job.ID] = &jobState{
+				ID:                  job.ID,
+				Type:                job.Type,
+				ProcessInstanceID:   job.ProcessInstanceID,
+				ProcessDefinitionID: job.DefinitionID,
+				ExecutionID:         job.ExecutionID,
+				ActivityID:          job.ActivityID,
+				Retries:             job.Retries,
+				Exception:           job.Exception,
+				DueDate:             due,
+				CreatedAt:           job.CreatedAt,
+				RepeatRemaining:     job.RepeatRemaining,
+				RepeatInfinite:      job.RepeatInfinite,
+				IntervalMillis:      job.IntervalMillis,
+			}
+		}
+		for _, subscription := range snapshot.Subscriptions {
+			if _, ok := e.findDefinition(subscription.DefinitionID); !ok {
+				return nil, api.NewError("ENGINE-0404", "导入订阅缺少流程定义: "+subscription.DefinitionID, api.ErrBadRequest)
+			}
+			if subscription.ExecutionID != "" {
+				if _, ok := e.state.Executions[subscription.ExecutionID]; !ok {
+					return nil, api.NewError("ENGINE-0405", "导入订阅缺少执行: "+subscription.ExecutionID, api.ErrBadRequest)
+				}
+			}
+			state := &subscriptionState{
+				ID:                  subscription.ID,
+				ProcessDefinitionID: subscription.DefinitionID,
+				ProcessInstanceID:   subscription.ProcessInstanceID,
+				ExecutionID:         subscription.ExecutionID,
+				EventType:           subscription.EventType,
+				EventName:           subscription.EventName,
+				ActivityID:          subscription.ActivityID,
+				ScopeExecutionID:    subscription.ScopeID,
+				TenantID:            subscription.TenantID,
+				CreatedAt:           subscription.CreatedAt,
+			}
+			switch subscription.ScopeType {
+			case "start":
+				state.StartEvent = true
+			case "boundary":
+				state.BoundaryEventID = subscription.ScopeDefinitionID
+			case "event-subprocess":
+				state.EventSubProcessStartID = subscription.ScopeDefinitionID
+				state.EventSubProcessID = subscription.ScopeDefinitionKey
+			case "gateway":
+				state.GatewayGroup = subscription.SubScopeID
+			}
+			e.state.Subscriptions[state.ID] = state
 		}
 		return nil, nil
 	})

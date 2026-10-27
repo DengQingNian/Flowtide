@@ -131,3 +131,192 @@ func runtimeExecutionRow(t *testing.T, executionID, instanceID, definitionID str
 	_ = row.Set("SUSPENSION_STATE_", 1)
 	return *row
 }
+
+// TestImportRuntimeRows_Subscription 验证订阅恢复。
+// @param t 测试上下文
+func TestImportRuntimeRows_Subscription(t *testing.T) {
+	source := newTestEngine(t)
+	deployXML(t, source, receiveTaskXML)
+	if _, err := source.StartProcessInstance(context.Background(), api.StartRequest{ProcessDefinitionKey: "receiveTask"}); err != nil {
+		t.Fatalf("启动失败: %v", err)
+	}
+	repositoryRows, _ := source.ExportRows(context.Background())
+	runtimeRows, _ := source.ExportRuntimeRows(context.Background())
+	target := newTestEngine(t)
+	_ = target.ImportRows(context.Background(), repositoryRows)
+	if err := target.ImportRuntimeRows(context.Background(), runtimeRows); err != nil {
+		t.Fatalf("导入订阅失败: %v", err)
+	}
+	triggered, err := target.MessageEventReceived(context.Background(), "receiveMessage", nil)
+	if err != nil || triggered != 1 {
+		t.Fatalf("恢复后消息触发失败: %v %d", err, triggered)
+	}
+	if len(listTasks(t, target)) != 1 {
+		t.Fatalf("恢复后应创建任务")
+	}
+}
+
+// TestImportRuntimeRows_Job 验证作业恢复。
+// @param t 测试上下文
+func TestImportRuntimeRows_Job(t *testing.T) {
+	source := newTestEngine(t)
+	source.RegisterDelegate("noop", func(ctx context.Context, execution *Execution) error { return nil })
+	deployXML(t, source, asyncServiceXML("asyncJob", `flowable:asyncBefore="true"`))
+	instance, err := source.StartProcessInstance(context.Background(), api.StartRequest{ProcessDefinitionKey: "asyncJob"})
+	if err != nil {
+		t.Fatalf("启动失败: %v", err)
+	}
+	repositoryRows, _ := source.ExportRows(context.Background())
+	runtimeRows, _ := source.ExportRuntimeRows(context.Background())
+	target := newTestEngine(t)
+	target.RegisterDelegate("noop", func(ctx context.Context, execution *Execution) error { return nil })
+	_ = target.ImportRows(context.Background(), repositoryRows)
+	if err := target.ImportRuntimeRows(context.Background(), runtimeRows); err != nil {
+		t.Fatalf("导入作业失败: %v", err)
+	}
+	if executed, err := target.RunDueJobs(context.Background()); err != nil || executed != 1 {
+		t.Fatalf("恢复后作业执行失败: %v %d", err, executed)
+	}
+	got, _ := target.GetProcessInstance(context.Background(), instance.ID)
+	if !got.Ended {
+		t.Fatalf("恢复作业后流程应结束")
+	}
+}
+
+// TestImportRuntimeRows_DefinitionErrors 验证缺失定义/执行。
+// @param t 测试上下文
+func TestImportRuntimeRows_DefinitionErrors(t *testing.T) {
+	source := newTestEngine(t)
+	deployXML(t, source, receiveTaskXML)
+	_, _ = source.StartProcessInstance(context.Background(), api.StartRequest{ProcessDefinitionKey: "receiveTask"})
+	repositoryRows, _ := source.ExportRows(context.Background())
+	runtimeRows, _ := source.ExportRuntimeRows(context.Background())
+	target := newTestEngine(t)
+	_ = target.ImportRows(context.Background(), repositoryRows)
+	for id := range target.state.Definitions {
+		delete(target.state.Definitions, id)
+	}
+	if err := target.ImportRuntimeRows(context.Background(), runtimeRows); err == nil {
+		t.Fatalf("缺失定义应失败")
+	}
+	target2 := newTestEngine(t)
+	_ = target2.ImportRows(context.Background(), repositoryRows)
+	withoutExecution := make([]flowablerow.Row, 0)
+	for _, row := range runtimeRows {
+		if row.Table != "ACT_RU_EXECUTION" {
+			withoutExecution = append(withoutExecution, row)
+		}
+	}
+	if err := target2.ImportRuntimeRows(context.Background(), withoutExecution); err == nil {
+		t.Fatalf("缺失执行应失败")
+	}
+}
+
+// TestRuntimeVariableValue_Default 验证未知变量类型回退。
+// @param t 测试上下文
+func TestRuntimeVariableValue_Default(t *testing.T) {
+	text := "x"
+	long := int64(1)
+	double := 1.5
+	if value, _ := runtimeVariableValue(flowablerow.RuntimeVariable{Type: "unknown", Text: &text}); value != "x" {
+		t.Fatalf("未知类型文本回退错误")
+	}
+	if value, _ := runtimeVariableValue(flowablerow.RuntimeVariable{Type: "unknown", Long: &long}); value != int64(1) {
+		t.Fatalf("未知类型整数回退错误")
+	}
+	if value, _ := runtimeVariableValue(flowablerow.RuntimeVariable{Type: "unknown", Double: &double}); value != 1.5 {
+		t.Fatalf("未知类型浮点回退错误")
+	}
+	if value, _ := runtimeVariableValue(flowablerow.RuntimeVariable{Type: "unknown"}); value != nil {
+		t.Fatalf("未知类型空值回退错误")
+	}
+}
+
+// TestImportRuntimeRows_JobDefinitionError 验证作业缺失定义。
+// @param t 测试上下文
+func TestImportRuntimeRows_JobDefinitionError(t *testing.T) {
+	source := newTestEngine(t)
+	source.RegisterDelegate("noop", func(ctx context.Context, execution *Execution) error { return nil })
+	deployXML(t, source, asyncServiceXML("asyncMissing", `flowable:asyncBefore="true"`))
+	_, _ = source.StartProcessInstance(context.Background(), api.StartRequest{ProcessDefinitionKey: "asyncMissing"})
+	repositoryRows, _ := source.ExportRows(context.Background())
+	runtimeRows, _ := source.ExportRuntimeRows(context.Background())
+	target := newTestEngine(t)
+	_ = target.ImportRows(context.Background(), repositoryRows)
+	for id := range target.state.Definitions {
+		delete(target.state.Definitions, id)
+	}
+	if err := target.ImportRuntimeRows(context.Background(), runtimeRows); err == nil {
+		t.Fatalf("作业缺失定义应失败")
+	}
+}
+
+// TestImportRuntimeRows_TaskExecutionError 验证任务缺失执行。
+// @param t 测试上下文
+func TestImportRuntimeRows_TaskExecutionError(t *testing.T) {
+	source := newTestEngine(t)
+	deployXML(t, source, simpleProcess)
+	_, _ = source.StartProcessInstance(context.Background(), api.StartRequest{
+		ProcessDefinitionKey: "simple",
+		Variables:            []api.Variable{{Name: "initiator", Value: "alice"}},
+	})
+	repositoryRows, _ := source.ExportRows(context.Background())
+	runtimeRows, _ := source.ExportRuntimeRows(context.Background())
+	target := newTestEngine(t)
+	_ = target.ImportRows(context.Background(), repositoryRows)
+	withoutExecution := make([]flowablerow.Row, 0)
+	for _, row := range runtimeRows {
+		if row.Table != "ACT_RU_EXECUTION" {
+			withoutExecution = append(withoutExecution, row)
+		}
+	}
+	if err := target.ImportRuntimeRows(context.Background(), withoutExecution); err == nil {
+		t.Fatalf("任务缺失执行应失败")
+	}
+}
+
+// TestImportRuntimeRows_VariableExecutionError 验证变量缺失执行。
+// @param t 测试上下文
+func TestImportRuntimeRows_VariableExecutionError(t *testing.T) {
+	source := newTestEngine(t)
+	deployXML(t, source, simpleProcess)
+	_, _ = source.StartProcessInstance(context.Background(), api.StartRequest{
+		ProcessDefinitionKey: "simple",
+		Variables:            []api.Variable{{Name: "initiator", Value: "alice"}},
+	})
+	repositoryRows, _ := source.ExportRows(context.Background())
+	runtimeRows, _ := source.ExportRuntimeRows(context.Background())
+	target := newTestEngine(t)
+	_ = target.ImportRows(context.Background(), repositoryRows)
+	onlyVariables := make([]flowablerow.Row, 0)
+	for _, row := range runtimeRows {
+		if row.Table == "ACT_RU_VARIABLE" {
+			onlyVariables = append(onlyVariables, row)
+		}
+	}
+	if err := target.ImportRuntimeRows(context.Background(), onlyVariables); err == nil {
+		t.Fatalf("变量缺失执行应失败")
+	}
+}
+
+// TestImportRuntimeRows_JobInstanceError 验证作业缺失实例。
+// @param t 测试上下文
+func TestImportRuntimeRows_JobInstanceError(t *testing.T) {
+	source := newTestEngine(t)
+	source.RegisterDelegate("noop", func(ctx context.Context, execution *Execution) error { return nil })
+	deployXML(t, source, asyncServiceXML("asyncInstance", `flowable:asyncBefore="true"`))
+	_, _ = source.StartProcessInstance(context.Background(), api.StartRequest{ProcessDefinitionKey: "asyncInstance"})
+	repositoryRows, _ := source.ExportRows(context.Background())
+	runtimeRows, _ := source.ExportRuntimeRows(context.Background())
+	target := newTestEngine(t)
+	_ = target.ImportRows(context.Background(), repositoryRows)
+	withoutExecution := make([]flowablerow.Row, 0)
+	for _, row := range runtimeRows {
+		if row.Table != "ACT_RU_EXECUTION" {
+			withoutExecution = append(withoutExecution, row)
+		}
+	}
+	if err := target.ImportRuntimeRows(context.Background(), withoutExecution); err == nil {
+		t.Fatalf("作业缺失实例应失败")
+	}
+}
