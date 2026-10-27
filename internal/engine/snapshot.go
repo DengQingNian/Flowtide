@@ -35,6 +35,9 @@ type snapshot struct {
 	HistoricActivities []*api.HistoricActivityInstance `json:"historicActivities"` // 历史活动
 	HistoricTasks      []*api.HistoricTaskInstance     `json:"historicTasks"`      // 历史任务
 	HistoricVariables  []*api.HistoricVariableInstance `json:"historicVariables"`  // 历史变量
+	Users              []*api.User                     `json:"users"`              // 用户
+	Groups             []*api.Group                    `json:"groups"`             // 组
+	Memberships        map[string]bool                 `json:"memberships"`        // 成员关系
 	Versions           map[string]int                  `json:"versions"`           // 版本号
 }
 
@@ -76,6 +79,13 @@ func (e *Engine) toSnapshot() *snapshot {
 	for _, historic := range e.state.HistoricVariables {
 		out.HistoricVariables = append(out.HistoricVariables, historic)
 	}
+	for _, user := range e.state.Users {
+		out.Users = append(out.Users, user)
+	}
+	for _, group := range e.state.Groups {
+		out.Groups = append(out.Groups, group)
+	}
+	out.Memberships = e.state.Memberships
 	for key, version := range e.state.Versions {
 		out.Versions[key] = version
 	}
@@ -179,6 +189,15 @@ func (e *Engine) loadState() error {
 	}
 	for _, historic := range stored.HistoricVariables {
 		restored.HistoricVariables[historic.ID] = historic
+	}
+	for _, user := range stored.Users {
+		restored.Users[user.ID] = user
+	}
+	for _, group := range stored.Groups {
+		restored.Groups[group.ID] = group
+	}
+	if stored.Memberships != nil {
+		restored.Memberships = stored.Memberships
 	}
 	for key, version := range stored.Versions {
 		restored.Versions[key] = version

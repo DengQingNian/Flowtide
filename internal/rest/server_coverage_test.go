@@ -39,6 +39,8 @@ func TestREST_ClosedEngine(t *testing.T) {
 		"/readyz",
 		"/service/repository/process-definitions",
 		"/service/repository/deployments",
+		"/service/identity/users",
+		"/service/identity/groups",
 		"/service/runtime/process-instances",
 		"/service/runtime/tasks",
 		"/service/history/historic-process-instances",

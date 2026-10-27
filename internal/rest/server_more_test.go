@@ -501,3 +501,132 @@ func TestREST_HistoricVariables(t *testing.T) {
 		t.Fatalf("期望 1 个历史变量，实际 %d", page.Total)
 	}
 }
+
+// TestREST_Identity 验证身份端点。
+// @param t 测试上下文
+func TestREST_Identity(t *testing.T) {
+	server, _ := newTestServer(t)
+	response := postJSON(t, server.URL+"/service/identity/users", map[string]any{"id": "alice", "displayName": "Alice"})
+	if response.StatusCode != http.StatusCreated {
+		t.Fatalf("创建用户失败: %d", response.StatusCode)
+	}
+	_ = response.Body.Close()
+	response, _ = http.Get(server.URL + "/service/identity/users")
+	var users struct {
+		Data []map[string]any `json:"data"`
+	}
+	_ = json.NewDecoder(response.Body).Decode(&users)
+	_ = response.Body.Close()
+	if len(users.Data) != 1 {
+		t.Fatalf("用户列表错误")
+	}
+	response, _ = http.Get(server.URL + "/service/identity/users/alice")
+	if response.StatusCode != http.StatusOK {
+		t.Fatalf("查询用户失败: %d", response.StatusCode)
+	}
+	_ = response.Body.Close()
+	response = postJSON(t, server.URL+"/service/identity/groups", map[string]any{"id": "dev", "name": "Dev"})
+	if response.StatusCode != http.StatusCreated {
+		t.Fatalf("创建组失败: %d", response.StatusCode)
+	}
+	_ = response.Body.Close()
+	response = postJSON(t, server.URL+"/service/identity/groups/dev/members", map[string]any{"userId": "alice"})
+	if response.StatusCode != http.StatusNoContent {
+		t.Fatalf("添加成员失败: %d", response.StatusCode)
+	}
+	_ = response.Body.Close()
+	response, _ = http.Get(server.URL + "/service/identity/groups/dev/members")
+	var members []map[string]any
+	_ = json.NewDecoder(response.Body).Decode(&members)
+	_ = response.Body.Close()
+	if len(members) != 1 {
+		t.Fatalf("成员列表错误: %+v", members)
+	}
+	request, _ := http.NewRequest(http.MethodDelete, server.URL+"/service/identity/groups/dev/members/alice", nil)
+	response, _ = http.DefaultClient.Do(request)
+	if response.StatusCode != http.StatusNoContent {
+		t.Fatalf("移除成员失败: %d", response.StatusCode)
+	}
+	_ = response.Body.Close()
+	request, _ = http.NewRequest(http.MethodDelete, server.URL+"/service/identity/users/alice", nil)
+	response, _ = http.DefaultClient.Do(request)
+	_ = response.Body.Close()
+	response, err := http.Get(server.URL + "/service/identity/users/alice")
+	if err != nil || response.StatusCode != http.StatusNotFound {
+		t.Fatalf("删除用户后应 404: %v %d", err, response.StatusCode)
+	}
+	_ = response.Body.Close()
+}
+
+// TestREST_IdentityErrors 验证身份错误与组查询。
+// @param t 测试上下文
+func TestREST_IdentityErrors(t *testing.T) {
+	server, _ := newTestServer(t)
+	response := postJSON(t, server.URL+"/service/identity/users", map[string]any{"id": "alice"})
+	_ = response.Body.Close()
+	response = postJSON(t, server.URL+"/service/identity/users", map[string]any{"id": "alice"})
+	if response.StatusCode != http.StatusConflict {
+		t.Fatalf("重复用户应 409: %d", response.StatusCode)
+	}
+	_ = response.Body.Close()
+	response = postJSON(t, server.URL+"/service/identity/users", map[string]any{"displayName": "x"})
+	if response.StatusCode != http.StatusBadRequest {
+		t.Fatalf("空用户 ID 应 400: %d", response.StatusCode)
+	}
+	_ = response.Body.Close()
+	response = postJSON(t, server.URL+"/service/identity/groups", map[string]any{"id": "dev"})
+	_ = response.Body.Close()
+	response = postJSON(t, server.URL+"/service/identity/groups", map[string]any{"id": "dev"})
+	if response.StatusCode != http.StatusConflict {
+		t.Fatalf("重复组应 409: %d", response.StatusCode)
+	}
+	_ = response.Body.Close()
+	response, _ = http.Get(server.URL + "/service/identity/groups")
+	if response.StatusCode != http.StatusOK {
+		t.Fatalf("组列表失败: %d", response.StatusCode)
+	}
+	_ = response.Body.Close()
+	response, _ = http.Get(server.URL + "/service/identity/groups/dev")
+	if response.StatusCode != http.StatusOK {
+		t.Fatalf("组查询失败: %d", response.StatusCode)
+	}
+	_ = response.Body.Close()
+	response, _ = http.Get(server.URL + "/service/identity/users/missing")
+	if response.StatusCode != http.StatusNotFound {
+		t.Fatalf("缺失用户应 404: %d", response.StatusCode)
+	}
+	_ = response.Body.Close()
+	response = postJSON(t, server.URL+"/service/identity/groups/dev/members", map[string]any{"userId": "missing"})
+	if response.StatusCode != http.StatusNotFound {
+		t.Fatalf("缺失成员应 404: %d", response.StatusCode)
+	}
+	_ = response.Body.Close()
+	request, _ := http.NewRequest(http.MethodDelete, server.URL+"/service/identity/groups/dev", nil)
+	response, _ = http.DefaultClient.Do(request)
+	if response.StatusCode != http.StatusNoContent {
+		t.Fatalf("删除组失败: %d", response.StatusCode)
+	}
+	_ = response.Body.Close()
+	request, _ = http.NewRequest(http.MethodDelete, server.URL+"/service/identity/groups/dev", nil)
+	response, _ = http.DefaultClient.Do(request)
+	if response.StatusCode != http.StatusNotFound {
+		t.Fatalf("重复删除组应 404: %d", response.StatusCode)
+	}
+	_ = response.Body.Close()
+}
+
+// TestREST_MigrateErrors 验证迁移错误。
+// @param t 测试上下文
+func TestREST_MigrateErrors(t *testing.T) {
+	server, _ := newTestServer(t)
+	response, err := http.Post(server.URL+"/service/runtime/process-instances/missing/migrate", "application/json", bytes.NewBufferString("{"))
+	if err != nil || response.StatusCode != http.StatusBadRequest {
+		t.Fatalf("非法迁移体应 400: %v %d", err, response.StatusCode)
+	}
+	_ = response.Body.Close()
+	response = postJSON(t, server.URL+"/service/runtime/process-instances/missing/migrate", map[string]any{"targetProcessDefinitionId": "x"})
+	if response.StatusCode != http.StatusNotFound {
+		t.Fatalf("缺失实例应 404: %d", response.StatusCode)
+	}
+	_ = response.Body.Close()
+}

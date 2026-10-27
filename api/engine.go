@@ -23,6 +23,9 @@ type Engine interface {
 	// ManagementService 返回管理服务。
 	// @return 管理服务
 	ManagementService() ManagementService
+	// IdentityService 返回身份服务。
+	// @return 身份服务
+	IdentityService() IdentityService
 	// Close 关闭引擎。
 	// @param ctx 关闭上下文
 	// @return 关闭错误

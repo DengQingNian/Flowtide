@@ -200,9 +200,18 @@ func (e *Engine) matchesTask(task *taskState, filter api.TaskFilter) bool {
 		}
 	}
 	if filter.CandidateUser != "" {
-		if task.Task.Assignee != "" || !contains(task.CandidateUsers, filter.CandidateUser) {
+		if task.Task.Assignee != "" {
 			return false
 		}
+		if contains(task.CandidateUsers, filter.CandidateUser) {
+			return true
+		}
+		for _, group := range task.CandidateGroups {
+			if e.state.Memberships[filter.CandidateUser+"|"+group] {
+				return true
+			}
+		}
+		return false
 	}
 	return true
 }

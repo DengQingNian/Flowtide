@@ -135,6 +135,9 @@ type state struct {
 	HistoricActivities map[string]*api.HistoricActivityInstance // 历史活动
 	HistoricTasks      map[string]*api.HistoricTaskInstance     // 历史任务
 	HistoricVariables  map[string]*api.HistoricVariableInstance // 历史变量
+	Users              map[string]*api.User                     // 用户
+	Groups             map[string]*api.Group                    // 组
+	Memberships        map[string]bool                          // 成员关系，key=user|group
 	Versions           map[string]int                           // 流程定义 Key 到最大版本
 }
 
@@ -154,6 +157,9 @@ func newState() *state {
 		HistoricActivities: make(map[string]*api.HistoricActivityInstance),
 		HistoricTasks:      make(map[string]*api.HistoricTaskInstance),
 		HistoricVariables:  make(map[string]*api.HistoricVariableInstance),
+		Users:              make(map[string]*api.User),
+		Groups:             make(map[string]*api.Group),
+		Memberships:        make(map[string]bool),
 		Versions:           make(map[string]int),
 	}
 }
@@ -222,6 +228,17 @@ func cloneState(source *state) *state {
 	for id, historic := range source.HistoricVariables {
 		copied := *historic
 		target.HistoricVariables[id] = &copied
+	}
+	for id, user := range source.Users {
+		copied := *user
+		target.Users[id] = &copied
+	}
+	for id, group := range source.Groups {
+		copied := *group
+		target.Groups[id] = &copied
+	}
+	for key, value := range source.Memberships {
+		target.Memberships[key] = value
 	}
 	for key, version := range source.Versions {
 		target.Versions[key] = version

@@ -59,6 +59,17 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("PUT /service/runtime/process-instances/{id}", s.handleInstanceAction)
 	s.mux.HandleFunc("POST /service/runtime/process-instances/{id}/migrate", s.handleMigrate)
 	s.mux.HandleFunc("GET /service/runtime/process-instances/{id}/variables", s.handleGetVariables)
+	s.mux.HandleFunc("GET /service/identity/users", s.handleListUsers)
+	s.mux.HandleFunc("POST /service/identity/users", s.handleCreateUser)
+	s.mux.HandleFunc("GET /service/identity/users/{id}", s.handleGetUser)
+	s.mux.HandleFunc("DELETE /service/identity/users/{id}", s.handleDeleteUser)
+	s.mux.HandleFunc("GET /service/identity/groups", s.handleListGroups)
+	s.mux.HandleFunc("POST /service/identity/groups", s.handleCreateGroup)
+	s.mux.HandleFunc("GET /service/identity/groups/{id}", s.handleGetGroup)
+	s.mux.HandleFunc("DELETE /service/identity/groups/{id}", s.handleDeleteGroup)
+	s.mux.HandleFunc("GET /service/identity/groups/{id}/members", s.handleListMembers)
+	s.mux.HandleFunc("POST /service/identity/groups/{id}/members", s.handleAddMember)
+	s.mux.HandleFunc("DELETE /service/identity/groups/{id}/members/{userId}", s.handleRemoveMember)
 	s.mux.HandleFunc("POST /service/runtime/messages", s.handleMessage)
 	s.mux.HandleFunc("POST /service/runtime/signals", s.handleSignal)
 	s.mux.HandleFunc("GET /service/runtime/tasks", s.handleListTasks)
@@ -375,6 +386,156 @@ type eventPayload struct {
 	MessageName string          `json:"messageName"` // 消息名
 	SignalName  string          `json:"signalName"`  // 信号名
 	Variables   json.RawMessage `json:"variables"`   // 变量
+}
+
+// handleListUsers 返回用户列表。
+// @param w 响应
+// @param r 请求
+func (s *Server) handleListUsers(w http.ResponseWriter, r *http.Request) {
+	users, err := s.engine.IdentityService().ListUsers(r.Context())
+	if err != nil {
+		writeError(w, err)
+		return
+	}
+	start, size := pageParams(r)
+	writePage(w, users, start, size)
+}
+
+// handleCreateUser 创建用户。
+// @param w 响应
+// @param r 请求
+func (s *Server) handleCreateUser(w http.ResponseWriter, r *http.Request) {
+	var user api.User
+	if err := decodeJSON(r, &user); err != nil {
+		writeError(w, err)
+		return
+	}
+	created, err := s.engine.IdentityService().CreateUser(r.Context(), user)
+	if err != nil {
+		writeError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusCreated, created)
+}
+
+// handleGetUser 查询用户。
+// @param w 响应
+// @param r 请求
+func (s *Server) handleGetUser(w http.ResponseWriter, r *http.Request) {
+	user, err := s.engine.IdentityService().GetUser(r.Context(), r.PathValue("id"))
+	if err != nil {
+		writeError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, user)
+}
+
+// handleDeleteUser 删除用户。
+// @param w 响应
+// @param r 请求
+func (s *Server) handleDeleteUser(w http.ResponseWriter, r *http.Request) {
+	if err := s.engine.IdentityService().DeleteUser(r.Context(), r.PathValue("id")); err != nil {
+		writeError(w, err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
+// handleListGroups 返回组列表。
+// @param w 响应
+// @param r 请求
+func (s *Server) handleListGroups(w http.ResponseWriter, r *http.Request) {
+	groups, err := s.engine.IdentityService().ListGroups(r.Context())
+	if err != nil {
+		writeError(w, err)
+		return
+	}
+	start, size := pageParams(r)
+	writePage(w, groups, start, size)
+}
+
+// handleCreateGroup 创建组。
+// @param w 响应
+// @param r 请求
+func (s *Server) handleCreateGroup(w http.ResponseWriter, r *http.Request) {
+	var group api.Group
+	if err := decodeJSON(r, &group); err != nil {
+		writeError(w, err)
+		return
+	}
+	created, err := s.engine.IdentityService().CreateGroup(r.Context(), group)
+	if err != nil {
+		writeError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusCreated, created)
+}
+
+// handleGetGroup 查询组。
+// @param w 响应
+// @param r 请求
+func (s *Server) handleGetGroup(w http.ResponseWriter, r *http.Request) {
+	group, err := s.engine.IdentityService().GetGroup(r.Context(), r.PathValue("id"))
+	if err != nil {
+		writeError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, group)
+}
+
+// handleDeleteGroup 删除组。
+// @param w 响应
+// @param r 请求
+func (s *Server) handleDeleteGroup(w http.ResponseWriter, r *http.Request) {
+	if err := s.engine.IdentityService().DeleteGroup(r.Context(), r.PathValue("id")); err != nil {
+		writeError(w, err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
+// membershipPayload 是成员关系请求体。
+type membershipPayload struct {
+	UserID string `json:"userId"` // 用户 ID
+}
+
+// handleListMembers 返回组成员。
+// @param w 响应
+// @param r 请求
+func (s *Server) handleListMembers(w http.ResponseWriter, r *http.Request) {
+	users, err := s.engine.IdentityService().ListMembers(r.Context(), r.PathValue("id"))
+	if err != nil {
+		writeError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, users)
+}
+
+// handleAddMember 添加成员。
+// @param w 响应
+// @param r 请求
+func (s *Server) handleAddMember(w http.ResponseWriter, r *http.Request) {
+	var payload membershipPayload
+	if err := decodeJSON(r, &payload); err != nil {
+		writeError(w, err)
+		return
+	}
+	if err := s.engine.IdentityService().AddMembership(r.Context(), payload.UserID, r.PathValue("id")); err != nil {
+		writeError(w, err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
+// handleRemoveMember 移除成员。
+// @param w 响应
+// @param r 请求
+func (s *Server) handleRemoveMember(w http.ResponseWriter, r *http.Request) {
+	if err := s.engine.IdentityService().RemoveMembership(r.Context(), r.PathValue("userId"), r.PathValue("id")); err != nil {
+		writeError(w, err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
 }
 
 // handleMessage 投递消息。
@@ -785,6 +946,18 @@ func writePage(w http.ResponseWriter, items any, start, size int) {
 func reflectSlice(items any) []any {
 	switch typed := items.(type) {
 	case []api.Deployment:
+		out := make([]any, len(typed))
+		for i, item := range typed {
+			out[i] = item
+		}
+		return out
+	case []api.User:
+		out := make([]any, len(typed))
+		for i, item := range typed {
+			out[i] = item
+		}
+		return out
+	case []api.Group:
 		out := make([]any, len(typed))
 		for i, item := range typed {
 			out[i] = item
