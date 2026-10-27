@@ -28,6 +28,7 @@ type Server struct {
 	userRoles       map[string][]string // 用户到角色
 	rolePermissions map[string][]string // 角色到权限
 	identityAuth    bool                // 使用身份库校验密码
+	limiter         *rateLimiter        // 限流器
 }
 
 // Option 是 REST 服务选项。
@@ -73,6 +74,18 @@ func WithIdentityAuth() Option {
 	}
 }
 
+// WithRateLimit 启用令牌桶限流。
+// @param rate 每秒令牌数
+// @param burst 桶容量
+// @return 选项
+func WithRateLimit(rate float64, burst int) Option {
+	return func(server *Server) {
+		if rate > 0 && burst > 0 {
+			server.limiter = newRateLimiter(rate, burst)
+		}
+	}
+}
+
 // New 创建 REST 服务。
 // @param engine 引擎
 // @param options 选项
@@ -88,7 +101,7 @@ func New(engine api.Engine, options ...Option) *Server {
 
 // Handler 返回 HTTP 处理器。
 // @return 处理器
-func (s *Server) Handler() http.Handler { return s.withTenant(s.authenticate(s.mux)) }
+func (s *Server) Handler() http.Handler { return s.rateLimit(s.withTenant(s.authenticate(s.mux))) }
 
 // withTenant 将请求租户写入上下文。
 // @param next 下游处理器
@@ -1944,6 +1957,9 @@ func statusFor(err error) int {
 	}
 	if errors.Is(err, api.ErrForbidden) {
 		return http.StatusForbidden
+	}
+	if errors.Is(err, api.ErrTooManyRequests) {
+		return http.StatusTooManyRequests
 	}
 	var engineErr *api.Error
 	if errors.As(err, &engineErr) {

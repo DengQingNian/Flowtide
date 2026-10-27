@@ -13,6 +13,8 @@ var (
 	ErrBadRequest = errors.New("请求参数非法")
 	// ErrUnauthorized 表示未认证。
 	ErrUnauthorized = errors.New("未认证")
+	// ErrTooManyRequests 表示请求过多。
+	ErrTooManyRequests = errors.New("请求过多")
 	// ErrForbidden 表示无权限。
 	ErrForbidden = errors.New("无权限")
 	// ErrEngineClosed 表示引擎已关闭。

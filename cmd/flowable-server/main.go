@@ -26,6 +26,10 @@ func main() {
 	statePath := flag.String("state", "", "状态文件路径，为空时仅使用内存")
 	jobsInterval := flag.Duration("jobs-interval", time.Second, "定时器扫描间隔，0 表示关闭后台扫描")
 	basicAuth := flag.String("basic-auth", "", "Basic Auth 用户，格式 user:pass")
+	tlsCert := flag.String("tls-cert", "", "TLS 证书路径")
+	tlsKey := flag.String("tls-key", "", "TLS 私钥路径")
+	rateLimit := flag.Float64("rate-limit", 0, "每秒请求数，0 表示关闭限流")
+	rateBurst := flag.Int("rate-burst", 0, "限流桶容量")
 	bearerToken := flag.String("bearer-token", "", "Bearer Token")
 	flag.Parse()
 
@@ -72,6 +76,13 @@ func main() {
 	if *bearerToken != "" {
 		options = append(options, rest.WithBearerToken(*bearerToken))
 	}
+	if *rateLimit > 0 && *rateBurst > 0 {
+		options = append(options, rest.WithRateLimit(*rateLimit, *rateBurst))
+	}
+	if (*tlsCert == "") != (*tlsKey == "") {
+		slog.Error("TLS 证书与私钥必须同时配置")
+		os.Exit(1)
+	}
 	server := &http.Server{
 		Addr:              *addr,
 		Handler:           rest.New(app, options...).Handler(),
@@ -83,7 +94,13 @@ func main() {
 
 	go func() {
 		slog.Info("Flowable Go 服务启动", "addr", *addr)
-		if listenErr := server.ListenAndServe(); listenErr != nil && !errors.Is(listenErr, http.ErrServerClosed) {
+		var listenErr error
+		if *tlsCert != "" {
+			listenErr = server.ListenAndServeTLS(*tlsCert, *tlsKey)
+		} else {
+			listenErr = server.ListenAndServe()
+		}
+		if listenErr != nil && !errors.Is(listenErr, http.ErrServerClosed) {
 			slog.Error("HTTP 服务异常退出", "error", listenErr)
 			os.Exit(1)
 		}
