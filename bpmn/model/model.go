@@ -186,6 +186,7 @@ func (e *StartEvent) ElementType() string { return "startEvent" }
 type EndEvent struct {
 	FlowNodeBase
 	Terminate bool   // 是否终止整个流程实例
+	Cancel    bool   // 是否取消事务子流程
 	ErrorRef  string // 错误引用
 }
 
@@ -346,6 +347,7 @@ type BoundaryEvent struct {
 	MessageRef            string           // 消息引用
 	SignalRef             string           // 信号引用
 	ErrorRef              string           // 错误引用
+	Cancel                bool             // 是否取消边界
 	Compensate            bool             // 是否补偿边界
 	CompensationHandlerID string           // 补偿处理器 ID
 }
@@ -394,11 +396,17 @@ type SubProcess struct {
 	Elements         map[string]FlowElement // 子元素
 	Order            []string               // 子元素顺序
 	TriggeredByEvent bool                   // 是否事件子流程
+	Transaction      bool                   // 是否事务子流程
 }
 
 // ElementType 返回元素类型。
 // @return 元素类型
-func (s *SubProcess) ElementType() string { return "subProcess" }
+func (s *SubProcess) ElementType() string {
+	if s.Transaction {
+		return "transaction"
+	}
+	return "subProcess"
+}
 
 // AddElement 添加子元素。
 // @param element 流程元素

@@ -140,3 +140,57 @@ func errorCode(bpmnModel *model.BpmnModel, ref string) string {
 	}
 	return ref
 }
+
+// throwCancel 取消事务子流程并触发取消边界。
+// @param cc 命令上下文
+// @param execution 取消结束事件所在执行
+// @return 执行错误
+func (e *Engine) throwCancel(cc *commandContext, execution *executionState) error {
+	instance, ok := e.findInstance(execution.ProcessInstanceID)
+	if !ok {
+		return nil
+	}
+	scope := e.scopeRoot(execution)
+	parent, parentOK := e.findExecution(scope.ParentID)
+	if !parentOK {
+		instance.DeleteReason = "transaction cancelled without boundary"
+		e.endProcessInstance(cc, instance)
+		return nil
+	}
+	definition, definitionOK := e.findDefinition(parent.DefinitionID)
+	if !definitionOK {
+		return nil
+	}
+	process := processOfDefinition(definition)
+	if process == nil {
+		return nil
+	}
+	element, exists := findElement(process, parent.ActivityID)
+	if !exists {
+		return nil
+	}
+	sub, isSub := element.(*model.SubProcess)
+	if !isSub || !sub.Transaction {
+		instance.DeleteReason = "transaction cancelled without boundary"
+		e.endProcessInstance(cc, instance)
+		return nil
+	}
+	for _, boundary := range sub.GetBoundaryEvents() {
+		if !boundary.Cancel {
+			continue
+		}
+		e.destroyScope(cc, scope)
+		parent.Waiting = false
+		parent.Active = true
+		e.cancelBoundaryTimers(parent.ID)
+		e.cancelBoundarySubscriptions(parent.ID)
+		e.recordActivityEnd(cc, parent.CurrentHistActivityID)
+		parent.CurrentHistActivityID = ""
+		parent.ActivityID = boundary.ID
+		cc.agenda.schedule(&continueOperation{executionID: parent.ID, activityID: boundary.ID})
+		return nil
+	}
+	instance.DeleteReason = "transaction cancelled without boundary"
+	e.endProcessInstance(cc, instance)
+	return nil
+}

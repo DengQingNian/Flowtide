@@ -179,6 +179,9 @@ func (e *Engine) continueAt(cc *commandContext, executionID, activityID string) 
 	case *model.EndEvent:
 		e.recordActivityEnd(cc, execution.CurrentHistActivityID)
 		execution.CurrentHistActivityID = ""
+		if node.Cancel {
+			return e.throwCancel(cc, execution)
+		}
 		if node.ErrorRef != "" {
 			return e.throwError(cc, execution, node.ErrorRef)
 		}

@@ -122,6 +122,7 @@ func parseElement(node *Node) (model.FlowElement, error) {
 	case "endEvent":
 		event := &model.EndEvent{
 			Terminate: hasChild(node, "terminateEventDefinition"),
+			Cancel:    hasChild(node, "cancelEventDefinition"),
 			ErrorRef:  parseErrorRef(node),
 		}
 		parseFlowNodeBase(node, &event.FlowNodeBase)
@@ -221,6 +222,7 @@ func parseElement(node *Node) (model.FlowElement, error) {
 			MessageRef:     messageRef,
 			SignalRef:      signalRef,
 			ErrorRef:       parseErrorRef(node),
+			Cancel:         hasChild(node, "cancelEventDefinition"),
 		}
 		parseFlowNodeBase(node, &event.FlowNodeBase)
 		if event.AttachedToRef == "" {
@@ -228,7 +230,9 @@ func parseElement(node *Node) (model.FlowElement, error) {
 		}
 		return event, nil
 	case "subProcess":
-		return parseSubProcess(node)
+		return parseSubProcess(node, false)
+	case "transaction":
+		return parseSubProcess(node, true)
 	case "association":
 		association := &model.Association{SourceRef: node.Attr("sourceRef"), TargetRef: node.Attr("targetRef")}
 		association.ID = node.Attr("id")
@@ -504,9 +508,10 @@ func attachCompensationHandlers(elements map[string]model.FlowElement, order []s
 // @param node XML 节点
 // @return 子流程
 // @return 解析错误
-func parseSubProcess(node *Node) (model.FlowElement, error) {
+func parseSubProcess(node *Node, transaction bool) (model.FlowElement, error) {
 	sub := &model.SubProcess{
 		TriggeredByEvent: strings.EqualFold(node.Attr("triggeredByEvent"), "true"),
+		Transaction:      transaction,
 		Elements:         make(map[string]model.FlowElement),
 	}
 	parseFlowNodeBase(node, &sub.FlowNodeBase)
