@@ -256,12 +256,14 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("PUT /service/repository/process-definitions/{id}", s.handleDefinitionAction)
 	s.mux.HandleFunc("GET /service/runtime/executions", s.handleListExecutions)
 	s.mux.HandleFunc("GET /service/runtime/executions/{id}", s.handleGetExecution)
+	s.mux.HandleFunc("GET /service/runtime/executions/{id}/variables", s.handleGetExecutionVariables)
 	s.mux.HandleFunc("POST /service/runtime/process-instances", s.handleStartInstance)
 	s.mux.HandleFunc("GET /service/runtime/process-instances", s.handleListInstances)
 	s.mux.HandleFunc("GET /service/runtime/process-instances/{id}", s.handleGetInstance)
 	s.mux.HandleFunc("DELETE /service/runtime/process-instances/{id}", s.handleDeleteInstance)
 	s.mux.HandleFunc("PUT /service/runtime/process-instances/{id}", s.handleInstanceAction)
 	s.mux.HandleFunc("POST /service/runtime/process-instances/{id}/migrate", s.handleMigrate)
+	s.mux.HandleFunc("GET /service/runtime/process-instances/{id}/tasks", s.handleGetInstanceTasks)
 	s.mux.HandleFunc("GET /service/runtime/process-instances/{id}/variables", s.handleGetVariables)
 	s.mux.HandleFunc("POST /service/runtime/process-instances/{id}/variables", s.handleCreateInstanceVariable)
 	s.mux.HandleFunc("PUT /service/runtime/process-instances/{id}/variables/{name}", s.handleUpdateInstanceVariable)
@@ -307,6 +309,7 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("GET /service/history/historic-process-instances", s.handleHistoricProcesses)
 	s.mux.HandleFunc("GET /service/history/historic-process-instances/{id}", s.handleHistoricProcess)
 	s.mux.HandleFunc("GET /service/history/historic-task-instances/{id}", s.handleHistoricTask)
+	s.mux.HandleFunc("GET /service/history/historic-task-instances/{id}/identitylinks", s.handleHistoricTaskLinks)
 	s.mux.HandleFunc("GET /service/history/historic-activity-instances", s.handleHistoricActivities)
 	s.mux.HandleFunc("GET /service/history/historic-task-instances", s.handleHistoricTasks)
 	s.mux.HandleFunc("GET /service/history/historic-task-log-entries", s.handleHistoricTaskLogs)
@@ -666,6 +669,18 @@ func (s *Server) handleListExecutions(w http.ResponseWriter, r *http.Request) {
 	}
 	start, size := pageParams(r)
 	writePage(w, items, start, size)
+}
+
+// handleGetExecutionVariables 返回执行变量。
+// @param w 响应
+// @param r 请求
+func (s *Server) handleGetExecutionVariables(w http.ResponseWriter, r *http.Request) {
+	values, err := s.engine.RuntimeService().GetExecutionVariables(r.Context(), r.PathValue("id"))
+	if err != nil {
+		writeError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, variableResponse(values))
 }
 
 // handleGetExecution 返回执行详情。
@@ -1238,6 +1253,24 @@ func (s *Server) handleDeleteInstanceVariable(w http.ResponseWriter, r *http.Req
 	w.WriteHeader(http.StatusNoContent)
 }
 
+// handleGetInstanceTasks 返回实例任务。
+// @param w 响应
+// @param r 请求
+func (s *Server) handleGetInstanceTasks(w http.ResponseWriter, r *http.Request) {
+	start, size := pageParams(r)
+	page, err := s.engine.TaskService().ListTasks(r.Context(), api.TaskFilter{
+		ProcessInstanceID: r.PathValue("id"),
+		TenantID:          requestTenant(r),
+		Start:             start,
+		Size:              size,
+	})
+	if err != nil {
+		writeError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, page)
+}
+
 // handleGetVariables 返回实例变量。
 // @param w 响应
 // @param r 请求
@@ -1583,6 +1616,19 @@ func (s *Server) handleHistoricTask(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, item)
+}
+
+// handleHistoricTaskLinks 返回历史任务身份链接。
+// @param w 响应
+// @param r 请求
+func (s *Server) handleHistoricTaskLinks(w http.ResponseWriter, r *http.Request) {
+	links, err := s.engine.HistoryService().ListHistoricIdentityLinks(r.Context(), r.PathValue("id"))
+	if err != nil {
+		writeError(w, err)
+		return
+	}
+	start, size := pageParams(r)
+	writePage(w, links, start, size)
 }
 
 // handleHistoricActivities 返回历史活动。

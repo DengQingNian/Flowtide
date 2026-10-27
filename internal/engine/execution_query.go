@@ -102,3 +102,25 @@ func toExecutionInfo(execution *executionState) api.ExecutionInfo {
 		Waiting:             execution.Waiting,
 	}
 }
+
+// GetExecutionVariables 返回执行可见变量。
+// @param ctx 上下文
+// @param executionID 执行 ID
+// @return 变量快照
+// @return 查询错误
+func (e *Engine) GetExecutionVariables(ctx context.Context, executionID string) (map[string]any, error) {
+	result, err := e.read(func() (any, error) {
+		execution, ok := e.findExecution(executionID)
+		if !ok {
+			return nil, api.NewError("ENGINE-0404", "执行不存在", api.ErrNotFound)
+		}
+		if err := e.allowInstance(ctx, execution.ProcessInstanceID); err != nil {
+			return nil, err
+		}
+		return e.variablesOf(execution), nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(map[string]any), nil
+}

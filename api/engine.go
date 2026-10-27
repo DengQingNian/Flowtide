@@ -147,6 +147,12 @@ type RuntimeService interface {
 	// @return 执行列表
 	// @return 查询错误
 	ListExecutions(ctx context.Context, processInstanceID string) ([]ExecutionInfo, error)
+	// GetExecutionVariables 返回执行可见变量。
+	// @param ctx 上下文
+	// @param executionID 执行 ID
+	// @return 变量快照
+	// @return 查询错误
+	GetExecutionVariables(ctx context.Context, executionID string) (map[string]any, error)
 	// GetExecution 查询执行。
 	// @param ctx 上下文
 	// @param executionID 执行 ID

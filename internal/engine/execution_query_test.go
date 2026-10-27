@@ -4,6 +4,8 @@ import (
 	"context"
 	"testing"
 
+	"github.com/flowable-go/flowable/internal/tenant"
+
 	"github.com/flowable-go/flowable/api"
 )
 
@@ -43,5 +45,28 @@ func TestExecutionQueries(t *testing.T) {
 	}
 	if _, err := engine.GetHistoricTaskInstance(context.Background(), "missing"); err == nil {
 		t.Fatalf("缺失历史任务应报错")
+	}
+}
+
+// TestExecutionVariables 验证执行变量与租户。
+// @param t 测试上下文
+func TestExecutionVariables(t *testing.T) {
+	engine := newTestEngine(t)
+	deployXML(t, engine, simpleProcess)
+	instance, _ := engine.StartProcessInstance(context.Background(), api.StartRequest{
+		ProcessDefinitionKey: "simple",
+		Variables:            []api.Variable{{Name: "initiator", Value: "alice"}},
+	})
+	executions, _ := engine.ListExecutions(context.Background(), instance.ID)
+	values, err := engine.GetExecutionVariables(context.Background(), executions[0].ID)
+	if err != nil || values["initiator"] != "alice" {
+		t.Fatalf("执行变量错误: %v %+v", err, values)
+	}
+	if _, err := engine.GetExecutionVariables(context.Background(), "missing"); err == nil {
+		t.Fatalf("缺失执行应失败")
+	}
+	other := tenant.With(context.Background(), "t2")
+	if _, err := engine.GetExecutionVariables(other, executions[0].ID); err == nil {
+		t.Fatalf("跨租户执行变量应失败")
 	}
 }
