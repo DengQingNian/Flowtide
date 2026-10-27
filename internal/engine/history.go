@@ -95,6 +95,7 @@ func (e *Engine) recordTaskStart(cc *commandContext, task *taskState) string {
 		StartTime:         task.Task.CreateTime,
 	}
 	e.state.HistoricTasks[id] = historic
+	e.recordTaskIdentityLinks(cc, task)
 	return id
 }
 

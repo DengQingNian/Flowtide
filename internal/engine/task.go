@@ -63,6 +63,7 @@ func (e *Engine) createUserTask(cc *commandContext, execution *executionState, n
 	}
 	task.HistoricTaskID = e.recordTaskStart(cc, task)
 	e.state.Tasks[task.Task.ID] = task
+	e.recordTaskIdentityLinks(cc, task)
 	execution.Waiting = true
 	execution.ActivityID = node.ID
 	return nil

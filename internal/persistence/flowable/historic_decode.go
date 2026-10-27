@@ -15,6 +15,7 @@ type HistoricSnapshot struct {
 	Variables   []api.HistoricVariableInstance // 历史变量
 	Comments    []api.Comment                  // 评论
 	Attachments []api.Attachment               // 附件
+	Links       []api.IdentityLink             // 身份链接
 }
 
 // DecodeHistoricRows 将历史行恢复为快照。
@@ -29,6 +30,7 @@ func DecodeHistoricRows(rows []Row) (HistoricSnapshot, error) {
 		Variables:   make([]api.HistoricVariableInstance, 0),
 		Comments:    make([]api.Comment, 0),
 		Attachments: make([]api.Attachment, 0),
+		Links:       make([]api.IdentityLink, 0),
 	}
 	for _, row := range rows {
 		switch row.Table {
@@ -62,6 +64,12 @@ func DecodeHistoricRows(rows []Row) (HistoricSnapshot, error) {
 				return HistoricSnapshot{}, err
 			}
 			snapshot.Comments = append(snapshot.Comments, comment)
+		case "ACT_HI_IDENTITYLINK":
+			link, err := decodeHistoricIdentityLink(row)
+			if err != nil {
+				return HistoricSnapshot{}, err
+			}
+			snapshot.Links = append(snapshot.Links, link)
 		case "ACT_HI_ATTACHMENT":
 			attachment, err := decodeHistoricAttachment(row)
 			if err != nil {
@@ -78,6 +86,7 @@ func DecodeHistoricRows(rows []Row) (HistoricSnapshot, error) {
 	sort.Slice(snapshot.Variables, func(i, j int) bool { return snapshot.Variables[i].ID < snapshot.Variables[j].ID })
 	sort.Slice(snapshot.Comments, func(i, j int) bool { return snapshot.Comments[i].ID < snapshot.Comments[j].ID })
 	sort.Slice(snapshot.Attachments, func(i, j int) bool { return snapshot.Attachments[i].ID < snapshot.Attachments[j].ID })
+	sort.Slice(snapshot.Links, func(i, j int) bool { return snapshot.Links[i].ID < snapshot.Links[j].ID })
 	return snapshot, nil
 }
 
@@ -410,4 +419,40 @@ func decodeHistoricAttachment(row Row) (api.Attachment, error) {
 		return api.Attachment{}, err
 	}
 	return api.Attachment{ID: id, Name: name, Description: description, Type: attachmentType, TaskID: taskID, ProcessInstanceID: processInstanceID, URL: url, Time: attachmentTime}, nil
+}
+
+// decodeHistoricIdentityLink 解析历史身份链接。
+// @param row 行
+// @return 链接
+// @return 错误
+func decodeHistoricIdentityLink(row Row) (api.IdentityLink, error) {
+	id, err := stringValue(row, "ID_")
+	if err != nil {
+		return api.IdentityLink{}, err
+	}
+	groupID, err := stringValue(row, "GROUP_ID_")
+	if err != nil {
+		return api.IdentityLink{}, err
+	}
+	linkType, err := stringValue(row, "TYPE_")
+	if err != nil {
+		return api.IdentityLink{}, err
+	}
+	userID, err := stringValue(row, "USER_ID_")
+	if err != nil {
+		return api.IdentityLink{}, err
+	}
+	taskID, err := stringValue(row, "TASK_ID_")
+	if err != nil {
+		return api.IdentityLink{}, err
+	}
+	created, err := timeValue(row, "CREATE_TIME_")
+	if err != nil {
+		return api.IdentityLink{}, err
+	}
+	processInstanceID, err := stringValue(row, "PROC_INST_ID_")
+	if err != nil {
+		return api.IdentityLink{}, err
+	}
+	return api.IdentityLink{ID: id, GroupID: groupID, Type: linkType, UserID: userID, TaskID: taskID, ProcessInstanceID: processInstanceID, CreateTime: created}, nil
 }

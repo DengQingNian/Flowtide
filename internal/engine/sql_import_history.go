@@ -40,6 +40,10 @@ func (e *Engine) ImportHistoricRows(ctx context.Context, rows []flowablerow.Row)
 			attachment := snapshot.Attachments[i]
 			e.state.Attachments[attachment.ID] = &attachment
 		}
+		for i := range snapshot.Links {
+			link := snapshot.Links[i]
+			e.state.HistoricLinks[link.ID] = &link
+		}
 		return nil, nil
 	})
 	return err

@@ -280,3 +280,39 @@ func TestDecodeHistoricCommentAttachmentErrors(t *testing.T) {
 		}
 	}
 }
+
+// historicLinkRow 构造历史身份链接行。
+// @param id 链接 ID
+// @return 行
+func historicLinkRow(t *testing.T, id string) Row {
+	t.Helper()
+	row, _ := NewRow("ACT_HI_IDENTITYLINK")
+	_ = row.Set("ID_", id)
+	_ = row.Set("GROUP_ID_", "dev")
+	_ = row.Set("TYPE_", "candidate")
+	_ = row.Set("USER_ID_", "alice")
+	_ = row.Set("TASK_ID_", "t1")
+	_ = row.Set("CREATE_TIME_", time.Date(2026, 10, 28, 0, 0, 0, 0, time.UTC))
+	_ = row.Set("PROC_INST_ID_", "i1")
+	return *row
+}
+
+// TestDecodeHistoricIdentityLink 验证历史身份链接恢复。
+// @param t 测试上下文
+func TestDecodeHistoricIdentityLink(t *testing.T) {
+	snapshot, err := DecodeHistoricRows([]Row{historicLinkRow(t, "l1")})
+	if err != nil || len(snapshot.Links) != 1 {
+		t.Fatalf("链接恢复失败: %v %+v", err, snapshot.Links)
+	}
+	if snapshot.Links[0].UserID != "alice" || snapshot.Links[0].GroupID != "dev" {
+		t.Fatalf("链接内容错误: %+v", snapshot.Links[0])
+	}
+	columns := []string{"GROUP_ID_", "TYPE_", "USER_ID_", "TASK_ID_", "CREATE_TIME_", "PROC_INST_ID_"}
+	for _, column := range columns {
+		row := historicLinkRow(t, "l1")
+		delete(row.Values, column)
+		if _, err := decodeHistoricIdentityLink(row); err == nil {
+			t.Fatalf("链接缺列 %s 应失败", column)
+		}
+	}
+}

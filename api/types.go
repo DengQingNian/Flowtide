@@ -123,12 +123,13 @@ type HistoricTaskInstance struct {
 
 // IdentityLink 是任务/流程参与者关联。
 type IdentityLink struct {
-	ID                string `json:"id,omitempty"`                // 关联 ID
-	Type              string `json:"type"`                        // 类型
-	UserID            string `json:"userId,omitempty"`            // 用户 ID
-	GroupID           string `json:"groupId,omitempty"`           // 组 ID
-	TaskID            string `json:"taskId,omitempty"`            // 任务 ID
-	ProcessInstanceID string `json:"processInstanceId,omitempty"` // 流程实例 ID
+	ID                string    `json:"id,omitempty"`                // 关联 ID
+	Type              string    `json:"type"`                        // 类型
+	UserID            string    `json:"userId,omitempty"`            // 用户 ID
+	GroupID           string    `json:"groupId,omitempty"`           // 组 ID
+	TaskID            string    `json:"taskId,omitempty"`            // 任务 ID
+	ProcessInstanceID string    `json:"processInstanceId,omitempty"` // 流程实例 ID
+	CreateTime        time.Time `json:"createTime,omitempty"`        // 创建时间
 }
 
 // Comment 是任务评论。

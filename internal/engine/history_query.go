@@ -114,3 +114,31 @@ func (e *Engine) ListHistoricVariableInstances(ctx context.Context, processInsta
 	}
 	return result.([]api.HistoricVariableInstance), nil
 }
+
+// ListHistoricIdentityLinks 返回历史身份链接。
+// @param ctx 上下文
+// @param taskID 任务 ID
+// @return 链接列表
+// @return 查询错误
+func (e *Engine) ListHistoricIdentityLinks(ctx context.Context, taskID string) ([]api.IdentityLink, error) {
+	result, err := e.read(func() (any, error) {
+		out := make([]api.IdentityLink, 0)
+		for _, link := range e.state.HistoricLinks {
+			if taskID != "" && link.TaskID != taskID {
+				continue
+			}
+			out = append(out, *link)
+		}
+		sort.Slice(out, func(i, j int) bool {
+			if out[i].CreateTime.Equal(out[j].CreateTime) {
+				return out[i].ID < out[j].ID
+			}
+			return out[i].CreateTime.Before(out[j].CreateTime)
+		})
+		return out, nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.([]api.IdentityLink), nil
+}

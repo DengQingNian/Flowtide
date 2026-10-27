@@ -184,13 +184,31 @@ func (e *Engine) historicRowsLocked() ([]flowablerow.Row, error) {
 		_ = row.Set("TIME_", attachment.Time)
 		rows = append(rows, *row)
 	}
+	links := make([]*api.IdentityLink, 0, len(e.state.HistoricLinks))
+	for _, link := range e.state.HistoricLinks {
+		links = append(links, link)
+	}
+	sort.Slice(links, func(i, j int) bool { return links[i].ID < links[j].ID })
+	for _, link := range links {
+		row, rowErr := historyRow("ACT_HI_IDENTITYLINK", []string{"ID_", "GROUP_ID_", "TYPE_", "USER_ID_", "TASK_ID_", "CREATE_TIME_", "PROC_INST_ID_"})
+		if rowErr != nil {
+			return nil, rowErr
+		}
+		_ = row.Set("ID_", link.ID)
+		_ = row.Set("GROUP_ID_", link.GroupID)
+		_ = row.Set("TYPE_", link.Type)
+		_ = row.Set("USER_ID_", link.UserID)
+		_ = row.Set("TASK_ID_", link.TaskID)
+		_ = row.Set("CREATE_TIME_", link.CreateTime)
+		_ = row.Set("PROC_INST_ID_", link.ProcessInstanceID)
+		rows = append(rows, *row)
+	}
 	sort.Slice(rows, func(i, j int) bool {
 		if rows[i].Table == rows[j].Table {
 			return rowID(rows[i]) < rowID(rows[j])
 		}
 		return rows[i].Table < rows[j].Table
 	})
-	return rows, nil
 	return rows, nil
 }
 

@@ -952,6 +952,15 @@ func TestREST_IdentityLinks(t *testing.T) {
 	if len(links) != 2 {
 		t.Fatalf("身份链接数量错误: %+v", links)
 	}
+	response, _ = http.Get(server.URL + "/service/history/historic-identitylinks?taskId=" + taskID)
+	var historicLinks struct {
+		Total int `json:"total"`
+	}
+	_ = json.NewDecoder(response.Body).Decode(&historicLinks)
+	_ = response.Body.Close()
+	if historicLinks.Total != 2 {
+		t.Fatalf("历史身份链接数量错误: %d", historicLinks.Total)
+	}
 	response = postJSON(t, server.URL+"/service/runtime/tasks/"+taskID+"/identitylinks", map[string]any{"type": "candidate", "userId": "bob"})
 	if response.StatusCode != http.StatusCreated {
 		t.Fatalf("添加候选用户失败: %d", response.StatusCode)

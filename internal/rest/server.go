@@ -102,6 +102,7 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("GET /service/history/historic-task-instances/{id}", s.handleHistoricTask)
 	s.mux.HandleFunc("GET /service/history/historic-activity-instances", s.handleHistoricActivities)
 	s.mux.HandleFunc("GET /service/history/historic-task-instances", s.handleHistoricTasks)
+	s.mux.HandleFunc("GET /service/history/historic-identitylinks", s.handleHistoricIdentityLinks)
 	s.mux.HandleFunc("GET /service/history/historic-variable-instances", s.handleHistoricVariables)
 }
 
@@ -1242,6 +1243,19 @@ func (s *Server) handleHistoricTasks(w http.ResponseWriter, r *http.Request) {
 	}
 	start, size := pageParams(r)
 	writePage(w, items, start, size)
+}
+
+// handleHistoricIdentityLinks 返回历史身份链接。
+// @param w 响应
+// @param r 请求
+func (s *Server) handleHistoricIdentityLinks(w http.ResponseWriter, r *http.Request) {
+	links, err := s.engine.HistoryService().ListHistoricIdentityLinks(r.Context(), r.URL.Query().Get("taskId"))
+	if err != nil {
+		writeError(w, err)
+		return
+	}
+	start, size := pageParams(r)
+	writePage(w, links, start, size)
 }
 
 // handleHistoricVariables 返回历史变量。

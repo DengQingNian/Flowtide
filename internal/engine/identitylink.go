@@ -107,6 +107,7 @@ func (e *Engine) modifyCandidates(ctx context.Context, taskID, userID, groupID s
 			}
 			task.Task.CandidateGroups = task.CandidateGroups
 		}
+		e.recordTaskIdentityLinks(cc, task)
 		return nil, nil
 	})
 	return err
