@@ -25,6 +25,41 @@ type DB interface {
 	ExecContext(ctx context.Context, query string, args ...any) (Result, error)
 }
 
+// Transaction 是数据库事务。
+type Transaction interface {
+	DB
+	// Commit 提交事务。
+	// @return 提交错误
+	Commit() error
+	// Rollback 回滚事务。
+	// @return 回滚错误
+	Rollback() error
+}
+
+// TransactionalDB 是支持事务的数据库。
+type TransactionalDB interface {
+	DB
+	// BeginTx 开始事务。
+	// @param ctx 上下文
+	// @return 事务
+	// @return 错误
+	BeginTx(ctx context.Context) (Transaction, error)
+}
+
+// 操作类型。
+const (
+	OperationInsert = "insert" // 插入
+	OperationUpdate = "update" // 更新
+	OperationDelete = "delete" // 删除
+)
+
+// Operation 是行操作。
+type Operation struct {
+	Kind        string // 类型
+	Row         Row    // 行
+	OldRevision int64  // 更新时旧版本
+}
+
 // Repository 提供 ACT 行的插入、更新与删除。
 type Repository struct {
 	db      DB     // 数据库
@@ -103,4 +138,48 @@ func (r *Repository) Delete(ctx context.Context, row Row) (int64, error) {
 		return 0, api.NewError("ROW-0013", "删除行失败", err)
 	}
 	return result.RowsAffected()
+}
+
+// Apply 在事务中执行一组行操作。
+// @param ctx 上下文
+// @param operations 操作列表
+// @return 执行错误
+func (r *Repository) Apply(ctx context.Context, operations []Operation) error {
+	run := func(repository *Repository) error {
+		for _, operation := range operations {
+			var err error
+			switch operation.Kind {
+			case OperationInsert:
+				_, err = repository.Insert(ctx, operation.Row)
+			case OperationUpdate:
+				_, err = repository.Update(ctx, operation.Row, operation.OldRevision)
+			case OperationDelete:
+				_, err = repository.Delete(ctx, operation.Row)
+			default:
+				return api.NewError("ROW-0014", "不支持的操作: "+operation.Kind, api.ErrBadRequest)
+			}
+			if err != nil {
+				return err
+			}
+		}
+		return nil
+	}
+	transactional, ok := r.db.(TransactionalDB)
+	if !ok {
+		return run(r)
+	}
+	transaction, err := transactional.BeginTx(ctx)
+	if err != nil {
+		return api.NewError("ROW-0015", "开始事务失败", err)
+	}
+	repository := &Repository{db: transaction, dialect: r.dialect}
+	if err := run(repository); err != nil {
+		_ = transaction.Rollback()
+		return err
+	}
+	if err := transaction.Commit(); err != nil {
+		_ = transaction.Rollback()
+		return api.NewError("ROW-0016", "提交事务失败", err)
+	}
+	return nil
 }
