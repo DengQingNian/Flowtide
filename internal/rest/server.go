@@ -64,6 +64,9 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("PUT /service/runtime/process-instances/{id}", s.handleInstanceAction)
 	s.mux.HandleFunc("POST /service/runtime/process-instances/{id}/migrate", s.handleMigrate)
 	s.mux.HandleFunc("GET /service/runtime/process-instances/{id}/variables", s.handleGetVariables)
+	s.mux.HandleFunc("POST /service/runtime/process-instances/{id}/variables", s.handleCreateInstanceVariable)
+	s.mux.HandleFunc("PUT /service/runtime/process-instances/{id}/variables/{name}", s.handleUpdateInstanceVariable)
+	s.mux.HandleFunc("DELETE /service/runtime/process-instances/{id}/variables/{name}", s.handleDeleteInstanceVariable)
 	s.mux.HandleFunc("GET /service/form/form-data", s.handleGetFormData)
 	s.mux.HandleFunc("POST /service/form/form-data", s.handleSubmitFormData)
 	s.mux.HandleFunc("GET /service/identity/users", s.handleListUsers)
@@ -820,6 +823,49 @@ func (s *Server) handleMigrate(w http.ResponseWriter, r *http.Request) {
 func (s *Server) handleDeleteInstance(w http.ResponseWriter, r *http.Request) {
 	reason := r.URL.Query().Get("deleteReason")
 	if err := s.engine.RuntimeService().DeleteProcessInstance(r.Context(), r.PathValue("id"), reason); err != nil {
+		writeError(w, err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
+// handleCreateInstanceVariable 创建实例变量。
+// @param w 响应
+// @param r 请求
+func (s *Server) handleCreateInstanceVariable(w http.ResponseWriter, r *http.Request) {
+	var variable api.Variable
+	if err := decodeJSON(r, &variable); err != nil {
+		writeError(w, err)
+		return
+	}
+	if err := s.engine.RuntimeService().SetVariable(r.Context(), r.PathValue("id"), variable.Name, variable.Value); err != nil {
+		writeError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusCreated, variable)
+}
+
+// handleUpdateInstanceVariable 更新实例变量。
+// @param w 响应
+// @param r 请求
+func (s *Server) handleUpdateInstanceVariable(w http.ResponseWriter, r *http.Request) {
+	var variable api.Variable
+	if err := decodeJSON(r, &variable); err != nil {
+		writeError(w, err)
+		return
+	}
+	if err := s.engine.RuntimeService().SetVariable(r.Context(), r.PathValue("id"), r.PathValue("name"), variable.Value); err != nil {
+		writeError(w, err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
+// handleDeleteInstanceVariable 删除实例变量。
+// @param w 响应
+// @param r 请求
+func (s *Server) handleDeleteInstanceVariable(w http.ResponseWriter, r *http.Request) {
+	if err := s.engine.RuntimeService().DeleteVariable(r.Context(), r.PathValue("id"), r.PathValue("name")); err != nil {
 		writeError(w, err)
 		return
 	}

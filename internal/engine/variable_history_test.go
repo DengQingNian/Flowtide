@@ -77,3 +77,24 @@ func TestVariableTypeName(t *testing.T) {
 		}
 	}
 }
+
+// TestDeleteVariable 验证删除实例变量。
+// @param t 测试上下文
+func TestDeleteVariable(t *testing.T) {
+	engine := newTestEngine(t)
+	deployXML(t, engine, simpleProcess)
+	instance, _ := engine.StartProcessInstance(context.Background(), api.StartRequest{
+		ProcessDefinitionKey: "simple",
+		Variables:            []api.Variable{{Name: "initiator", Value: "alice"}},
+	})
+	if err := engine.DeleteVariable(context.Background(), instance.ID, "initiator"); err != nil {
+		t.Fatalf("删除变量失败: %v", err)
+	}
+	values, _ := engine.GetVariables(context.Background(), instance.ID)
+	if _, exists := values["initiator"]; exists {
+		t.Fatalf("变量应删除")
+	}
+	if err := engine.DeleteVariable(context.Background(), "missing", "x"); err == nil {
+		t.Fatalf("缺失实例删除变量应报错")
+	}
+}

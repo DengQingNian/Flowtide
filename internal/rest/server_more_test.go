@@ -996,3 +996,41 @@ func TestREST_IdentityLinkErrors(t *testing.T) {
 	}
 	_ = response.Body.Close()
 }
+
+// TestREST_InstanceVariables 验证实例变量增删改。
+// @param t 测试上下文
+func TestREST_InstanceVariables(t *testing.T) {
+	server, _ := newTestServer(t)
+	deployREST(t, server)
+	response := postJSON(t, server.URL+"/service/runtime/process-instances", map[string]any{
+		"processDefinitionKey": "rest",
+		"variables":            []map[string]any{{"name": "initiator", "value": "alice"}},
+	})
+	var instance map[string]any
+	_ = json.NewDecoder(response.Body).Decode(&instance)
+	_ = response.Body.Close()
+	instanceID, _ := instance["id"].(string)
+	response = postJSON(t, server.URL+"/service/runtime/process-instances/"+instanceID+"/variables", map[string]any{"name": "amount", "value": 10})
+	if response.StatusCode != http.StatusCreated {
+		t.Fatalf("创建实例变量失败: %d", response.StatusCode)
+	}
+	_ = response.Body.Close()
+	request, _ := http.NewRequest(http.MethodPut, server.URL+"/service/runtime/process-instances/"+instanceID+"/variables/amount", bytes.NewBufferString(`{"value":20}`))
+	request.Header.Set("Content-Type", "application/json")
+	response, _ = http.DefaultClient.Do(request)
+	if response.StatusCode != http.StatusNoContent {
+		t.Fatalf("更新实例变量失败: %d", response.StatusCode)
+	}
+	_ = response.Body.Close()
+	request, _ = http.NewRequest(http.MethodDelete, server.URL+"/service/runtime/process-instances/"+instanceID+"/variables/amount", nil)
+	response, _ = http.DefaultClient.Do(request)
+	if response.StatusCode != http.StatusNoContent {
+		t.Fatalf("删除实例变量失败: %d", response.StatusCode)
+	}
+	_ = response.Body.Close()
+	response = postJSON(t, server.URL+"/service/runtime/process-instances/missing/variables", map[string]any{"name": "x", "value": 1})
+	if response.StatusCode != http.StatusNotFound {
+		t.Fatalf("缺失实例变量应 404: %d", response.StatusCode)
+	}
+	_ = response.Body.Close()
+}

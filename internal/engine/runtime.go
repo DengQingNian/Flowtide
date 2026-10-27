@@ -809,6 +809,27 @@ func (e *Engine) SetVariable(ctx context.Context, processInstanceID, name string
 	return err
 }
 
+// DeleteVariable 删除流程实例变量。
+// @param ctx 上下文
+// @param processInstanceID 实例 ID
+// @param name 变量名
+// @return 删除错误
+func (e *Engine) DeleteVariable(ctx context.Context, processInstanceID, name string) error {
+	_, err := e.execute(ctx, func(cc *commandContext) (any, error) {
+		instance, ok := e.findInstance(processInstanceID)
+		if !ok {
+			return nil, api.NewError("ENGINE-0404", "流程实例不存在", api.ErrNotFound)
+		}
+		root, ok := e.rootExecution(instance)
+		if !ok {
+			return nil, api.NewError("ENGINE-0405", "根执行不存在", nil)
+		}
+		delete(root.Variables, name)
+		return nil, nil
+	})
+	return err
+}
+
 // evalInt 求值并转换为整数。
 // @param raw 表达式
 // @param vars 变量

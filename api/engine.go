@@ -177,6 +177,12 @@ type RuntimeService interface {
 	// @param value 变量值
 	// @return 设置错误
 	SetVariable(ctx context.Context, processInstanceID, name string, value any) error
+	// DeleteVariable 删除流程实例变量。
+	// @param ctx 上下文
+	// @param processInstanceID 实例 ID
+	// @param name 变量名
+	// @return 删除错误
+	DeleteVariable(ctx context.Context, processInstanceID, name string) error
 	// MessageEventReceived 投递消息，触发一个匹配订阅。
 	// @param ctx 上下文
 	// @param messageName 消息名
