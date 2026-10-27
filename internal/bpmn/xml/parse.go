@@ -113,6 +113,7 @@ func parseElement(node *Node) (model.FlowElement, error) {
 		event.FormKey = attrAny(node, "formKey")
 		event.Initiator = attrAny(node, "initiator")
 		event.MessageRef, event.SignalRef, event.Timer = parseEventDefinition(node)
+		event.Interrupting = !strings.EqualFold(node.Attr("isInterrupting"), "false")
 		return event, nil
 	case "endEvent":
 		event := &model.EndEvent{

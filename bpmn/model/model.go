@@ -150,11 +150,12 @@ type FlowNode interface {
 // StartEvent 表示开始事件。
 type StartEvent struct {
 	FlowNodeBase
-	FormKey    string           // 启动表单 Key
-	Initiator  string           // 发起人变量名
-	Timer      *TimerDefinition // 定时启动配置
-	MessageRef string           // 消息引用
-	SignalRef  string           // 信号引用
+	FormKey      string           // 启动表单 Key
+	Initiator    string           // 发起人变量名
+	Timer        *TimerDefinition // 定时启动配置
+	MessageRef   string           // 消息引用
+	SignalRef    string           // 信号引用
+	Interrupting bool             // 是否中断作用域
 }
 
 // ElementType 返回元素类型。

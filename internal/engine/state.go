@@ -39,30 +39,32 @@ type instanceState struct {
 
 // executionState 是执行树节点。
 type executionState struct {
-	ID                    string         // 执行 ID
-	ProcessInstanceID     string         // 流程实例 ID
-	DefinitionID          string         // 流程定义 ID
-	ParentID              string         // 父执行 ID
-	ActivityID            string         // 当前活动 ID
-	Active                bool           // 是否活跃
-	Scope                 bool           // 是否作用域
-	Concurrent            bool           // 是否并发分支
-	Ended                 bool           // 是否结束
-	Waiting               bool           // 是否等待外部事件
-	ScopeRoot             bool           // 是否子流程作用域根执行
-	MultiInstanceRoot     bool           // 是否多实例根执行
-	MIChild               bool           // 是否多实例子执行
-	MIValues              []any          // 多实例元素值
-	MISequential          bool           // 是否串行多实例
-	MIActivityID          string         // 多实例活动 ID
-	MIElementVariable     string         // 元素变量名
-	MICompletionCondition string         // 完成条件
-	MIIndex               int            // 子实例序号
-	SkipAsyncBefore       bool           // 本次进入跳过异步前
-	SkipAsyncAfter        bool           // 本次离开跳过异步后
-	PendingBranches       int            // 等待的并行分支数
-	CurrentHistActivityID string         // 当前活动历史记录 ID
-	Variables             map[string]any // 局部变量
+	ID                          string         // 执行 ID
+	ProcessInstanceID           string         // 流程实例 ID
+	DefinitionID                string         // 流程定义 ID
+	ParentID                    string         // 父执行 ID
+	ActivityID                  string         // 当前活动 ID
+	Active                      bool           // 是否活跃
+	Scope                       bool           // 是否作用域
+	Concurrent                  bool           // 是否并发分支
+	Ended                       bool           // 是否结束
+	Waiting                     bool           // 是否等待外部事件
+	ScopeRoot                   bool           // 是否子流程作用域根执行
+	MultiInstanceRoot           bool           // 是否多实例根执行
+	MIChild                     bool           // 是否多实例子执行
+	MIValues                    []any          // 多实例元素值
+	MISequential                bool           // 是否串行多实例
+	MIActivityID                string         // 多实例活动 ID
+	MIElementVariable           string         // 元素变量名
+	MICompletionCondition       string         // 完成条件
+	MIIndex                     int            // 子实例序号
+	EventSubProcessRoot         bool           // 是否事件子流程根执行
+	EventSubProcessInterrupting bool           // 事件子流程是否中断
+	SkipAsyncBefore             bool           // 本次进入跳过异步前
+	SkipAsyncAfter              bool           // 本次离开跳过异步后
+	PendingBranches             int            // 等待的并行分支数
+	CurrentHistActivityID       string         // 当前活动历史记录 ID
+	Variables                   map[string]any // 局部变量
 }
 
 // jobState 是定时器作业。
@@ -80,18 +82,22 @@ type jobState struct {
 
 // subscriptionState 是消息/信号订阅。
 type subscriptionState struct {
-	ID                  string    `json:"id"`                  // 订阅 ID
-	ProcessDefinitionID string    `json:"processDefinitionId"` // 流程定义 ID
-	ProcessInstanceID   string    `json:"processInstanceId"`   // 流程实例 ID，启动订阅为空
-	ExecutionID         string    `json:"executionId"`         // 执行 ID
-	EventType           string    `json:"eventType"`           // message 或 signal
-	EventName           string    `json:"eventName"`           // 事件名
-	ActivityID          string    `json:"activityId"`          // 活动 ID
-	BoundaryEventID     string    `json:"boundaryEventId"`     // 边界事件 ID
-	GatewayGroup        string    `json:"gatewayGroup"`        // 事件网关竞争组
-	StartEvent          bool      `json:"startEvent"`          // 是否启动订阅
-	TenantID            string    `json:"tenantId"`            // 租户
-	CreatedAt           time.Time `json:"createdAt"`           // 创建时间
+	ID                     string    `json:"id"`                     // 订阅 ID
+	ProcessDefinitionID    string    `json:"processDefinitionId"`    // 流程定义 ID
+	ProcessInstanceID      string    `json:"processInstanceId"`      // 流程实例 ID，启动订阅为空
+	ExecutionID            string    `json:"executionId"`            // 执行 ID
+	EventType              string    `json:"eventType"`              // message 或 signal
+	EventName              string    `json:"eventName"`              // 事件名
+	ActivityID             string    `json:"activityId"`             // 活动 ID
+	BoundaryEventID        string    `json:"boundaryEventId"`        // 边界事件 ID
+	GatewayGroup           string    `json:"gatewayGroup"`           // 事件网关竞争组
+	EventSubProcessID      string    `json:"eventSubProcessId"`      // 事件子流程 ID
+	EventSubProcessStartID string    `json:"eventSubProcessStartId"` // 事件子流程开始事件 ID
+	ScopeExecutionID       string    `json:"scopeExecutionId"`       // 作用域执行 ID
+	Interrupting           bool      `json:"interrupting"`           // 是否中断作用域
+	StartEvent             bool      `json:"startEvent"`             // 是否启动订阅
+	TenantID               string    `json:"tenantId"`               // 租户
+	CreatedAt              time.Time `json:"createdAt"`              // 创建时间
 }
 
 // taskState 是用户任务的运行时状态。

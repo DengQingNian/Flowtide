@@ -90,6 +90,9 @@ func (e *Engine) subscriptionsFor(eventType, name string) []*subscriptionState {
 // @param variables 变量
 // @return 触发错误
 func (e *Engine) triggerSubscription(cc *commandContext, subscription *subscriptionState, variables map[string]any) error {
+	if subscription.EventSubProcessID != "" {
+		return e.triggerEventSubProcess(cc, subscription)
+	}
 	if subscription.GatewayGroup != "" {
 		return e.triggerGatewaySubscription(cc, subscription, variables)
 	}

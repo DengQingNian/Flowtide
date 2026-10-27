@@ -74,3 +74,32 @@ func TestParse_EventDefinitionEmpty(t *testing.T) {
 		t.Fatalf("空事件定义应无引用: %+v", catch)
 	}
 }
+
+// TestParse_EventSubProcess 验证事件子流程标志。
+// @param t 测试上下文
+func TestParse_EventSubProcess(t *testing.T) {
+	data := `<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL">
+  <message id="m" name="M"/>
+  <process id="p"><startEvent id="s"/>
+    <subProcess id="evt" triggeredByEvent="true">
+      <startEvent id="es" isInterrupting="false"><messageEventDefinition messageRef="m"/></startEvent>
+      <sequenceFlow id="f" sourceRef="es" targetRef="e"/><endEvent id="e"/>
+    </subProcess>
+  </process>
+</definitions>`
+	parsed, err := Parse([]byte(data))
+	if err != nil {
+		t.Fatalf("解析失败: %v", err)
+	}
+	sub := parsed.Processes[0].Elements["evt"].(*model.SubProcess)
+	if !sub.TriggeredByEvent {
+		t.Fatalf("triggeredByEvent 解析错误")
+	}
+	start := sub.Elements["es"].(*model.StartEvent)
+	if start.Interrupting {
+		t.Fatalf("isInterrupting=false 解析错误")
+	}
+	if start.MessageRef != "m" {
+		t.Fatalf("消息引用错误")
+	}
+}

@@ -86,6 +86,7 @@ func (e *Engine) startProcess(cc *commandContext, req api.StartRequest) (api.Pro
 	e.state.Instances[instanceID] = instance
 	e.state.Executions[executionID] = execution
 	e.recordProcessStart(cc, instance)
+	e.scheduleEventSubProcesses(cc, execution, process.Elements, process.Order, definition)
 
 	cc.agenda.schedule(&continueOperation{executionID: executionID, activityID: startEvent.ID})
 	if err := cc.agenda.run(cc); err != nil {
@@ -498,6 +499,10 @@ func (e *Engine) endExecution(cc *commandContext, execution *executionState, ter
 	execution.Waiting = false
 	e.cancelBoundaryTimers(execution.ID)
 	e.removeSubscriptionsForExecution(execution.ID)
+	if execution.EventSubProcessRoot {
+		e.endEventSubProcess(cc, execution)
+		return
+	}
 	// 子流程作用域根结束：恢复父执行并继续子流程之后的路径
 	if execution.ScopeRoot && execution.ParentID != "" {
 		parent, parentOK := e.findExecution(execution.ParentID)
@@ -860,6 +865,9 @@ func (e *Engine) enterSubProcess(cc *commandContext, execution *executionState, 
 	e.state.Executions[child.ID] = child
 	execution.Waiting = true
 	execution.Active = false
+	if definition, exists := e.findDefinition(execution.DefinitionID); exists {
+		e.scheduleEventSubProcesses(cc, child, sub.Elements, sub.Order, definition)
+	}
 	cc.agenda.schedule(&continueOperation{executionID: child.ID, activityID: start.ID})
 	return nil
 }
