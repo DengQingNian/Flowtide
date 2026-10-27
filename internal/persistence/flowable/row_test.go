@@ -1,0 +1,85 @@
+package flowable
+
+import (
+	"strings"
+	"testing"
+)
+
+// TestTables 验证支持的表。
+// @param t 测试上下文
+func TestTables(t *testing.T) {
+	tables := Tables()
+	if len(tables) != 3 || tables[0] != "ACT_GE_BYTEARRAY" {
+		t.Fatalf("表列表错误: %+v", tables)
+	}
+}
+
+// TestNewRowAndSet 验证行与列校验。
+// @param t 测试上下文
+func TestNewRowAndSet(t *testing.T) {
+	if _, err := NewRow("ACT_UNKNOWN"); err == nil {
+		t.Fatalf("未知表应失败")
+	}
+	row, err := NewRow("ACT_GE_BYTEARRAY")
+	if err != nil {
+		t.Fatalf("创建行失败: %v", err)
+	}
+	if err := row.Set("ID_", "id"); err != nil {
+		t.Fatalf("设置 ID 失败: %v", err)
+	}
+	if err := row.Set("UNKNOWN_", "x"); err == nil {
+		t.Fatalf("未知列应失败")
+	}
+	if len(row.Columns()) != 6 {
+		t.Fatalf("列数量错误: %+v", row.Columns())
+	}
+	columns := row.Columns()
+	columns[0] = "X"
+	if row.Columns()[0] != "ID_" {
+		t.Fatalf("Columns 应返回副本")
+	}
+	if args := row.Args(); len(args) != 6 || args[0] != "id" {
+		t.Fatalf("参数顺序错误: %+v", args)
+	}
+}
+
+// TestInsertSQL 验证插入语句。
+// @param t 测试上下文
+func TestInsertSQL(t *testing.T) {
+	row, _ := NewRow("ACT_RE_DEPLOYMENT")
+	_ = row.Set("ID_", "d1")
+	query, args, err := row.InsertSQL("mysql")
+	if err != nil {
+		t.Fatalf("生成 MySQL 插入失败: %v", err)
+	}
+	if !strings.Contains(query, "INSERT INTO ACT_RE_DEPLOYMENT") || strings.Count(query, "?") != 10 {
+		t.Fatalf("MySQL 插入语句错误: %s", query)
+	}
+	if len(args) != 10 || args[0] != "d1" {
+		t.Fatalf("参数错误: %+v", args)
+	}
+	query, args, err = row.InsertSQL("postgres")
+	if err != nil || !strings.Contains(query, "$10") || len(args) != 10 {
+		t.Fatalf("PostgreSQL 插入语句错误: %v %s", err, query)
+	}
+	if _, _, err := row.InsertSQL("oracle"); err == nil {
+		t.Fatalf("非法方言应失败")
+	}
+}
+
+// TestDeleteSQL 验证删除语句。
+// @param t 测试上下文
+func TestDeleteSQL(t *testing.T) {
+	row, _ := NewRow("ACT_RE_DEPLOYMENT")
+	if _, _, err := row.DeleteSQL("mysql"); err == nil {
+		t.Fatalf("缺少 ID 应失败")
+	}
+	_ = row.Set("ID_", "d1")
+	query, args, err := row.DeleteSQL("postgres")
+	if err != nil || query != "DELETE FROM ACT_RE_DEPLOYMENT WHERE ID_ = $1" || args[0] != "d1" {
+		t.Fatalf("删除语句错误: %v %s %+v", err, query, args)
+	}
+	if _, _, err := row.DeleteSQL("oracle"); err == nil {
+		t.Fatalf("非法方言应失败")
+	}
+}
