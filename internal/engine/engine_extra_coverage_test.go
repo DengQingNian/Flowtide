@@ -4,6 +4,8 @@ import (
 	"context"
 	"os"
 	"testing"
+
+	statestore "github.com/flowable-go/flowable/internal/persistence/state"
 	"time"
 
 	"github.com/flowable-go/flowable/api"
@@ -51,7 +53,7 @@ func TestSaveStateErrorRollsBack(t *testing.T) {
 		t.Fatalf("启动失败: %v", err)
 	}
 	directory := t.TempDir()
-	engine.cfg.StatePath = directory
+	engine.cfg.StateStore = statestore.NewFile(directory)
 	if err := engine.SetVariable(context.Background(), instance.ID, "x", 1); err == nil {
 		t.Fatalf("状态路径为目录时应失败")
 	}
@@ -140,8 +142,8 @@ func TestSaveStateMissingDirectory(t *testing.T) {
 	}
 	_ = file.Close()
 	engine := newTestEngine(t)
-	engine.cfg.StatePath = file.Name() + "/state.json"
-	if err := engine.saveState(); err == nil {
+	engine.cfg.StateStore = statestore.NewFile(file.Name() + "/state.json")
+	if err := engine.saveState(context.Background()); err == nil {
 		t.Fatalf("父路径是文件时应失败")
 	}
 }

@@ -1,9 +1,8 @@
 package engine
 
 import (
+	"context"
 	"encoding/json"
-	"os"
-	"path/filepath"
 
 	"github.com/flowable-go/flowable/api"
 	bpmnxml "github.com/flowable-go/flowable/internal/bpmn/xml"
@@ -104,58 +103,36 @@ func (e *Engine) toSnapshot() *snapshot {
 	return out
 }
 
-// saveState 原子写入状态文件。
-// @return 写入错误
-func (e *Engine) saveState() error {
-	if e.cfg.StatePath == "" {
+// saveState 保存引擎状态。
+// @param ctx 上下文
+// @return 保存错误
+func (e *Engine) saveState(ctx context.Context) error {
+	if e.cfg.StateStore == nil {
 		return nil
 	}
 	data, err := json.Marshal(e.toSnapshot())
 	if err != nil {
 		return api.NewError("ENGINE-0901", "序列化引擎状态失败", err)
 	}
-	dir := filepath.Dir(e.cfg.StatePath)
-	if err := os.MkdirAll(dir, 0o755); err != nil {
-		return api.NewError("ENGINE-0902", "创建状态目录失败", err)
-	}
-	temp, err := os.CreateTemp(dir, ".flowable-state-*")
-	if err != nil {
-		return api.NewError("ENGINE-0903", "创建临时状态文件失败", err)
-	}
-	name := temp.Name()
-	defer func() {
-		// 失败路径清理临时文件
-		_ = os.Remove(name)
-	}()
-	if _, err := temp.Write(data); err != nil {
-		_ = temp.Close()
-		return api.NewError("ENGINE-0904", "写入状态失败", err)
-	}
-	if err := temp.Sync(); err != nil {
-		_ = temp.Close()
-		return api.NewError("ENGINE-0905", "同步状态失败", err)
-	}
-	if err := temp.Close(); err != nil {
-		return api.NewError("ENGINE-0906", "关闭状态文件失败", err)
-	}
-	if err := os.Rename(name, e.cfg.StatePath); err != nil {
-		return api.NewError("ENGINE-0907", "替换状态文件失败", err)
+	if err := e.cfg.StateStore.Save(ctx, data); err != nil {
+		return api.NewError("ENGINE-0908", "保存引擎状态失败", err)
 	}
 	return nil
 }
 
-// loadState 从状态文件恢复。
+// loadState 从状态存储恢复。
+// @param ctx 上下文
 // @return 恢复错误
-func (e *Engine) loadState() error {
-	if e.cfg.StatePath == "" {
+func (e *Engine) loadState(ctx context.Context) error {
+	if e.cfg.StateStore == nil {
 		return nil
 	}
-	data, err := os.ReadFile(e.cfg.StatePath)
-	if os.IsNotExist(err) {
-		return nil
-	}
+	data, err := e.cfg.StateStore.Load(ctx)
 	if err != nil {
-		return api.NewError("ENGINE-0910", "读取状态文件失败", err)
+		return api.NewError("ENGINE-0910", "读取状态失败", err)
+	}
+	if data == nil {
+		return nil
 	}
 	var stored snapshot
 	if err := json.Unmarshal(data, &stored); err != nil {

@@ -9,6 +9,7 @@ import (
 	"github.com/flowable-go/flowable/api"
 	"github.com/flowable-go/flowable/internal/clock"
 	"github.com/flowable-go/flowable/internal/idgen"
+	statestore "github.com/flowable-go/flowable/internal/persistence/state"
 )
 
 // Version 是当前引擎版本。
@@ -26,12 +27,13 @@ const (
 
 // Config 是引擎配置。
 type Config struct {
-	HistoryLevel   string          // 历史级别，默认 audit
-	Clock          clock.Clock     // 时钟，默认真实时钟
-	IDs            idgen.Generator // ID 生成器，默认 UUIDv7
-	MaxAgendaSteps int             // 单命令最大议程步数，默认 10000
-	TenantID       string          // 默认租户
-	StatePath      string          // 状态文件路径，为空时仅使用内存
+	HistoryLevel   string           // 历史级别，默认 audit
+	Clock          clock.Clock      // 时钟，默认真实时钟
+	IDs            idgen.Generator  // ID 生成器，默认 UUIDv7
+	MaxAgendaSteps int              // 单命令最大议程步数，默认 10000
+	TenantID       string           // 默认租户
+	StatePath      string           // 状态文件路径，为空时仅使用内存
+	StateStore     statestore.Store // 状态存储，优先于 StatePath
 }
 
 // Delegate 是服务任务委托。
@@ -111,12 +113,15 @@ func New(cfg Config) (*Engine, error) {
 	if !validHistoryLevel(cfg.HistoryLevel) {
 		return nil, api.NewError("ENGINE-0001", "非法历史级别: "+cfg.HistoryLevel, api.ErrBadRequest)
 	}
+	if cfg.StateStore == nil && cfg.StatePath != "" {
+		cfg.StateStore = statestore.NewFile(cfg.StatePath)
+	}
 	engine := &Engine{
 		cfg:       cfg,
 		state:     newState(),
 		delegates: make(map[string]Delegate),
 	}
-	if err := engine.loadState(); err != nil {
+	if err := engine.loadState(context.Background()); err != nil {
 		return nil, err
 	}
 	return engine, nil
@@ -157,7 +162,7 @@ func (e *Engine) ManagementService() api.ManagementService { return e }
 func (e *Engine) Close(ctx context.Context) error {
 	e.mu.Lock()
 	defer e.mu.Unlock()
-	if err := e.saveState(); err != nil {
+	if err := e.saveState(ctx); err != nil {
 		return err
 	}
 	e.closed = true
@@ -204,7 +209,7 @@ func (e *Engine) execute(ctx context.Context, fn func(*commandContext) (any, err
 		return nil, err
 	}
 	// 命令成功后落盘；落盘失败同样回滚，保证内存与磁盘一致
-	if err := e.saveState(); err != nil {
+	if err := e.saveState(ctx); err != nil {
 		e.state = backup
 		return nil, err
 	}
