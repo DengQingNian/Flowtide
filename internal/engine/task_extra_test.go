@@ -177,3 +177,27 @@ func TestProcessAttachments(t *testing.T) {
 		t.Fatalf("空附件名应失败")
 	}
 }
+
+// TestDeleteAttachment 验证删除附件。
+// @param t 测试上下文
+func TestDeleteAttachment(t *testing.T) {
+	engine := newTestEngine(t)
+	deployXML(t, engine, simpleProcess)
+	instance, _ := engine.StartProcessInstance(context.Background(), api.StartRequest{
+		ProcessDefinitionKey: "simple",
+		Variables:            []api.Variable{{Name: "initiator", Value: "alice"}},
+	})
+	attachment, err := engine.AddProcessAttachment(context.Background(), instance.ID, api.Attachment{Name: "x"})
+	if err != nil {
+		t.Fatalf("添加附件失败: %v", err)
+	}
+	if err := engine.DeleteAttachment(context.Background(), attachment.ID); err != nil {
+		t.Fatalf("删除附件失败: %v", err)
+	}
+	if attachments, _ := engine.ListProcessAttachments(context.Background(), instance.ID); len(attachments) != 0 {
+		t.Fatalf("附件应删除")
+	}
+	if err := engine.DeleteAttachment(context.Background(), "missing"); err == nil {
+		t.Fatalf("缺失附件删除应失败")
+	}
+}

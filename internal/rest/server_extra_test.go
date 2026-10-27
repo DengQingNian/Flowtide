@@ -210,3 +210,52 @@ func TestREST_ProcessAttachments(t *testing.T) {
 	}
 	_ = response.Body.Close()
 }
+
+// TestREST_DeleteExtras 验证删除附件与流程评论。
+// @param t 测试上下文
+func TestREST_DeleteExtras(t *testing.T) {
+	server, _ := newTestServer(t)
+	deployREST(t, server)
+	response := postJSON(t, server.URL+"/service/runtime/process-instances", map[string]any{
+		"processDefinitionKey": "rest",
+		"variables":            []map[string]any{{"name": "initiator", "value": "alice"}},
+	})
+	var instance map[string]any
+	_ = json.NewDecoder(response.Body).Decode(&instance)
+	_ = response.Body.Close()
+	instanceID, _ := instance["id"].(string)
+	response = postJSON(t, server.URL+"/service/runtime/process-instances/"+instanceID+"/attachments", map[string]any{"name": "x"})
+	var attachment map[string]any
+	_ = json.NewDecoder(response.Body).Decode(&attachment)
+	_ = response.Body.Close()
+	attachmentID, _ := attachment["id"].(string)
+	request, _ := http.NewRequest(http.MethodDelete, server.URL+"/service/runtime/process-instances/"+instanceID+"/attachments/"+attachmentID, nil)
+	response, _ = http.DefaultClient.Do(request)
+	if response.StatusCode != http.StatusNoContent {
+		t.Fatalf("删除流程附件失败: %d", response.StatusCode)
+	}
+	_ = response.Body.Close()
+	response = postJSON(t, server.URL+"/service/runtime/process-instances/"+instanceID+"/comments", map[string]any{"message": "x"})
+	var comment map[string]any
+	_ = json.NewDecoder(response.Body).Decode(&comment)
+	_ = response.Body.Close()
+	commentID, _ := comment["id"].(string)
+	request, _ = http.NewRequest(http.MethodDelete, server.URL+"/service/runtime/process-instances/"+instanceID+"/comments/"+commentID, nil)
+	response, _ = http.DefaultClient.Do(request)
+	if response.StatusCode != http.StatusNoContent {
+		t.Fatalf("删除流程评论失败: %d", response.StatusCode)
+	}
+	_ = response.Body.Close()
+	request, _ = http.NewRequest(http.MethodDelete, server.URL+"/service/runtime/process-instances/"+instanceID+"/comments/missing", nil)
+	response, _ = http.DefaultClient.Do(request)
+	if response.StatusCode != http.StatusNotFound {
+		t.Fatalf("缺失流程评论应 404: %d", response.StatusCode)
+	}
+	_ = response.Body.Close()
+	request, _ = http.NewRequest(http.MethodDelete, server.URL+"/service/runtime/tasks/"+instanceID+"/attachments/missing", nil)
+	response, _ = http.DefaultClient.Do(request)
+	if response.StatusCode != http.StatusNotFound {
+		t.Fatalf("缺失附件应 404: %d", response.StatusCode)
+	}
+	_ = response.Body.Close()
+}

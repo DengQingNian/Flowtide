@@ -268,6 +268,8 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("POST /service/runtime/process-instances/{id}/migrate", s.handleMigrate)
 	s.mux.HandleFunc("GET /service/runtime/process-instances/{id}/attachments", s.handleListProcessAttachments)
 	s.mux.HandleFunc("POST /service/runtime/process-instances/{id}/attachments", s.handleAddProcessAttachment)
+	s.mux.HandleFunc("DELETE /service/runtime/process-instances/{id}/attachments/{attachmentId}", s.handleDeleteAttachment)
+	s.mux.HandleFunc("DELETE /service/runtime/process-instances/{id}/comments/{commentId}", s.handleDeleteProcessComment)
 	s.mux.HandleFunc("GET /service/runtime/process-instances/{id}/comments", s.handleListProcessComments)
 	s.mux.HandleFunc("POST /service/runtime/process-instances/{id}/comments", s.handleAddProcessComment)
 	s.mux.HandleFunc("GET /service/runtime/process-instances/{id}/tasks", s.handleGetInstanceTasks)
@@ -317,6 +319,7 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("DELETE /service/runtime/tasks/{id}/comments/{commentId}", s.handleDeleteComment)
 	s.mux.HandleFunc("GET /service/runtime/tasks/{id}/attachments", s.handleListAttachments)
 	s.mux.HandleFunc("POST /service/runtime/tasks/{id}/attachments", s.handleAddAttachment)
+	s.mux.HandleFunc("DELETE /service/runtime/tasks/{id}/attachments/{attachmentId}", s.handleDeleteAttachment)
 	s.mux.HandleFunc("POST /service/runtime/tasks/{id}", s.handleTaskAction)
 	s.mux.HandleFunc("GET /service/history/historic-process-instances", s.handleHistoricProcesses)
 	s.mux.HandleFunc("GET /service/history/historic-process-instances/{id}", s.handleHistoricProcess)
@@ -1678,6 +1681,28 @@ func (s *Server) handleAddComment(w http.ResponseWriter, r *http.Request) {
 // @param w 响应
 // @param r 请求
 func (s *Server) handleDeleteComment(w http.ResponseWriter, r *http.Request) {
+	if err := s.engine.TaskService().DeleteComment(r.Context(), r.PathValue("commentId")); err != nil {
+		writeError(w, err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
+// handleDeleteAttachment 删除附件。
+// @param w 响应
+// @param r 请求
+func (s *Server) handleDeleteAttachment(w http.ResponseWriter, r *http.Request) {
+	if err := s.engine.TaskService().DeleteAttachment(r.Context(), r.PathValue("attachmentId")); err != nil {
+		writeError(w, err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
+// handleDeleteProcessComment 删除流程评论。
+// @param w 响应
+// @param r 请求
+func (s *Server) handleDeleteProcessComment(w http.ResponseWriter, r *http.Request) {
 	if err := s.engine.TaskService().DeleteComment(r.Context(), r.PathValue("commentId")); err != nil {
 		writeError(w, err)
 		return

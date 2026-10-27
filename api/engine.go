@@ -382,6 +382,11 @@ type TaskService interface {
 	// @return 附件
 	// @return 添加错误
 	AddAttachment(ctx context.Context, taskID string, attachment Attachment) (Attachment, error)
+	// DeleteAttachment 删除附件。
+	// @param ctx 上下文
+	// @param attachmentID 附件 ID
+	// @return 删除错误
+	DeleteAttachment(ctx context.Context, attachmentID string) error
 	// ListAttachments 返回任务附件。
 	// @param ctx 上下文
 	// @param taskID 任务 ID

@@ -268,3 +268,18 @@ func (e *Engine) ListAttachments(ctx context.Context, taskID string) ([]api.Atta
 	}
 	return result.([]api.Attachment), nil
 }
+
+// DeleteAttachment 删除附件。
+// @param ctx 上下文
+// @param attachmentID 附件 ID
+// @return 删除错误
+func (e *Engine) DeleteAttachment(ctx context.Context, attachmentID string) error {
+	_, err := e.execute(ctx, func(cc *commandContext) (any, error) {
+		if _, ok := e.state.Attachments[attachmentID]; !ok {
+			return nil, api.NewError("ENGINE-0404", "附件不存在", api.ErrNotFound)
+		}
+		delete(e.state.Attachments, attachmentID)
+		return nil, nil
+	})
+	return err
+}
