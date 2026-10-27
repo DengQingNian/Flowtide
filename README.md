@@ -136,6 +136,7 @@ curl -X POST 'http://localhost:8080/service/runtime/process-instances' \
 - 可插拔状态存储（文件/内存/SQL），SQL 桥接写入 `ACT_GE_BYTEARRAY`。
 - ACT_* 行映射、导出与导入（仓库、运行时、作业/订阅/死信、历史/评论/附件/身份链接/变量明细）。
 - 行级 SQL 仓储、`REV_` 乐观锁、事务工作单元、全量/增量/自动写入、启动恢复与单一状态源。
+- REST Basic Auth / Bearer Token（健康检查公开）。
 - 部署管理（列表、详情、资源下载、级联删除、ZIP/BAR 部署包）。
 - 事件子流程（消息/信号启动、中断/非中断、作用域取消）。
 - 补偿（补偿边界、关联处理器、逆序执行；服务/手动处理器）。

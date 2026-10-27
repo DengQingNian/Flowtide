@@ -11,6 +11,8 @@ var (
 	ErrConflict = errors.New("状态冲突")
 	// ErrBadRequest 表示请求参数非法。
 	ErrBadRequest = errors.New("请求参数非法")
+	// ErrUnauthorized 表示未认证。
+	ErrUnauthorized = errors.New("未认证")
 	// ErrForbidden 表示无权限。
 	ErrForbidden = errors.New("无权限")
 	// ErrEngineClosed 表示引擎已关闭。

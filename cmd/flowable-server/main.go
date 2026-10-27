@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
@@ -24,6 +25,8 @@ func main() {
 	tenantID := flag.String("tenant", "", "默认租户")
 	statePath := flag.String("state", "", "状态文件路径，为空时仅使用内存")
 	jobsInterval := flag.Duration("jobs-interval", time.Second, "定时器扫描间隔，0 表示关闭后台扫描")
+	basicAuth := flag.String("basic-auth", "", "Basic Auth 用户，格式 user:pass")
+	bearerToken := flag.String("bearer-token", "", "Bearer Token")
 	flag.Parse()
 
 	app, err := engine.New(engine.Config{HistoryLevel: *historyLevel, TenantID: *tenantID, StatePath: *statePath})
@@ -57,9 +60,21 @@ func main() {
 		}()
 	}
 
+	options := make([]rest.Option, 0)
+	if *basicAuth != "" {
+		parts := strings.SplitN(*basicAuth, ":", 2)
+		if len(parts) != 2 || parts[0] == "" || parts[1] == "" {
+			slog.Error("非法 Basic Auth 配置，应为 user:pass")
+			os.Exit(1)
+		}
+		options = append(options, rest.WithBasicAuth(map[string]string{parts[0]: parts[1]}))
+	}
+	if *bearerToken != "" {
+		options = append(options, rest.WithBearerToken(*bearerToken))
+	}
 	server := &http.Server{
 		Addr:              *addr,
-		Handler:           rest.New(app).Handler(),
+		Handler:           rest.New(app, options...).Handler(),
 		ReadHeaderTimeout: 10 * time.Second,
 		ReadTimeout:       30 * time.Second,
 		WriteTimeout:      60 * time.Second,

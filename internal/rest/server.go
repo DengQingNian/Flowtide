@@ -2,6 +2,7 @@
 package rest
 
 import (
+	"crypto/subtle"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -19,22 +20,95 @@ const MaxUploadSize = 64 << 20
 
 // Server 是 HTTP API 服务。
 type Server struct {
-	engine api.Engine     // 引擎
-	mux    *http.ServeMux // 路由
+	engine      api.Engine        // 引擎
+	mux         *http.ServeMux    // 路由
+	basicUsers  map[string]string // Basic Auth 用户
+	bearerToken string            // Bearer Token
+}
+
+// Option 是 REST 服务选项。
+type Option func(*Server)
+
+// WithBasicAuth 启用 Basic Auth。
+// @param users 用户名到密码
+// @return 选项
+func WithBasicAuth(users map[string]string) Option {
+	return func(server *Server) {
+		server.basicUsers = make(map[string]string, len(users))
+		for user, password := range users {
+			server.basicUsers[user] = password
+		}
+	}
+}
+
+// WithBearerToken 启用 Bearer Token。
+// @param token 令牌
+// @return 选项
+func WithBearerToken(token string) Option {
+	return func(server *Server) {
+		server.bearerToken = token
+	}
 }
 
 // New 创建 REST 服务。
 // @param engine 引擎
+// @param options 选项
 // @return 服务
-func New(engine api.Engine) *Server {
+func New(engine api.Engine, options ...Option) *Server {
 	server := &Server{engine: engine, mux: http.NewServeMux()}
+	for _, option := range options {
+		option(server)
+	}
 	server.routes()
 	return server
 }
 
 // Handler 返回 HTTP 处理器。
 // @return 处理器
-func (s *Server) Handler() http.Handler { return s.mux }
+func (s *Server) Handler() http.Handler { return s.authenticate(s.mux) }
+
+// authenticate 对 /service 路径执行认证。
+// @param next 下游处理器
+// @return 处理器
+func (s *Server) authenticate(next http.Handler) http.Handler {
+	if len(s.basicUsers) == 0 && s.bearerToken == "" {
+		return next
+	}
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if !strings.HasPrefix(r.URL.Path, "/service/") {
+			next.ServeHTTP(w, r)
+			return
+		}
+		if s.authorized(r) {
+			next.ServeHTTP(w, r)
+			return
+		}
+		w.Header().Set("WWW-Authenticate", `Basic realm="flowable"`)
+		writeError(w, api.NewError("REST-0401", "未认证", api.ErrUnauthorized))
+	})
+}
+
+// authorized 判断请求是否通过认证。
+// @param r 请求
+// @return 是否通过
+func (s *Server) authorized(r *http.Request) bool {
+	if s.bearerToken != "" {
+		token := strings.TrimPrefix(r.Header.Get("Authorization"), "Bearer ")
+		if token != "" && subtle.ConstantTimeCompare([]byte(token), []byte(s.bearerToken)) == 1 {
+			return true
+		}
+	}
+	if len(s.basicUsers) > 0 {
+		user, password, ok := r.BasicAuth()
+		if ok {
+			expected, exists := s.basicUsers[user]
+			if exists && subtle.ConstantTimeCompare([]byte(password), []byte(expected)) == 1 {
+				return true
+			}
+		}
+	}
+	return false
+}
 
 // routes 注册全部路由。
 func (s *Server) routes() {
@@ -1526,6 +1600,9 @@ func writeError(w http.ResponseWriter, err error) {
 // @param err 错误
 // @return HTTP 状态码
 func statusFor(err error) int {
+	if errors.Is(err, api.ErrUnauthorized) {
+		return http.StatusUnauthorized
+	}
 	var engineErr *api.Error
 	if errors.As(err, &engineErr) {
 		switch {
@@ -1538,6 +1615,8 @@ func statusFor(err error) int {
 	switch {
 	case errors.Is(err, api.ErrBadRequest):
 		return http.StatusBadRequest
+	case errors.Is(err, api.ErrUnauthorized):
+		return http.StatusUnauthorized
 	case errors.Is(err, api.ErrForbidden):
 		return http.StatusForbidden
 	case errors.Is(err, api.ErrNotFound):
