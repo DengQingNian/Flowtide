@@ -2,6 +2,7 @@ package engine
 
 import (
 	"context"
+	"errors"
 	"testing"
 
 	"github.com/flowable-go/flowable/api"
@@ -21,6 +22,7 @@ type persistTx struct {
 	executed   int  // 执行次数
 	committed  bool // 是否提交
 	rolledBack bool // 是否回滚
+	fail       bool // 是否失败
 }
 
 // ExecContext 执行 SQL。
@@ -31,6 +33,9 @@ type persistTx struct {
 // @return 错误
 func (t *persistTx) ExecContext(ctx context.Context, query string, args ...any) (flowablerow.Result, error) {
 	t.executed++
+	if t.fail {
+		return nil, errors.New("tx")
+	}
 	return persistResult{}, nil
 }
 
@@ -50,7 +55,8 @@ func (t *persistTx) Rollback() error {
 
 // persistDB 是快照测试数据库。
 type persistDB struct {
-	tx *persistTx // 事务
+	tx   *persistTx // 事务
+	fail bool       // 是否失败
 }
 
 // ExecContext 执行 SQL。
@@ -60,6 +66,9 @@ type persistDB struct {
 // @return 结果
 // @return 错误
 func (d *persistDB) ExecContext(ctx context.Context, query string, args ...any) (flowablerow.Result, error) {
+	if d.fail {
+		return nil, errors.New("exec")
+	}
 	return persistResult{}, nil
 }
 
@@ -68,7 +77,7 @@ func (d *persistDB) ExecContext(ctx context.Context, query string, args ...any) 
 // @return 事务
 // @return 错误
 func (d *persistDB) BeginTx(ctx context.Context) (flowablerow.Transaction, error) {
-	d.tx = &persistTx{}
+	d.tx = &persistTx{fail: d.fail}
 	return d.tx, nil
 }
 
@@ -147,5 +156,53 @@ func TestPersistDiff(t *testing.T) {
 	}
 	if err := engine.PersistDiff(context.Background(), nil, nil); err == nil {
 		t.Fatalf("空仓储应失败")
+	}
+}
+
+// TestEngine_AutoPersistRows 验证命令后自动持久化。
+// @param t 测试上下文
+func TestEngine_AutoPersistRows(t *testing.T) {
+	db := &persistDB{}
+	repository, _ := flowablerow.NewRepository(db, "mysql")
+	engine, err := New(Config{RowRepository: repository})
+	if err != nil {
+		t.Fatalf("创建引擎失败: %v", err)
+	}
+	deployXML(t, engine, simpleProcess)
+	if db.tx == nil || !db.tx.committed || db.tx.executed == 0 {
+		t.Fatalf("部署后未持久化: %+v", db.tx)
+	}
+	first := db.tx.executed
+	db.tx = nil
+	if _, err := engine.StartProcessInstance(context.Background(), api.StartRequest{
+		ProcessDefinitionKey: "simple",
+		Variables:            []api.Variable{{Name: "initiator", Value: "alice"}},
+	}); err != nil {
+		t.Fatalf("启动失败: %v", err)
+	}
+	if db.tx == nil || db.tx.executed == 0 {
+		t.Fatalf("启动后未增量持久化")
+	}
+	if len(engine.lastRows) == 0 || len(engine.lastRows) < first {
+		t.Fatalf("lastRows 未更新")
+	}
+}
+
+// TestEngine_AutoPersistError 验证持久化失败回滚。
+// @param t 测试上下文
+func TestEngine_AutoPersistError(t *testing.T) {
+	db := &persistDB{fail: true}
+	repository, _ := flowablerow.NewRepository(db, "mysql")
+	engine, err := New(Config{RowRepository: repository})
+	if err != nil {
+		t.Fatalf("创建引擎失败: %v", err)
+	}
+	if _, err := engine.Deploy(context.Background(), api.DeploymentRequest{
+		Resources: map[string][]byte{"test.bpmn20.xml": []byte(simpleProcess)},
+	}); err == nil {
+		t.Fatalf("行持久化失败应返回错误")
+	}
+	if len(engine.state.Deployments) != 0 {
+		t.Fatalf("失败后部署应回滚")
 	}
 }

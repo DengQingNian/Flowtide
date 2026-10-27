@@ -28,23 +28,7 @@ func (e *Engine) PersistSnapshot(ctx context.Context, repository *flowablerow.Re
 // @return 行列表
 // @return 导出错误
 func (e *Engine) SnapshotRows(ctx context.Context) ([]flowablerow.Row, error) {
-	repositoryRows, err := e.ExportRows(ctx)
-	if err != nil {
-		return nil, err
-	}
-	runtimeRows, err := e.ExportRuntimeRows(ctx)
-	if err != nil {
-		return nil, err
-	}
-	historicRows, err := e.ExportHistoricRows(ctx)
-	if err != nil {
-		return nil, err
-	}
-	rows := make([]flowablerow.Row, 0, len(repositoryRows)+len(runtimeRows)+len(historicRows))
-	rows = append(rows, repositoryRows...)
-	rows = append(rows, runtimeRows...)
-	rows = append(rows, historicRows...)
-	return rows, nil
+	return e.readRows(e.snapshotRowsLocked)
 }
 
 // PersistDiff 将当前快照相对旧快照的增量写入行仓储。
@@ -61,4 +45,23 @@ func (e *Engine) PersistDiff(ctx context.Context, repository *flowablerow.Reposi
 		return err
 	}
 	return repository.Apply(ctx, flowablerow.DiffOperations(previous, current))
+}
+
+// persistRows 将当前状态差异写入行仓储。
+// @param ctx 上下文
+// @return 写入错误
+func (e *Engine) persistRows(ctx context.Context) error {
+	if e.rowRepository == nil {
+		return nil
+	}
+	current, err := e.snapshotRowsLocked()
+	if err != nil {
+		return err
+	}
+	operations := flowablerow.DiffOperations(e.lastRows, current)
+	if err := e.rowRepository.Apply(ctx, operations); err != nil {
+		return api.NewError("ENGINE-0915", "写入行仓储失败", err)
+	}
+	e.lastRows = current
+	return nil
 }

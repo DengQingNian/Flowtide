@@ -9,6 +9,7 @@ import (
 	"github.com/flowable-go/flowable/api"
 	"github.com/flowable-go/flowable/internal/clock"
 	"github.com/flowable-go/flowable/internal/idgen"
+	flowablerow "github.com/flowable-go/flowable/internal/persistence/flowable"
 	statestore "github.com/flowable-go/flowable/internal/persistence/state"
 )
 
@@ -27,13 +28,14 @@ const (
 
 // Config 是引擎配置。
 type Config struct {
-	HistoryLevel   string           // 历史级别，默认 audit
-	Clock          clock.Clock      // 时钟，默认真实时钟
-	IDs            idgen.Generator  // ID 生成器，默认 UUIDv7
-	MaxAgendaSteps int              // 单命令最大议程步数，默认 10000
-	TenantID       string           // 默认租户
-	StatePath      string           // 状态文件路径，为空时仅使用内存
-	StateStore     statestore.Store // 状态存储，优先于 StatePath
+	HistoryLevel   string                  // 历史级别，默认 audit
+	Clock          clock.Clock             // 时钟，默认真实时钟
+	IDs            idgen.Generator         // ID 生成器，默认 UUIDv7
+	MaxAgendaSteps int                     // 单命令最大议程步数，默认 10000
+	TenantID       string                  // 默认租户
+	StatePath      string                  // 状态文件路径，为空时仅使用内存
+	StateStore     statestore.Store        // 状态存储，优先于 StatePath
+	RowRepository  *flowablerow.Repository // 按表行仓储，可选
 }
 
 // Delegate 是服务任务委托。
@@ -78,11 +80,13 @@ func (e *Execution) ActivityID() string { return e.state.ActivityID }
 
 // Engine 是流程引擎实现。
 type Engine struct {
-	mu        sync.RWMutex        // 保护全部状态
-	cfg       Config              // 配置
-	state     *state              // 可变状态
-	delegates map[string]Delegate // 服务任务委托
-	closed    bool                // 是否关闭
+	mu            sync.RWMutex            // 保护全部状态
+	cfg           Config                  // 配置
+	state         *state                  // 可变状态
+	delegates     map[string]Delegate     // 服务任务委托
+	closed        bool                    // 是否关闭
+	rowRepository *flowablerow.Repository // 行仓储
+	lastRows      []flowablerow.Row       // 上次持久化行
 }
 
 // commandContext 是单条命令的上下文。
@@ -117,9 +121,10 @@ func New(cfg Config) (*Engine, error) {
 		cfg.StateStore = statestore.NewFile(cfg.StatePath)
 	}
 	engine := &Engine{
-		cfg:       cfg,
-		state:     newState(),
-		delegates: make(map[string]Delegate),
+		cfg:           cfg,
+		state:         newState(),
+		delegates:     make(map[string]Delegate),
+		rowRepository: cfg.RowRepository,
 	}
 	if err := engine.loadState(context.Background()); err != nil {
 		return nil, err
@@ -163,6 +168,9 @@ func (e *Engine) Close(ctx context.Context) error {
 	e.mu.Lock()
 	defer e.mu.Unlock()
 	if err := e.saveState(ctx); err != nil {
+		return err
+	}
+	if err := e.persistRows(ctx); err != nil {
 		return err
 	}
 	e.closed = true
@@ -210,6 +218,10 @@ func (e *Engine) execute(ctx context.Context, fn func(*commandContext) (any, err
 	}
 	// 命令成功后落盘；落盘失败同样回滚，保证内存与磁盘一致
 	if err := e.saveState(ctx); err != nil {
+		e.state = backup
+		return nil, err
+	}
+	if err := e.persistRows(ctx); err != nil {
 		e.state = backup
 		return nil, err
 	}
