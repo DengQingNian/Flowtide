@@ -176,6 +176,13 @@ type RuntimeService interface {
 	// @return 变量快照
 	// @return 查询错误
 	GetVariables(ctx context.Context, processInstanceID string) (map[string]any, error)
+	// GetVariable 返回流程实例变量。
+	// @param ctx 上下文
+	// @param processInstanceID 实例 ID
+	// @param name 变量名
+	// @return 变量值
+	// @return 查询错误
+	GetVariable(ctx context.Context, processInstanceID, name string) (any, error)
 	// SetVariable 设置流程实例变量。
 	// @param ctx 上下文
 	// @param processInstanceID 实例 ID
@@ -260,6 +267,13 @@ type TaskService interface {
 	// @param req 完成请求
 	// @return 完成错误
 	Complete(ctx context.Context, taskID string, req CompleteTaskRequest) error
+	// GetTaskVariable 返回任务变量。
+	// @param ctx 上下文
+	// @param taskID 任务 ID
+	// @param name 变量名
+	// @return 变量值
+	// @return 查询错误
+	GetTaskVariable(ctx context.Context, taskID, name string) (any, error)
 	// GetTaskVariables 返回任务可见变量。
 	// @param ctx 上下文
 	// @param taskID 任务 ID

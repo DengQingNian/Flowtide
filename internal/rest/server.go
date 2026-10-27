@@ -255,6 +255,7 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("GET /service/repository/process-definitions", s.handleListDefinitions)
 	s.mux.HandleFunc("GET /service/repository/process-definitions/{id}", s.handleGetDefinition)
 	s.mux.HandleFunc("GET /service/repository/process-definitions/{id}/xml", s.handleGetDefinitionXML)
+	s.mux.HandleFunc("GET /service/repository/process-definitions/{id}/start-form", s.handleDefinitionStartForm)
 	s.mux.HandleFunc("PUT /service/repository/process-definitions/{id}", s.handleDefinitionAction)
 	s.mux.HandleFunc("GET /service/runtime/executions", s.handleListExecutions)
 	s.mux.HandleFunc("GET /service/runtime/executions/{id}", s.handleGetExecution)
@@ -268,6 +269,7 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("GET /service/runtime/process-instances/{id}/tasks", s.handleGetInstanceTasks)
 	s.mux.HandleFunc("GET /service/runtime/process-instances/{id}/variables", s.handleGetVariables)
 	s.mux.HandleFunc("POST /service/runtime/process-instances/{id}/variables", s.handleCreateInstanceVariable)
+	s.mux.HandleFunc("GET /service/runtime/process-instances/{id}/variables/{name}", s.handleGetInstanceVariable)
 	s.mux.HandleFunc("PUT /service/runtime/process-instances/{id}/variables/{name}", s.handleUpdateInstanceVariable)
 	s.mux.HandleFunc("DELETE /service/runtime/process-instances/{id}/variables/{name}", s.handleDeleteInstanceVariable)
 	s.mux.HandleFunc("GET /service/form/form-data", s.handleGetFormData)
@@ -303,6 +305,7 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("DELETE /service/runtime/tasks/{id}/identitylinks/{family}/{identityId}", s.handleDeleteIdentityLink)
 	s.mux.HandleFunc("GET /service/runtime/tasks/{id}/variables", s.handleGetTaskVariables)
 	s.mux.HandleFunc("POST /service/runtime/tasks/{id}/variables", s.handleCreateTaskVariable)
+	s.mux.HandleFunc("GET /service/runtime/tasks/{id}/variables/{name}", s.handleGetTaskVariable)
 	s.mux.HandleFunc("PUT /service/runtime/tasks/{id}/variables/{name}", s.handleUpdateTaskVariable)
 	s.mux.HandleFunc("DELETE /service/runtime/tasks/{id}/variables/{name}", s.handleDeleteTaskVariable)
 	s.mux.HandleFunc("GET /service/runtime/tasks/{id}/comments", s.handleListComments)
@@ -624,6 +627,18 @@ func (s *Server) handleListDefinitions(w http.ResponseWriter, r *http.Request) {
 	definitions = filterDefinitions(definitions, requestTenant(r))
 	start, size := pageParams(r)
 	writePage(w, definitions, start, size)
+}
+
+// handleDefinitionStartForm 返回流程定义启动表单。
+// @param w 响应
+// @param r 请求
+func (s *Server) handleDefinitionStartForm(w http.ResponseWriter, r *http.Request) {
+	data, err := s.engine.FormService().GetStartFormData(r.Context(), r.PathValue("id"))
+	if err != nil {
+		writeError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, data)
 }
 
 // handleGetDefinition 返回流程定义。
@@ -1306,6 +1321,19 @@ func (s *Server) handleCreateInstanceVariable(w http.ResponseWriter, r *http.Req
 	writeJSON(w, http.StatusCreated, variable)
 }
 
+// handleGetInstanceVariable 返回单个实例变量。
+// @param w 响应
+// @param r 请求
+func (s *Server) handleGetInstanceVariable(w http.ResponseWriter, r *http.Request) {
+	name := r.PathValue("name")
+	value, err := s.engine.RuntimeService().GetVariable(r.Context(), r.PathValue("id"), name)
+	if err != nil {
+		writeError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, api.Variable{Name: name, Value: value})
+}
+
 // handleUpdateInstanceVariable 更新实例变量。
 // @param w 响应
 // @param r 请求
@@ -1504,6 +1532,19 @@ func (s *Server) handleCreateTaskVariable(w http.ResponseWriter, r *http.Request
 		return
 	}
 	writeJSON(w, http.StatusCreated, variable)
+}
+
+// handleGetTaskVariable 返回单个任务变量。
+// @param w 响应
+// @param r 请求
+func (s *Server) handleGetTaskVariable(w http.ResponseWriter, r *http.Request) {
+	name := r.PathValue("name")
+	value, err := s.engine.TaskService().GetTaskVariable(r.Context(), r.PathValue("id"), name)
+	if err != nil {
+		writeError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, api.Variable{Name: name, Value: value})
 }
 
 // handleUpdateTaskVariable 更新任务变量。

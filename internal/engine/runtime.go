@@ -796,6 +796,37 @@ func (e *Engine) GetVariables(ctx context.Context, processInstanceID string) (ma
 	return result.(map[string]any), nil
 }
 
+// GetVariable 返回流程实例变量。
+// @param ctx 上下文
+// @param processInstanceID 实例 ID
+// @param name 变量名
+// @return 变量值
+// @return 查询错误
+func (e *Engine) GetVariable(ctx context.Context, processInstanceID, name string) (any, error) {
+	result, err := e.read(func() (any, error) {
+		instance, ok := e.findInstance(processInstanceID)
+		if !ok {
+			return nil, api.NewError("ENGINE-0404", "流程实例不存在", api.ErrNotFound)
+		}
+		if err := e.allowTenant(ctx, instance.TenantID); err != nil {
+			return nil, err
+		}
+		root, ok := e.rootExecution(instance)
+		if !ok {
+			return nil, api.NewError("ENGINE-0405", "根执行不存在", nil)
+		}
+		value, exists := e.getVariable(root, name)
+		if !exists {
+			return nil, api.NewError("ENGINE-0406", "变量不存在: "+name, api.ErrNotFound)
+		}
+		return value, nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result, nil
+}
+
 // SetVariable 设置流程实例变量。
 // @param ctx 上下文
 // @param processInstanceID 实例 ID

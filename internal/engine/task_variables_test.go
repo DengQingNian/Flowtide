@@ -64,3 +64,41 @@ func TestTaskVariables_Errors(t *testing.T) {
 		t.Fatalf("关闭后任务变量应报错")
 	}
 }
+
+// TestGetSingleVariable 验证单个变量查询。
+// @param t 测试上下文
+func TestGetSingleVariable(t *testing.T) {
+	engine := newTestEngine(t)
+	deployXML(t, engine, simpleProcess)
+	instance, _ := engine.StartProcessInstance(context.Background(), api.StartRequest{
+		ProcessDefinitionKey: "simple",
+		Variables:            []api.Variable{{Name: "initiator", Value: "alice"}},
+	})
+	value, err := engine.GetVariable(context.Background(), instance.ID, "initiator")
+	if err != nil || value != "alice" {
+		t.Fatalf("实例变量查询失败: %v %v", err, value)
+	}
+	if _, err := engine.GetVariable(context.Background(), instance.ID, "missing"); err == nil {
+		t.Fatalf("缺失变量应失败")
+	}
+	if _, err := engine.GetVariable(context.Background(), "missing", "x"); err == nil {
+		t.Fatalf("缺失实例应失败")
+	}
+	task := listTasks(t, engine)[0]
+	if err := engine.SetTaskVariable(context.Background(), task.ID, "local", "v"); err != nil {
+		t.Fatalf("设置任务变量失败: %v", err)
+	}
+	taskValue, err := engine.GetTaskVariable(context.Background(), task.ID, "local")
+	if err != nil || taskValue != "v" {
+		t.Fatalf("任务变量查询失败: %v %v", err, taskValue)
+	}
+	if taskValue, err := engine.GetTaskVariable(context.Background(), task.ID, "initiator"); err != nil || taskValue != "alice" {
+		t.Fatalf("任务流程变量查询失败: %v %v", err, taskValue)
+	}
+	if _, err := engine.GetTaskVariable(context.Background(), task.ID, "missing"); err == nil {
+		t.Fatalf("缺失任务变量应失败")
+	}
+	if _, err := engine.GetTaskVariable(context.Background(), "missing", "x"); err == nil {
+		t.Fatalf("缺失任务应失败")
+	}
+}

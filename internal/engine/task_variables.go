@@ -6,6 +6,37 @@ import (
 	"github.com/flowable-go/flowable/api"
 )
 
+// GetTaskVariable 返回任务变量。
+// @param ctx 上下文
+// @param taskID 任务 ID
+// @param name 变量名
+// @return 变量值
+// @return 查询错误
+func (e *Engine) GetTaskVariable(ctx context.Context, taskID, name string) (any, error) {
+	result, err := e.read(func() (any, error) {
+		task, ok := e.findTask(taskID)
+		if !ok {
+			return nil, api.NewError("ENGINE-0805", "任务不存在", api.ErrNotFound)
+		}
+		if err := e.allowInstance(ctx, task.Task.ProcessInstanceID); err != nil {
+			return nil, err
+		}
+		if value, exists := task.LocalVariables[name]; exists {
+			return value, nil
+		}
+		if execution, exists := e.findExecution(task.ExecutionID); exists {
+			if value, ok := e.getVariable(execution, name); ok {
+				return value, nil
+			}
+		}
+		return nil, api.NewError("ENGINE-0406", "变量不存在: "+name, api.ErrNotFound)
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result, nil
+}
+
 // GetTaskVariables 返回任务可见变量。
 // @param ctx 上下文
 // @param taskID 任务 ID

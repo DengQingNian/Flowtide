@@ -56,3 +56,54 @@ func TestREST_InstanceTasksAndExecutionVars(t *testing.T) {
 	}
 	_ = response.Body.Close()
 }
+
+// TestREST_SingleVariablesAndStartForm 验证单变量与启动表单。
+// @param t 测试上下文
+func TestREST_SingleVariablesAndStartForm(t *testing.T) {
+	server, _ := newTestServer(t)
+	deployREST(t, server)
+	response := postJSON(t, server.URL+"/service/runtime/process-instances", map[string]any{
+		"processDefinitionKey": "rest",
+		"variables":            []map[string]any{{"name": "initiator", "value": "alice"}},
+	})
+	var instance map[string]any
+	_ = json.NewDecoder(response.Body).Decode(&instance)
+	_ = response.Body.Close()
+	instanceID, _ := instance["id"].(string)
+	response, _ = http.Get(server.URL + "/service/runtime/process-instances/" + instanceID + "/variables/initiator")
+	if response.StatusCode != http.StatusOK {
+		t.Fatalf("单变量查询失败: %d", response.StatusCode)
+	}
+	_ = response.Body.Close()
+	response, _ = http.Get(server.URL + "/service/runtime/process-instances/" + instanceID + "/variables/missing")
+	if response.StatusCode != http.StatusNotFound {
+		t.Fatalf("缺失变量应 404: %d", response.StatusCode)
+	}
+	_ = response.Body.Close()
+	response, _ = http.Get(server.URL + "/service/runtime/tasks")
+	var tasks struct {
+		Data []map[string]any `json:"data"`
+	}
+	_ = json.NewDecoder(response.Body).Decode(&tasks)
+	_ = response.Body.Close()
+	taskID, _ := tasks.Data[0]["id"].(string)
+	response = postJSON(t, server.URL+"/service/runtime/tasks/"+taskID+"/variables", map[string]any{"name": "local", "value": "v"})
+	_ = response.Body.Close()
+	response, _ = http.Get(server.URL + "/service/runtime/tasks/" + taskID + "/variables/local")
+	if response.StatusCode != http.StatusOK {
+		t.Fatalf("任务单变量查询失败: %d", response.StatusCode)
+	}
+	_ = response.Body.Close()
+	response, _ = http.Get(server.URL + "/service/repository/process-definitions")
+	var definitions struct {
+		Data []map[string]any `json:"data"`
+	}
+	_ = json.NewDecoder(response.Body).Decode(&definitions)
+	_ = response.Body.Close()
+	definitionID, _ := definitions.Data[0]["id"].(string)
+	response, _ = http.Get(server.URL + "/service/repository/process-definitions/" + definitionID + "/start-form")
+	if response.StatusCode != http.StatusOK {
+		t.Fatalf("启动表单失败: %d", response.StatusCode)
+	}
+	_ = response.Body.Close()
+}
