@@ -423,3 +423,41 @@ func TestREST_HistoricDetailLookup(t *testing.T) {
 	}
 	_ = response.Body.Close()
 }
+
+// TestREST_ListFilters 验证列表过滤。
+// @param t 测试上下文
+func TestREST_ListFilters(t *testing.T) {
+	server, _ := newTestServer(t)
+	deployREST(t, server)
+	response := postJSON(t, server.URL+"/service/runtime/process-instances", map[string]any{
+		"processDefinitionKey": "rest",
+		"businessKey":          "bk1",
+		"variables":            []map[string]any{{"name": "initiator", "value": "alice"}},
+	})
+	_ = response.Body.Close()
+	cases := []struct {
+		path string
+		want int
+	}{
+		{"/service/repository/process-definitions?key=rest", 1},
+		{"/service/repository/process-definitions?key=other", 0},
+		{"/service/repository/process-definitions?version=1", 1},
+		{"/service/runtime/process-instances?processDefinitionKey=rest", 1},
+		{"/service/runtime/process-instances?businessKey=bk1", 1},
+		{"/service/runtime/process-instances?businessKey=missing", 0},
+		{"/service/history/historic-process-instances?processDefinitionKey=rest", 1},
+		{"/service/history/historic-process-instances?businessKey=bk1", 1},
+		{"/service/history/historic-process-instances?ended=true", 0},
+	}
+	for _, tc := range cases {
+		response, _ := http.Get(server.URL + tc.path)
+		var page struct {
+			Total int `json:"total"`
+		}
+		_ = json.NewDecoder(response.Body).Decode(&page)
+		_ = response.Body.Close()
+		if page.Total != tc.want {
+			t.Fatalf("%s 期望 %d，实际 %d", tc.path, tc.want, page.Total)
+		}
+	}
+}

@@ -639,6 +639,26 @@ func (s *Server) handleListDefinitions(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	definitions = filterDefinitions(definitions, requestTenant(r))
+	if key := r.URL.Query().Get("key"); key != "" {
+		filtered := make([]api.ProcessDefinition, 0, len(definitions))
+		for _, definition := range definitions {
+			if definition.Key == key {
+				filtered = append(filtered, definition)
+			}
+		}
+		definitions = filtered
+	}
+	if version := r.URL.Query().Get("version"); version != "" {
+		if parsed, parseErr := strconv.Atoi(version); parseErr == nil {
+			filtered := make([]api.ProcessDefinition, 0, len(definitions))
+			for _, definition := range definitions {
+				if definition.Version == parsed {
+					filtered = append(filtered, definition)
+				}
+			}
+			definitions = filtered
+		}
+	}
 	start, size := pageParams(r)
 	writePage(w, definitions, start, size)
 }
@@ -1234,6 +1254,24 @@ func (s *Server) handleListInstances(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	instances = filterInstances(instances, requestTenant(r))
+	if key := r.URL.Query().Get("processDefinitionKey"); key != "" {
+		filtered := make([]api.ProcessInstance, 0, len(instances))
+		for _, instance := range instances {
+			if instance.ProcessDefinitionKey == key {
+				filtered = append(filtered, instance)
+			}
+		}
+		instances = filtered
+	}
+	if businessKey := r.URL.Query().Get("businessKey"); businessKey != "" {
+		filtered := make([]api.ProcessInstance, 0, len(instances))
+		for _, instance := range instances {
+			if instance.BusinessKey == businessKey {
+				filtered = append(filtered, instance)
+			}
+		}
+		instances = filtered
+	}
 	start, size := pageParams(r)
 	writePage(w, instances, start, size)
 }
@@ -1806,6 +1844,43 @@ func (s *Server) handleHistoricProcesses(w http.ResponseWriter, r *http.Request)
 	if err != nil {
 		writeError(w, err)
 		return
+	}
+	if key := r.URL.Query().Get("processDefinitionKey"); key != "" {
+		filtered := make([]api.HistoricProcessInstance, 0, len(items))
+		for _, item := range items {
+			if item.ProcessDefinitionKey == key {
+				filtered = append(filtered, item)
+			}
+		}
+		items = filtered
+	}
+	if businessKey := r.URL.Query().Get("businessKey"); businessKey != "" {
+		filtered := make([]api.HistoricProcessInstance, 0, len(items))
+		for _, item := range items {
+			if item.BusinessKey == businessKey {
+				filtered = append(filtered, item)
+			}
+		}
+		items = filtered
+	}
+	if tenant := requestTenant(r); tenant != "" {
+		filtered := make([]api.HistoricProcessInstance, 0, len(items))
+		for _, item := range items {
+			if item.TenantID == tenant {
+				filtered = append(filtered, item)
+			}
+		}
+		items = filtered
+	}
+	if ended := r.URL.Query().Get("ended"); ended != "" {
+		want := ended == "true"
+		filtered := make([]api.HistoricProcessInstance, 0, len(items))
+		for _, item := range items {
+			if item.Ended == want {
+				filtered = append(filtered, item)
+			}
+		}
+		items = filtered
 	}
 	start, size := pageParams(r)
 	writePage(w, items, start, size)
