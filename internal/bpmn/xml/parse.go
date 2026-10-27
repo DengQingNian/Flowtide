@@ -158,6 +158,16 @@ func parseElement(node *Node) (model.FlowElement, error) {
 		gateway := &model.ParallelGateway{}
 		parseFlowNodeBase(node, &gateway.FlowNodeBase)
 		return gateway, nil
+	case "callActivity":
+		activity := &model.CallActivity{
+			CalledElement:    attrAny(node, "calledElement"),
+			InheritVariables: strings.EqualFold(attrAny(node, "inheritVariables"), "true"),
+			BusinessKey:      attrAny(node, "businessKey"),
+			NameExpression:   attrAny(node, "processInstanceName"),
+		}
+		parseFlowNodeBase(node, &activity.FlowNodeBase)
+		activity.InParameters, activity.OutParameters = parseIOParameters(node)
+		return activity, nil
 	case "boundaryEvent":
 		event := &model.BoundaryEvent{
 			AttachedToRef:  node.Attr("attachedToRef"),
@@ -297,6 +307,36 @@ func lookupFlowNode(elements map[string]model.FlowElement, id string) (model.Flo
 	}
 	node, ok := element.(model.FlowNode)
 	return node, ok
+}
+
+// parseIOParameters 解析调用活动入参与出参。
+// @param node 调用活动节点
+// @return 入参列表
+// @return 出参列表
+func parseIOParameters(node *Node) ([]*model.IOParameter, []*model.IOParameter) {
+	var inputs []*model.IOParameter
+	var outputs []*model.IOParameter
+	for _, child := range node.Children {
+		if child.Name.Local != "extensionElements" {
+			continue
+		}
+		for _, parameter := range child.Children {
+			if parameter.Name.Local != "in" && parameter.Name.Local != "out" {
+				continue
+			}
+			item := &model.IOParameter{
+				Source:           attrAny(parameter, "source"),
+				Target:           attrAny(parameter, "target"),
+				SourceExpression: attrAny(parameter, "sourceExpression"),
+			}
+			if parameter.Name.Local == "in" {
+				inputs = append(inputs, item)
+			} else {
+				outputs = append(outputs, item)
+			}
+		}
+	}
+	return inputs, outputs
 }
 
 // attachBoundaryEvents 将边界事件挂到依附活动。

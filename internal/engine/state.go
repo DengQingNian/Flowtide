@@ -33,6 +33,7 @@ type instanceState struct {
 	Ended                bool       // 是否结束
 	Suspended            bool       // 是否挂起
 	DeleteReason         string     // 删除原因
+	SuperExecutionID     string     // 父调用活动执行 ID
 	RootExecutionID      string     // 根执行 ID
 }
 

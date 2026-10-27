@@ -7,11 +7,11 @@ import "testing"
 func TestElementTypes(t *testing.T) {
 	elements := []FlowElement{
 		&StartEvent{}, &EndEvent{}, &UserTask{}, &ServiceTask{}, &ScriptTask{},
-		&ManualTask{}, &ExclusiveGateway{}, &ParallelGateway{}, &SequenceFlow{}, &SubProcess{}, &BoundaryEvent{},
+		&ManualTask{}, &ExclusiveGateway{}, &ParallelGateway{}, &SequenceFlow{}, &SubProcess{}, &BoundaryEvent{}, &CallActivity{},
 	}
 	want := []string{
 		"startEvent", "endEvent", "userTask", "serviceTask", "scriptTask",
-		"manualTask", "exclusiveGateway", "parallelGateway", "sequenceFlow", "subProcess", "boundaryEvent",
+		"manualTask", "exclusiveGateway", "parallelGateway", "sequenceFlow", "subProcess", "boundaryEvent", "callActivity",
 	}
 	for i, element := range elements {
 		if element.ElementType() != want[i] {

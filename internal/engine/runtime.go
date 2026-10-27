@@ -170,6 +170,8 @@ func (e *Engine) continueAt(cc *commandContext, executionID, activityID string) 
 		execution.CurrentHistActivityID = ""
 		e.endExecution(cc, execution, node.Terminate)
 		return nil
+	case *model.CallActivity:
+		return e.startCallActivity(cc, execution, node)
 	case *model.BoundaryEvent:
 		e.recordActivityEnd(cc, execution.CurrentHistActivityID)
 		execution.CurrentHistActivityID = ""
@@ -508,6 +510,10 @@ func (e *Engine) endProcessInstance(cc *commandContext, instance *instanceState)
 		}
 	}
 	e.recordProcessEnd(cc, instance)
+	// 子流程结束后恢复父调用活动
+	if instance.SuperExecutionID != "" {
+		e.resumeParent(cc, instance)
+	}
 }
 
 // executeServiceTask 执行服务任务。

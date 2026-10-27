@@ -205,6 +205,28 @@ type ParallelGateway struct {
 // @return 元素类型
 func (g *ParallelGateway) ElementType() string { return "parallelGateway" }
 
+// IOParameter 表示调用活动的入参或出参映射。
+type IOParameter struct {
+	Source           string // 源变量
+	Target           string // 目标变量
+	SourceExpression string // 源表达式
+}
+
+// CallActivity 表示调用活动。
+type CallActivity struct {
+	FlowNodeBase
+	CalledElement    string         // 被调用流程 Key 或表达式
+	InheritVariables bool           // 是否继承父变量
+	BusinessKey      string         // 子实例业务键表达式
+	NameExpression   string         // 子实例名称表达式
+	InParameters     []*IOParameter // 入参映射
+	OutParameters    []*IOParameter // 出参映射
+}
+
+// ElementType 返回元素类型。
+// @return 元素类型
+func (c *CallActivity) ElementType() string { return "callActivity" }
+
 // BoundaryEvent 表示边界事件。
 type BoundaryEvent struct {
 	FlowNodeBase
