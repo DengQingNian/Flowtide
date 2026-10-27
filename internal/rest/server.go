@@ -21,10 +21,12 @@ const MaxUploadSize = 64 << 20
 
 // Server 是 HTTP API 服务。
 type Server struct {
-	engine      api.Engine        // 引擎
-	mux         *http.ServeMux    // 路由
-	basicUsers  map[string]string // Basic Auth 用户
-	bearerToken string            // Bearer Token
+	engine          api.Engine          // 引擎
+	mux             *http.ServeMux      // 路由
+	basicUsers      map[string]string   // Basic Auth 用户
+	bearerToken     string              // Bearer Token
+	userRoles       map[string][]string // 用户到角色
+	rolePermissions map[string][]string // 角色到权限
 }
 
 // Option 是 REST 服务选项。
@@ -48,6 +50,17 @@ func WithBasicAuth(users map[string]string) Option {
 func WithBearerToken(token string) Option {
 	return func(server *Server) {
 		server.bearerToken = token
+	}
+}
+
+// WithRBAC 启用基于角色的端点授权。
+// @param userRoles 用户到角色
+// @param rolePermissions 角色到权限（read/write/admin）
+// @return 选项
+func WithRBAC(userRoles, rolePermissions map[string][]string) Option {
+	return func(server *Server) {
+		server.userRoles = userRoles
+		server.rolePermissions = rolePermissions
 	}
 }
 
@@ -89,13 +102,57 @@ func (s *Server) authenticate(next http.Handler) http.Handler {
 			next.ServeHTTP(w, r)
 			return
 		}
-		if s.authorized(r) {
-			next.ServeHTTP(w, r)
+		if !s.authorized(r) {
+			w.Header().Set("WWW-Authenticate", `Basic realm="flowable"`)
+			writeError(w, api.NewError("REST-0401", "未认证", api.ErrUnauthorized))
 			return
 		}
-		w.Header().Set("WWW-Authenticate", `Basic realm="flowable"`)
-		writeError(w, api.NewError("REST-0401", "未认证", api.ErrUnauthorized))
+		if !s.permitted(r) {
+			writeError(w, api.NewError("REST-0403", "无权限", api.ErrForbidden))
+			return
+		}
+		next.ServeHTTP(w, r)
 	})
+}
+
+// permitted 判断请求是否有端点权限。
+// @param r 请求
+// @return 是否允许
+func (s *Server) permitted(r *http.Request) bool {
+	if len(s.rolePermissions) == 0 {
+		return true
+	}
+	// Bearer Token 视为服务账号，拥有全部权限
+	if s.bearerToken != "" && strings.HasPrefix(r.Header.Get("Authorization"), "Bearer ") {
+		return true
+	}
+	user, _, ok := r.BasicAuth()
+	if !ok {
+		return false
+	}
+	required := requiredPermission(r.Method, r.URL.Path)
+	for _, role := range s.userRoles[user] {
+		for _, permission := range s.rolePermissions[role] {
+			if permission == "admin" || permission == required {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// requiredPermission 返回端点所需权限。
+// @param method HTTP 方法
+// @param path 路径
+// @return 权限
+func requiredPermission(method, path string) string {
+	if strings.HasPrefix(path, "/service/management/") || strings.HasPrefix(path, "/service/identity/") {
+		return "admin"
+	}
+	if method == http.MethodGet || method == http.MethodHead {
+		return "read"
+	}
+	return "write"
 }
 
 // authorized 判断请求是否通过认证。
@@ -1712,6 +1769,9 @@ func filterInstances(items []api.ProcessInstance, tenant string) []api.ProcessIn
 func statusFor(err error) int {
 	if errors.Is(err, api.ErrUnauthorized) {
 		return http.StatusUnauthorized
+	}
+	if errors.Is(err, api.ErrForbidden) {
+		return http.StatusForbidden
 	}
 	var engineErr *api.Error
 	if errors.As(err, &engineErr) {
