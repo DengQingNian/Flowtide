@@ -100,6 +100,15 @@ type subscriptionState struct {
 	CreatedAt              time.Time `json:"createdAt"`              // 创建时间
 }
 
+// compensationState 是已登记补偿处理器。
+type compensationState struct {
+	ID                string    `json:"id"`                // 记录 ID
+	ProcessInstanceID string    `json:"processInstanceId"` // 流程实例 ID
+	ActivityID        string    `json:"activityId"`        // 已完成活动 ID
+	HandlerID         string    `json:"handlerId"`         // 补偿处理器 ID
+	CreatedAt         time.Time `json:"createdAt"`         // 登记时间
+}
+
 // taskState 是用户任务的运行时状态。
 type taskState struct {
 	Task            api.Task       // 任务数据
@@ -120,6 +129,7 @@ type state struct {
 	Tasks              map[string]*taskState                    // 任务
 	Jobs               map[string]*jobState                     // 定时器作业
 	Subscriptions      map[string]*subscriptionState            // 事件订阅
+	Compensations      map[string][]*compensationState          // 补偿登记
 	HistoricProcesses  map[string]*api.HistoricProcessInstance  // 历史流程实例
 	HistoricActivities map[string]*api.HistoricActivityInstance // 历史活动
 	HistoricTasks      map[string]*api.HistoricTaskInstance     // 历史任务
@@ -137,6 +147,7 @@ func newState() *state {
 		Tasks:              make(map[string]*taskState),
 		Jobs:               make(map[string]*jobState),
 		Subscriptions:      make(map[string]*subscriptionState),
+		Compensations:      make(map[string][]*compensationState),
 		HistoricProcesses:  make(map[string]*api.HistoricProcessInstance),
 		HistoricActivities: make(map[string]*api.HistoricActivityInstance),
 		HistoricTasks:      make(map[string]*api.HistoricTaskInstance),
@@ -181,6 +192,14 @@ func cloneState(source *state) *state {
 	for id, subscription := range source.Subscriptions {
 		copied := *subscription
 		target.Subscriptions[id] = &copied
+	}
+	for instanceID, entries := range source.Compensations {
+		copied := make([]*compensationState, 0, len(entries))
+		for _, entry := range entries {
+			item := *entry
+			copied = append(copied, &item)
+		}
+		target.Compensations[instanceID] = copied
 	}
 	for id, historic := range source.HistoricProcesses {
 		copied := *historic

@@ -192,6 +192,15 @@ func (e *Engine) continueAt(cc *commandContext, executionID, activityID string) 
 		return nil
 	case *model.CallActivity:
 		return e.startCallActivity(cc, execution, node)
+	case *model.IntermediateThrowEvent:
+		e.recordActivityEnd(cc, execution.CurrentHistActivityID)
+		execution.CurrentHistActivityID = ""
+		if node.Compensate {
+			if err := e.compensate(cc, execution); err != nil {
+				return err
+			}
+		}
+		return e.scheduleTakeOutgoing(cc, execution, node)
 	case *model.BoundaryEvent:
 		e.recordActivityEnd(cc, execution.CurrentHistActivityID)
 		execution.CurrentHistActivityID = ""
@@ -212,6 +221,7 @@ func (e *Engine) continueAt(cc *commandContext, executionID, activityID string) 
 		}
 		e.cancelBoundaryTimers(execution.ID)
 		e.cancelBoundarySubscriptions(execution.ID)
+		e.registerCompensation(cc, execution, node.ID)
 		e.recordActivityEnd(cc, execution.CurrentHistActivityID)
 		execution.CurrentHistActivityID = ""
 		return e.scheduleTakeOutgoing(cc, execution, node)
@@ -220,6 +230,7 @@ func (e *Engine) continueAt(cc *commandContext, executionID, activityID string) 
 	case *model.ManualTask:
 		e.cancelBoundaryTimers(execution.ID)
 		e.cancelBoundarySubscriptions(execution.ID)
+		e.registerCompensation(cc, execution, node.ID)
 		e.recordActivityEnd(cc, execution.CurrentHistActivityID)
 		execution.CurrentHistActivityID = ""
 		return e.scheduleTakeOutgoing(cc, execution, node)
@@ -566,6 +577,7 @@ func (e *Engine) endProcessInstance(cc *commandContext, instance *instanceState)
 			delete(e.state.Jobs, id)
 		}
 	}
+	delete(e.state.Compensations, instance.ID)
 	e.removeSubscriptionsForInstance(instance.ID)
 	e.recordProcessEnd(cc, instance)
 	// 子流程结束后恢复父调用活动

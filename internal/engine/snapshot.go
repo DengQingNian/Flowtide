@@ -30,6 +30,7 @@ type snapshot struct {
 	Tasks              []*taskState                    `json:"tasks"`              // 任务
 	Jobs               []*jobState                     `json:"jobs"`               // 定时器作业
 	Subscriptions      []*subscriptionState            `json:"subscriptions"`      // 事件订阅
+	Compensations      map[string][]*compensationState `json:"compensations"`      // 补偿登记
 	HistoricProcesses  []*api.HistoricProcessInstance  `json:"historicProcesses"`  // 历史流程
 	HistoricActivities []*api.HistoricActivityInstance `json:"historicActivities"` // 历史活动
 	HistoricTasks      []*api.HistoricTaskInstance     `json:"historicTasks"`      // 历史任务
@@ -61,6 +62,7 @@ func (e *Engine) toSnapshot() *snapshot {
 	for _, subscription := range e.state.Subscriptions {
 		out.Subscriptions = append(out.Subscriptions, subscription)
 	}
+	out.Compensations = e.state.Compensations
 	for _, historic := range e.state.HistoricProcesses {
 		out.HistoricProcesses = append(out.HistoricProcesses, historic)
 	}
@@ -158,6 +160,9 @@ func (e *Engine) loadState() error {
 	}
 	for _, subscription := range stored.Subscriptions {
 		restored.Subscriptions[subscription.ID] = subscription
+	}
+	if stored.Compensations != nil {
+		restored.Compensations = stored.Compensations
 	}
 	for _, historic := range stored.HistoricProcesses {
 		restored.HistoricProcesses[historic.ID] = historic

@@ -69,12 +69,13 @@ func (b *BaseElement) GetName() string { return b.Name }
 // FlowNodeBase 提供流程节点的公共字段与方法。
 type FlowNodeBase struct {
 	BaseElement
-	incoming       []*SequenceFlow  // 入线
-	outgoing       []*SequenceFlow  // 出线
-	BoundaryEvents []*BoundaryEvent // 依附的边界事件
-	AsyncBefore    bool             // 进入前异步
-	AsyncAfter     bool             // 完成后异步
-	Exclusive      bool             // 是否独占作业
+	incoming        []*SequenceFlow  // 入线
+	outgoing        []*SequenceFlow  // 出线
+	BoundaryEvents  []*BoundaryEvent // 依附的边界事件
+	AsyncBefore     bool             // 进入前异步
+	AsyncAfter      bool             // 完成后异步
+	Exclusive       bool             // 是否独占作业
+	ForCompensation bool             // 是否补偿处理器
 }
 
 // GetIncoming 返回入线。
@@ -245,6 +246,27 @@ type ExclusiveGateway struct {
 // @return 元素类型
 func (g *ExclusiveGateway) ElementType() string { return "exclusiveGateway" }
 
+// Association 表示关联，用于补偿处理器绑定。
+type Association struct {
+	BaseElement
+	SourceRef string // 源元素 ID
+	TargetRef string // 目标元素 ID
+}
+
+// ElementType 返回元素类型。
+// @return 元素类型
+func (a *Association) ElementType() string { return "association" }
+
+// IntermediateThrowEvent 表示中间抛出事件。
+type IntermediateThrowEvent struct {
+	FlowNodeBase
+	Compensate bool // 是否抛出补偿
+}
+
+// ElementType 返回元素类型。
+// @return 元素类型
+func (e *IntermediateThrowEvent) ElementType() string { return "intermediateThrowEvent" }
+
 // EventGateway 表示事件网关。
 type EventGateway struct {
 	FlowNodeBase
@@ -298,12 +320,14 @@ func (c *CallActivity) ElementType() string { return "callActivity" }
 // BoundaryEvent 表示边界事件。
 type BoundaryEvent struct {
 	FlowNodeBase
-	AttachedToRef  string           // 依附活动 ID
-	CancelActivity bool             // 是否中断依附活动
-	Timer          *TimerDefinition // 定时器定义
-	MessageRef     string           // 消息引用
-	SignalRef      string           // 信号引用
-	ErrorRef       string           // 错误引用
+	AttachedToRef         string           // 依附活动 ID
+	CancelActivity        bool             // 是否中断依附活动
+	Timer                 *TimerDefinition // 定时器定义
+	MessageRef            string           // 消息引用
+	SignalRef             string           // 信号引用
+	ErrorRef              string           // 错误引用
+	Compensate            bool             // 是否补偿边界
+	CompensationHandlerID string           // 补偿处理器 ID
 }
 
 // ElementType 返回元素类型。

@@ -95,6 +95,9 @@ func parseProcess(node *Node) (*model.Process, error) {
 	if err := attachBoundaryEvents(process.Elements, process.Order); err != nil {
 		return nil, err
 	}
+	if err := attachCompensationHandlers(process.Elements, process.Order); err != nil {
+		return nil, err
+	}
 	if len(process.StartEvents()) == 0 {
 		return nil, api.NewError("BPMN-1003", fmt.Sprintf("流程 %s 缺少开始事件", process.ID), nil)
 	}
@@ -179,6 +182,10 @@ func parseElement(node *Node) (model.FlowElement, error) {
 		gateway := &model.ParallelGateway{}
 		parseFlowNodeBase(node, &gateway.FlowNodeBase)
 		return gateway, nil
+	case "intermediateThrowEvent":
+		event := &model.IntermediateThrowEvent{Compensate: hasChild(node, "compensateEventDefinition")}
+		parseFlowNodeBase(node, &event.FlowNodeBase)
+		return event, nil
 	case "intermediateCatchEvent":
 		event := &model.IntermediateCatchEvent{}
 		parseFlowNodeBase(node, &event.FlowNodeBase)
@@ -199,6 +206,7 @@ func parseElement(node *Node) (model.FlowElement, error) {
 		event := &model.BoundaryEvent{
 			AttachedToRef:  node.Attr("attachedToRef"),
 			CancelActivity: !strings.EqualFold(node.Attr("cancelActivity"), "false"),
+			Compensate:     hasChild(node, "compensateEventDefinition"),
 			Timer:          timer,
 			MessageRef:     messageRef,
 			SignalRef:      signalRef,
@@ -211,6 +219,11 @@ func parseElement(node *Node) (model.FlowElement, error) {
 		return event, nil
 	case "subProcess":
 		return parseSubProcess(node)
+	case "association":
+		association := &model.Association{SourceRef: node.Attr("sourceRef"), TargetRef: node.Attr("targetRef")}
+		association.ID = node.Attr("id")
+		association.Name = node.Attr("name")
+		return association, nil
 	case "sequenceFlow":
 		flow := &model.SequenceFlow{
 			SourceRef: node.Attr("sourceRef"),
@@ -240,6 +253,7 @@ func parseFlowNodeBase(node *Node, base *model.FlowNodeBase) {
 	base.AsyncBefore = async || strings.EqualFold(attrAny(node, "asyncBefore"), "true")
 	base.AsyncAfter = strings.EqualFold(attrAny(node, "asyncAfter"), "true")
 	base.Exclusive = !strings.EqualFold(attrAny(node, "exclusive"), "false")
+	base.ForCompensation = strings.EqualFold(attrAny(node, "isForCompensation"), "true")
 	if doc, ok := node.Child("documentation"); ok {
 		base.Documentation = doc.TextContent()
 	}
@@ -418,6 +432,31 @@ func attachBoundaryEvents(elements map[string]model.FlowElement, order []string)
 	return nil
 }
 
+// attachCompensationHandlers 绑定补偿边界与处理器。
+// @param elements 元素表
+// @param order 元素顺序
+// @return 绑定错误
+func attachCompensationHandlers(elements map[string]model.FlowElement, order []string) error {
+	for _, id := range order {
+		boundary, ok := elements[id].(*model.BoundaryEvent)
+		if !ok || !boundary.Compensate {
+			continue
+		}
+		for _, associationID := range order {
+			association, exists := elements[associationID].(*model.Association)
+			if !exists || association.SourceRef != boundary.ID {
+				continue
+			}
+			if _, handlerExists := elements[association.TargetRef]; !handlerExists {
+				return api.NewError("BPMN-1008", fmt.Sprintf("补偿处理器不存在: %s", association.TargetRef), nil)
+			}
+			boundary.CompensationHandlerID = association.TargetRef
+			break
+		}
+	}
+	return nil
+}
+
 // parseSubProcess 解析嵌入式子流程。
 // @param node XML 节点
 // @return 子流程
@@ -445,6 +484,9 @@ func parseSubProcess(node *Node) (model.FlowElement, error) {
 		return nil, err
 	}
 	if err := attachBoundaryEvents(sub.Elements, sub.Order); err != nil {
+		return nil, err
+	}
+	if err := attachCompensationHandlers(sub.Elements, sub.Order); err != nil {
 		return nil, err
 	}
 	if len(sub.StartEvents()) == 0 {
