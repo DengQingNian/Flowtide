@@ -328,6 +328,7 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("GET /service/history/historic-task-instances/{id}/identitylinks", s.handleHistoricTaskLinks)
 	s.mux.HandleFunc("DELETE /service/history/historic-task-instances/{id}", s.handleDeleteHistoricTask)
 	s.mux.HandleFunc("GET /service/history/historic-activity-instances", s.handleHistoricActivities)
+	s.mux.HandleFunc("GET /service/history/historic-activity-instances/{id}", s.handleHistoricActivity)
 	s.mux.HandleFunc("GET /service/history/historic-task-instances", s.handleHistoricTasks)
 	s.mux.HandleFunc("GET /service/history/historic-task-log-entries", s.handleHistoricTaskLogs)
 	s.mux.HandleFunc("GET /service/history/historic-detail", s.handleHistoricDetails)
@@ -335,6 +336,8 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("DELETE /service/history/historic-task-log-entries/{id}", s.handleDeleteHistoricTaskLog)
 	s.mux.HandleFunc("GET /service/history/historic-identitylinks", s.handleHistoricIdentityLinks)
 	s.mux.HandleFunc("GET /service/history/historic-variable-instances", s.handleHistoricVariables)
+	s.mux.HandleFunc("GET /service/history/historic-variable-instances/{id}", s.handleHistoricVariable)
+	s.mux.HandleFunc("DELETE /service/history/historic-variable-instances/{id}", s.handleDeleteHistoricVariable)
 }
 
 // handleHealth 返回存活状态。
@@ -1806,6 +1809,41 @@ func (s *Server) handleHistoricProcesses(w http.ResponseWriter, r *http.Request)
 	}
 	start, size := pageParams(r)
 	writePage(w, items, start, size)
+}
+
+// handleHistoricActivity 返回历史活动详情。
+// @param w 响应
+// @param r 请求
+func (s *Server) handleHistoricActivity(w http.ResponseWriter, r *http.Request) {
+	item, err := s.engine.HistoryService().GetHistoricActivityInstance(r.Context(), r.PathValue("id"))
+	if err != nil {
+		writeError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, item)
+}
+
+// handleHistoricVariable 返回历史变量详情。
+// @param w 响应
+// @param r 请求
+func (s *Server) handleHistoricVariable(w http.ResponseWriter, r *http.Request) {
+	item, err := s.engine.HistoryService().GetHistoricVariableInstance(r.Context(), r.PathValue("id"))
+	if err != nil {
+		writeError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, item)
+}
+
+// handleDeleteHistoricVariable 删除历史变量。
+// @param w 响应
+// @param r 请求
+func (s *Server) handleDeleteHistoricVariable(w http.ResponseWriter, r *http.Request) {
+	if err := s.engine.HistoryService().DeleteHistoricVariableInstance(r.Context(), r.PathValue("id")); err != nil {
+		writeError(w, err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
 }
 
 // handleHistoricProcess 返回历史流程实例详情。

@@ -440,6 +440,23 @@ type HistoryService interface {
 	// @return 历史实例
 	// @return 查询错误
 	GetHistoricProcessInstance(ctx context.Context, processInstanceID string) (HistoricProcessInstance, error)
+	// GetHistoricActivityInstance 查询历史活动。
+	// @param ctx 上下文
+	// @param activityID 历史活动 ID
+	// @return 历史活动
+	// @return 查询错误
+	GetHistoricActivityInstance(ctx context.Context, activityID string) (HistoricActivityInstance, error)
+	// GetHistoricVariableInstance 查询历史变量。
+	// @param ctx 上下文
+	// @param variableID 历史变量 ID
+	// @return 历史变量
+	// @return 查询错误
+	GetHistoricVariableInstance(ctx context.Context, variableID string) (HistoricVariableInstance, error)
+	// DeleteHistoricVariableInstance 删除历史变量。
+	// @param ctx 上下文
+	// @param variableID 历史变量 ID
+	// @return 删除错误
+	DeleteHistoricVariableInstance(ctx context.Context, variableID string) error
 	// GetHistoricTaskInstance 查询历史任务。
 	// @param ctx 上下文
 	// @param taskID 任务 ID

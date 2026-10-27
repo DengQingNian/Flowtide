@@ -357,3 +357,69 @@ func TestREST_DeleteHistoric(t *testing.T) {
 	}
 	_ = response.Body.Close()
 }
+
+// TestREST_HistoricDetailLookup 验证历史活动/变量详情。
+// @param t 测试上下文
+func TestREST_HistoricDetailLookup(t *testing.T) {
+	server, _ := newTestServer(t)
+	deployREST(t, server)
+	response := postJSON(t, server.URL+"/service/runtime/process-instances", map[string]any{
+		"processDefinitionKey": "rest",
+		"variables":            []map[string]any{{"name": "initiator", "value": "alice"}},
+	})
+	var instance map[string]any
+	_ = json.NewDecoder(response.Body).Decode(&instance)
+	_ = response.Body.Close()
+	instanceID, _ := instance["id"].(string)
+	response, _ = http.Get(server.URL + "/service/history/historic-activity-instances?processInstanceId=" + instanceID)
+	var activities struct {
+		Data []map[string]any `json:"data"`
+	}
+	_ = json.NewDecoder(response.Body).Decode(&activities)
+	_ = response.Body.Close()
+	activityID, _ := activities.Data[0]["id"].(string)
+	response, _ = http.Get(server.URL + "/service/history/historic-activity-instances/" + activityID)
+	if response.StatusCode != http.StatusOK {
+		t.Fatalf("历史活动详情失败: %d", response.StatusCode)
+	}
+	_ = response.Body.Close()
+	response, _ = http.Get(server.URL + "/service/history/historic-variable-instances?processInstanceId=" + instanceID)
+	var variables struct {
+		Data []map[string]any `json:"data"`
+	}
+	_ = json.NewDecoder(response.Body).Decode(&variables)
+	_ = response.Body.Close()
+	variableID, _ := variables.Data[0]["id"].(string)
+	response, _ = http.Get(server.URL + "/service/history/historic-variable-instances/" + variableID)
+	if response.StatusCode != http.StatusOK {
+		t.Fatalf("历史变量详情失败: %d", response.StatusCode)
+	}
+	_ = response.Body.Close()
+	request, _ := http.NewRequest(http.MethodDelete, server.URL+"/service/history/historic-variable-instances/"+variableID, nil)
+	response, _ = http.DefaultClient.Do(request)
+	if response.StatusCode != http.StatusNoContent {
+		t.Fatalf("删除历史变量失败: %d", response.StatusCode)
+	}
+	_ = response.Body.Close()
+	response, _ = http.Get(server.URL + "/service/history/historic-variable-instances/" + variableID)
+	if response.StatusCode != http.StatusNotFound {
+		t.Fatalf("删除后历史变量应 404: %d", response.StatusCode)
+	}
+	_ = response.Body.Close()
+	response, _ = http.Get(server.URL + "/service/history/historic-activity-instances/missing")
+	if response.StatusCode != http.StatusNotFound {
+		t.Fatalf("缺失历史活动应 404: %d", response.StatusCode)
+	}
+	_ = response.Body.Close()
+	response, _ = http.Get(server.URL + "/service/history/historic-variable-instances/missing")
+	if response.StatusCode != http.StatusNotFound {
+		t.Fatalf("缺失历史变量应 404: %d", response.StatusCode)
+	}
+	_ = response.Body.Close()
+	request, _ = http.NewRequest(http.MethodDelete, server.URL+"/service/history/historic-variable-instances/missing", nil)
+	response, _ = http.DefaultClient.Do(request)
+	if response.StatusCode != http.StatusNotFound {
+		t.Fatalf("缺失历史变量删除应 404: %d", response.StatusCode)
+	}
+	_ = response.Body.Close()
+}

@@ -101,3 +101,40 @@ func TestDeleteHistoricTask(t *testing.T) {
 		t.Fatalf("缺失历史任务删除应失败")
 	}
 }
+
+// TestHistoricDetailLookup 验证历史活动与变量详情。
+// @param t 测试上下文
+func TestHistoricDetailLookup(t *testing.T) {
+	engine := newTestEngine(t)
+	deployXML(t, engine, simpleProcess)
+	instance, _ := engine.StartProcessInstance(context.Background(), api.StartRequest{
+		ProcessDefinitionKey: "simple",
+		Variables:            []api.Variable{{Name: "initiator", Value: "alice"}},
+	})
+	activities, _ := engine.ListHistoricActivityInstances(context.Background(), instance.ID)
+	if len(activities) == 0 {
+		t.Fatalf("历史活动为空")
+	}
+	if activity, err := engine.GetHistoricActivityInstance(context.Background(), activities[0].ID); err != nil || activity.ID != activities[0].ID {
+		t.Fatalf("历史活动查询失败: %v", err)
+	}
+	if _, err := engine.GetHistoricActivityInstance(context.Background(), "missing"); err == nil {
+		t.Fatalf("缺失历史活动应失败")
+	}
+	variables, _ := engine.ListHistoricVariableInstances(context.Background(), instance.ID)
+	if len(variables) == 0 {
+		t.Fatalf("历史变量为空")
+	}
+	if variable, err := engine.GetHistoricVariableInstance(context.Background(), variables[0].ID); err != nil || variable.ID != variables[0].ID {
+		t.Fatalf("历史变量查询失败: %v", err)
+	}
+	if err := engine.DeleteHistoricVariableInstance(context.Background(), variables[0].ID); err != nil {
+		t.Fatalf("删除历史变量失败: %v", err)
+	}
+	if _, err := engine.GetHistoricVariableInstance(context.Background(), variables[0].ID); err == nil {
+		t.Fatalf("删除后历史变量应不存在")
+	}
+	if err := engine.DeleteHistoricVariableInstance(context.Background(), "missing"); err == nil {
+		t.Fatalf("缺失历史变量删除应失败")
+	}
+}

@@ -198,3 +198,59 @@ func (e *Engine) ListHistoricTaskLogs(ctx context.Context, taskID string) ([]api
 	}
 	return result.([]api.HistoricTaskLog), nil
 }
+
+// GetHistoricActivityInstance 查询历史活动。
+// @param ctx 上下文
+// @param activityID 历史活动 ID
+// @return 历史活动
+// @return 查询错误
+func (e *Engine) GetHistoricActivityInstance(ctx context.Context, activityID string) (api.HistoricActivityInstance, error) {
+	result, err := e.read(func() (any, error) {
+		activity, ok := e.state.HistoricActivities[activityID]
+		if !ok {
+			return nil, api.NewError("ENGINE-0404", "历史活动不存在", api.ErrNotFound)
+		}
+		return *activity, nil
+	})
+	if err != nil {
+		return api.HistoricActivityInstance{}, err
+	}
+	return result.(api.HistoricActivityInstance), nil
+}
+
+// GetHistoricVariableInstance 查询历史变量。
+// @param ctx 上下文
+// @param variableID 历史变量 ID
+// @return 历史变量
+// @return 查询错误
+func (e *Engine) GetHistoricVariableInstance(ctx context.Context, variableID string) (api.HistoricVariableInstance, error) {
+	result, err := e.read(func() (any, error) {
+		for _, variable := range e.state.HistoricVariables {
+			if variable.ID == variableID {
+				return *variable, nil
+			}
+		}
+		return nil, api.NewError("ENGINE-0404", "历史变量不存在", api.ErrNotFound)
+	})
+	if err != nil {
+		return api.HistoricVariableInstance{}, err
+	}
+	return result.(api.HistoricVariableInstance), nil
+}
+
+// DeleteHistoricVariableInstance 删除历史变量。
+// @param ctx 上下文
+// @param variableID 历史变量 ID
+// @return 删除错误
+func (e *Engine) DeleteHistoricVariableInstance(ctx context.Context, variableID string) error {
+	_, err := e.execute(ctx, func(cc *commandContext) (any, error) {
+		for key, variable := range e.state.HistoricVariables {
+			if variable.ID == variableID {
+				delete(e.state.HistoricVariables, key)
+				return nil, nil
+			}
+		}
+		return nil, api.NewError("ENGINE-0404", "历史变量不存在", api.ErrNotFound)
+	})
+	return err
+}
