@@ -28,12 +28,25 @@ var tables = map[string]Table{
 		Name:    "ACT_GE_BYTEARRAY",
 		Columns: []string{"ID_", "REV_", "NAME_", "DEPLOYMENT_ID_", "BYTES_", "GENERATED_"},
 	},
+	"ACT_RU_EXECUTION": {
+		Name:    "ACT_RU_EXECUTION",
+		Columns: []string{"ID_", "REV_", "PROC_INST_ID_", "BUSINESS_KEY_", "PARENT_ID_", "PROC_DEF_ID_", "SUPER_EXEC_", "ROOT_PROC_INST_ID_", "ACT_ID_", "IS_ACTIVE_", "IS_CONCURRENT_", "IS_SCOPE_", "IS_EVENT_SCOPE_", "IS_MI_ROOT_", "SUSPENSION_STATE_", "CACHED_ENT_STATE_", "TENANT_ID_", "NAME_", "START_ACT_ID_", "START_TIME_", "START_USER_ID_", "LOCK_TIME_", "LOCK_OWNER_", "IS_COUNT_ENABLED_", "EVT_SUBSCR_COUNT_", "TASK_COUNT_", "JOB_COUNT_", "TIMER_JOB_COUNT_", "SUSP_JOB_COUNT_", "DEADLETTER_JOB_COUNT_", "EXTERNAL_WORKER_JOB_COUNT_", "VAR_COUNT_", "ID_LINK_COUNT_", "CALLBACK_ID_", "CALLBACK_TYPE_", "REFERENCE_ID_", "REFERENCE_TYPE_", "PROPAGATED_STAGE_INST_ID_", "BUSINESS_STATUS_", "DUE_DATE_"},
+	},
+	"ACT_RU_TASK": {
+		Name:    "ACT_RU_TASK",
+		Columns: []string{"ID_", "REV_", "EXECUTION_ID_", "PROC_INST_ID_", "PROC_DEF_ID_", "TASK_DEF_ID_", "SCOPE_ID_", "SUB_SCOPE_ID_", "SCOPE_TYPE_", "SCOPE_DEFINITION_ID_", "PROPAGATED_STAGE_INST_ID_", "STATE_", "NAME_", "PARENT_TASK_ID_", "DESCRIPTION_", "TASK_DEF_KEY_", "OWNER_", "ASSIGNEE_", "DELEGATION_", "PRIORITY_", "CREATE_TIME_", "IN_PROGRESS_TIME_", "IN_PROGRESS_STARTED_BY_", "CLAIM_TIME_", "CLAIMED_BY_", "SUSPENDED_TIME_", "SUSPENDED_BY_", "IN_PROGRESS_DUE_DATE_", "DUE_DATE_", "CATEGORY_", "SUSPENSION_STATE_", "TENANT_ID_", "FORM_KEY_", "IS_COUNT_ENABLED_", "VAR_COUNT_", "ID_LINK_COUNT_", "SUB_TASK_COUNT_"},
+	},
+	"ACT_RU_VARIABLE": {
+		Name:    "ACT_RU_VARIABLE",
+		Columns: []string{"ID_", "REV_", "TYPE_", "NAME_", "EXECUTION_ID_", "PROC_INST_ID_", "TASK_ID_", "SCOPE_ID_", "SUB_SCOPE_ID_", "SCOPE_TYPE_", "BYTEARRAY_ID_", "DOUBLE_", "LONG_", "TEXT_", "TEXT2_", "META_INFO_"},
+	},
 }
 
 // Row 是一行 ACT_* 数据。
 type Row struct {
-	Table  string         // 表名
-	Values map[string]any // 列值
+	Table         string         // 表名
+	Values        map[string]any // 列值
+	InsertColumns []string       // 可选的自定义插入列
 }
 
 // NewRow 创建行并校验表名。
@@ -65,16 +78,43 @@ func (r *Row) Set(column string, value any) error {
 	return api.NewError("ROW-0002", "不支持的列: "+column, api.ErrBadRequest)
 }
 
+// SetInsertColumns 设置插入列子集。
+// @param columns 列名
+// @return 错误
+func (r *Row) SetInsertColumns(columns []string) error {
+	table, ok := tables[r.Table]
+	if !ok {
+		return api.NewError("ROW-0001", "不支持的表: "+r.Table, api.ErrBadRequest)
+	}
+	if len(columns) == 0 {
+		return api.NewError("ROW-0005", "插入列不能为空", api.ErrBadRequest)
+	}
+	for _, column := range columns {
+		valid := false
+		for _, name := range table.Columns {
+			if name == column {
+				valid = true
+				break
+			}
+		}
+		if !valid {
+			return api.NewError("ROW-0002", "不支持的列: "+column, api.ErrBadRequest)
+		}
+	}
+	r.InsertColumns = append([]string(nil), columns...)
+	return nil
+}
+
 // Columns 返回表的列顺序。
 // @return 列名列表
 func (r *Row) Columns() []string {
 	return append([]string(nil), tables[r.Table].Columns...)
 }
 
-// Args 按列顺序返回值。
+// Args 按插入列顺序返回值。
 // @return 值列表
 func (r *Row) Args() []any {
-	columns := r.Columns()
+	columns := r.insertColumns()
 	args := make([]any, len(columns))
 	for i, column := range columns {
 		args[i] = r.Values[column]
@@ -91,7 +131,7 @@ func (r *Row) InsertSQL(dialect string) (string, []any, error) {
 	if err := validateDialect(dialect); err != nil {
 		return "", nil, err
 	}
-	columns := r.Columns()
+	columns := r.insertColumns()
 	placeholders := make([]string, len(columns))
 	for i := range columns {
 		placeholders[i] = placeholder(dialect, i+1)
@@ -114,6 +154,15 @@ func (r *Row) DeleteSQL(dialect string) (string, []any, error) {
 		return "", nil, api.NewError("ROW-0003", "行缺少 ID_", api.ErrBadRequest)
 	}
 	return fmt.Sprintf("DELETE FROM %s WHERE ID_ = %s", r.Table, placeholder(dialect, 1)), []any{id}, nil
+}
+
+// insertColumns 返回实际插入列。
+// @return 列名
+func (r *Row) insertColumns() []string {
+	if len(r.InsertColumns) > 0 {
+		return append([]string(nil), r.InsertColumns...)
+	}
+	return r.Columns()
 }
 
 // Tables 返回支持的表名。

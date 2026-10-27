@@ -9,7 +9,7 @@ import (
 // @param t 测试上下文
 func TestTables(t *testing.T) {
 	tables := Tables()
-	if len(tables) != 3 || tables[0] != "ACT_GE_BYTEARRAY" {
+	if len(tables) != 6 || tables[0] != "ACT_GE_BYTEARRAY" {
 		t.Fatalf("表列表错误: %+v", tables)
 	}
 }
@@ -40,6 +40,21 @@ func TestNewRowAndSet(t *testing.T) {
 	}
 	if args := row.Args(); len(args) != 6 || args[0] != "id" {
 		t.Fatalf("参数顺序错误: %+v", args)
+	}
+	if err := row.SetInsertColumns([]string{"ID_", "NAME_"}); err != nil {
+		t.Fatalf("设置插入列失败: %v", err)
+	}
+	if args := row.Args(); len(args) != 2 || args[1] != nil {
+		t.Fatalf("插入列参数错误: %+v", args)
+	}
+	if _, _, err := row.InsertSQL("mysql"); err != nil {
+		t.Fatalf("生成部分插入失败: %v", err)
+	}
+	if err := row.SetInsertColumns([]string{"UNKNOWN_"}); err == nil {
+		t.Fatalf("未知插入列应失败")
+	}
+	if err := row.SetInsertColumns(nil); err == nil {
+		t.Fatalf("空插入列应失败")
 	}
 }
 
