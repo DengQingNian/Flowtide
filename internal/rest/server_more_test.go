@@ -373,3 +373,50 @@ func TestREST_ActionErrors(t *testing.T) {
 	}
 	_ = response.Body.Close()
 }
+
+const restMigrateV1 = `<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"><process id="restMigrate" isExecutable="true"><startEvent id="s"/><sequenceFlow id="f1" sourceRef="s" targetRef="oldTask"/><userTask id="oldTask"/><sequenceFlow id="f2" sourceRef="oldTask" targetRef="e"/><endEvent id="e"/></process></definitions>`
+const restMigrateV2 = `<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"><process id="restMigrate" isExecutable="true"><startEvent id="s"/><sequenceFlow id="f1" sourceRef="s" targetRef="newTask"/><userTask id="newTask"/><sequenceFlow id="f2" sourceRef="newTask" targetRef="e"/><endEvent id="e"/></process></definitions>`
+
+// TestREST_Migrate 验证迁移端点。
+// @param t 测试上下文
+func TestREST_Migrate(t *testing.T) {
+	server, _ := newTestServer(t)
+	response, _ := http.Post(server.URL+"/service/repository/deployments", "application/xml", bytes.NewBufferString(restMigrateV1))
+	_ = response.Body.Close()
+	response, _ = http.Get(server.URL + "/service/repository/process-definitions")
+	var page struct {
+		Data []map[string]any `json:"data"`
+	}
+	_ = json.NewDecoder(response.Body).Decode(&page)
+	_ = response.Body.Close()
+	v1, _ := page.Data[0]["id"].(string)
+	response = postJSON(t, server.URL+"/service/runtime/process-instances", map[string]any{"processDefinitionId": v1})
+	var instance map[string]any
+	_ = json.NewDecoder(response.Body).Decode(&instance)
+	_ = response.Body.Close()
+	instanceID, _ := instance["id"].(string)
+
+	response, _ = http.Post(server.URL+"/service/repository/deployments", "application/xml", bytes.NewBufferString(restMigrateV2))
+	_ = response.Body.Close()
+	response, _ = http.Get(server.URL + "/service/repository/process-definitions")
+	_ = json.NewDecoder(response.Body).Decode(&page)
+	_ = response.Body.Close()
+	v2, _ := page.Data[len(page.Data)-1]["id"].(string)
+	response = postJSON(t, server.URL+"/service/runtime/process-instances/"+instanceID+"/migrate", map[string]any{
+		"targetProcessDefinitionId": v2,
+		"activityMappings":          map[string]string{"oldTask": "newTask"},
+	})
+	if response.StatusCode != http.StatusNoContent {
+		t.Fatalf("迁移失败: %d", response.StatusCode)
+	}
+	_ = response.Body.Close()
+	response, _ = http.Get(server.URL + "/service/runtime/tasks")
+	var tasks struct {
+		Data []map[string]any `json:"data"`
+	}
+	_ = json.NewDecoder(response.Body).Decode(&tasks)
+	_ = response.Body.Close()
+	if len(tasks.Data) != 1 || tasks.Data[0]["taskDefinitionKey"] != "newTask" {
+		t.Fatalf("迁移后任务错误: %+v", tasks.Data)
+	}
+}

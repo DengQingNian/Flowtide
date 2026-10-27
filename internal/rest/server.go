@@ -52,6 +52,7 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("GET /service/runtime/process-instances/{id}", s.handleGetInstance)
 	s.mux.HandleFunc("DELETE /service/runtime/process-instances/{id}", s.handleDeleteInstance)
 	s.mux.HandleFunc("PUT /service/runtime/process-instances/{id}", s.handleInstanceAction)
+	s.mux.HandleFunc("POST /service/runtime/process-instances/{id}/migrate", s.handleMigrate)
 	s.mux.HandleFunc("GET /service/runtime/process-instances/{id}/variables", s.handleGetVariables)
 	s.mux.HandleFunc("POST /service/runtime/messages", s.handleMessage)
 	s.mux.HandleFunc("POST /service/runtime/signals", s.handleSignal)
@@ -401,6 +402,32 @@ func (s *Server) handleInstanceAction(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err != nil {
+		writeError(w, err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
+// migratePayload 是迁移请求体。
+type migratePayload struct {
+	TargetProcessDefinitionID string            `json:"targetProcessDefinitionId"` // 目标定义 ID
+	ActivityMappings          map[string]string `json:"activityMappings"`          // 活动映射
+}
+
+// handleMigrate 迁移流程实例。
+// @param w 响应
+// @param r 请求
+func (s *Server) handleMigrate(w http.ResponseWriter, r *http.Request) {
+	var payload migratePayload
+	if err := decodeJSON(r, &payload); err != nil {
+		writeError(w, err)
+		return
+	}
+	if err := s.engine.RuntimeService().MigrateProcessInstance(r.Context(), api.MigrationRequest{
+		ProcessInstanceID:         r.PathValue("id"),
+		TargetProcessDefinitionID: payload.TargetProcessDefinitionID,
+		ActivityMappings:          payload.ActivityMappings,
+	}); err != nil {
 		writeError(w, err)
 		return
 	}

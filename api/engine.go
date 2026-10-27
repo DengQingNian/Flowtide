@@ -152,6 +152,18 @@ type RuntimeService interface {
 	// @param processInstanceID 实例 ID
 	// @return 激活错误
 	ActivateProcessInstance(ctx context.Context, processInstanceID string) error
+	// MigrateProcessInstance 将运行中实例迁移到目标流程定义。
+	// @param ctx 上下文
+	// @param req 迁移请求
+	// @return 迁移错误
+	MigrateProcessInstance(ctx context.Context, req MigrationRequest) error
+}
+
+// MigrationRequest 是流程实例迁移请求。
+type MigrationRequest struct {
+	ProcessInstanceID         string            // 源实例 ID
+	TargetProcessDefinitionID string            // 目标流程定义 ID
+	ActivityMappings          map[string]string // 源活动 ID 到目标活动 ID
 }
 
 // CompleteTaskRequest 是完成任务请求。
