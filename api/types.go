@@ -121,6 +121,16 @@ type HistoricTaskInstance struct {
 	DurationMillis    int64      `json:"durationMillis"`     // 持续时间毫秒
 }
 
+// IdentityLink 是任务/流程参与者关联。
+type IdentityLink struct {
+	ID                string `json:"id,omitempty"`                // 关联 ID
+	Type              string `json:"type"`                        // 类型
+	UserID            string `json:"userId,omitempty"`            // 用户 ID
+	GroupID           string `json:"groupId,omitempty"`           // 组 ID
+	TaskID            string `json:"taskId,omitempty"`            // 任务 ID
+	ProcessInstanceID string `json:"processInstanceId,omitempty"` // 流程实例 ID
+}
+
 // Comment 是任务评论。
 type Comment struct {
 	ID                string    `json:"id"`                          // 评论 ID

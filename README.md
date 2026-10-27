@@ -129,6 +129,7 @@ curl -X POST 'http://localhost:8080/service/runtime/process-instances' \
 - 表单属性（启动/任务表单、必填/只读/类型校验、提交完成）。
 - 发送/接收任务（消息点对点、信号广播、等待与触发）。
 - 任务变量 API 与 REST（查询、创建、更新、删除）。
+- 任务身份链接（候选用户/候选组增删查、REST）。
 - 事务子流程（取消结束、取消边界、作用域销毁）。
 - Flowable 8.1 的 41 张 ACT_* 表 DDL（MySQL/PostgreSQL）与 `flowable-migrate` CLI。
 - 部署管理（列表、详情、资源下载、级联删除、ZIP/BAR 部署包）。

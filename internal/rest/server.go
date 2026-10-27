@@ -81,6 +81,9 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("POST /service/runtime/signals", s.handleSignal)
 	s.mux.HandleFunc("GET /service/runtime/tasks", s.handleListTasks)
 	s.mux.HandleFunc("GET /service/runtime/tasks/{id}", s.handleGetTask)
+	s.mux.HandleFunc("GET /service/runtime/tasks/{id}/identitylinks", s.handleListIdentityLinks)
+	s.mux.HandleFunc("POST /service/runtime/tasks/{id}/identitylinks", s.handleAddIdentityLink)
+	s.mux.HandleFunc("DELETE /service/runtime/tasks/{id}/identitylinks/{family}/{identityId}", s.handleDeleteIdentityLink)
 	s.mux.HandleFunc("GET /service/runtime/tasks/{id}/variables", s.handleGetTaskVariables)
 	s.mux.HandleFunc("POST /service/runtime/tasks/{id}/variables", s.handleCreateTaskVariable)
 	s.mux.HandleFunc("PUT /service/runtime/tasks/{id}/variables/{name}", s.handleUpdateTaskVariable)
@@ -876,6 +879,79 @@ type taskActionPayload struct {
 	LocalVariables json.RawMessage `json:"localVariables"` // 任务变量
 }
 
+// handleListIdentityLinks 返回任务参与者。
+// @param w 响应
+// @param r 请求
+func (s *Server) handleListIdentityLinks(w http.ResponseWriter, r *http.Request) {
+	links, err := s.engine.TaskService().ListIdentityLinks(r.Context(), r.PathValue("id"))
+	if err != nil {
+		writeError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, links)
+}
+
+// identityLinkPayload 是身份链接请求体。
+type identityLinkPayload struct {
+	Type    string `json:"type"`    // 类型
+	UserID  string `json:"userId"`  // 用户 ID
+	GroupID string `json:"groupId"` // 组 ID
+}
+
+// handleAddIdentityLink 添加候选用户/组。
+// @param w 响应
+// @param r 请求
+func (s *Server) handleAddIdentityLink(w http.ResponseWriter, r *http.Request) {
+	var payload identityLinkPayload
+	if err := decodeJSON(r, &payload); err != nil {
+		writeError(w, err)
+		return
+	}
+	if payload.Type != "candidate" {
+		writeError(w, api.NewError("REST-0115", "当前仅支持 candidate 类型", api.ErrBadRequest))
+		return
+	}
+	taskID := r.PathValue("id")
+	var err error
+	if payload.UserID != "" {
+		err = s.engine.TaskService().AddCandidateUser(r.Context(), taskID, payload.UserID)
+	} else if payload.GroupID != "" {
+		err = s.engine.TaskService().AddCandidateGroup(r.Context(), taskID, payload.GroupID)
+	} else {
+		writeError(w, api.NewError("REST-0116", "缺少 userId 或 groupId", api.ErrBadRequest))
+		return
+	}
+	if err != nil {
+		writeError(w, err)
+		return
+	}
+	w.WriteHeader(http.StatusCreated)
+}
+
+// handleDeleteIdentityLink 移除候选用户/组。
+// @param w 响应
+// @param r 请求
+func (s *Server) handleDeleteIdentityLink(w http.ResponseWriter, r *http.Request) {
+	taskID := r.PathValue("id")
+	family := r.PathValue("family")
+	identityID := r.PathValue("identityId")
+	var err error
+	switch family {
+	case "users":
+		err = s.engine.TaskService().DeleteCandidateUser(r.Context(), taskID, identityID)
+	case "groups":
+		err = s.engine.TaskService().DeleteCandidateGroup(r.Context(), taskID, identityID)
+	default:
+		writeError(w, api.NewError("REST-0117", "不支持的身份链接族: "+family, api.ErrBadRequest))
+		return
+	}
+	if err != nil {
+		writeError(w, err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
 // handleGetTaskVariables 返回任务变量。
 // @param w 响应
 // @param r 请求
@@ -1261,6 +1337,12 @@ func reflectSlice(items any) []any {
 		}
 		return out
 	case []api.Group:
+		out := make([]any, len(typed))
+		for i, item := range typed {
+			out[i] = item
+		}
+		return out
+	case []api.IdentityLink:
 		out := make([]any, len(typed))
 		for i, item := range typed {
 			out[i] = item

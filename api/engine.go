@@ -267,6 +267,36 @@ type TaskService interface {
 	// @param name 变量名
 	// @return 删除错误
 	DeleteTaskVariable(ctx context.Context, taskID, name string) error
+	// ListIdentityLinks 返回任务参与者关联。
+	// @param ctx 上下文
+	// @param taskID 任务 ID
+	// @return 关联列表
+	// @return 查询错误
+	ListIdentityLinks(ctx context.Context, taskID string) ([]IdentityLink, error)
+	// AddCandidateUser 添加候选用户。
+	// @param ctx 上下文
+	// @param taskID 任务 ID
+	// @param userID 用户 ID
+	// @return 添加错误
+	AddCandidateUser(ctx context.Context, taskID, userID string) error
+	// DeleteCandidateUser 移除候选用户。
+	// @param ctx 上下文
+	// @param taskID 任务 ID
+	// @param userID 用户 ID
+	// @return 删除错误
+	DeleteCandidateUser(ctx context.Context, taskID, userID string) error
+	// AddCandidateGroup 添加候选组。
+	// @param ctx 上下文
+	// @param taskID 任务 ID
+	// @param groupID 组 ID
+	// @return 添加错误
+	AddCandidateGroup(ctx context.Context, taskID, groupID string) error
+	// DeleteCandidateGroup 移除候选组。
+	// @param ctx 上下文
+	// @param taskID 任务 ID
+	// @param groupID 组 ID
+	// @return 删除错误
+	DeleteCandidateGroup(ctx context.Context, taskID, groupID string) error
 	// Delegate 委派任务。
 	// @param ctx 上下文
 	// @param taskID 任务 ID

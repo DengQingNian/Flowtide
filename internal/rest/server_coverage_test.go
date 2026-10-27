@@ -43,6 +43,7 @@ func TestREST_ClosedEngine(t *testing.T) {
 		"/service/management/jobs",
 		"/service/runtime/executions",
 		"/service/form/form-data?processDefinitionId=x",
+		"/service/runtime/tasks/x/identitylinks",
 		"/service/runtime/tasks/x/comments",
 		"/service/runtime/tasks/x/attachments",
 		"/service/history/historic-process-instances",
@@ -63,6 +64,33 @@ func TestREST_ClosedEngine(t *testing.T) {
 		}
 		if response.StatusCode != http.StatusServiceUnavailable {
 			t.Fatalf("%s 期望 503，实际 %d", path, response.StatusCode)
+		}
+		_ = response.Body.Close()
+	}
+	others := []struct {
+		method string
+		path   string
+	}{
+		{"DELETE", "/service/identity/users/x"},
+		{"DELETE", "/service/identity/groups/x"},
+		{"DELETE", "/service/identity/groups/x/members/y"},
+		{"PUT", "/service/runtime/tasks/x/variables/y"},
+		{"DELETE", "/service/runtime/tasks/x/variables/y"},
+		{"GET", "/service/history/historic-task-instances/x"},
+		{"GET", "/service/runtime/tasks/x/variables"},
+	}
+	for _, item := range others {
+		request, err := http.NewRequest(item.method, server.URL+item.path, bytes.NewBufferString("{}"))
+		if err != nil {
+			t.Fatalf("构造请求失败: %v", err)
+		}
+		request.Header.Set("Content-Type", "application/json")
+		response, err := http.DefaultClient.Do(request)
+		if err != nil {
+			t.Fatalf("%s 请求失败: %v", item.path, err)
+		}
+		if response.StatusCode != http.StatusServiceUnavailable {
+			t.Fatalf("%s 期望 503，实际 %d", item.path, response.StatusCode)
 		}
 		_ = response.Body.Close()
 	}

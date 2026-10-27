@@ -927,3 +927,72 @@ func TestREST_TaskVariables(t *testing.T) {
 	}
 	_ = response.Body.Close()
 }
+
+const restIdentityLinkXML = `<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:flowable="http://flowable.org/bpmn"><process id="restIdentityLink" isExecutable="true"><startEvent id="s"/><sequenceFlow id="f1" sourceRef="s" targetRef="task"/><userTask id="task" flowable:candidateUsers="alice" flowable:candidateGroups="dev"/><sequenceFlow id="f2" sourceRef="task" targetRef="e"/><endEvent id="e"/></process></definitions>`
+
+// TestREST_IdentityLinks 验证任务身份链接端点。
+// @param t 测试上下文
+func TestREST_IdentityLinks(t *testing.T) {
+	server, _ := newTestServer(t)
+	response, _ := http.Post(server.URL+"/service/repository/deployments", "application/xml", bytes.NewBufferString(restIdentityLinkXML))
+	_ = response.Body.Close()
+	response = postJSON(t, server.URL+"/service/runtime/process-instances", map[string]any{"processDefinitionKey": "restIdentityLink"})
+	_ = response.Body.Close()
+	response, _ = http.Get(server.URL + "/service/runtime/tasks")
+	var page struct {
+		Data []map[string]any `json:"data"`
+	}
+	_ = json.NewDecoder(response.Body).Decode(&page)
+	_ = response.Body.Close()
+	taskID, _ := page.Data[0]["id"].(string)
+	response, _ = http.Get(server.URL + "/service/runtime/tasks/" + taskID + "/identitylinks")
+	var links []map[string]any
+	_ = json.NewDecoder(response.Body).Decode(&links)
+	_ = response.Body.Close()
+	if len(links) != 2 {
+		t.Fatalf("身份链接数量错误: %+v", links)
+	}
+	response = postJSON(t, server.URL+"/service/runtime/tasks/"+taskID+"/identitylinks", map[string]any{"type": "candidate", "userId": "bob"})
+	if response.StatusCode != http.StatusCreated {
+		t.Fatalf("添加候选用户失败: %d", response.StatusCode)
+	}
+	_ = response.Body.Close()
+	request, _ := http.NewRequest(http.MethodDelete, server.URL+"/service/runtime/tasks/"+taskID+"/identitylinks/users/bob", nil)
+	response, _ = http.DefaultClient.Do(request)
+	if response.StatusCode != http.StatusNoContent {
+		t.Fatalf("删除候选用户失败: %d", response.StatusCode)
+	}
+	_ = response.Body.Close()
+	response = postJSON(t, server.URL+"/service/runtime/tasks/"+taskID+"/identitylinks", map[string]any{"type": "invalid"})
+	if response.StatusCode != http.StatusBadRequest {
+		t.Fatalf("非法类型应 400: %d", response.StatusCode)
+	}
+	_ = response.Body.Close()
+}
+
+// TestREST_IdentityLinkErrors 验证身份链接错误。
+// @param t 测试上下文
+func TestREST_IdentityLinkErrors(t *testing.T) {
+	server, _ := newTestServer(t)
+	response, _ := http.Get(server.URL + "/service/runtime/tasks/missing/identitylinks")
+	if response.StatusCode != http.StatusNotFound {
+		t.Fatalf("缺失任务链接应 404: %d", response.StatusCode)
+	}
+	_ = response.Body.Close()
+	response = postJSON(t, server.URL+"/service/runtime/tasks/missing/identitylinks", map[string]any{"type": "candidate", "userId": "x"})
+	if response.StatusCode != http.StatusNotFound {
+		t.Fatalf("缺失任务添加链接应 404: %d", response.StatusCode)
+	}
+	_ = response.Body.Close()
+	response = postJSON(t, server.URL+"/service/runtime/tasks/x/identitylinks", map[string]any{"type": "candidate"})
+	if response.StatusCode != http.StatusBadRequest {
+		t.Fatalf("缺少用户组应 400: %d", response.StatusCode)
+	}
+	_ = response.Body.Close()
+	request, _ := http.NewRequest(http.MethodDelete, server.URL+"/service/runtime/tasks/x/identitylinks/other/y", nil)
+	response, _ = http.DefaultClient.Do(request)
+	if response.StatusCode != http.StatusBadRequest {
+		t.Fatalf("非法族应 400: %d", response.StatusCode)
+	}
+	_ = response.Body.Close()
+}
