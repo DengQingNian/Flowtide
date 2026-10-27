@@ -202,6 +202,33 @@ func (e *Engine) triggerGatewaySubscription(cc *commandContext, subscription *su
 	return nil
 }
 
+// emitEvent 发送任务触发消息或信号。
+// @param cc 命令上下文
+// @param definition 流程定义
+// @param messageRef 消息引用
+// @param signalRef 信号引用
+// @return 发送错误
+func (e *Engine) emitEvent(cc *commandContext, definition *definitionState, messageRef, signalRef string) error {
+	eventType, name := e.eventTypeAndName(definition.Model, messageRef, signalRef)
+	if eventType == "" || name == "" {
+		return api.NewError("ENGINE-0624", "发送任务缺少有效事件定义", nil)
+	}
+	subscriptions := e.subscriptionsFor(eventType, name)
+	if len(subscriptions) == 0 {
+		return nil
+	}
+	// 消息点对点，信号广播
+	if eventType == "message" {
+		return e.triggerSubscription(cc, subscriptions[0], map[string]any{})
+	}
+	for _, subscription := range subscriptions {
+		if err := e.triggerSubscription(cc, subscription, map[string]any{}); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 // triggerBoundarySubscription 触发边界消息/信号。
 // @param cc 命令上下文
 // @param subscription 订阅

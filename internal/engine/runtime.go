@@ -184,6 +184,22 @@ func (e *Engine) continueAt(cc *commandContext, executionID, activityID string) 
 		}
 		e.endExecution(cc, execution, node.Terminate)
 		return nil
+	case *model.ReceiveTask:
+		if node.MessageRef == "" && node.SignalRef == "" {
+			return api.NewError("ENGINE-0623", "接收任务缺少消息或信号定义", nil)
+		}
+		if err := e.createExecutionSubscription(cc, execution, definition, node.MessageRef, node.SignalRef); err != nil {
+			return err
+		}
+		execution.Waiting = true
+		return nil
+	case *model.SendTask:
+		if err := e.emitEvent(cc, definition, node.MessageRef, node.SignalRef); err != nil {
+			return err
+		}
+		e.recordActivityEnd(cc, execution.CurrentHistActivityID)
+		execution.CurrentHistActivityID = ""
+		return e.scheduleTakeOutgoing(cc, execution, node)
 	case *model.IntermediateCatchEvent:
 		if node.Timer != nil {
 			if err := e.scheduleTimerCatch(cc, execution, node.ID, node.Timer); err != nil {

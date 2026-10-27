@@ -184,6 +184,14 @@ func parseElement(node *Node) (model.FlowElement, error) {
 		gateway := &model.ParallelGateway{}
 		parseFlowNodeBase(node, &gateway.FlowNodeBase)
 		return gateway, nil
+	case "receiveTask":
+		task := &model.ReceiveTask{MessageRef: attrAny(node, "messageRef"), SignalRef: attrAny(node, "signalRef")}
+		parseFlowNodeBase(node, &task.FlowNodeBase)
+		return task, nil
+	case "sendTask":
+		task := &model.SendTask{MessageRef: attrAny(node, "messageRef"), SignalRef: attrAny(node, "signalRef")}
+		parseFlowNodeBase(node, &task.FlowNodeBase)
+		return task, nil
 	case "intermediateThrowEvent":
 		event := &model.IntermediateThrowEvent{Compensate: hasChild(node, "compensateEventDefinition")}
 		parseFlowNodeBase(node, &event.FlowNodeBase)

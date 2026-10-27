@@ -354,6 +354,28 @@ type BoundaryEvent struct {
 // @return 元素类型
 func (e *BoundaryEvent) ElementType() string { return "boundaryEvent" }
 
+// ReceiveTask 表示接收任务。
+type ReceiveTask struct {
+	FlowNodeBase
+	MessageRef string // 消息引用
+	SignalRef  string // 信号引用
+}
+
+// ElementType 返回元素类型。
+// @return 元素类型
+func (t *ReceiveTask) ElementType() string { return "receiveTask" }
+
+// SendTask 表示发送任务。
+type SendTask struct {
+	FlowNodeBase
+	MessageRef string // 消息引用
+	SignalRef  string // 信号引用
+}
+
+// ElementType 返回元素类型。
+// @return 元素类型
+func (t *SendTask) ElementType() string { return "sendTask" }
+
 // IntermediateCatchEvent 表示中间捕获事件。
 type IntermediateCatchEvent struct {
 	FlowNodeBase
