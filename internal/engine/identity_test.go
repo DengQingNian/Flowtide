@@ -187,3 +187,40 @@ func TestPasswordChange(t *testing.T) {
 		t.Fatalf("缺失用户重置应失败")
 	}
 }
+
+// TestUpdateUser 验证用户更新与角色。
+// @param t 测试上下文
+func TestUpdateUser(t *testing.T) {
+	engine := newTestEngine(t)
+	if _, err := engine.CreateUser(context.Background(), api.User{ID: "alice", DisplayName: "A", Password: "secret"}); err != nil {
+		t.Fatalf("创建用户失败: %v", err)
+	}
+	updated, err := engine.UpdateUser(context.Background(), api.User{
+		ID: "alice", DisplayName: "Alice", Email: "a@example.com", Roles: []string{"reader"},
+	})
+	if err != nil || updated.DisplayName != "Alice" || len(updated.Roles) != 1 {
+		t.Fatalf("更新用户失败: %v %+v", err, updated)
+	}
+	if err := engine.CheckPassword(context.Background(), "alice", "secret"); err != nil {
+		t.Fatalf("更新不应清除密码: %v", err)
+	}
+	if err := engine.SetUserRoles(context.Background(), "alice", []string{"admin"}); err != nil {
+		t.Fatalf("设置角色失败: %v", err)
+	}
+	user, _ := engine.GetUser(context.Background(), "alice")
+	if len(user.Roles) != 1 || user.Roles[0] != "admin" {
+		t.Fatalf("角色设置错误: %+v", user.Roles)
+	}
+	if _, err := engine.UpdateUser(context.Background(), api.User{ID: "missing"}); err == nil {
+		t.Fatalf("缺失用户更新应失败")
+	}
+	if err := engine.SetUserRoles(context.Background(), "missing", nil); err == nil {
+		t.Fatalf("缺失用户设置角色应失败")
+	}
+	if _, err := engine.UpdateUser(context.Background(), api.User{ID: "alice", Disabled: true}); err != nil {
+		t.Fatalf("禁用用户失败: %v", err)
+	}
+	if err := engine.CheckPassword(context.Background(), "alice", "secret"); err == nil {
+		t.Fatalf("禁用用户登录应失败")
+	}
+}

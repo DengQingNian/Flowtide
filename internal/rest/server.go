@@ -227,6 +227,8 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("GET /service/identity/users", s.handleListUsers)
 	s.mux.HandleFunc("POST /service/identity/users", s.handleCreateUser)
 	s.mux.HandleFunc("GET /service/identity/users/{id}", s.handleGetUser)
+	s.mux.HandleFunc("PUT /service/identity/users/{id}", s.handleUpdateUser)
+	s.mux.HandleFunc("PUT /service/identity/users/{id}/roles", s.handleSetUserRoles)
 	s.mux.HandleFunc("DELETE /service/identity/users/{id}", s.handleDeleteUser)
 	s.mux.HandleFunc("PUT /service/identity/users/{id}/password", s.handleChangePassword)
 	s.mux.HandleFunc("GET /service/identity/groups", s.handleListGroups)
@@ -745,6 +747,45 @@ func (s *Server) handleGetUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, user)
+}
+
+// handleUpdateUser 更新用户。
+// @param w 响应
+// @param r 请求
+func (s *Server) handleUpdateUser(w http.ResponseWriter, r *http.Request) {
+	var user api.User
+	if err := decodeJSON(r, &user); err != nil {
+		writeError(w, err)
+		return
+	}
+	user.ID = r.PathValue("id")
+	updated, err := s.engine.IdentityService().UpdateUser(r.Context(), user)
+	if err != nil {
+		writeError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, updated)
+}
+
+// rolesPayload 是角色设置请求体。
+type rolesPayload struct {
+	Roles []string `json:"roles"` // 角色
+}
+
+// handleSetUserRoles 设置用户角色。
+// @param w 响应
+// @param r 请求
+func (s *Server) handleSetUserRoles(w http.ResponseWriter, r *http.Request) {
+	var payload rolesPayload
+	if err := decodeJSON(r, &payload); err != nil {
+		writeError(w, err)
+		return
+	}
+	if err := s.engine.IdentityService().SetUserRoles(r.Context(), r.PathValue("id"), payload.Roles); err != nil {
+		writeError(w, err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
 }
 
 // passwordPayload 是密码修改请求体。

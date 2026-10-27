@@ -15,6 +15,7 @@ type User struct {
 	Password       string     `json:"password,omitempty"`    // 明文密码（仅写入）
 	PasswordHash   string     `json:"-"`                     // 密码哈希
 	Roles          []string   `json:"roles,omitempty"`       // 角色
+	Disabled       bool       `json:"disabled,omitempty"`    // 是否禁用
 	FailedAttempts int        `json:"-"`                     // 连续失败次数
 	LockedUntil    *time.Time `json:"-"`                     // 锁定截止时间
 	TenantID       string     `json:"tenantId,omitempty"`    // 租户
@@ -47,6 +48,18 @@ type IdentityService interface {
 	// @return 用户列表
 	// @return 查询错误
 	ListUsers(ctx context.Context) ([]User, error)
+	// UpdateUser 更新用户资料与角色。
+	// @param ctx 上下文
+	// @param user 用户
+	// @return 用户
+	// @return 更新错误
+	UpdateUser(ctx context.Context, user User) (User, error)
+	// SetUserRoles 设置用户角色。
+	// @param ctx 上下文
+	// @param userID 用户 ID
+	// @param roles 角色列表
+	// @return 设置错误
+	SetUserRoles(ctx context.Context, userID string, roles []string) error
 	// DeleteUser 删除用户。
 	// @param ctx 上下文
 	// @param userID 用户 ID

@@ -255,6 +255,10 @@ func (e *Engine) CheckPassword(ctx context.Context, userID, password string) err
 			authErr = api.NewError("AUTH-0003", "用户名或密码错误", api.ErrUnauthorized)
 			return nil, nil
 		}
+		if user.Disabled {
+			authErr = api.NewError("AUTH-0005", "用户已禁用", api.ErrUnauthorized)
+			return nil, nil
+		}
 		if user.LockedUntil != nil && user.LockedUntil.After(cc.now) {
 			authErr = api.NewError("AUTH-0004", "用户已锁定", api.ErrUnauthorized)
 			return nil, nil
@@ -276,6 +280,61 @@ func (e *Engine) CheckPassword(ctx context.Context, userID, password string) err
 		return err
 	}
 	return authErr
+}
+
+// UpdateUser 更新用户资料与角色。
+// @param ctx 上下文
+// @param user 用户
+// @return 用户
+// @return 更新错误
+func (e *Engine) UpdateUser(ctx context.Context, user api.User) (api.User, error) {
+	result, err := e.execute(ctx, func(cc *commandContext) (any, error) {
+		existing, ok := e.state.Users[user.ID]
+		if !ok {
+			return nil, api.NewError("ENGINE-0404", "用户不存在", api.ErrNotFound)
+		}
+		existing.FirstName = user.FirstName
+		existing.LastName = user.LastName
+		existing.DisplayName = user.DisplayName
+		existing.Email = user.Email
+		existing.TenantID = user.TenantID
+		existing.Disabled = user.Disabled
+		if user.Roles != nil {
+			existing.Roles = append([]string(nil), user.Roles...)
+		}
+		if user.Password != "" {
+			hashed, hashErr := auth.Hash(user.Password)
+			if hashErr != nil {
+				return nil, hashErr
+			}
+			existing.PasswordHash = hashed
+			existing.Password = ""
+		}
+		copied := *existing
+		copied.Password = ""
+		return copied, nil
+	})
+	if err != nil {
+		return api.User{}, err
+	}
+	return result.(api.User), nil
+}
+
+// SetUserRoles 设置用户角色。
+// @param ctx 上下文
+// @param userID 用户 ID
+// @param roles 角色列表
+// @return 设置错误
+func (e *Engine) SetUserRoles(ctx context.Context, userID string, roles []string) error {
+	_, err := e.execute(ctx, func(cc *commandContext) (any, error) {
+		user, ok := e.state.Users[userID]
+		if !ok {
+			return nil, api.NewError("ENGINE-0404", "用户不存在", api.ErrNotFound)
+		}
+		user.Roles = append([]string(nil), roles...)
+		return nil, nil
+	})
+	return err
 }
 
 // UpdatePassword 重置用户密码。
