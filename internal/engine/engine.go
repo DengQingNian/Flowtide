@@ -89,6 +89,7 @@ type Engine struct {
 	rowRepository   *flowablerow.Repository // 行仓储
 	lastRows        []flowablerow.Row       // 上次持久化行
 	suppressPersist bool                    // 导入期间暂停持久化
+	rowSource       bool                    // 行仓储是否为唯一状态源
 }
 
 // commandContext 是单条命令的上下文。
@@ -129,6 +130,7 @@ func New(cfg Config) (*Engine, error) {
 		rowRepository: cfg.RowRepository,
 	}
 	if cfg.LoadRows && cfg.RowRepository != nil {
+		engine.rowSource = true
 		rows, err := cfg.RowRepository.LoadAll(context.Background())
 		if err != nil {
 			return nil, err

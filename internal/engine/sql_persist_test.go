@@ -8,6 +8,7 @@ import (
 
 	"github.com/flowable-go/flowable/api"
 	flowablerow "github.com/flowable-go/flowable/internal/persistence/flowable"
+	statestore "github.com/flowable-go/flowable/internal/persistence/state"
 )
 
 // persistResult 是快照测试结果。
@@ -316,5 +317,34 @@ func TestEngine_LoadRows(t *testing.T) {
 	values, _ := target.GetVariables(context.Background(), instance.ID)
 	if values["initiator"] != "alice" {
 		t.Fatalf("恢复变量错误: %+v", values)
+	}
+}
+
+// TestEngine_RowSourceOnly 验证行仓储为唯一状态源。
+// @param t 测试上下文
+func TestEngine_RowSourceOnly(t *testing.T) {
+	db := &snapshotQueryDB{rows: make(map[string][]flowablerow.Row)}
+	repository, _ := flowablerow.NewRepository(db, "mysql")
+	store := statestore.NewMemory()
+	engine, err := New(Config{RowRepository: repository, LoadRows: true, StateStore: store})
+	if err != nil {
+		t.Fatalf("创建引擎失败: %v", err)
+	}
+	deployXML(t, engine, simpleProcess)
+	if data, err := store.Load(context.Background()); err != nil || data != nil {
+		t.Fatalf("行源模式不应写状态存储: %v %v", data, err)
+	}
+	rows, _ := engine.SnapshotRows(context.Background())
+	grouped := make(map[string][]flowablerow.Row)
+	for _, row := range rows {
+		grouped[row.Table] = append(grouped[row.Table], row)
+	}
+	db.rows = grouped
+	restored, err := New(Config{RowRepository: repository, LoadRows: true})
+	if err != nil {
+		t.Fatalf("重新创建失败: %v", err)
+	}
+	if _, err := restored.GetProcessDefinitionByKey(context.Background(), "simple"); err != nil {
+		t.Fatalf("从行源恢复定义失败: %v", err)
 	}
 }

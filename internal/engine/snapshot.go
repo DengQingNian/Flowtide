@@ -107,6 +107,9 @@ func (e *Engine) toSnapshot() *snapshot {
 // @param ctx 上下文
 // @return 保存错误
 func (e *Engine) saveState(ctx context.Context) error {
+	if e.rowSource {
+		return nil
+	}
 	if e.cfg.StateStore == nil {
 		return nil
 	}
