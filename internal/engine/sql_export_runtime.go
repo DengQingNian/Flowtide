@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"sort"
+	"time"
 
 	flowablerow "github.com/flowable-go/flowable/internal/persistence/flowable"
 )
@@ -33,17 +34,22 @@ func (e *Engine) ExportRuntimeRows(ctx context.Context) ([]flowablerow.Row, erro
 			}
 			instance, _ := e.findInstance(execution.ProcessInstanceID)
 			suspension := 1
-			if instance != nil && instance.Suspended {
-				suspension = 2
+			businessKey, tenant := "", ""
+			startTime := time.Time{}
+			if instance != nil {
+				businessKey = instance.BusinessKey
+				tenant = instance.TenantID
+				startTime = instance.StartTime
+				if instance.Suspended {
+					suspension = 2
+				}
 			}
 			_ = row.Set("ID_", execution.ID)
 			_ = row.Set("REV_", 1)
 			_ = row.Set("PROC_INST_ID_", execution.ProcessInstanceID)
-			if instance != nil {
-				_ = row.Set("BUSINESS_KEY_", instance.BusinessKey)
-				_ = row.Set("TENANT_ID_", instance.TenantID)
-				_ = row.Set("START_TIME_", instance.StartTime)
-			}
+			_ = row.Set("BUSINESS_KEY_", businessKey)
+			_ = row.Set("TENANT_ID_", tenant)
+			_ = row.Set("START_TIME_", startTime)
 			_ = row.Set("PARENT_ID_", execution.ParentID)
 			_ = row.Set("PROC_DEF_ID_", execution.DefinitionID)
 			_ = row.Set("ACT_ID_", execution.ActivityID)
