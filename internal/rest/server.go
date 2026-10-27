@@ -29,6 +29,7 @@ type Server struct {
 	rolePermissions map[string][]string // 角色到权限
 	identityAuth    bool                // 使用身份库校验密码
 	limiter         *rateLimiter        // 限流器
+	auditLog        *auditLog           // 审计日志
 }
 
 // Option 是 REST 服务选项。
@@ -86,6 +87,17 @@ func WithRateLimit(rate float64, burst int) Option {
 	}
 }
 
+// WithAuditLog 启用内存审计日志。
+// @param size 保留事件数
+// @return 选项
+func WithAuditLog(size int) Option {
+	return func(server *Server) {
+		if size > 0 {
+			server.auditLog = newAuditLog(size)
+		}
+	}
+}
+
 // New 创建 REST 服务。
 // @param engine 引擎
 // @param options 选项
@@ -101,7 +113,9 @@ func New(engine api.Engine, options ...Option) *Server {
 
 // Handler 返回 HTTP 处理器。
 // @return 处理器
-func (s *Server) Handler() http.Handler { return s.rateLimit(s.withTenant(s.authenticate(s.mux))) }
+func (s *Server) Handler() http.Handler {
+	return s.rateLimit(s.audit(s.withTenant(s.authenticate(s.mux))))
+}
 
 // withTenant 将请求租户写入上下文。
 // @param next 下游处理器
@@ -215,6 +229,7 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("GET /healthz", s.handleHealth)
 	s.mux.HandleFunc("GET /readyz", s.handleReady)
 	s.mux.HandleFunc("GET /service/management/engine", s.handleEngineInfo)
+	s.mux.HandleFunc("GET /service/management/audit-logs", s.handleAuditLogs)
 	s.mux.HandleFunc("POST /service/management/jobs/run", s.handleRunJobs)
 	s.mux.HandleFunc("GET /service/management/jobs", s.handleListJobs)
 	s.mux.HandleFunc("GET /service/management/deadletter-jobs", s.handleListDeadLetterJobs)
@@ -388,6 +403,18 @@ func (s *Server) handleJobAction(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
+}
+
+// handleAuditLogs 返回审计日志。
+// @param w 响应
+// @param r 请求
+func (s *Server) handleAuditLogs(w http.ResponseWriter, r *http.Request) {
+	start, size := pageParams(r)
+	if s.auditLog == nil {
+		writePage(w, []api.AuditEvent{}, start, size)
+		return
+	}
+	writePage(w, s.auditLog.list(), start, size)
 }
 
 // handleDeploy 处理部署请求。
@@ -1746,6 +1773,12 @@ func reflectSlice(items any) []any {
 		}
 		return out
 	case []api.User:
+		out := make([]any, len(typed))
+		for i, item := range typed {
+			out[i] = item
+		}
+		return out
+	case []api.AuditEvent:
 		out := make([]any, len(typed))
 		for i, item := range typed {
 			out[i] = item
