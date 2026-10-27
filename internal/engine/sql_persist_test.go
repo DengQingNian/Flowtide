@@ -276,6 +276,19 @@ func (d *snapshotQueryDB) QueryContext(ctx context.Context, query string, args .
 	}
 	table := strings.TrimSpace(query[index+6:])
 	rows := d.rows[table]
+	if strings.Contains(table, " WHERE ") {
+		table = strings.TrimSpace(strings.SplitN(table, " WHERE ", 2)[0])
+		rows = d.rows[table]
+		if len(args) > 0 {
+			filtered := make([]flowablerow.Row, 0)
+			for _, row := range rows {
+				if row.Values["TENANT_ID_"] == args[0] {
+					filtered = append(filtered, row)
+				}
+			}
+			rows = filtered
+		}
+	}
 	values := make([][]any, 0, len(rows))
 	for _, row := range rows {
 		columns := row.Columns()
@@ -347,5 +360,38 @@ func TestEngine_RowSourceOnly(t *testing.T) {
 	}
 	if _, err := restored.GetProcessDefinitionByKey(context.Background(), "simple"); err != nil {
 		t.Fatalf("从行源恢复定义失败: %v", err)
+	}
+}
+
+// TestEngine_LoadRowsTenant 验证启动按租户恢复。
+// @param t 测试上下文
+func TestEngine_LoadRowsTenant(t *testing.T) {
+	source := newTestEngine(t)
+	if _, err := source.Deploy(context.Background(), api.DeploymentRequest{
+		TenantID:  "t2",
+		Resources: map[string][]byte{"test.bpmn20.xml": []byte(simpleProcess)},
+	}); err != nil {
+		t.Fatalf("部署失败: %v", err)
+	}
+	rows, _ := source.SnapshotRows(context.Background())
+	grouped := make(map[string][]flowablerow.Row)
+	for _, row := range rows {
+		grouped[row.Table] = append(grouped[row.Table], row)
+	}
+	db := &snapshotQueryDB{rows: grouped}
+	repository, _ := flowablerow.NewRepository(db, "mysql")
+	empty, err := New(Config{RowRepository: repository, LoadRows: true, LoadTenant: "t1"})
+	if err != nil {
+		t.Fatalf("t1 恢复失败: %v", err)
+	}
+	if definitions, _ := empty.ListProcessDefinitions(context.Background()); len(definitions) != 0 {
+		t.Fatalf("t1 不应恢复定义: %+v", definitions)
+	}
+	tenant, err := New(Config{RowRepository: repository, LoadRows: true, LoadTenant: "t2"})
+	if err != nil {
+		t.Fatalf("t2 恢复失败: %v", err)
+	}
+	if _, err := tenant.GetProcessDefinitionByKey(context.Background(), "simple"); err != nil {
+		t.Fatalf("t2 应恢复定义: %v", err)
 	}
 }

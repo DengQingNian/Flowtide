@@ -339,6 +339,8 @@ type queryDB struct {
 // @return 结果集
 // @return 错误
 func (d *queryDB) QueryContext(ctx context.Context, query string, args ...any) (Rows, error) {
+	d.queries = append(d.queries, query)
+	d.args = append(d.args, args)
 	if d.queryErr != nil {
 		return nil, d.queryErr
 	}
@@ -385,5 +387,51 @@ func TestRowIDValue(t *testing.T) {
 	}
 	if _, ok := rowIDValue(Row{Table: "ACT_HI_TSK_LOG", Values: map[string]any{"ID_": struct{}{}}}); ok {
 		t.Fatalf("非法 ID 应失败")
+	}
+}
+
+// TestLoadAllByTenant 验证租户查询与后置过滤。
+// @param t 测试上下文
+func TestLoadAllByTenant(t *testing.T) {
+	db := &queryDB{deployment: [][]any{{"d1", "demo", "", "", "t1", time.Now(), "", "", "", "8.1.0.3"}}}
+	repository, _ := NewRepository(db, "mysql")
+	rows, err := repository.LoadAllByTenant(context.Background(), "t1")
+	if err != nil {
+		t.Fatalf("租户加载失败: %v", err)
+	}
+	tenantQueries := 0
+	for i, query := range db.queries {
+		if strings.Contains(query, "WHERE TENANT_ID_ = ?") {
+			tenantQueries++
+			if len(db.args[i]) != 1 || db.args[i][0] != "t1" {
+				t.Fatalf("租户参数错误: %+v", db.args[i])
+			}
+		}
+	}
+	if tenantQueries == 0 {
+		t.Fatalf("未生成租户查询")
+	}
+	if len(rows) != 1 || rows[0].Values["ID_"] != "d1" {
+		t.Fatalf("租户行错误: %+v", rows)
+	}
+}
+
+// TestFilterTenantRows 验证无租户列的行过滤。
+// @param t 测试上下文
+func TestFilterTenantRows(t *testing.T) {
+	row := func(table string, values map[string]any) Row {
+		return Row{Table: table, Values: values}
+	}
+	rows := []Row{
+		row("ACT_RE_DEPLOYMENT", map[string]any{"ID_": "d1"}),
+		row("ACT_RU_EXECUTION", map[string]any{"PROC_INST_ID_": "i1"}),
+		row("ACT_GE_BYTEARRAY", map[string]any{"DEPLOYMENT_ID_": "d1"}),
+		row("ACT_GE_BYTEARRAY", map[string]any{"DEPLOYMENT_ID_": "d2"}),
+		row("ACT_HI_DETAIL", map[string]any{"PROC_INST_ID_": "i1"}),
+		row("ACT_HI_DETAIL", map[string]any{"PROC_INST_ID_": "i2"}),
+	}
+	filtered := filterTenantRows(rows)
+	if len(filtered) != 4 {
+		t.Fatalf("过滤结果错误: %+v", filtered)
 	}
 }

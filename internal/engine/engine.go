@@ -37,6 +37,7 @@ type Config struct {
 	StateStore     statestore.Store        // 状态存储，优先于 StatePath
 	RowRepository  *flowablerow.Repository // 按表行仓储，可选
 	LoadRows       bool                    // 启动时从行仓储恢复
+	LoadTenant     string                  // 启动恢复租户
 }
 
 // Delegate 是服务任务委托。
@@ -131,7 +132,7 @@ func New(cfg Config) (*Engine, error) {
 	}
 	if cfg.LoadRows && cfg.RowRepository != nil {
 		engine.rowSource = true
-		rows, err := cfg.RowRepository.LoadAll(context.Background())
+		rows, err := loadRowsForTenant(cfg, context.Background())
 		if err != nil {
 			return nil, err
 		}
@@ -447,4 +448,16 @@ func (e *Engine) tenantOf(tenant string) string {
 		return tenant
 	}
 	return e.cfg.TenantID
+}
+
+// loadRowsForTenant 按配置租户加载行。
+// @param cfg 配置
+// @param ctx 上下文
+// @return 行列表
+// @return 加载错误
+func loadRowsForTenant(cfg Config, ctx context.Context) ([]flowablerow.Row, error) {
+	if cfg.LoadTenant != "" {
+		return cfg.RowRepository.LoadAllByTenant(ctx, cfg.LoadTenant)
+	}
+	return cfg.RowRepository.LoadAll(ctx)
 }

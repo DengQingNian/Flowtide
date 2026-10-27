@@ -333,6 +333,27 @@ func revisionValue(row Row) (int64, bool) {
 // @return 行列表
 // @return 读取错误
 func (r *Repository) LoadAll(ctx context.Context) ([]Row, error) {
+	return r.loadRows(ctx, "")
+}
+
+// LoadAllByTenant 读取指定租户的行。
+// @param ctx 上下文
+// @param tenantID 租户
+// @return 行列表
+// @return 读取错误
+func (r *Repository) LoadAllByTenant(ctx context.Context, tenantID string) ([]Row, error) {
+	if tenantID == "" {
+		return r.LoadAll(ctx)
+	}
+	return r.loadRows(ctx, tenantID)
+}
+
+// loadRows 读取行，tenantID 非空时按租户过滤。
+// @param ctx 上下文
+// @param tenantID 租户
+// @return 行列表
+// @return 读取错误
+func (r *Repository) loadRows(ctx context.Context, tenantID string) ([]Row, error) {
 	queryDB, ok := r.db.(QueryDB)
 	if !ok {
 		return nil, api.NewError("ROW-0017", "数据库不支持查询", api.ErrBadRequest)
@@ -341,7 +362,12 @@ func (r *Repository) LoadAll(ctx context.Context) ([]Row, error) {
 	for _, tableName := range Tables() {
 		table := tables[tableName]
 		query := fmt.Sprintf("SELECT %s FROM %s", strings.Join(table.Columns, ", "), table.Name)
-		result, err := queryDB.QueryContext(ctx, query)
+		args := make([]any, 0, 1)
+		if tenantID != "" && hasColumn(table, "TENANT_ID_") {
+			query += " WHERE TENANT_ID_ = " + placeholder(r.dialect, 1)
+			args = append(args, tenantID)
+		}
+		result, err := queryDB.QueryContext(ctx, query, args...)
 		if err != nil {
 			return nil, api.NewError("ROW-0018", "查询表失败: "+table.Name, err)
 		}
@@ -371,7 +397,59 @@ func (r *Repository) LoadAll(ctx context.Context) ([]Row, error) {
 		}
 		_ = result.Close()
 	}
+	if tenantID != "" {
+		rows = filterTenantRows(rows)
+	}
 	return rows, nil
+}
+
+// hasColumn 判断表是否包含列。
+// @param table 表
+// @param column 列名
+// @return 是否包含
+func hasColumn(table Table, column string) bool {
+	for _, name := range table.Columns {
+		if name == column {
+			return true
+		}
+	}
+	return false
+}
+
+// filterTenantRows 过滤无租户列但可从关联推断的表。
+// @param rows 行
+// @return 过滤结果
+func filterTenantRows(rows []Row) []Row {
+	deployments := make(map[string]bool)
+	instances := make(map[string]bool)
+	for _, row := range rows {
+		if row.Table == "ACT_RE_DEPLOYMENT" {
+			if id, ok := row.Values["ID_"].(string); ok {
+				deployments[id] = true
+			}
+		}
+		if row.Table == "ACT_RU_EXECUTION" || row.Table == "ACT_HI_PROCINST" {
+			if id, ok := row.Values["PROC_INST_ID_"].(string); ok {
+				instances[id] = true
+			}
+		}
+	}
+	out := make([]Row, 0, len(rows))
+	for _, row := range rows {
+		switch row.Table {
+		case "ACT_GE_BYTEARRAY":
+			if id, ok := row.Values["DEPLOYMENT_ID_"].(string); ok && deployments[id] {
+				out = append(out, row)
+			}
+		case "ACT_HI_COMMENT", "ACT_HI_ATTACHMENT", "ACT_HI_DETAIL":
+			if id, ok := row.Values["PROC_INST_ID_"].(string); ok && instances[id] {
+				out = append(out, row)
+			}
+		default:
+			out = append(out, row)
+		}
+	}
+	return out
 }
 
 // normalizeValue 将驱动返回值统一为通用类型。
