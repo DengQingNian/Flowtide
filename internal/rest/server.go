@@ -30,6 +30,7 @@ type Server struct {
 	identityAuth    bool                // 使用身份库校验密码
 	limiter         *rateLimiter        // 限流器
 	auditLog        *auditLog           // 审计日志
+	httpMetrics     *httpMetrics        // HTTP 指标
 }
 
 // Option 是 REST 服务选项。
@@ -98,6 +99,14 @@ func WithAuditLog(size int) Option {
 	}
 }
 
+// WithMetrics 启用 Prometheus 文本指标。
+// @return 选项
+func WithMetrics() Option {
+	return func(server *Server) {
+		server.httpMetrics = newHTTPMetrics()
+	}
+}
+
 // New 创建 REST 服务。
 // @param engine 引擎
 // @param options 选项
@@ -114,7 +123,7 @@ func New(engine api.Engine, options ...Option) *Server {
 // Handler 返回 HTTP 处理器。
 // @return 处理器
 func (s *Server) Handler() http.Handler {
-	return s.rateLimit(s.audit(s.withTenant(s.authenticate(s.mux))))
+	return s.metrics(s.rateLimit(s.audit(s.withTenant(s.authenticate(s.mux)))))
 }
 
 // withTenant 将请求租户写入上下文。
@@ -227,6 +236,7 @@ func (s *Server) authorized(r *http.Request) bool {
 // routes 注册全部路由。
 func (s *Server) routes() {
 	s.mux.HandleFunc("GET /healthz", s.handleHealth)
+	s.mux.HandleFunc("GET /metrics", s.handleMetrics)
 	s.mux.HandleFunc("GET /readyz", s.handleReady)
 	s.mux.HandleFunc("GET /service/management/engine", s.handleEngineInfo)
 	s.mux.HandleFunc("GET /service/management/audit-logs", s.handleAuditLogs)
