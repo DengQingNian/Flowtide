@@ -154,6 +154,12 @@ type IdentityService interface {
 	// @param password 密码
 	// @return 校验错误
 	CheckPassword(ctx context.Context, userID, password string) error
+	// ListUserGroups 返回用户所属组。
+	// @param ctx 上下文
+	// @param userID 用户 ID
+	// @return 组列表
+	// @return 查询错误
+	ListUserGroups(ctx context.Context, userID string) ([]Group, error)
 	// ListMembers 返回组成员。
 	// @param ctx 上下文
 	// @param groupID 组 ID

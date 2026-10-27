@@ -243,6 +243,8 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("POST /service/management/jobs/run", s.handleRunJobs)
 	s.mux.HandleFunc("GET /service/management/jobs", s.handleListJobs)
 	s.mux.HandleFunc("GET /service/management/deadletter-jobs", s.handleListDeadLetterJobs)
+	s.mux.HandleFunc("GET /service/management/jobs/{id}", s.handleGetJob)
+	s.mux.HandleFunc("GET /service/management/deadletter-jobs/{id}", s.handleGetDeadLetterJob)
 	s.mux.HandleFunc("POST /service/management/jobs/{id}", s.handleJobAction)
 	s.mux.HandleFunc("GET /service/repository/deployments", s.handleListDeployments)
 	s.mux.HandleFunc("POST /service/repository/deployments", s.handleDeploy)
@@ -280,6 +282,9 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("GET /service/identity/users/{id}", s.handleGetUser)
 	s.mux.HandleFunc("PUT /service/identity/users/{id}", s.handleUpdateUser)
 	s.mux.HandleFunc("PUT /service/identity/users/{id}/roles", s.handleSetUserRoles)
+	s.mux.HandleFunc("GET /service/identity/users/{id}/groups", s.handleListUserGroups)
+	s.mux.HandleFunc("POST /service/identity/users/{id}/groups", s.handleAddUserGroup)
+	s.mux.HandleFunc("DELETE /service/identity/users/{id}/groups/{groupId}", s.handleRemoveUserGroup)
 	s.mux.HandleFunc("DELETE /service/identity/users/{id}", s.handleDeleteUser)
 	s.mux.HandleFunc("PUT /service/identity/users/{id}/password", s.handleChangePassword)
 	s.mux.HandleFunc("GET /service/identity/groups", s.handleListGroups)
@@ -398,6 +403,30 @@ type jobActionPayload struct {
 	Retries int    `json:"retries"` // 重试次数
 }
 
+// handleGetJob 返回可执行作业。
+// @param w 响应
+// @param r 请求
+func (s *Server) handleGetJob(w http.ResponseWriter, r *http.Request) {
+	job, err := s.engine.ManagementService().GetJob(r.Context(), r.PathValue("id"))
+	if err != nil {
+		writeError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, job)
+}
+
+// handleGetDeadLetterJob 返回死信作业。
+// @param w 响应
+// @param r 请求
+func (s *Server) handleGetDeadLetterJob(w http.ResponseWriter, r *http.Request) {
+	job, err := s.engine.ManagementService().GetDeadLetterJob(r.Context(), r.PathValue("id"))
+	if err != nil {
+		writeError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, job)
+}
+
 // handleJobAction 处理作业动作。
 // @param w 响应
 // @param r 请求
@@ -407,12 +436,19 @@ func (s *Server) handleJobAction(w http.ResponseWriter, r *http.Request) {
 		writeError(w, err)
 		return
 	}
-	if payload.Action != "moveToExecutable" {
+	switch payload.Action {
+	case "moveToExecutable":
+		if err := s.engine.ManagementService().MoveDeadLetterJobToExecutable(r.Context(), r.PathValue("id"), payload.Retries); err != nil {
+			writeError(w, err)
+			return
+		}
+	case "setRetries":
+		if err := s.engine.ManagementService().SetJobRetries(r.Context(), r.PathValue("id"), payload.Retries); err != nil {
+			writeError(w, err)
+			return
+		}
+	default:
 		writeError(w, api.NewError("REST-0112", "不支持的作业动作: "+payload.Action, api.ErrBadRequest))
-		return
-	}
-	if err := s.engine.ManagementService().MoveDeadLetterJobToExecutable(r.Context(), r.PathValue("id"), payload.Retries); err != nil {
-		writeError(w, err)
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
@@ -917,6 +953,50 @@ func (s *Server) handleUpdateUser(w http.ResponseWriter, r *http.Request) {
 // rolesPayload 是角色设置请求体。
 type rolesPayload struct {
 	Roles []string `json:"roles"` // 角色
+}
+
+// handleListUserGroups 返回用户所属组。
+// @param w 响应
+// @param r 请求
+func (s *Server) handleListUserGroups(w http.ResponseWriter, r *http.Request) {
+	groups, err := s.engine.IdentityService().ListUserGroups(r.Context(), r.PathValue("id"))
+	if err != nil {
+		writeError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, groups)
+}
+
+// userGroupPayload 是用户组成员请求体。
+type userGroupPayload struct {
+	GroupID string `json:"groupId"` // 组 ID
+}
+
+// handleAddUserGroup 添加用户到组。
+// @param w 响应
+// @param r 请求
+func (s *Server) handleAddUserGroup(w http.ResponseWriter, r *http.Request) {
+	var payload userGroupPayload
+	if err := decodeJSON(r, &payload); err != nil {
+		writeError(w, err)
+		return
+	}
+	if err := s.engine.IdentityService().AddMembership(r.Context(), r.PathValue("id"), payload.GroupID); err != nil {
+		writeError(w, err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
+// handleRemoveUserGroup 从组移除用户。
+// @param w 响应
+// @param r 请求
+func (s *Server) handleRemoveUserGroup(w http.ResponseWriter, r *http.Request) {
+	if err := s.engine.IdentityService().RemoveMembership(r.Context(), r.PathValue("id"), r.PathValue("groupId")); err != nil {
+		writeError(w, err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
 }
 
 // handleSetUserRoles 设置用户角色。

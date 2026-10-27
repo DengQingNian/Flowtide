@@ -261,3 +261,20 @@ func TestRoleCRUD(t *testing.T) {
 		t.Fatalf("删除缺失角色应失败")
 	}
 }
+
+// TestListUserGroups 验证用户所属组。
+// @param t 测试上下文
+func TestListUserGroups(t *testing.T) {
+	engine := newTestEngine(t)
+	_, _ = engine.CreateUser(context.Background(), api.User{ID: "alice"})
+	_, _ = engine.CreateGroup(context.Background(), api.Group{ID: "dev"})
+	_, _ = engine.CreateGroup(context.Background(), api.Group{ID: "ops"})
+	_ = engine.AddMembership(context.Background(), "alice", "dev")
+	groups, err := engine.ListUserGroups(context.Background(), "alice")
+	if err != nil || len(groups) != 1 || groups[0].ID != "dev" {
+		t.Fatalf("用户组错误: %v %+v", err, groups)
+	}
+	if groups, _ := engine.ListUserGroups(context.Background(), "missing"); len(groups) != 0 {
+		t.Fatalf("缺失用户应返回空组")
+	}
+}

@@ -95,3 +95,61 @@ func sortJobInfos(jobs []api.JobInfo) {
 		return jobs[i].DueDate.Before(jobs[j].DueDate)
 	})
 }
+
+// GetJob 查询可执行作业。
+// @param ctx 上下文
+// @param jobID 作业 ID
+// @return 作业信息
+// @return 查询错误
+func (e *Engine) GetJob(ctx context.Context, jobID string) (api.JobInfo, error) {
+	result, err := e.read(func() (any, error) {
+		job, ok := e.state.Jobs[jobID]
+		if !ok {
+			return nil, api.NewError("ENGINE-0404", "作业不存在", api.ErrNotFound)
+		}
+		return toJobInfo(job), nil
+	})
+	if err != nil {
+		return api.JobInfo{}, err
+	}
+	return result.(api.JobInfo), nil
+}
+
+// GetDeadLetterJob 查询死信作业。
+// @param ctx 上下文
+// @param jobID 作业 ID
+// @return 作业信息
+// @return 查询错误
+func (e *Engine) GetDeadLetterJob(ctx context.Context, jobID string) (api.JobInfo, error) {
+	result, err := e.read(func() (any, error) {
+		job, ok := e.state.DeadLetters[jobID]
+		if !ok {
+			return nil, api.NewError("ENGINE-0404", "死信作业不存在", api.ErrNotFound)
+		}
+		return toJobInfo(job), nil
+	})
+	if err != nil {
+		return api.JobInfo{}, err
+	}
+	return result.(api.JobInfo), nil
+}
+
+// SetJobRetries 设置作业重试次数。
+// @param ctx 上下文
+// @param jobID 作业 ID
+// @param retries 重试次数
+// @return 设置错误
+func (e *Engine) SetJobRetries(ctx context.Context, jobID string, retries int) error {
+	_, err := e.execute(ctx, func(cc *commandContext) (any, error) {
+		job, ok := e.state.Jobs[jobID]
+		if !ok {
+			return nil, api.NewError("ENGINE-0404", "作业不存在", api.ErrNotFound)
+		}
+		if retries < 0 {
+			return nil, api.NewError("ENGINE-0916", "重试次数不能为负", api.ErrBadRequest)
+		}
+		job.Retries = retries
+		return nil, nil
+	})
+	return err
+}

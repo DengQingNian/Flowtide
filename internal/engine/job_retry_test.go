@@ -111,3 +111,32 @@ func TestJobAdmin_Coverage(t *testing.T) {
 		t.Fatalf("关闭后执行作业应报错")
 	}
 }
+
+// TestJobLookup 验证作业查询与重试设置。
+// @param t 测试上下文
+func TestJobLookup(t *testing.T) {
+	engine, _ := New(Config{})
+	engine.state.Jobs["j1"] = &jobState{ID: "j1", Retries: 3}
+	if job, err := engine.GetJob(context.Background(), "j1"); err != nil || job.ID != "j1" {
+		t.Fatalf("作业查询失败: %v", err)
+	}
+	if err := engine.SetJobRetries(context.Background(), "j1", 5); err != nil {
+		t.Fatalf("设置重试失败: %v", err)
+	}
+	if engine.state.Jobs["j1"].Retries != 5 {
+		t.Fatalf("重试次数未更新")
+	}
+	if err := engine.SetJobRetries(context.Background(), "j1", -1); err == nil {
+		t.Fatalf("负重试应失败")
+	}
+	if err := engine.SetJobRetries(context.Background(), "missing", 1); err == nil {
+		t.Fatalf("缺失作业应失败")
+	}
+	engine.state.DeadLetters["d1"] = &jobState{ID: "d1"}
+	if job, err := engine.GetDeadLetterJob(context.Background(), "d1"); err != nil || job.ID != "d1" {
+		t.Fatalf("死信查询失败: %v", err)
+	}
+	if _, err := engine.GetDeadLetterJob(context.Background(), "missing"); err == nil {
+		t.Fatalf("缺失死信应失败")
+	}
+}

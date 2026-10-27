@@ -482,3 +482,30 @@ func (e *Engine) DeleteRole(ctx context.Context, roleID string) error {
 	})
 	return err
 }
+
+// ListUserGroups 返回用户所属组。
+// @param ctx 上下文
+// @param userID 用户 ID
+// @return 组列表
+// @return 查询错误
+func (e *Engine) ListUserGroups(ctx context.Context, userID string) ([]api.Group, error) {
+	result, err := e.read(func() (any, error) {
+		out := make([]api.Group, 0)
+		prefix := userID + "|"
+		for key := range e.state.Memberships {
+			if !strings.HasPrefix(key, prefix) {
+				continue
+			}
+			groupID := strings.TrimPrefix(key, prefix)
+			if group, ok := e.state.Groups[groupID]; ok {
+				out = append(out, *group)
+			}
+		}
+		sort.Slice(out, func(i, j int) bool { return out[i].ID < out[j].ID })
+		return out, nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.([]api.Group), nil
+}

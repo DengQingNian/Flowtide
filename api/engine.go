@@ -435,6 +435,24 @@ type ManagementService interface {
 	// @return 作业列表
 	// @return 查询错误
 	ListJobs(ctx context.Context) ([]JobInfo, error)
+	// GetJob 查询可执行作业。
+	// @param ctx 上下文
+	// @param jobID 作业 ID
+	// @return 作业信息
+	// @return 查询错误
+	GetJob(ctx context.Context, jobID string) (JobInfo, error)
+	// GetDeadLetterJob 查询死信作业。
+	// @param ctx 上下文
+	// @param jobID 作业 ID
+	// @return 作业信息
+	// @return 查询错误
+	GetDeadLetterJob(ctx context.Context, jobID string) (JobInfo, error)
+	// SetJobRetries 设置作业重试次数。
+	// @param ctx 上下文
+	// @param jobID 作业 ID
+	// @param retries 重试次数
+	// @return 设置错误
+	SetJobRetries(ctx context.Context, jobID string, retries int) error
 	// ListDeadLetterJobs 返回死信作业。
 	// @param ctx 上下文
 	// @return 死信作业列表
