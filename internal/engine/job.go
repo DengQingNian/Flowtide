@@ -152,6 +152,7 @@ func (e *Engine) triggerBoundaryJob(cc *commandContext, job *jobState) error {
 		e.recordActivityEnd(cc, execution.CurrentHistActivityID)
 		execution.CurrentHistActivityID = ""
 		e.cancelBoundaryTimers(execution.ID)
+		e.cancelBoundarySubscriptions(execution.ID)
 		execution.Waiting = false
 		execution.ActivityID = boundary.ID
 		cc.agenda.schedule(&continueOperation{executionID: execution.ID, activityID: boundary.ID})
@@ -172,21 +173,44 @@ func (e *Engine) triggerBoundaryJob(cc *commandContext, job *jobState) error {
 	return nil
 }
 
-// scheduleBoundaryTimers 为节点的边界定时器创建作业。
+// scheduleBoundaryEvents 为节点的边界定时器与消息/信号创建订阅。
 // @param cc 命令上下文
 // @param execution 执行
 // @param element 活动元素
 // @return 创建错误
-func (e *Engine) scheduleBoundaryTimers(cc *commandContext, execution *executionState, element model.FlowElement) error {
+func (e *Engine) scheduleBoundaryEvents(cc *commandContext, execution *executionState, element model.FlowElement) error {
 	node, ok := element.(model.FlowNode)
 	if !ok {
 		return nil
 	}
-	// 多实例边界定时器由各子实例负责，避免根执行重复创建
+	// 多实例边界事件由各子实例负责，避免根执行重复创建
 	if execution.MultiInstanceRoot {
 		return nil
 	}
+	definition, _ := e.findDefinition(execution.DefinitionID)
 	for _, boundary := range node.GetBoundaryEvents() {
+		if boundary.MessageRef != "" || boundary.SignalRef != "" {
+			if definition == nil {
+				continue
+			}
+			eventType, name := e.eventTypeAndName(definition.Model, boundary.MessageRef, boundary.SignalRef)
+			if eventType == "" {
+				continue
+			}
+			subscription := &subscriptionState{
+				ID:                  e.newID(),
+				ProcessDefinitionID: definition.Info.ID,
+				ProcessInstanceID:   execution.ProcessInstanceID,
+				ExecutionID:         execution.ID,
+				EventType:           eventType,
+				EventName:           name,
+				ActivityID:          element.GetID(),
+				BoundaryEventID:     boundary.ID,
+				TenantID:            definition.Info.TenantID,
+				CreatedAt:           cc.now,
+			}
+			e.state.Subscriptions[subscription.ID] = subscription
+		}
 		if boundary.Timer == nil {
 			continue
 		}

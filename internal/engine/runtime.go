@@ -164,7 +164,7 @@ func (e *Engine) continueAt(cc *commandContext, executionID, activityID string) 
 	execution.SkipAsyncBefore = false
 	execution.ActivityID = activityID
 	execution.CurrentHistActivityID = e.recordActivityStart(cc, execution, element)
-	if err := e.scheduleBoundaryTimers(cc, execution, element); err != nil {
+	if err := e.scheduleBoundaryEvents(cc, execution, element); err != nil {
 		return err
 	}
 	switch node := element.(type) {
@@ -210,6 +210,7 @@ func (e *Engine) continueAt(cc *commandContext, executionID, activityID string) 
 			return err
 		}
 		e.cancelBoundaryTimers(execution.ID)
+		e.cancelBoundarySubscriptions(execution.ID)
 		e.recordActivityEnd(cc, execution.CurrentHistActivityID)
 		execution.CurrentHistActivityID = ""
 		return e.scheduleTakeOutgoing(cc, execution, node)
@@ -217,6 +218,7 @@ func (e *Engine) continueAt(cc *commandContext, executionID, activityID string) 
 		return api.NewError("ENGINE-0701", "脚本任务暂未实现", nil)
 	case *model.ManualTask:
 		e.cancelBoundaryTimers(execution.ID)
+		e.cancelBoundarySubscriptions(execution.ID)
 		e.recordActivityEnd(cc, execution.CurrentHistActivityID)
 		execution.CurrentHistActivityID = ""
 		return e.scheduleTakeOutgoing(cc, execution, node)
@@ -497,6 +499,7 @@ func (e *Engine) endExecution(cc *commandContext, execution *executionState, ter
 		parent, parentOK := e.findExecution(execution.ParentID)
 		if parentOK {
 			e.cancelBoundaryTimers(parent.ID)
+			e.cancelBoundarySubscriptions(parent.ID)
 			e.recordActivityEnd(cc, parent.CurrentHistActivityID)
 			parent.CurrentHistActivityID = ""
 			parent.Waiting = false
@@ -1104,6 +1107,7 @@ func (e *Engine) cancelRemainingMultiInstanceChildren(cc *commandContext, parent
 		}
 		e.recordActivityEnd(cc, execution.CurrentHistActivityID)
 		e.cancelBoundaryTimers(execution.ID)
+		e.cancelBoundarySubscriptions(execution.ID)
 		execution.Ended = true
 		execution.Active = false
 	}

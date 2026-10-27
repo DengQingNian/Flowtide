@@ -291,6 +291,8 @@ type BoundaryEvent struct {
 	AttachedToRef  string           // 依附活动 ID
 	CancelActivity bool             // 是否中断依附活动
 	Timer          *TimerDefinition // 定时器定义
+	MessageRef     string           // 消息引用
+	SignalRef      string           // 信号引用
 	ErrorRef       string           // 错误引用
 }
 

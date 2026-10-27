@@ -299,6 +299,7 @@ func (e *Engine) Complete(ctx context.Context, taskID string, req api.CompleteTa
 		e.recordTaskEnd(cc, task)
 		delete(e.state.Tasks, taskID)
 		e.cancelBoundaryTimers(execution.ID)
+		e.cancelBoundarySubscriptions(execution.ID)
 		execution.Waiting = false
 		e.recordActivityEnd(cc, execution.CurrentHistActivityID)
 		execution.CurrentHistActivityID = ""

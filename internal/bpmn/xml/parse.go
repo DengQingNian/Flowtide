@@ -190,10 +190,13 @@ func parseElement(node *Node) (model.FlowElement, error) {
 		activity.InParameters, activity.OutParameters = parseIOParameters(node)
 		return activity, nil
 	case "boundaryEvent":
+		messageRef, signalRef, timer := parseEventDefinition(node)
 		event := &model.BoundaryEvent{
 			AttachedToRef:  node.Attr("attachedToRef"),
 			CancelActivity: !strings.EqualFold(node.Attr("cancelActivity"), "false"),
-			Timer:          parseTimer(node),
+			Timer:          timer,
+			MessageRef:     messageRef,
+			SignalRef:      signalRef,
 			ErrorRef:       parseErrorRef(node),
 		}
 		parseFlowNodeBase(node, &event.FlowNodeBase)
@@ -257,27 +260,6 @@ func parseMultiInstance(node *Node) *model.MultiInstanceLoopCharacteristics {
 		loop.CompletionCondition = child.TextContent()
 	}
 	return loop
-}
-
-// parseTimer 解析定时器定义。
-// @param node 事件节点
-// @return 定时器定义，不存在时为 nil
-func parseTimer(node *Node) *model.TimerDefinition {
-	timerNode, ok := node.Child("timerEventDefinition")
-	if !ok {
-		return nil
-	}
-	timer := &model.TimerDefinition{}
-	if child, exists := timerNode.Child("timeDate"); exists {
-		timer.TimeDate = child.TextContent()
-	}
-	if child, exists := timerNode.Child("timeDuration"); exists {
-		timer.TimeDuration = child.TextContent()
-	}
-	if child, exists := timerNode.Child("timeCycle"); exists {
-		timer.TimeCycle = child.TextContent()
-	}
-	return timer
 }
 
 // linkSequenceFlows 解析流程顺序流并建立节点连接。

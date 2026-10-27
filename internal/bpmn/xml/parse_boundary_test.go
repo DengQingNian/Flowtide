@@ -64,3 +64,29 @@ func TestParse_BoundaryErrors(t *testing.T) {
 		})
 	}
 }
+
+// TestParse_BoundaryMessageSignal 验证边界消息/信号解析。
+// @param t 测试上下文
+func TestParse_BoundaryMessageSignal(t *testing.T) {
+	data := `<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL">
+  <message id="m" name="M"/><signal id="s" name="S"/>
+  <process id="p"><startEvent id="start"/><sequenceFlow id="f1" sourceRef="start" targetRef="task"/>
+    <userTask id="task"/>
+    <boundaryEvent id="bm" attachedToRef="task"><messageEventDefinition messageRef="m"/></boundaryEvent>
+    <boundaryEvent id="bs" attachedToRef="task" cancelActivity="false"><signalEventDefinition signalRef="s"/></boundaryEvent>
+    <sequenceFlow id="f2" sourceRef="task" targetRef="e"/><endEvent id="e"/>
+  </process>
+</definitions>`
+	parsed, err := Parse([]byte(data))
+	if err != nil {
+		t.Fatalf("解析失败: %v", err)
+	}
+	messageBoundary := parsed.Processes[0].Elements["bm"].(*model.BoundaryEvent)
+	if messageBoundary.MessageRef != "m" {
+		t.Fatalf("边界消息解析错误: %+v", messageBoundary)
+	}
+	signalBoundary := parsed.Processes[0].Elements["bs"].(*model.BoundaryEvent)
+	if signalBoundary.SignalRef != "s" || signalBoundary.CancelActivity {
+		t.Fatalf("边界信号解析错误: %+v", signalBoundary)
+	}
+}

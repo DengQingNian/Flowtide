@@ -90,6 +90,9 @@ func (e *Engine) subscriptionsFor(eventType, name string) []*subscriptionState {
 // @param variables 变量
 // @return 触发错误
 func (e *Engine) triggerSubscription(cc *commandContext, subscription *subscriptionState, variables map[string]any) error {
+	if subscription.BoundaryEventID != "" {
+		return e.triggerBoundarySubscription(cc, subscription)
+	}
 	if subscription.StartEvent {
 		_, err := e.startProcess(cc, api.StartRequest{
 			ProcessDefinitionID: subscription.ProcessDefinitionID,
@@ -115,6 +118,77 @@ func (e *Engine) triggerSubscription(cc *commandContext, subscription *subscript
 	delete(e.state.Subscriptions, subscription.ID)
 	cc.agenda.schedule(&takeOutgoingOperation{executionID: execution.ID, activityID: subscription.ActivityID})
 	return nil
+}
+
+// triggerBoundarySubscription 触发边界消息/信号。
+// @param cc 命令上下文
+// @param subscription 订阅
+// @return 触发错误
+func (e *Engine) triggerBoundarySubscription(cc *commandContext, subscription *subscriptionState) error {
+	delete(e.state.Subscriptions, subscription.ID)
+	execution, ok := e.findExecution(subscription.ExecutionID)
+	if !ok || execution.Ended {
+		return nil
+	}
+	instance, ok := e.findInstance(execution.ProcessInstanceID)
+	if !ok || instance.Ended || instance.Suspended {
+		return nil
+	}
+	definition, ok := e.findDefinition(execution.DefinitionID)
+	if !ok {
+		return nil
+	}
+	process := processOfDefinition(definition)
+	if process == nil {
+		return nil
+	}
+	element, ok := findElement(process, subscription.BoundaryEventID)
+	if !ok {
+		return nil
+	}
+	boundary, ok := element.(*model.BoundaryEvent)
+	if !ok {
+		return nil
+	}
+	if boundary.CancelActivity {
+		for taskID, task := range e.state.Tasks {
+			if task.ExecutionID != execution.ID {
+				continue
+			}
+			e.recordTaskEnd(cc, task)
+			delete(e.state.Tasks, taskID)
+		}
+		e.recordActivityEnd(cc, execution.CurrentHistActivityID)
+		execution.CurrentHistActivityID = ""
+		e.cancelBoundaryTimers(execution.ID)
+		e.cancelBoundarySubscriptions(execution.ID)
+		execution.Waiting = false
+		execution.ActivityID = boundary.ID
+		cc.agenda.schedule(&continueOperation{executionID: execution.ID, activityID: boundary.ID})
+		return nil
+	}
+	child := &executionState{
+		ID:                e.newID(),
+		ProcessInstanceID: execution.ProcessInstanceID,
+		DefinitionID:      execution.DefinitionID,
+		ParentID:          execution.ID,
+		ActivityID:        boundary.ID,
+		Active:            true,
+		Variables:         make(map[string]any),
+	}
+	e.state.Executions[child.ID] = child
+	cc.agenda.schedule(&continueOperation{executionID: child.ID, activityID: boundary.ID})
+	return nil
+}
+
+// cancelBoundarySubscriptions 取消执行上的边界消息/信号订阅。
+// @param executionID 执行 ID
+func (e *Engine) cancelBoundarySubscriptions(executionID string) {
+	for id, subscription := range e.state.Subscriptions {
+		if subscription.ExecutionID == executionID && subscription.BoundaryEventID != "" {
+			delete(e.state.Subscriptions, id)
+		}
+	}
 }
 
 // createStartSubscriptions 为消息/信号开始事件创建订阅。

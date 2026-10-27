@@ -48,6 +48,7 @@ func (e *Engine) throwError(cc *commandContext, execution *executionState, error
 			parent.Waiting = false
 			parent.Active = true
 			e.cancelBoundaryTimers(parent.ID)
+			e.cancelBoundarySubscriptions(parent.ID)
 			e.recordActivityEnd(cc, parent.CurrentHistActivityID)
 			parent.CurrentHistActivityID = ""
 			parent.ActivityID = boundary.ID
