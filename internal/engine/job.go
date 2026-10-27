@@ -80,6 +80,26 @@ func (e *Engine) triggerJob(cc *commandContext, job *jobState) error {
 		execution.SkipAsyncBefore = true
 		cc.agenda.schedule(&continueOperation{executionID: execution.ID, activityID: job.ActivityID})
 		return nil
+	case "timer-start":
+		definition, ok := e.findDefinition(job.ProcessDefinitionID)
+		if !ok || definition.Info.Suspended {
+			return nil
+		}
+		_, err := e.startProcess(cc, api.StartRequest{ProcessDefinitionID: job.ProcessDefinitionID})
+		return err
+	case "timer-catch":
+		execution, ok := e.findExecution(job.ExecutionID)
+		if !ok || execution.Ended {
+			return nil
+		}
+		if instance, exists := e.findInstance(execution.ProcessInstanceID); !exists || instance.Ended || instance.Suspended {
+			return nil
+		}
+		e.recordActivityEnd(cc, execution.CurrentHistActivityID)
+		execution.CurrentHistActivityID = ""
+		execution.Waiting = false
+		cc.agenda.schedule(&takeOutgoingOperation{executionID: execution.ID, activityID: job.ActivityID})
+		return nil
 	case "async-after":
 		execution, ok := e.findExecution(job.ExecutionID)
 		if !ok || execution.Ended {
@@ -353,4 +373,61 @@ func parseDurationPart(part string, units map[byte]time.Duration) (time.Duration
 		i++
 	}
 	return total, nil
+}
+
+// scheduleStartTimers 为定时启动事件创建作业。
+// @param cc 命令上下文
+// @param definition 流程定义
+// @param process 流程
+// @return 创建错误
+func (e *Engine) scheduleStartTimers(cc *commandContext, definition *definitionState, process *model.Process) error {
+	for _, start := range process.StartEvents() {
+		if start.Timer == nil {
+			continue
+		}
+		due, exists, err := timerDueDate(cc.now, start.Timer)
+		if err != nil {
+			return api.NewError("ENGINE-0602", "定时启动事件解析失败: "+start.ID, err)
+		}
+		if !exists {
+			continue
+		}
+		job := &jobState{
+			ID:                  e.newID(),
+			Type:                "timer-start",
+			ProcessDefinitionID: definition.Info.ID,
+			ActivityID:          start.ID,
+			DueDate:             due,
+			CreatedAt:           cc.now,
+		}
+		e.state.Jobs[job.ID] = job
+	}
+	return nil
+}
+
+// scheduleTimerCatch 为中间定时捕获事件创建作业。
+// @param cc 命令上下文
+// @param execution 执行
+// @param activityID 活动 ID
+// @param timer 定时器定义
+// @return 创建错误
+func (e *Engine) scheduleTimerCatch(cc *commandContext, execution *executionState, activityID string, timer *model.TimerDefinition) error {
+	due, exists, err := timerDueDate(cc.now, timer)
+	if err != nil {
+		return api.NewError("ENGINE-0603", "中间定时捕获事件解析失败: "+activityID, err)
+	}
+	if !exists {
+		return nil
+	}
+	job := &jobState{
+		ID:                e.newID(),
+		Type:              "timer-catch",
+		ProcessInstanceID: execution.ProcessInstanceID,
+		ExecutionID:       execution.ID,
+		ActivityID:        activityID,
+		DueDate:           due,
+		CreatedAt:         cc.now,
+	}
+	e.state.Jobs[job.ID] = job
+	return nil
 }

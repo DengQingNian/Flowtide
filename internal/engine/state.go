@@ -69,15 +69,16 @@ type executionState struct {
 
 // jobState 是定时器作业。
 type jobState struct {
-	ID                string    `json:"id"`                // 作业 ID
-	Type              string    `json:"type"`              // 作业类型：boundary-timer/async-before/async-after
-	ProcessInstanceID string    `json:"processInstanceId"` // 流程实例 ID
-	ExecutionID       string    `json:"executionId"`       // 执行 ID
-	BoundaryEventID   string    `json:"boundaryEventId"`   // 边界事件 ID
-	ActivityID        string    `json:"activityId"`        // 依附活动 ID
-	CancelActivity    bool      `json:"cancelActivity"`    // 是否中断
-	DueDate           time.Time `json:"dueDate"`           // 到期时间
-	CreatedAt         time.Time `json:"createdAt"`         // 创建时间
+	ID                  string    `json:"id"`                  // 作业 ID
+	Type                string    `json:"type"`                // 作业类型：boundary-timer/async-before/async-after
+	ProcessInstanceID   string    `json:"processInstanceId"`   // 流程实例 ID
+	ProcessDefinitionID string    `json:"processDefinitionId"` // 流程定义 ID（启动定时器）
+	ExecutionID         string    `json:"executionId"`         // 执行 ID
+	BoundaryEventID     string    `json:"boundaryEventId"`     // 边界事件 ID
+	ActivityID          string    `json:"activityId"`          // 依附活动 ID
+	CancelActivity      bool      `json:"cancelActivity"`      // 是否中断
+	DueDate             time.Time `json:"dueDate"`             // 到期时间
+	CreatedAt           time.Time `json:"createdAt"`           // 创建时间
 }
 
 // subscriptionState 是消息/信号订阅。

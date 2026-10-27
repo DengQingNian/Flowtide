@@ -182,6 +182,13 @@ func (e *Engine) continueAt(cc *commandContext, executionID, activityID string) 
 		e.endExecution(cc, execution, node.Terminate)
 		return nil
 	case *model.IntermediateCatchEvent:
+		if node.Timer != nil {
+			if err := e.scheduleTimerCatch(cc, execution, node.ID, node.Timer); err != nil {
+				return err
+			}
+			execution.Waiting = true
+			return nil
+		}
 		if node.MessageRef == "" && node.SignalRef == "" {
 			return api.NewError("ENGINE-0622", "中间捕获事件缺少消息或信号定义", nil)
 		}

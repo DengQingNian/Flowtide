@@ -82,6 +82,9 @@ func (e *Engine) deploy(cc *commandContext, req api.DeploymentRequest) (api.Depl
 			}
 			e.state.Definitions[definitionID] = definition
 			e.createStartSubscriptions(cc, definition, process)
+			if err := e.scheduleStartTimers(cc, definition, process); err != nil {
+				return api.Deployment{}, err
+			}
 		}
 	}
 	for key, count := range localVersions {
