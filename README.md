@@ -1,0 +1,80 @@
+# Flowable Engine Go
+
+用**纯 Go** 重构 [Flowable](https://www.flowable.org/) 工作流引擎。目标是提供一个不依赖 JVM、不依赖 CGO、可直接读写 Flowable 8.x 数据库、并对流程 REST API 保持兼容的 BPMN 2.0 引擎。
+
+> 当前状态：**规划阶段**。仓库中只有开发计划文档，尚未开始编写 Go 代码。  
+> 参考基线：Flowable 8.1.0-SNAPSHOT（Apache-2.0），位于 `/root/src/public/flowable-engine`。
+
+## 为什么做
+
+- **部署更轻**：单二进制、无 JVM、无 CGO，适合容器与边缘环境。
+- **资源更省**：Go 的运行时与内存占用显著低于 JVM。
+- **可嵌入**：既能作为独立服务，也能作为 Go library 集成进业务系统。
+- **数据兼容**：复用 Flowable 的 `ACT_*` Schema，存量数据、报表与运维脚本可继续使用。
+- **接口兼容**：流程 REST 以官方 OpenAPI 为契约，降低客户端改造成本。
+
+## 目标与边界
+
+| 层级 | 范围 | 状态 |
+| --- | --- | --- |
+| T0 内核 | BPMN 模型/解析、PVM、命令、持久化、变量、任务、历史、作业、身份、流程 REST | 计划中 |
+| T1 BPMN 增强 | 事件注册、外部工作项、迁移、批处理、DMN 调用、HTTP/Mail | 计划中 |
+| T2 多引擎 | CMMN、DMN、Form、App、Content | 计划中 |
+| T3 生态 | LDAP、Kafka/Rabbit、多数据库、Helm | 计划中 |
+
+明确不做：Java 类级二方库兼容、Spring/CDI/OSGi/JMX、Flowable 5 兼容层、Designer/Modeler 前端。详见 [001 总览与范围](docs/001-flowable-go-重构计划/001-项目总览与范围界定.md)。
+
+## 开发计划
+
+全部文档位于 [docs/001-flowable-go-重构计划](docs/001-flowable-go-重构计划/)，按以下顺序阅读：
+
+| 编号 | 文档 | 内容 |
+| --- | --- | --- |
+| 001 | [项目总览与范围界定](docs/001-flowable-go-重构计划/001-项目总览与范围界定.md) | 目标、范围、指标、决策摘要 |
+| 002 | [总体架构与核心运行时](docs/001-flowable-go-重构计划/002-总体架构与核心运行时.md) | 分层、Command、Agenda、事务、并发 |
+| 003 | [代码结构、模块映射与工程规范](docs/001-flowable-go-重构计划/003-代码结构、模块映射与工程规范.md) | 目录、模块映射、API 风格、规范 |
+| 004 | [数据模型与持久化设计](docs/001-flowable-go-重构计划/004-数据模型与持久化设计.md) | 表结构、实体、UoW、方言、迁移 |
+| 005 | [BPMN 模型、XML 解析与部署校验](docs/001-flowable-go-重构计划/005-BPMN模型、XML解析与部署校验.md) | 模型、解析、扩展元素、校验、部署 |
+| 006 | [流程执行引擎 PVM 设计](docs/001-flowable-go-重构计划/006-流程执行引擎PVM设计.md) | 执行树、操作、行为、多实例、事件 |
+| 007 | [变量、表达式与脚本引擎](docs/001-flowable-go-重构计划/007-变量、表达式与脚本引擎.md) | 变量作用域、类型、UEL、脚本 |
+| 008 | [任务、身份与表单](docs/001-flowable-go-重构计划/008-任务、身份与表单.md) | 用户任务、查询、IDM、表单 |
+| 009 | [作业、定时器与异步执行](docs/001-flowable-go-重构计划/009-作业、定时器与异步执行.md) | 作业状态机、执行器、定时器、集群 |
+| 010 | [历史、事件与审计](docs/001-flowable-go-重构计划/010-历史、事件与审计.md) | 历史级别、写入点、事件总线、审计 |
+| 011 | [REST API 与兼容契约](docs/001-flowable-go-重构计划/011-REST-API与兼容契约.md) | 端点清单、DTO、错误码、契约测试 |
+| 012 | [测试策略与质量门禁](docs/001-flowable-go-重构计划/012-测试策略与质量门禁.md) | 测试金字塔、覆盖率、CI、基准 |
+| 013 | [里程碑、排期与资源计划](docs/001-flowable-go-重构计划/013-里程碑、排期与资源计划.md) | 阶段、排期、人力、退出标准 |
+| 014 | [架构决策、风险与验收标准](docs/001-flowable-go-重构计划/014-架构决策、风险与验收标准.md) | ADR、风险登记、验收清单 |
+
+## 关键技术决策
+
+| 领域 | 决策 |
+| --- | --- |
+| 数据库 | 复用 Flowable `ACT_*` Schema；首期 PostgreSQL 16 + MySQL 8.0 |
+| 持久化 | `database/sql` + 显式仓储 + 工作单元，不用 ORM |
+| 执行模型 | 移植 Command + Agenda + 执行树（PVM） |
+| 表达式 | 自研 UEL 兼容子集，白名单方法调用 |
+| 脚本 | goja（JavaScript）、Starlark；不支持 Groovy |
+| 并发 | 一命令一事务一 goroutine；作业多 worker |
+| REST | 官方 OpenAPI 为契约，chi + 手写 Handler + 契约测试 |
+| 质量 | TDD，行覆盖率 ≥ 0.90，race/lint/vuln 全绿 |
+
+## 质量承诺
+
+- 每个函数具备中文注释与 `@param/@return`。
+- 圈复杂度 ≥ 3 的分支加行注释。
+- 测试驱动开发，行覆盖率 ≥ 0.90。
+- 所有文档、注释使用中文。
+- 阶段性成果按约定格式提交（`feat|fix|perf|chore(模块): 描述`）。
+
+## 目录约定
+
+```text
+docs/{三位流水号}-{描述}/
+  {三位流水号}-{描述}.md
+```
+
+新增文档必须遵守命名与编号规则；范围或架构变更需同步更新 001 与 014。
+
+## 许可证
+
+本项目遵循 Apache License 2.0。参考 Flowable 的代码、测试语料与文档均保留其原始版权与许可声明。

@@ -131,9 +131,8 @@ Flowable 8.x 提供官方 Swagger/OpenAPI 规范，作为 REST 契约的事实�
 | POST | `/runtime/tasks/{id}/form` | 提交任务表单 |
 | POST | `/runtime/signals` | 广播信号 |
 | GET | `/runtime/event-subscriptions` | 事件订阅查询 |
-| GET | `/runtime/activity-instances` | 活动实例查询 |
 
-> 运行时分 49 个资源类、约 80 个方法；任务与变量是重点兼容区域。
+> 运行时分 49 个资源类、71 个方法；任务与变量是重点兼容区域。
 
 ### 3.3 历史（History）
 
@@ -173,7 +172,6 @@ Flowable 8.x 提供官方 Swagger/OpenAPI 规范，作为 REST 契约的事实�
 | GET | `/management/timer-jobs` | 定时器作业 |
 | GET | `/management/suspended-jobs` | 挂起作业 |
 | GET | `/management/deadletter-jobs` | 死信作业 |
-| GET | `/management/history-jobs` | 历史作业 |
 | GET | `/management/batches` | 批处理列表 |
 | GET | `/management/batches/{id}` | 批处理详情 |
 | GET | `/management/batch-parts` | 分片列表 |
