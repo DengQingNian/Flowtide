@@ -81,6 +81,10 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("POST /service/runtime/signals", s.handleSignal)
 	s.mux.HandleFunc("GET /service/runtime/tasks", s.handleListTasks)
 	s.mux.HandleFunc("GET /service/runtime/tasks/{id}", s.handleGetTask)
+	s.mux.HandleFunc("GET /service/runtime/tasks/{id}/variables", s.handleGetTaskVariables)
+	s.mux.HandleFunc("POST /service/runtime/tasks/{id}/variables", s.handleCreateTaskVariable)
+	s.mux.HandleFunc("PUT /service/runtime/tasks/{id}/variables/{name}", s.handleUpdateTaskVariable)
+	s.mux.HandleFunc("DELETE /service/runtime/tasks/{id}/variables/{name}", s.handleDeleteTaskVariable)
 	s.mux.HandleFunc("GET /service/runtime/tasks/{id}/comments", s.handleListComments)
 	s.mux.HandleFunc("POST /service/runtime/tasks/{id}/comments", s.handleAddComment)
 	s.mux.HandleFunc("DELETE /service/runtime/tasks/{id}/comments/{commentId}", s.handleDeleteComment)
@@ -870,6 +874,61 @@ type taskActionPayload struct {
 	UserID         string          `json:"userId"`         // 操作人
 	Variables      json.RawMessage `json:"variables"`      // 流程变量
 	LocalVariables json.RawMessage `json:"localVariables"` // 任务变量
+}
+
+// handleGetTaskVariables 返回任务变量。
+// @param w 响应
+// @param r 请求
+func (s *Server) handleGetTaskVariables(w http.ResponseWriter, r *http.Request) {
+	values, err := s.engine.TaskService().GetTaskVariables(r.Context(), r.PathValue("id"))
+	if err != nil {
+		writeError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, variableResponse(values))
+}
+
+// handleCreateTaskVariable 创建任务变量。
+// @param w 响应
+// @param r 请求
+func (s *Server) handleCreateTaskVariable(w http.ResponseWriter, r *http.Request) {
+	var variable api.Variable
+	if err := decodeJSON(r, &variable); err != nil {
+		writeError(w, err)
+		return
+	}
+	if err := s.engine.TaskService().SetTaskVariable(r.Context(), r.PathValue("id"), variable.Name, variable.Value); err != nil {
+		writeError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusCreated, variable)
+}
+
+// handleUpdateTaskVariable 更新任务变量。
+// @param w 响应
+// @param r 请求
+func (s *Server) handleUpdateTaskVariable(w http.ResponseWriter, r *http.Request) {
+	var variable api.Variable
+	if err := decodeJSON(r, &variable); err != nil {
+		writeError(w, err)
+		return
+	}
+	if err := s.engine.TaskService().SetTaskVariable(r.Context(), r.PathValue("id"), r.PathValue("name"), variable.Value); err != nil {
+		writeError(w, err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
+// handleDeleteTaskVariable 删除任务变量。
+// @param w 响应
+// @param r 请求
+func (s *Server) handleDeleteTaskVariable(w http.ResponseWriter, r *http.Request) {
+	if err := s.engine.TaskService().DeleteTaskVariable(r.Context(), r.PathValue("id"), r.PathValue("name")); err != nil {
+		writeError(w, err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
 }
 
 // commentPayload 是评论请求体。

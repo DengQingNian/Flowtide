@@ -879,3 +879,51 @@ func TestREST_FormErrors(t *testing.T) {
 	}
 	_ = response.Body.Close()
 }
+
+// TestREST_TaskVariables 验证任务变量端点。
+// @param t 测试上下文
+func TestREST_TaskVariables(t *testing.T) {
+	server, _ := newTestServer(t)
+	deployREST(t, server)
+	response := postJSON(t, server.URL+"/service/runtime/process-instances", map[string]any{
+		"processDefinitionKey": "rest",
+		"variables":            []map[string]any{{"name": "initiator", "value": "alice"}},
+	})
+	_ = response.Body.Close()
+	response, _ = http.Get(server.URL + "/service/runtime/tasks")
+	var page struct {
+		Data []map[string]any `json:"data"`
+	}
+	_ = json.NewDecoder(response.Body).Decode(&page)
+	_ = response.Body.Close()
+	taskID, _ := page.Data[0]["id"].(string)
+
+	response = postJSON(t, server.URL+"/service/runtime/tasks/"+taskID+"/variables", map[string]any{"name": "local", "value": "v"})
+	if response.StatusCode != http.StatusCreated {
+		t.Fatalf("创建任务变量失败: %d", response.StatusCode)
+	}
+	_ = response.Body.Close()
+	response, _ = http.Get(server.URL + "/service/runtime/tasks/" + taskID + "/variables")
+	if response.StatusCode != http.StatusOK {
+		t.Fatalf("任务变量查询失败: %d", response.StatusCode)
+	}
+	_ = response.Body.Close()
+	request, _ := http.NewRequest(http.MethodPut, server.URL+"/service/runtime/tasks/"+taskID+"/variables/local", bytes.NewBufferString(`{"value":"v2"}`))
+	request.Header.Set("Content-Type", "application/json")
+	response, _ = http.DefaultClient.Do(request)
+	if response.StatusCode != http.StatusNoContent {
+		t.Fatalf("更新任务变量失败: %d", response.StatusCode)
+	}
+	_ = response.Body.Close()
+	request, _ = http.NewRequest(http.MethodDelete, server.URL+"/service/runtime/tasks/"+taskID+"/variables/local", nil)
+	response, _ = http.DefaultClient.Do(request)
+	if response.StatusCode != http.StatusNoContent {
+		t.Fatalf("删除任务变量失败: %d", response.StatusCode)
+	}
+	_ = response.Body.Close()
+	response = postJSON(t, server.URL+"/service/runtime/tasks/missing/variables", map[string]any{"name": "x", "value": 1})
+	if response.StatusCode != http.StatusNotFound {
+		t.Fatalf("缺失任务变量应 404: %d", response.StatusCode)
+	}
+	_ = response.Body.Close()
+}

@@ -248,6 +248,25 @@ type TaskService interface {
 	// @param req 完成请求
 	// @return 完成错误
 	Complete(ctx context.Context, taskID string, req CompleteTaskRequest) error
+	// GetTaskVariables 返回任务可见变量。
+	// @param ctx 上下文
+	// @param taskID 任务 ID
+	// @return 变量快照
+	// @return 查询错误
+	GetTaskVariables(ctx context.Context, taskID string) (map[string]any, error)
+	// SetTaskVariable 设置任务局部变量。
+	// @param ctx 上下文
+	// @param taskID 任务 ID
+	// @param name 变量名
+	// @param value 变量值
+	// @return 设置错误
+	SetTaskVariable(ctx context.Context, taskID, name string, value any) error
+	// DeleteTaskVariable 删除任务局部变量。
+	// @param ctx 上下文
+	// @param taskID 任务 ID
+	// @param name 变量名
+	// @return 删除错误
+	DeleteTaskVariable(ctx context.Context, taskID, name string) error
 	// Delegate 委派任务。
 	// @param ctx 上下文
 	// @param taskID 任务 ID
