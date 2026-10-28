@@ -911,9 +911,25 @@ func (s *Server) handleDeleteDeployment(w http.ResponseWriter, r *http.Request) 
 // @param w 响应
 // @param r 请求
 func (s *Server) handleListDeploymentResources(w http.ResponseWriter, r *http.Request) {
+	deployment, err := s.engine.RepositoryService().GetDeployment(r.Context(), r.PathValue("id"))
+	if err != nil {
+		writeError(w, err)
+		return
+	}
 	resources, err := s.deploymentResources(r, r.PathValue("id"))
 	if err != nil {
 		writeError(w, err)
+		return
+	}
+	names := make([]string, 0, len(resources))
+	for _, resource := range resources {
+		names = append(names, resource.ID)
+	}
+	etag := deploymentResourcesETag(deployment.ID, deployment.DeployTime, names)
+	setResourceListCacheHeaders(w, etag)
+	// 列表不设置 Last-Modified，只依据 ETag 判断缓存是否可复用
+	if ifNoneMatchNotModified(r, etag) {
+		writeNotModified(w)
 		return
 	}
 	writeJSON(w, http.StatusOK, resources)

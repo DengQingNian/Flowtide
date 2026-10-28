@@ -271,6 +271,18 @@ func (d *snapshotQueryDB) ExecContext(ctx context.Context, query string, args ..
 // @return 结果集
 // @return 错误
 func (d *snapshotQueryDB) QueryContext(ctx context.Context, query string, args ...any) (flowablerow.Rows, error) {
+	// 任务查询下推：替身按表内任务行模拟空过滤的计数与 ID 列表
+	if strings.Contains(query, "ACT_RU_TASK T") {
+		tasks := d.rows["ACT_RU_TASK"]
+		if strings.Contains(query, "COUNT(*)") {
+			return &rowSet{values: [][]any{{int64(len(tasks))}}}, nil
+		}
+		values := make([][]any, 0, len(tasks))
+		for _, row := range tasks {
+			values = append(values, []any{row.Values["ID_"]})
+		}
+		return &rowSet{values: values}, nil
+	}
 	index := strings.LastIndex(query, " FROM ")
 	if index < 0 {
 		return &rowSet{}, nil

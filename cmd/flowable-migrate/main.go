@@ -22,17 +22,18 @@ import (
 
 // commandDependencies 提供命令使用的数据库操作与报告分析入口。
 type commandDependencies struct {
-	scan    func(context.Context, string, string) (migration.SourceSnapshot, error)                              // 只读扫描
-	analyze func(migration.SourceSnapshot, migration.Options) migration.Report                                   // 风险分析
-	convert func(context.Context, migration.SourceSnapshot, migration.Options) ([]byte, migration.Report, error) // 离线状态转换
-	apply   func(string) error                                                                                   // 开发库初始化
-	cutover func(context.Context, string, string, time.Duration) (migration.CutoverReport, error)                // 停写静默检查
+	scan        func(context.Context, string, string) (migration.SourceSnapshot, error)                              // 只读扫描
+	analyze     func(migration.SourceSnapshot, migration.Options) migration.Report                                   // 风险分析
+	convert     func(context.Context, migration.SourceSnapshot, migration.Options) ([]byte, migration.Report, error) // 离线状态转换
+	apply       func(string) error                                                                                   // 开发库初始化
+	cutover     func(context.Context, string, string, time.Duration) (migration.CutoverReport, error)                // 停写静默检查
+	verifyState func(context.Context, []byte) (migration.StateReport, error)                                         // 离线状态恢复校验
 }
 
 // main 运行迁移工具并将结果映射为进程退出码。
 // @return 无
 func main() {
-	os.Exit(runWithDependencies(os.Args[1:], os.Stdout, os.Stderr, commandDependencies{scan: scanSource, analyze: migration.Analyze, convert: migration.Convert, apply: applyMySQL, cutover: cutoverSource}))
+	os.Exit(runWithDependencies(os.Args[1:], os.Stdout, os.Stderr, commandDependencies{scan: scanSource, analyze: migration.Analyze, convert: migration.Convert, apply: applyMySQL, cutover: cutoverSource, verifyState: migration.VerifyState}))
 }
 
 // runWithDependencies 校验参数并执行所选模式，预检阻断或静默检查发现变化返回二。
@@ -51,10 +52,12 @@ func runWithDependencies(args []string, stdout, stderr io.Writer, dependencies c
 	preflight := flags.Bool("preflight", false, "只读扫描既有 Java 数据库并输出迁移预检 JSON")
 	convertMode := flags.Bool("convert", false, "只读源库并离线准备 Go 状态文件，必须指定不存在的 -out；不协调停写或执行者切换")
 	cutoverCheck := flags.Bool("cutover-check", false, "在观察窗口前后只读扫描源库并检查是否静默，输出 JSON；不执行停写或切换")
+	verifyMode := flags.Bool("verify-state", false, "离线恢复校验 Go 状态文件并输出 JSON 报告，不连接数据库")
+	statePath := flags.String("state", "", "待校验的离线状态文件路径，仅 -verify-state 模式必填")
 	quiesceWindow := flags.Duration("quiesce-window", 5*time.Second, "停写静默检查的观察窗口，必须大于零")
 	envPath := flags.String("env", ".env", "MySQL 开发配置文件路径")
 	tenant := flags.String("tenant", "", "预检或转换租户，不提供时检查全部，显式空值检查默认租户")
-	timeout := flags.Duration("timeout", 5*time.Minute, "只读预检、离线转换或静默检查超时时间")
+	timeout := flags.Duration("timeout", 5*time.Minute, "只读预检、离线转换、静默检查或状态校验超时时间")
 	if err := flags.Parse(args); err != nil {
 		if errors.Is(err, flag.ErrHelp) {
 			return 0
@@ -64,6 +67,7 @@ func runWithDependencies(args []string, stdout, stderr io.Writer, dependencies c
 	tenantSet := false
 	timeoutSet := false
 	quiesceSet := false
+	stateSet := false
 	flags.Visit(func(value *flag.Flag) {
 		if value.Name == "tenant" {
 			tenantSet = true
@@ -74,29 +78,44 @@ func runWithDependencies(args []string, stdout, stderr io.Writer, dependencies c
 		if value.Name == "quiesce-window" {
 			quiesceSet = true
 		}
+		if value.Name == "state" {
+			stateSet = true
+		}
 	})
-	// 在任何连接和写文件之前检查模式互斥、租户范围与输出位置。
-	if flags.NArg() != 0 || (*dialect != "mysql" && *dialect != "postgres") || (*preflight && (*apply || *listTables || *convertMode || *cutoverCheck)) || (*convertMode && (*apply || *listTables || *cutoverCheck || *output == "")) || (*cutoverCheck && (*apply || *listTables)) || (*apply && (*dialect != "mysql" || *listTables || *output != "")) || (tenantSet && !*preflight && !*convertMode) || (timeoutSet && !*preflight && !*convertMode && !*cutoverCheck) || ((*preflight || *convertMode || *cutoverCheck) && *timeout <= 0) || (quiesceSet && !*cutoverCheck) || (*cutoverCheck && *quiesceWindow <= 0) {
-		fmt.Fprintln(stderr, "参数无效：请检查方言、互斥模式、租户范围、超时时间和观察窗口")
+	// 校验模式与既有模式互斥，且校验模式必须显式提供状态文件。
+	invalidVerify := *verifyMode && (*preflight || *convertMode || *apply || *listTables || *cutoverCheck)
+	invalidState := (stateSet && !*verifyMode) || (*verifyMode && *statePath == "")
+	// 在任何连接和写文件之前检查模式互斥、租户范围、状态文件与输出位置。
+	if flags.NArg() != 0 || (*dialect != "mysql" && *dialect != "postgres") || (*preflight && (*apply || *listTables || *convertMode || *cutoverCheck)) || (*convertMode && (*apply || *listTables || *cutoverCheck || *output == "")) || (*cutoverCheck && (*apply || *listTables)) || (*apply && (*dialect != "mysql" || *listTables || *output != "")) || (tenantSet && !*preflight && !*convertMode) || (timeoutSet && !*preflight && !*convertMode && !*cutoverCheck && !*verifyMode) || ((*preflight || *convertMode || *cutoverCheck || *verifyMode) && *timeout <= 0) || (quiesceSet && !*cutoverCheck) || (*cutoverCheck && *quiesceWindow <= 0) || invalidVerify || invalidState {
+		fmt.Fprintln(stderr, "参数无效：请检查方言、互斥模式、租户范围、状态文件、超时时间和观察窗口")
 		return 1
 	}
-	if (*preflight || *convertMode || *cutoverCheck) && *output != "" {
+	if (*preflight || *convertMode || *cutoverCheck || *verifyMode) && *output != "" {
 		if err := validateReportPath(*output, *envPath); err != nil {
 			fmt.Fprintln(stderr, err)
 			return 1
 		}
-		// 状态文件与静默检查报告都不得覆盖已有文件，避免误毁历史产物。
-		if *convertMode || *cutoverCheck {
+		// 状态文件、静默检查报告与恢复校验报告都不得覆盖已有文件，避免误毁历史产物。
+		if *convertMode || *cutoverCheck || *verifyMode {
 			if _, err := os.Lstat(*output); err == nil || !errors.Is(err, os.ErrNotExist) {
 				message := "静默检查输出目标已存在或无法访问，必须选择新的文件路径"
 				// 离线状态文件沿用原有提示，避免改变既有命令的错误契约。
 				if *convertMode {
 					message = "离线状态输出目标已存在或无法访问，必须选择新的文件路径"
 				}
+				// 校验报告使用独立提示，便于区分被拒绝的产物类型。
+				if *verifyMode {
+					message = "状态校验报告输出目标已存在或无法访问，必须选择新的文件路径"
+				}
 				fmt.Fprintln(stderr, message)
 				return 1
 			}
 		}
+	}
+	if *verifyMode {
+		ctx, cancel := context.WithTimeout(context.Background(), *timeout)
+		defer cancel()
+		return runVerifyState(ctx, *statePath, *output, stdout, stderr, dependencies)
 	}
 	if *cutoverCheck {
 		ctx, cancel := context.WithTimeout(context.Background(), *timeout)
@@ -207,6 +226,51 @@ func runCutoverCheck(ctx context.Context, envPath, dialect string, window time.D
 	}
 	if !report.Stable {
 		return 2
+	}
+	return 0
+}
+
+// runVerifyState 读取离线状态文件并输出恢复校验报告，恢复失败时不产生部分报告。
+// @param ctx 校验上下文，超时或取消视为失败
+// @param statePath 离线状态文件路径
+// @param output 报告路径，为空时输出到标准输出
+// @param stdout 标准输出
+// @param stderr 错误输出
+// @param dependencies 恢复校验依赖
+// @return 退出码，零校验成功、一读取、恢复或输出失败
+func runVerifyState(ctx context.Context, statePath, output string, stdout, stderr io.Writer, dependencies commandDependencies) int {
+	data, err := os.ReadFile(statePath)
+	// 状态文件必须可读；错误信息不回显路径内容、文件内容或底层错误。
+	if err != nil {
+		fmt.Fprintln(stderr, "读取状态文件失败，请检查路径、存在性与读取权限")
+		return 1
+	}
+	report, err := dependencies.verifyState(ctx, data)
+	// 恢复失败不输出部分报告，也不写入报告文件。
+	if err != nil {
+		fmt.Fprintln(stderr, "状态恢复校验失败，请检查文件格式、快照版本与恢复支持范围")
+		return 1
+	}
+	// 依赖返回成功也必须在截止时间内完成，避免超时后发布过期结论。
+	if err := ctx.Err(); err != nil {
+		fmt.Fprintln(stderr, "状态恢复校验失败，请检查文件格式、快照版本与恢复支持范围")
+		return 1
+	}
+	content, err := json.MarshalIndent(report, "", "  ")
+	if err != nil {
+		fmt.Fprintln(stderr, "生成状态校验报告失败")
+		return 1
+	}
+	content = append(content, '\n')
+	// 输出失败不得返回成功，已有报告不会被覆盖。
+	if output != "" {
+		err = writeVerifyReport(output, content)
+	} else {
+		_, err = stdout.Write(content)
+	}
+	if err != nil {
+		fmt.Fprintln(stderr, "写入状态校验报告失败")
+		return 1
 	}
 	return 0
 }
@@ -328,6 +392,14 @@ func writeNewState(path string, content []byte) error {
 // @return 创建、写入、同步或发布错误
 func writeNewReport(path string, content []byte) error {
 	return writeNewFile(path, ".flowable-cutover-*", content)
+}
+
+// writeVerifyReport 完整写入私有临时文件后原子创建恢复校验报告，任何已有目标均不覆盖。
+// @param path 新报告路径
+// @param content 完整报告内容
+// @return 创建、写入、同步或发布错误
+func writeVerifyReport(path string, content []byte) error {
+	return writeNewFile(path, ".flowable-verify-*", content)
 }
 
 // writeNewFile 完整写入私有临时文件后通过同目录硬链接原子创建目标，目标已存在时失败。

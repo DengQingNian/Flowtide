@@ -8,6 +8,8 @@ import (
 	"github.com/flowable-go/flowable/api"
 	"github.com/flowable-go/flowable/bpmn/model"
 	"github.com/flowable-go/flowable/internal/expr"
+	flowablerow "github.com/flowable-go/flowable/internal/persistence/flowable"
+	"github.com/flowable-go/flowable/internal/tenant"
 )
 
 // createUserTask 创建用户任务并让执行进入等待。
@@ -164,6 +166,10 @@ func (e *Engine) toTaskDTO(task *taskState) api.Task {
 // @return 查询错误
 func (e *Engine) ListTasks(ctx context.Context, filter api.TaskFilter) (api.Page[api.Task], error) {
 	result, err := e.read(func() (any, error) {
+		// 行仓储模式且无租户过滤时优先下推 SQL，避免全量任务加载与内存扫描
+		if e.canPushdownTaskQuery(ctx, filter) {
+			return e.listTasksFromRowQuery(ctx, filter)
+		}
 		tasks := make([]api.Task, 0)
 		for _, task := range e.state.Tasks {
 			if e.allowTask(ctx, task.Task.ID) != nil {
@@ -196,6 +202,125 @@ func (e *Engine) ListTasks(ctx context.Context, filter api.TaskFilter) (api.Page
 		return api.Page[api.Task]{}, err
 	}
 	return result.(api.Page[api.Task]), nil
+}
+
+// canPushdownTaskQuery 判断任务查询是否可以安全下推到行仓储 SQL。
+// @param ctx 上下文
+// @param filter 查询条件
+// @return 是否下推
+func (e *Engine) canPushdownTaskQuery(ctx context.Context, filter api.TaskFilter) bool {
+	// 未配置行仓储时只能保留内存路径
+	if e.rowRepository == nil {
+		return false
+	}
+	// 租户过滤尚未下推，继续走内存路径保证过滤正确
+	if filter.TenantID != "" {
+		return false
+	}
+	// 请求租户或默认租户非空时，当前 SQL 无法表达租户隔离
+	if e.tenantOf(tenant.From(ctx)) != "" {
+		return false
+	}
+	// 内存中存在非默认租户数据时，SQL 无租户条件会导致总数和分页被其他租户挤占
+	return !e.hasNonDefaultTenantData()
+}
+
+// hasNonDefaultTenantData 判断内存状态是否存在非默认租户的任务或实例。
+// @return 是否存在非默认租户数据
+func (e *Engine) hasNonDefaultTenantData() bool {
+	for _, task := range e.state.Tasks {
+		// 任务自身记录非默认租户
+		if task.Task.TenantID != "" {
+			return true
+		}
+		// 流程任务的租户以所属实例为准
+		if instance, ok := e.state.Instances[task.Task.ProcessInstanceID]; ok && instance.TenantID != "" {
+			return true
+		}
+	}
+	for _, instance := range e.state.Instances {
+		// 没有任务的非默认租户实例同样会影响后续分页语义
+		if instance.TenantID != "" {
+			return true
+		}
+	}
+	return false
+}
+
+// listTasksFromRowQuery 通过行仓储下推查询任务并按分页返回。
+// @param ctx 上下文
+// @param filter 查询条件
+// @return 分页结果
+// @return 查询错误
+func (e *Engine) listTasksFromRowQuery(ctx context.Context, filter api.TaskFilter) (api.Page[api.Task], error) {
+	query := flowablerow.TaskQuery{
+		Assignee:             filter.Assignee,
+		Owner:                filter.Owner,
+		DelegationState:      filter.DelegationState,
+		ProcessInstanceID:    filter.ProcessInstanceID,
+		ProcessDefinitionKey: filter.ProcessDefinitionKey,
+		ParentTaskID:         filter.ParentTaskID,
+		CandidateUser:        filter.CandidateUser,
+		CandidateGroups:      candidateGroupsForUser(e.state.Memberships, filter.CandidateUser),
+		Start:                filter.Start,
+		Size:                 filter.Size,
+	}
+	ids, total, err := e.rowRepository.QueryTaskIDs(ctx, query)
+	// SQL 查询失败必须返回错误，不能静默回退内存路径掩盖数据库问题
+	if err != nil {
+		return api.Page[api.Task]{}, err
+	}
+	tasks := make([]api.Task, 0, len(ids))
+	for _, task := range mapTaskIDs(e.state.Tasks, ids) {
+		// 复用租户校验，排除当前请求不可见的任务
+		if e.allowTask(ctx, task.Task.ID) != nil {
+			continue
+		}
+		tasks = append(tasks, e.toTaskDTO(task))
+	}
+	start, size := normalizePage(filter.Start, filter.Size)
+	return api.Page[api.Task]{Data: tasks, Total: total, Start: start, Size: size}, nil
+}
+
+// mapTaskIDs 按 SQL 返回顺序映射内存任务，缺失的 ID 会被跳过。
+// @param tasks 内存任务表
+// @param ids SQL 返回的任务 ID
+// @return 任务状态列表
+func mapTaskIDs(tasks map[string]*taskState, ids []string) []*taskState {
+	out := make([]*taskState, 0, len(ids))
+	for _, id := range ids {
+		// SQL 结果与内存状态可能短暂不一致，已删除的任务直接跳过
+		if task, ok := tasks[id]; ok {
+			out = append(out, task)
+		}
+	}
+	return out
+}
+
+// candidateGroupsForUser 从成员关系推导用户所属的候选组。
+// @param memberships 成员关系，key 为"用户|组"
+// @param userID 用户 ID
+// @return 按字典序升序排列的候选组
+func candidateGroupsForUser(memberships map[string]bool, userID string) []string {
+	if userID == "" {
+		return nil
+	}
+	prefix := userID + "|"
+	groups := make([]string, 0)
+	for key := range memberships {
+		// 只保留当前用户的成员关系
+		if !strings.HasPrefix(key, prefix) {
+			continue
+		}
+		group := strings.TrimPrefix(key, prefix)
+		// 空组名无法对应身份链接，直接忽略
+		if group == "" {
+			continue
+		}
+		groups = append(groups, group)
+	}
+	sort.Strings(groups)
+	return groups
 }
 
 // matchesTask 判断任务是否满足过滤条件。

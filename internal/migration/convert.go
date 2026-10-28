@@ -69,7 +69,7 @@ func Convert(ctx context.Context, snapshot SourceSnapshot, options Options) ([]b
 		return nil, report, fmt.Errorf("读取准备状态失败: %w", err)
 	}
 	sum := sha256.Sum256(data)
-	report.PreparedState = &PreparedStateSummary{Format: "flowable-go-state", SHA256: hex.EncodeToString(sum[:]), Bytes: len(data), SourceRows: len(snapshot.Rows), ConvertedRows: len(converted)}
+	report.PreparedState = &PreparedStateSummary{Format: StateFormat, SHA256: hex.EncodeToString(sum[:]), Bytes: len(data), SourceRows: len(snapshot.Rows), ConvertedRows: len(converted)}
 	report.Limitations = append(report.Limitations, "已离线准备 Go 状态；未执行源引擎停写、实例归属切换或回退演练，禁止据此同时启用 Java 和 Go。")
 	return data, report, nil
 }

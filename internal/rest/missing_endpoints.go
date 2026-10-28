@@ -1,10 +1,15 @@
 package rest
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"net/http"
 	"net/url"
 	"path"
+	"sort"
+	"strconv"
 	"strings"
+	"time"
 
 	"github.com/flowable-go/flowable/api"
 )
@@ -179,10 +184,157 @@ func (s *Server) handleGetDeploymentResourceData(w http.ResponseWriter, r *http.
 		writeError(w, err)
 		return
 	}
+	deployment, err := s.engine.RepositoryService().GetDeployment(r.Context(), r.PathValue("id"))
+	if err != nil {
+		writeError(w, err)
+		return
+	}
+	etag := deploymentResourceETag(data)
+	setResourceCacheHeaders(w, etag, deployment.DeployTime)
+	// 条件请求命中时只返回 304，不重复传输资源字节
+	if resourceNotModified(r, etag, deployment.DeployTime) {
+		writeNotModified(w)
+		return
+	}
 	w.Header().Set("Content-Type", deploymentResourceMediaType(name))
 	w.Header().Set("Content-Disposition", "attachment; filename=\""+strings.ReplaceAll(path.Base(name), "\"", "")+"\"")
 	w.WriteHeader(http.StatusOK)
 	_, _ = w.Write(data)
+}
+
+// deploymentResourceETag 基于资源字节计算强 ETag。
+// @param data 资源字节
+// @return 双引号包裹的 SHA-256 十六进制摘要
+func deploymentResourceETag(data []byte) string {
+	sum := sha256.Sum256(data)
+	return "\"" + hex.EncodeToString(sum[:]) + "\""
+}
+
+// deploymentResourcesETag 基于部署 ID、部署时间与排序后的资源名计算列表 ETag。
+// @param deploymentID 部署 ID
+// @param deployTime 部署时间
+// @param names 资源名列表
+// @return 双引号包裹的 SHA-256 十六进制摘要
+func deploymentResourcesETag(deploymentID string, deployTime time.Time, names []string) string {
+	sorted := append([]string(nil), names...)
+	sort.Strings(sorted)
+	var builder strings.Builder
+	builder.WriteString(deploymentID)
+	builder.WriteByte(0)
+	builder.WriteString(deployTime.UTC().Format(time.RFC3339Nano))
+	builder.WriteByte(0)
+	for _, name := range sorted {
+		// 长度前缀保证资源名本身含分隔符时也不会产生摘要歧义
+		builder.WriteString(strconv.Itoa(len(name)))
+		builder.WriteByte(':')
+		builder.WriteString(name)
+	}
+	sum := sha256.Sum256([]byte(builder.String()))
+	return "\"" + hex.EncodeToString(sum[:]) + "\""
+}
+
+// normalizeETag 去掉弱校验前缀与空白，得到参与比较的实体标签。
+// @param tag 原始实体标签
+// @return 规范化后的实体标签
+func normalizeETag(tag string) string {
+	tag = strings.TrimSpace(tag)
+	// W/ 前缀只表示弱校验，不参与标签本身的比较
+	if len(tag) >= 2 && (tag[0] == 'W' || tag[0] == 'w') && tag[1] == '/' {
+		return strings.TrimSpace(tag[2:])
+	}
+	return tag
+}
+
+// ifNoneMatchMatches 判断 If-None-Match 头是否命中给定 ETag。
+// @param headerValue If-None-Match 头值
+// @param etag 当前表示 ETag
+// @return 是否命中
+func ifNoneMatchMatches(headerValue, etag string) bool {
+	// 空头表示没有条件，不做命中判断
+	if strings.TrimSpace(headerValue) == "" {
+		return false
+	}
+	// 星号表示匹配当前任意表示
+	if strings.TrimSpace(headerValue) == "*" {
+		return true
+	}
+	wanted := normalizeETag(etag)
+	for _, candidate := range strings.Split(headerValue, ",") {
+		// 逗号分隔的多个标签逐一比较，命中任意一个即可
+		if normalizeETag(candidate) == wanted {
+			return true
+		}
+	}
+	return false
+}
+
+// ifNoneMatchNotModified 判断仅使用 ETag 的条件请求是否命中。
+// @param r 请求
+// @param etag 当前表示 ETag
+// @return 是否命中 304
+func ifNoneMatchNotModified(r *http.Request, etag string) bool {
+	return ifNoneMatchMatches(r.Header.Get("If-None-Match"), etag)
+}
+
+// parseConditionalTime 解析条件请求中的 HTTP 日期时间。
+// @param value HTTP 日期头值
+// @return UTC 时间
+// @return 是否解析成功
+func parseConditionalTime(value string) (time.Time, bool) {
+	parsed, err := http.ParseTime(strings.TrimSpace(value))
+	if err != nil {
+		return time.Time{}, false
+	}
+	return parsed.UTC(), true
+}
+
+// resourceNotModified 判断资源 GET 请求是否应返回 304。
+// @param r 请求
+// @param etag 当前表示 ETag
+// @param lastModified 最后修改时间
+// @return 是否命中 304
+func resourceNotModified(r *http.Request, etag string, lastModified time.Time) bool {
+	// If-None-Match 优先；存在时不使用 If-Modified-Since
+	if header := r.Header.Get("If-None-Match"); header != "" {
+		return ifNoneMatchMatches(header, etag)
+	}
+	header := r.Header.Get("If-Modified-Since")
+	// 没有修改时间条件时按正常 200 处理
+	if header == "" {
+		return false
+	}
+	since, ok := parseConditionalTime(header)
+	// 非法 HTTP 日期按无条件处理，避免误报 304
+	if !ok {
+		return false
+	}
+	// HTTP 日期精确到秒，比较前截断部署时间的纳秒
+	return !lastModified.Truncate(time.Second).After(since)
+}
+
+// setResourceCacheHeaders 设置单个资源的缓存校验响应头。
+// @param w 响应
+// @param etag 资源 ETag
+// @param lastModified 最后修改时间
+func setResourceCacheHeaders(w http.ResponseWriter, etag string, lastModified time.Time) {
+	w.Header().Set("ETag", etag)
+	w.Header().Set("Last-Modified", lastModified.UTC().Format(http.TimeFormat))
+	// 资源不可变但仍要求回源校验，禁止设置长 max-age
+	w.Header().Set("Cache-Control", "no-cache")
+}
+
+// setResourceListCacheHeaders 设置资源列表的缓存校验响应头。
+// @param w 响应
+// @param etag 列表 ETag
+func setResourceListCacheHeaders(w http.ResponseWriter, etag string) {
+	w.Header().Set("ETag", etag)
+	w.Header().Set("Cache-Control", "no-cache")
+}
+
+// writeNotModified 输出不带响应体的 304。
+// @param w 响应
+func writeNotModified(w http.ResponseWriter) {
+	w.WriteHeader(http.StatusNotModified)
 }
 
 // deploymentResourceMediaType 按 Flowable DefaultContentTypeResolver 的扩展名映射返回媒体类型。
@@ -287,17 +439,36 @@ func (s *Server) deploymentResources(r *http.Request, deploymentID string) ([]de
 // @param r 请求
 func (s *Server) handleGetDeploymentResourceMetadata(w http.ResponseWriter, r *http.Request) {
 	name := r.PathValue("name")
-	// 先确认部署存在，再确认资源名精确匹配
+	// 先确认部署存在并取得部署时间，再确认资源名精确匹配
+	deployment, err := s.engine.RepositoryService().GetDeployment(r.Context(), r.PathValue("id"))
+	if err != nil {
+		writeError(w, err)
+		return
+	}
 	resources, err := s.deploymentResources(r, r.PathValue("id"))
 	if err != nil {
 		writeError(w, err)
 		return
 	}
 	for _, resource := range resources {
-		if resource.ID == name {
-			writeJSON(w, http.StatusOK, resource)
+		// 只按完整资源名匹配，避免路径参数被部分匹配
+		if resource.ID != name {
+			continue
+		}
+		data, err := s.engine.RepositoryService().GetDeploymentResource(r.Context(), r.PathValue("id"), name)
+		if err != nil {
+			writeError(w, err)
 			return
 		}
+		etag := deploymentResourceETag(data)
+		setResourceCacheHeaders(w, etag, deployment.DeployTime)
+		// 元数据与原始内容共享内容摘要，便于同一 ETag 校验两个端点
+		if resourceNotModified(r, etag, deployment.DeployTime) {
+			writeNotModified(w)
+			return
+		}
+		writeJSON(w, http.StatusOK, resource)
+		return
 	}
 	writeError(w, api.NewError("ENGINE-0404", "部署资源不存在: "+name, api.ErrNotFound))
 }
