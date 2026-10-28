@@ -217,6 +217,15 @@ type UserTask struct {
 	FormKey             string                            // 表单 Key
 	Category            string                            // 分类
 	FormProperties      []*FormProperty                   // 表单字段
+	TaskListeners       []TaskListenerDefinition          // 任务监听器
+}
+
+// TaskListenerDefinition 是 BPMN 任务监听器定义。
+type TaskListenerDefinition struct {
+	Event              string // 事件：create/complete/delete/assignment
+	ClassName          string // 类名（兼容标记）
+	DelegateExpression string // 委托名
+	Expression         string // 表达式
 }
 
 // ElementType 返回元素类型。

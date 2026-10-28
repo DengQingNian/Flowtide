@@ -141,6 +141,7 @@ func parseElement(node *Node) (model.FlowElement, error) {
 		task.Category = attrAny(node, "category")
 		task.LoopCharacteristics = parseMultiInstance(node)
 		task.FormProperties = parseFormProperties(node)
+		task.TaskListeners = parseTaskListeners(node)
 		return task, nil
 	case "serviceTask":
 		task := &model.ServiceTask{}
@@ -327,6 +328,33 @@ func parseFormProperties(node *Node) []*model.FormProperty {
 		properties = append(properties, property)
 	}
 	return properties
+}
+
+// parseTaskListeners 解析任务监听器扩展。
+// @param node 任务节点
+// @return 监听器列表
+func parseTaskListeners(node *Node) []model.TaskListenerDefinition {
+	extension, ok := node.Child("extensionElements")
+	if !ok {
+		return nil
+	}
+	listeners := make([]model.TaskListenerDefinition, 0)
+	for _, child := range extension.Children {
+		if child.Name.Local != "taskListener" {
+			continue
+		}
+		listener := model.TaskListenerDefinition{
+			Event:              attrAny(child, "event"),
+			ClassName:          attrAny(child, "class"),
+			DelegateExpression: attrAny(child, "delegateExpression"),
+			Expression:         attrAny(child, "expression"),
+		}
+		if listener.Event == "" {
+			listener.Event = "create"
+		}
+		listeners = append(listeners, listener)
+	}
+	return listeners
 }
 
 // parseMultiInstance 解析多实例配置。

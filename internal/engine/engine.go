@@ -82,15 +82,16 @@ func (e *Execution) ActivityID() string { return e.state.ActivityID }
 
 // Engine 是流程引擎实现。
 type Engine struct {
-	mu              sync.RWMutex            // 保护全部状态
-	cfg             Config                  // 配置
-	state           *state                  // 可变状态
-	delegates       map[string]Delegate     // 服务任务委托
-	closed          bool                    // 是否关闭
-	rowRepository   *flowablerow.Repository // 行仓储
-	lastRows        []flowablerow.Row       // 上次持久化行
-	suppressPersist bool                    // 导入期间暂停持久化
-	rowSource       bool                    // 行仓储是否为唯一状态源
+	mu              sync.RWMutex                // 保护全部状态
+	cfg             Config                      // 配置
+	state           *state                      // 可变状态
+	delegates       map[string]Delegate         // 服务任务委托
+	taskListeners   map[string]api.TaskListener // 任务监听器
+	closed          bool                        // 是否关闭
+	rowRepository   *flowablerow.Repository     // 行仓储
+	lastRows        []flowablerow.Row           // 上次持久化行
+	suppressPersist bool                        // 导入期间暂停持久化
+	rowSource       bool                        // 行仓储是否为唯一状态源
 }
 
 // commandContext 是单条命令的上下文。
@@ -128,6 +129,7 @@ func New(cfg Config) (*Engine, error) {
 		cfg:           cfg,
 		state:         newState(),
 		delegates:     make(map[string]Delegate),
+		taskListeners: make(map[string]api.TaskListener),
 		rowRepository: cfg.RowRepository,
 	}
 	if cfg.LoadRows && cfg.RowRepository != nil {
@@ -154,6 +156,15 @@ func (e *Engine) RegisterDelegate(name string, delegate Delegate) {
 	e.mu.Lock()
 	defer e.mu.Unlock()
 	e.delegates[name] = delegate
+}
+
+// RegisterTaskListener 注册 BPMN 任务监听器。
+// @param name 监听器名（class/delegateExpression）
+// @param listener 监听器
+func (e *Engine) RegisterTaskListener(name string, listener api.TaskListener) {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+	e.taskListeners[name] = listener
 }
 
 // RepositoryService 返回仓库服务。

@@ -120,13 +120,14 @@ type compensationState struct {
 
 // taskState 是用户任务的运行时状态。
 type taskState struct {
-	Task            api.Task       // 任务数据
-	ExecutionID     string         // 所属执行
-	ActivityID      string         // BPMN 活动 ID
-	HistoricTaskID  string         // 历史任务 ID
-	CandidateUsers  []string       // 候选用户
-	CandidateGroups []string       // 候选组
-	LocalVariables  map[string]any // 任务局部变量
+	Task            api.Task                       // 任务数据
+	ExecutionID     string                         // 所属执行
+	ActivityID      string                         // BPMN 活动 ID
+	HistoricTaskID  string                         // 历史任务 ID
+	CandidateUsers  []string                       // 候选用户
+	CandidateGroups []string                       // 候选组
+	LocalVariables  map[string]any                 // 任务局部变量
+	Listeners       []model.TaskListenerDefinition // 任务监听器
 }
 
 // modelState 是流程模型及其编辑源。

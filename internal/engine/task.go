@@ -44,6 +44,7 @@ func (e *Engine) createUserTask(cc *commandContext, execution *executionState, n
 		CandidateUsers:  candidateUsers,
 		CandidateGroups: candidateGroups,
 		LocalVariables:  make(map[string]any),
+		Listeners:       append([]model.TaskListenerDefinition(nil), node.TaskListeners...),
 		Task: api.Task{
 			ID:                  e.newID(),
 			Name:                node.Name,
@@ -65,6 +66,9 @@ func (e *Engine) createUserTask(cc *commandContext, execution *executionState, n
 	e.state.Tasks[task.Task.ID] = task
 	e.recordTaskIdentityLinks(cc, task)
 	e.recordTaskLog(cc, task, "create", task.Task.Assignee, "")
+	if err := e.invokeTaskListeners(cc, task, "create"); err != nil {
+		return err
+	}
 	execution.Waiting = true
 	execution.ActivityID = node.ID
 	return nil
@@ -364,6 +368,9 @@ func (e *Engine) completeTask(cc *commandContext, taskID string, req api.Complet
 			execution.Transient = make(map[string]any)
 		}
 		execution.Transient[variable.Name] = variable.Value
+	}
+	if err := e.invokeTaskListeners(cc, task, "complete"); err != nil {
+		return err
 	}
 	e.recordTaskLog(cc, task, "complete", req.UserID, "")
 	e.recordTaskEnd(cc, task)

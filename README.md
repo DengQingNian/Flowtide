@@ -185,4 +185,5 @@ curl -X POST 'http://localhost:8080/service/runtime/process-instances' \
 - BPMN 业务规则任务：`businessRuleTask` 按 decisionRef 求值并写入结果变量。
 - 任务/实例身份链接单条读取与按类型删除。
 - 流程定义列表支持 `startableByUser` 候选人（用户/组）过滤。
+- BPMN 任务监听器：create/complete 事件的 class/delegateExpression 注册与执行。
 - 纯标准库实现，`CGO_ENABLED=0` 可构建。

@@ -469,6 +469,9 @@ type CompleteTaskRequest struct {
 	TransientVariables []Variable // 瞬态变量，仅完成命令内可见
 }
 
+// TaskListener 是 BPMN 任务监听器。
+type TaskListener func(ctx context.Context, task *Task) error
+
 // TaskService 提供用户任务操作。
 type TaskService interface {
 	// ListTasks 按条件查询任务。
@@ -707,6 +710,10 @@ type TaskService interface {
 	// @return 内容
 	// @return 查询错误
 	GetAttachmentContent(ctx context.Context, attachmentID string) ([]byte, error)
+	// RegisterTaskListener 注册 BPMN 任务监听器。
+	// @param name 监听器名（class/delegateExpression）
+	// @param listener 监听器
+	RegisterTaskListener(name string, listener TaskListener)
 }
 
 // HistoryService 提供历史查询。
