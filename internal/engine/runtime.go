@@ -313,6 +313,17 @@ func (e *Engine) continueAt(cc *commandContext, executionID, activityID string) 
 		e.recordActivityEnd(cc, execution.CurrentHistActivityID)
 		execution.CurrentHistActivityID = ""
 		return e.scheduleTakeOutgoing(cc, execution, node)
+	case *model.BusinessRuleTask:
+		// 业务规则任务与同步服务任务一样，求值后立即沿出线继续
+		if err := e.executeBusinessRuleTask(cc, execution, node); err != nil {
+			return err
+		}
+		e.cancelBoundaryTimers(execution.ID)
+		e.cancelBoundarySubscriptions(execution.ID)
+		e.registerCompensation(cc, execution, node.ID)
+		e.recordActivityEnd(cc, execution.CurrentHistActivityID)
+		execution.CurrentHistActivityID = ""
+		return e.scheduleTakeOutgoing(cc, execution, node)
 	case *model.ScriptTask:
 		if err := e.executeScriptTask(cc, execution, node); err != nil {
 			return err

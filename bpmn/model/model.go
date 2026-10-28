@@ -238,6 +238,17 @@ type ServiceTask struct {
 // @return 元素类型
 func (t *ServiceTask) ElementType() string { return "serviceTask" }
 
+// BusinessRuleTask 表示业务规则任务，进入时求值部署内的 DMN 决策表。
+type BusinessRuleTask struct {
+	FlowNodeBase
+	DecisionRef    string // 决策引用：decision id 或 decision table id
+	ResultVariable string // 结果变量名，为空时按输出列写入多个变量
+}
+
+// ElementType 返回元素类型。
+// @return 元素类型
+func (t *BusinessRuleTask) ElementType() string { return "businessRuleTask" }
+
 // ScriptTask 表示脚本任务。
 type ScriptTask struct {
 	FlowNodeBase

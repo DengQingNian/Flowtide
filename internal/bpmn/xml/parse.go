@@ -159,6 +159,13 @@ func parseElement(node *Node) (model.FlowElement, error) {
 			task.ImplementationType = "class"
 		}
 		return task, nil
+	case "businessRuleTask":
+		task := &model.BusinessRuleTask{}
+		parseFlowNodeBase(node, &task.FlowNodeBase)
+		// attrAny 兼容 flowable/activiti 前缀与无前缀属性
+		task.DecisionRef = attrAny(node, "decisionRef")
+		task.ResultVariable = attrAny(node, "resultVariable")
+		return task, nil
 	case "scriptTask":
 		task := &model.ScriptTask{ScriptFormat: node.Attr("scriptFormat")}
 		parseFlowNodeBase(node, &task.FlowNodeBase)

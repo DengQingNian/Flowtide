@@ -79,6 +79,49 @@ func TestParse_AllElementKinds(t *testing.T) {
 	}
 }
 
+// TestParse_BusinessRuleTask 验证业务规则任务属性解析。
+// @param t 测试上下文
+func TestParse_BusinessRuleTask(t *testing.T) {
+	data := `<?xml version="1.0"?>
+<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"
+             xmlns:activiti="http://activiti.org/bpmn"
+             xmlns:flowable="http://flowable.org/bpmn">
+  <process id="rules" isExecutable="true">
+    <startEvent id="s"/>
+    <businessRuleTask id="flowableRule" name="Flowable Rule"
+                      flowable:decisionRef="decisionA"
+                      flowable:resultVariable="result"
+                      flowable:asyncBefore="true"/>
+    <businessRuleTask id="plainRule" decisionRef="decisionB" resultVariable="out"/>
+    <businessRuleTask id="activitiRule" activiti:decisionRef="decisionC" activiti:resultVariable="out2"/>
+    <endEvent id="e"/>
+  </process>
+</definitions>`
+	parsed, err := Parse([]byte(data))
+	if err != nil {
+		t.Fatalf("解析业务规则任务失败: %v", err)
+	}
+	process := parsed.Processes[0]
+	flowableRule, ok := process.Elements["flowableRule"].(*model.BusinessRuleTask)
+	if !ok {
+		t.Fatalf("flowable 业务规则任务未解析: %+v", process.Elements["flowableRule"])
+	}
+	if flowableRule.DecisionRef != "decisionA" || flowableRule.ResultVariable != "result" {
+		t.Fatalf("flowable 业务规则任务属性错误: %+v", flowableRule)
+	}
+	if !flowableRule.IsAsyncBefore() || flowableRule.ElementType() != "businessRuleTask" {
+		t.Fatalf("业务规则任务公共属性错误: %+v", flowableRule)
+	}
+	plainRule := process.Elements["plainRule"].(*model.BusinessRuleTask)
+	if plainRule.DecisionRef != "decisionB" || plainRule.ResultVariable != "out" {
+		t.Fatalf("无前缀业务规则任务属性错误: %+v", plainRule)
+	}
+	activitiRule := process.Elements["activitiRule"].(*model.BusinessRuleTask)
+	if activitiRule.DecisionRef != "decisionC" || activitiRule.ResultVariable != "out2" {
+		t.Fatalf("activiti 业务规则任务属性错误: %+v", activitiRule)
+	}
+}
+
 // TestParse_SequenceFlowMissingID 验证顺序流缺少 ID。
 // @param t 测试上下文
 func TestParse_SequenceFlowMissingID(t *testing.T) {
