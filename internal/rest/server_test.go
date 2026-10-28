@@ -15,11 +15,16 @@ import (
 
 // newTestServer 创建测试 HTTP 服务。
 // @param t 测试上下文
+// @param tenants 可选的默认租户
 // @return 测试服务器
 // @return 引擎
-func newTestServer(t *testing.T) (*httptest.Server, *engine.Engine) {
+func newTestServer(t *testing.T, tenants ...string) (*httptest.Server, *engine.Engine) {
 	t.Helper()
-	app, err := engine.New(engine.Config{HistoryLevel: engine.HistoryAudit})
+	tenantID := ""
+	if len(tenants) > 0 {
+		tenantID = tenants[0]
+	}
+	app, err := engine.New(engine.Config{HistoryLevel: engine.HistoryAudit, TenantID: tenantID})
 	if err != nil {
 		t.Fatalf("创建引擎失败: %v", err)
 	}

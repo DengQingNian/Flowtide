@@ -132,6 +132,7 @@ func TestStandaloneTaskSubtasks(t *testing.T) {
 // @param t 测试上下文
 func TestStandaloneTaskValidation(t *testing.T) {
 	engine := newTestEngine(t)
+	engine.cfg.TenantID = "t1"
 	ctx := context.Background()
 	if _, err := engine.CreateTask(ctx, api.CreateTaskRequest{Name: "  "}); !errors.Is(err, api.ErrBadRequest) {
 		t.Fatalf("空名称应 400: %v", err)
@@ -143,7 +144,7 @@ func TestStandaloneTaskValidation(t *testing.T) {
 	if err != nil {
 		t.Fatalf("创建租户任务失败: %v", err)
 	}
-	if _, err := engine.CreateTask(ctx, api.CreateTaskRequest{Name: "Child", ParentTaskID: parent.ID, TenantID: "t2"}); !errors.Is(err, api.ErrConflict) {
+	if _, err := engine.CreateTask(ctx, api.CreateTaskRequest{Name: "Child", ParentTaskID: parent.ID, TenantID: "t2"}); !errors.Is(err, api.ErrNotFound) {
 		t.Fatalf("跨租户子任务应冲突: %v", err)
 	}
 	if _, err := engine.GetTask(tenant.With(ctx, "t2"), parent.ID); !errors.Is(err, api.ErrNotFound) {
@@ -184,6 +185,7 @@ func TestDeleteProcessTaskForbidden(t *testing.T) {
 // @param t 测试上下文
 func TestStandaloneTaskDetails(t *testing.T) {
 	engine := newTestEngine(t)
+	engine.cfg.TenantID = "t1"
 	ctx := context.Background()
 	task, err := engine.CreateTask(ctx, api.CreateTaskRequest{Name: "Task", TenantID: "t1"})
 	if err != nil {
@@ -262,6 +264,7 @@ func TestStandaloneTaskDetails(t *testing.T) {
 // @param t 测试上下文
 func TestStandaloneTaskPersistence(t *testing.T) {
 	engine := newTestEngine(t)
+	engine.cfg.TenantID = "t1"
 	ctx := context.Background()
 	parent, err := engine.CreateTask(ctx, api.CreateTaskRequest{Name: "Parent", TenantID: "t1"})
 	if err != nil {
@@ -288,6 +291,7 @@ func TestStandaloneTaskPersistence(t *testing.T) {
 		t.Fatalf("未导出独立任务行")
 	}
 	restored := newTestEngine(t)
+	restored.cfg.TenantID = "t1"
 	if err := restored.ImportRuntimeRows(ctx, rows); err != nil {
 		t.Fatalf("导入行失败: %v", err)
 	}

@@ -15,6 +15,9 @@ func (e *Engine) ListHistoricProcessInstances(ctx context.Context) ([]api.Histor
 	result, err := e.read(func() (any, error) {
 		out := make([]api.HistoricProcessInstance, 0, len(e.state.HistoricProcesses))
 		for _, historic := range e.state.HistoricProcesses {
+			if e.allowTenant(ctx, historic.TenantID) != nil {
+				continue
+			}
 			out = append(out, *historic)
 		}
 		sort.Slice(out, func(i, j int) bool {
@@ -40,6 +43,9 @@ func (e *Engine) ListHistoricActivityInstances(ctx context.Context, processInsta
 	result, err := e.read(func() (any, error) {
 		out := make([]api.HistoricActivityInstance, 0)
 		for _, historic := range e.state.HistoricActivities {
+			if e.allowHistoricResource(ctx, historic.ProcessInstanceID, "") != nil {
+				continue
+			}
 			if processInstanceID != "" && historic.ProcessInstanceID != processInstanceID {
 				continue
 			}
@@ -68,6 +74,9 @@ func (e *Engine) ListHistoricTaskInstances(ctx context.Context, processInstanceI
 	result, err := e.read(func() (any, error) {
 		out := make([]api.HistoricTaskInstance, 0)
 		for _, historic := range e.state.HistoricTasks {
+			if e.allowTenant(ctx, historic.TenantID) != nil {
+				continue
+			}
 			if processInstanceID != "" && historic.ProcessInstanceID != processInstanceID {
 				continue
 			}
@@ -96,6 +105,9 @@ func (e *Engine) ListHistoricVariableInstances(ctx context.Context, processInsta
 	result, err := e.read(func() (any, error) {
 		out := make([]api.HistoricVariableInstance, 0)
 		for _, historic := range e.state.HistoricVariables {
+			if e.allowHistoricResource(ctx, historic.ProcessInstanceID, historic.TaskID) != nil {
+				continue
+			}
 			if processInstanceID != "" && historic.ProcessInstanceID != processInstanceID {
 				continue
 			}
@@ -124,6 +136,9 @@ func (e *Engine) ListHistoricIdentityLinks(ctx context.Context, taskID string) (
 	result, err := e.read(func() (any, error) {
 		out := make([]api.IdentityLink, 0)
 		for _, link := range e.state.HistoricLinks {
+			if e.allowHistoricResource(ctx, link.ProcessInstanceID, link.TaskID) != nil {
+				continue
+			}
 			if taskID != "" && link.TaskID != taskID {
 				continue
 			}
@@ -152,6 +167,9 @@ func (e *Engine) ListHistoricProcessIdentityLinks(ctx context.Context, processIn
 	result, err := e.read(func() (any, error) {
 		out := make([]api.IdentityLink, 0)
 		for _, link := range e.state.HistoricLinks {
+			if e.allowHistoricResource(ctx, link.ProcessInstanceID, link.TaskID) != nil {
+				continue
+			}
 			if link.ProcessInstanceID != processInstanceID {
 				continue
 			}
@@ -180,6 +198,9 @@ func (e *Engine) ListHistoricDetails(ctx context.Context, processInstanceID stri
 	result, err := e.read(func() (any, error) {
 		out := make([]api.HistoricDetail, 0)
 		for _, detail := range e.state.HistoricDetails {
+			if e.allowHistoricResource(ctx, detail.ProcessInstanceID, detail.TaskID) != nil {
+				continue
+			}
 			if processInstanceID != "" && detail.ProcessInstanceID != processInstanceID {
 				continue
 			}
@@ -208,6 +229,9 @@ func (e *Engine) ListHistoricTaskLogs(ctx context.Context, taskID string) ([]api
 	result, err := e.read(func() (any, error) {
 		out := make([]api.HistoricTaskLog, 0)
 		for _, log := range e.state.TaskLogs {
+			if e.allowHistoricResource(ctx, log.ProcessInstanceID, log.TaskID) != nil {
+				continue
+			}
 			if taskID != "" && log.TaskID != taskID {
 				continue
 			}
@@ -238,6 +262,9 @@ func (e *Engine) GetHistoricActivityInstance(ctx context.Context, activityID str
 		if !ok {
 			return nil, api.NewError("ENGINE-0404", "历史活动不存在", api.ErrNotFound)
 		}
+		if err := e.allowHistoricResource(ctx, activity.ProcessInstanceID, ""); err != nil {
+			return nil, err
+		}
 		return *activity, nil
 	})
 	if err != nil {
@@ -255,6 +282,9 @@ func (e *Engine) GetHistoricVariableInstance(ctx context.Context, variableID str
 	result, err := e.read(func() (any, error) {
 		for _, variable := range e.state.HistoricVariables {
 			if variable.ID == variableID {
+				if err := e.allowHistoricResource(ctx, variable.ProcessInstanceID, variable.TaskID); err != nil {
+					return nil, err
+				}
 				return *variable, nil
 			}
 		}

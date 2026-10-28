@@ -70,6 +70,7 @@ func TestTaskEvents(t *testing.T) {
 	}
 
 	tenantEngine := newTestEngine(t)
+	tenantEngine.cfg.TenantID = "t1"
 	deployXML(t, tenantEngine, simpleProcess)
 	instance, err := tenantEngine.StartProcessInstance(ctx, api.StartRequest{
 		ProcessDefinitionKey: "simple",

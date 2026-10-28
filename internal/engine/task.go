@@ -138,11 +138,11 @@ func (e *Engine) toTaskDTO(task *taskState) api.Task {
 	dto.Variables = make(map[string]any)
 	if execution, ok := e.findExecution(task.ExecutionID); ok {
 		for key, value := range e.variablesOf(execution) {
-			dto.Variables[key] = value
+			dto.Variables[key] = copyValue(value)
 		}
 	}
 	for key, value := range task.LocalVariables {
-		dto.Variables[key] = value
+		dto.Variables[key] = copyValue(value)
 	}
 	if len(dto.Variables) == 0 {
 		dto.Variables = nil
@@ -159,6 +159,9 @@ func (e *Engine) ListTasks(ctx context.Context, filter api.TaskFilter) (api.Page
 	result, err := e.read(func() (any, error) {
 		tasks := make([]api.Task, 0)
 		for _, task := range e.state.Tasks {
+			if e.allowTask(ctx, task.Task.ID) != nil {
+				continue
+			}
 			if !e.matchesTask(task, filter) {
 				continue
 			}
@@ -340,11 +343,11 @@ func (e *Engine) completeTask(cc *commandContext, taskID string, req api.Complet
 	// 独立任务没有执行，完成时只记录任务变量并移除任务
 	if task.ExecutionID == "" {
 		for _, variable := range req.Variables {
-			task.LocalVariables[variable.Name] = variable.Value
+			task.LocalVariables[variable.Name] = copyValue(variable.Value)
 			e.recordTaskHistoricVariable(task, variable.Name, variable.Value, cc.now)
 		}
 		for _, variable := range req.LocalVariables {
-			task.LocalVariables[variable.Name] = variable.Value
+			task.LocalVariables[variable.Name] = copyValue(variable.Value)
 			e.recordTaskHistoricVariable(task, variable.Name, variable.Value, cc.now)
 		}
 		e.recordTaskLog(cc, task, "complete", req.UserID, "")
@@ -360,14 +363,14 @@ func (e *Engine) completeTask(cc *commandContext, taskID string, req api.Complet
 		e.setVariable(execution, variable.Name, variable.Value)
 	}
 	for _, variable := range req.LocalVariables {
-		task.LocalVariables[variable.Name] = variable.Value
+		task.LocalVariables[variable.Name] = copyValue(variable.Value)
 		e.recordHistoricDetail(task.Task.ProcessInstanceID, task.ExecutionID, task.Task.ID, task.ActivityID, variable.Name, variable.Value, cc.now)
 	}
 	for _, variable := range req.TransientVariables {
 		if execution.Transient == nil {
 			execution.Transient = make(map[string]any)
 		}
-		execution.Transient[variable.Name] = variable.Value
+		execution.Transient[variable.Name] = copyValue(variable.Value)
 	}
 	if err := e.invokeTaskListeners(cc, task, "complete"); err != nil {
 		return err

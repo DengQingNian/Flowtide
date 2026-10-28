@@ -54,11 +54,11 @@ func (e *Engine) GetTaskVariables(ctx context.Context, taskID string) (map[strin
 		values := make(map[string]any)
 		if execution, exists := e.findExecution(task.ExecutionID); exists {
 			for name, value := range e.variablesOf(execution) {
-				values[name] = value
+				values[name] = copyValue(value)
 			}
 		}
 		for name, value := range task.LocalVariables {
-			values[name] = value
+			values[name] = copyValue(value)
 		}
 		return values, nil
 	})
@@ -86,7 +86,7 @@ func (e *Engine) SetTaskVariable(ctx context.Context, taskID, name string, value
 		if name == "" {
 			return nil, api.NewError("ENGINE-1103", "变量名不能为空", api.ErrBadRequest)
 		}
-		task.LocalVariables[name] = value
+		task.LocalVariables[name] = copyValue(value)
 		if task.ExecutionID == "" {
 			e.recordTaskHistoricVariable(task, name, value, cc.now)
 		} else {

@@ -15,10 +15,10 @@ import (
 // @return 查询错误
 func (e *Engine) ListModels(ctx context.Context) ([]api.Model, error) {
 	result, err := e.read(func() (any, error) {
-		requested := tenant.From(ctx)
+		requested := e.tenantOf(tenant.From(ctx))
 		out := make([]api.Model, 0, len(e.state.Models))
 		for _, model := range e.state.Models {
-			if requested != "" && requested != model.Info.TenantID {
+			if requested != model.Info.TenantID {
 				continue
 			}
 			out = append(out, model.Info)
@@ -66,7 +66,8 @@ func (e *Engine) CreateModel(ctx context.Context, req api.CreateModelRequest) (a
 		if name == "" || key == "" {
 			return nil, api.NewError("ENGINE-1002", "模型名称与 Key 不能为空", api.ErrBadRequest)
 		}
-		if err := e.allowTenant(cc.ctx, req.TenantID); err != nil {
+		tenantID, err := e.requestTenantID(cc.ctx, req.TenantID)
+		if err != nil {
 			return nil, err
 		}
 		version := req.Version
@@ -80,7 +81,7 @@ func (e *Engine) CreateModel(ctx context.Context, req api.CreateModelRequest) (a
 			Category:       req.Category,
 			Version:        version,
 			MetaInfo:       req.MetaInfo,
-			TenantID:       req.TenantID,
+			TenantID:       tenantID,
 			CreateTime:     cc.now,
 			LastUpdateTime: cc.now,
 		}}

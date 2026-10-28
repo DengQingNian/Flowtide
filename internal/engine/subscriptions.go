@@ -15,14 +15,14 @@ import (
 // @return 查询错误
 func (e *Engine) ListEventSubscriptions(ctx context.Context, processInstanceID string) ([]api.EventSubscription, error) {
 	result, err := e.read(func() (any, error) {
-		requested := tenant.From(ctx)
+		requested := e.tenantOf(tenant.From(ctx))
 		out := make([]api.EventSubscription, 0, len(e.state.Subscriptions))
 		for _, subscription := range e.state.Subscriptions {
 			if processInstanceID != "" && subscription.ProcessInstanceID != processInstanceID {
 				continue
 			}
 			// 租户不匹配的订阅对当前请求不可见
-			if requested != "" && requested != e.subscriptionTenant(subscription) {
+			if requested != e.subscriptionTenant(subscription) {
 				continue
 			}
 			out = append(out, toEventSubscription(subscription))

@@ -169,8 +169,8 @@ func TestSaveLoadPostgres(t *testing.T) {
 	if err := store.Save(context.Background(), []byte("pg")); err != nil {
 		t.Fatalf("保存失败: %v", err)
 	}
-	if !strings.Contains(db.execs[1], "$1, $2, $3, $4, $5") {
-		t.Fatalf("PostgreSQL 占位符错误: %s", db.execs[1])
+	if !strings.Contains(db.execs[0], "$1, $2, $3, $4, $5") {
+		t.Fatalf("PostgreSQL 占位符错误: %s", db.execs[0])
 	}
 	data, err := store.Load(context.Background())
 	if err != nil || string(data) != "pg" {

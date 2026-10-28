@@ -16,7 +16,7 @@ import (
 // @return 查询错误
 func (e *Engine) ListVariableInstances(ctx context.Context, filter api.VariableInstanceFilter) ([]api.VariableInstance, error) {
 	result, err := e.read(func() (any, error) {
-		out := e.variableInstancesLocked(tenant.From(ctx), filter)
+		out := e.variableInstancesLocked(e.tenantOf(tenant.From(ctx)), filter)
 		sort.Slice(out, func(i, j int) bool { return out[i].ID < out[j].ID })
 		return out, nil
 	})
@@ -33,7 +33,7 @@ func (e *Engine) ListVariableInstances(ctx context.Context, filter api.VariableI
 // @return 查询错误
 func (e *Engine) GetVariableInstance(ctx context.Context, variableID string) (api.VariableInstance, error) {
 	result, err := e.read(func() (any, error) {
-		for _, item := range e.variableInstancesLocked(tenant.From(ctx), api.VariableInstanceFilter{}) {
+		for _, item := range e.variableInstancesLocked(e.tenantOf(tenant.From(ctx)), api.VariableInstanceFilter{}) {
 			if item.ID == variableID {
 				return item, nil
 			}
@@ -61,7 +61,7 @@ func (e *Engine) variableInstancesLocked(requestedTenant string, filter api.Vari
 			if !ok || instance.Ended {
 				continue
 			}
-			if requestedTenant != "" && requestedTenant != instance.TenantID {
+			if requestedTenant != instance.TenantID {
 				continue
 			}
 			if filter.ProcessInstanceID != "" && execution.ProcessInstanceID != filter.ProcessInstanceID {
@@ -95,7 +95,7 @@ func (e *Engine) variableInstancesLocked(requestedTenant string, filter api.Vari
 		if hasInstance {
 			tenantID = instance.TenantID
 		}
-		if requestedTenant != "" && requestedTenant != tenantID {
+		if requestedTenant != tenantID {
 			continue
 		}
 		if filter.ProcessInstanceID != "" && task.Task.ProcessInstanceID != filter.ProcessInstanceID {

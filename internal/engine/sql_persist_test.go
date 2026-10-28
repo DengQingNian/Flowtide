@@ -9,6 +9,7 @@ import (
 	"github.com/flowable-go/flowable/api"
 	flowablerow "github.com/flowable-go/flowable/internal/persistence/flowable"
 	statestore "github.com/flowable-go/flowable/internal/persistence/state"
+	"github.com/flowable-go/flowable/internal/tenant"
 )
 
 // persistResult 是快照测试结果。
@@ -340,7 +341,7 @@ func TestEngine_RowSourceOnly(t *testing.T) {
 	db := &snapshotQueryDB{rows: make(map[string][]flowablerow.Row)}
 	repository, _ := flowablerow.NewRepository(db, "mysql")
 	store := statestore.NewMemory()
-	engine, err := New(Config{RowRepository: repository, LoadRows: true, StateStore: store})
+	engine, err := New(Config{RowRepository: repository, LoadRows: true})
 	if err != nil {
 		t.Fatalf("创建引擎失败: %v", err)
 	}
@@ -367,7 +368,7 @@ func TestEngine_RowSourceOnly(t *testing.T) {
 // @param t 测试上下文
 func TestEngine_LoadRowsTenant(t *testing.T) {
 	source := newTestEngine(t)
-	if _, err := source.Deploy(context.Background(), api.DeploymentRequest{
+	if _, err := source.Deploy(tenant.With(context.Background(), "t2"), api.DeploymentRequest{
 		TenantID:  "t2",
 		Resources: map[string][]byte{"test.bpmn20.xml": []byte(simpleProcess)},
 	}); err != nil {
@@ -387,7 +388,7 @@ func TestEngine_LoadRowsTenant(t *testing.T) {
 	if definitions, _ := empty.ListProcessDefinitions(context.Background()); len(definitions) != 0 {
 		t.Fatalf("t1 不应恢复定义: %+v", definitions)
 	}
-	tenant, err := New(Config{RowRepository: repository, LoadRows: true, LoadTenant: "t2"})
+	tenant, err := New(Config{RowRepository: repository, LoadRows: true, LoadTenant: "t2", TenantID: "t2"})
 	if err != nil {
 		t.Fatalf("t2 恢复失败: %v", err)
 	}

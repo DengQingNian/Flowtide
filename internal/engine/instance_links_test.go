@@ -77,6 +77,7 @@ func TestInstanceIdentityLinks(t *testing.T) {
 // @param t 测试上下文
 func TestInstanceIdentityLinkTenantAndPersistence(t *testing.T) {
 	engine := newTestEngine(t)
+	engine.cfg.TenantID = "t1"
 	deployXML(t, engine, simpleProcess)
 	ctx := context.Background()
 	instance, err := engine.StartProcessInstance(ctx, api.StartRequest{
@@ -116,6 +117,7 @@ func TestInstanceIdentityLinkTenantAndPersistence(t *testing.T) {
 		t.Fatalf("未导出身份链接行")
 	}
 	restored := newTestEngine(t)
+	restored.cfg.TenantID = "t1"
 	if err := restored.RestoreRows(ctx, rows); err != nil {
 		t.Fatalf("导入行失败: %v", err)
 	}

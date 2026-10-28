@@ -19,7 +19,10 @@ func (e *Engine) CreateTask(ctx context.Context, req api.CreateTaskRequest) (api
 		if name == "" {
 			return nil, api.NewError("ENGINE-0820", "任务名称不能为空", api.ErrBadRequest)
 		}
-		tenant := req.TenantID
+		tenant, tenantErr := e.requestTenantID(cc.ctx, req.TenantID)
+		if tenantErr != nil {
+			return nil, tenantErr
+		}
 		// 子任务优先继承父任务租户
 		if req.ParentTaskID != "" {
 			parent, ok := e.findTask(req.ParentTaskID)

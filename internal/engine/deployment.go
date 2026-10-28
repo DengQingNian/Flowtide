@@ -15,6 +15,9 @@ func (e *Engine) ListDeployments(ctx context.Context) ([]api.Deployment, error) 
 	result, err := e.read(func() (any, error) {
 		out := make([]api.Deployment, 0, len(e.state.Deployments))
 		for _, deployment := range e.state.Deployments {
+			if e.allowTenant(ctx, deployment.Info.TenantID) != nil {
+				continue
+			}
 			out = append(out, deployment.Info)
 		}
 		sort.Slice(out, func(i, j int) bool {

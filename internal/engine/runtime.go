@@ -39,7 +39,7 @@ func (e *Engine) startProcess(cc *commandContext, req api.StartRequest) (api.Pro
 	if req.ProcessDefinitionID != "" {
 		definition, ok = e.findDefinition(req.ProcessDefinitionID)
 	} else if req.ProcessDefinitionKey != "" {
-		definition, ok = e.findLatestDefinition(req.ProcessDefinitionKey)
+		definition, ok = e.findTenantDefinition(cc.ctx, req.ProcessDefinitionKey)
 	} else {
 		return api.ProcessInstance{}, api.NewError("ENGINE-0101", "必须指定流程定义 Key 或 ID", api.ErrBadRequest)
 	}
@@ -64,6 +64,13 @@ func (e *Engine) startProcess(cc *commandContext, req api.StartRequest) (api.Pro
 		return api.ProcessInstance{}, api.NewError("ENGINE-0104", "流程缺少开始事件", nil)
 	}
 
+	tenantID, tenantErr := e.requestTenantID(cc.ctx, req.TenantID)
+	if tenantErr != nil {
+		return api.ProcessInstance{}, tenantErr
+	}
+	if tenantID != definition.Info.TenantID {
+		return api.ProcessInstance{}, api.NewError("ENGINE-0404", "流程定义不存在", api.ErrNotFound)
+	}
 	instanceID := e.newID()
 	executionID := e.newID()
 	variables := variablesToMap(req.Variables)
@@ -74,7 +81,7 @@ func (e *Engine) startProcess(cc *commandContext, req api.StartRequest) (api.Pro
 		ProcessDefinitionKey: definition.Info.Key,
 		BusinessKey:          req.BusinessKey,
 		Name:                 req.Name,
-		TenantID:             e.tenantOf(req.TenantID),
+		TenantID:             tenantID,
 		StartTime:            cc.now,
 		RootExecutionID:      executionID,
 	}
@@ -136,7 +143,7 @@ func firstStartEvent(process *model.Process) *model.StartEvent {
 func variablesToMap(variables []api.Variable) map[string]any {
 	out := make(map[string]any, len(variables))
 	for _, variable := range variables {
-		out[variable.Name] = variable.Value
+		out[variable.Name] = copyValue(variable.Value)
 	}
 	return out
 }
@@ -818,6 +825,9 @@ func (e *Engine) ListProcessInstances(ctx context.Context) ([]api.ProcessInstanc
 	result, err := e.read(func() (any, error) {
 		out := make([]api.ProcessInstance, 0)
 		for _, instance := range e.state.Instances {
+			if e.allowTenant(ctx, instance.TenantID) != nil {
+				continue
+			}
 			// 运行中列表不包含已结束实例
 			if instance.Ended {
 				continue
@@ -843,6 +853,9 @@ func (e *Engine) DeleteProcessInstance(ctx context.Context, id, reason string) e
 		instance, ok := e.findInstance(id)
 		if !ok {
 			return nil, api.NewError("ENGINE-0404", "流程实例不存在", api.ErrNotFound)
+		}
+		if err := e.allowTenant(ctx, instance.TenantID); err != nil {
+			return nil, err
 		}
 		instance.DeleteReason = reason
 		for taskID, task := range e.state.Tasks {

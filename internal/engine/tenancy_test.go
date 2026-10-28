@@ -12,6 +12,7 @@ import (
 // @param t 测试上下文
 func TestTenantChecks(t *testing.T) {
 	engine := newTestEngine(t)
+	engine.cfg.TenantID = "t1"
 	if _, err := engine.Deploy(context.Background(), api.DeploymentRequest{
 		TenantID:  "t1",
 		Resources: map[string][]byte{"test.bpmn20.xml": []byte(simpleProcess)},
@@ -98,8 +99,8 @@ func TestTenantHelpers(t *testing.T) {
 	if err := engine.allowTenant(ctx, "t2"); err == nil {
 		t.Fatalf("跨租户应失败")
 	}
-	if err := engine.allowTenant(context.Background(), "t2"); err != nil {
-		t.Fatalf("无租户应通过: %v", err)
+	if err := engine.allowTenant(context.Background(), "t2"); err == nil {
+		t.Fatal("空租户不得访问非默认租户")
 	}
 	if err := engine.allowInstance(ctx, "missing"); err == nil {
 		t.Fatalf("缺失实例应失败")

@@ -260,11 +260,14 @@ func cloneState(source *state) *state {
 		copied := *execution
 		copied.Variables = cloneAnyMap(execution.Variables)
 		copied.Transient = cloneAnyMap(execution.Transient)
+		copied.MIValues = copyValue(execution.MIValues).([]any)
 		target.Executions[id] = &copied
 	}
 	for id, task := range source.Tasks {
 		copied := *task
-		copied.Task.Variables = cloneAnyMap(task.Task.Variables)
+		copied.Task = copyValue(task.Task).(api.Task)
+		copied.CandidateUsers = append([]string(nil), task.CandidateUsers...)
+		copied.CandidateGroups = append([]string(nil), task.CandidateGroups...)
 		copied.LocalVariables = cloneAnyMap(task.LocalVariables)
 		target.Tasks[id] = &copied
 	}
@@ -313,7 +316,7 @@ func cloneState(source *state) *state {
 		target.HistoricTasks[id] = &copied
 	}
 	for id, historic := range source.HistoricVariables {
-		copied := *historic
+		copied := copyValue(*historic).(api.HistoricVariableInstance)
 		target.HistoricVariables[id] = &copied
 	}
 	for id, link := range source.InstanceLinks {
@@ -325,7 +328,7 @@ func cloneState(source *state) *state {
 		target.HistoricLinks[id] = &copied
 	}
 	for id, detail := range source.HistoricDetails {
-		copied := *detail
+		copied := copyValue(*detail).(api.HistoricDetail)
 		target.HistoricDetails[id] = &copied
 	}
 	for id, log := range source.TaskLogs {
@@ -390,7 +393,7 @@ func cloneBatchInfo(source api.Batch) api.Batch {
 	return copied
 }
 
-// cloneAnyMap 复制任意值映射（浅拷贝值）。
+// cloneAnyMap 深拷贝任意值映射。
 // @param source 源映射
 // @return 新映射
 func cloneAnyMap(source map[string]any) map[string]any {
@@ -399,7 +402,7 @@ func cloneAnyMap(source map[string]any) map[string]any {
 	}
 	target := make(map[string]any, len(source))
 	for key, value := range source {
-		target[key] = value
+		target[key] = copyValue(value)
 	}
 	return target
 }

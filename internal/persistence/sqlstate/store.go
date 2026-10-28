@@ -144,24 +144,10 @@ func (s *Store) Save(ctx context.Context, data []byte) error {
 		}
 		return nil
 	}
-	if err := s.delete(ctx); err != nil {
-		return err
-	}
-	query := fmt.Sprintf("INSERT INTO ACT_GE_BYTEARRAY (ID_, REV_, NAME_, BYTES_, GENERATED_) VALUES (%s, %s, %s, %s, %s)",
-		s.placeholder(1), s.placeholder(2), s.placeholder(3), s.placeholder(4), s.placeholder(5))
+	query := "INSERT INTO ACT_GE_BYTEARRAY (ID_, REV_, NAME_, BYTES_, GENERATED_) VALUES ($1, $2, $3, $4, $5) " +
+		"ON CONFLICT (ID_) DO UPDATE SET BYTES_ = EXCLUDED.BYTES_, REV_ = ACT_GE_BYTEARRAY.REV_ + 1"
 	if _, err := s.db.ExecContext(ctx, query, stateID, 1, stateID, data, false); err != nil {
 		return api.NewError("STATE-0006", "写入状态失败", err)
-	}
-	return nil
-}
-
-// delete 删除旧状态记录。
-// @param ctx 上下文
-// @return 错误
-func (s *Store) delete(ctx context.Context) error {
-	query := fmt.Sprintf("DELETE FROM ACT_GE_BYTEARRAY WHERE ID_ = %s", s.placeholder(1))
-	if _, err := s.db.ExecContext(ctx, query, stateID); err != nil {
-		return api.NewError("STATE-0007", "清理旧状态失败", err)
 	}
 	return nil
 }

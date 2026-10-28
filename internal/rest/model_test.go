@@ -81,7 +81,7 @@ func putModelSource(t *testing.T, url string, content []byte) *http.Response {
 // TestREST_ModelLifecycle 验证模型 CRUD、源码与列表过滤。
 // @param t 测试上下文
 func TestREST_ModelLifecycle(t *testing.T) {
-	server, _ := newTestServer(t)
+	server, _ := newTestServer(t, "t1")
 	response := postQuery(t, server.URL, "/service/repository/models", map[string]any{
 		"name": "Order Model", "key": "orderModel", "category": "sales", "metaInfo": "{}",
 	}, "t1")

@@ -12,6 +12,7 @@ import (
 
 	"github.com/flowable-go/flowable/api"
 	"github.com/flowable-go/flowable/internal/engine"
+	tenantctx "github.com/flowable-go/flowable/internal/tenant"
 )
 
 // newRepositoryExtraServer 创建仓储扩展测试服务。
@@ -37,7 +38,7 @@ func newRepositoryExtraServer(t *testing.T) (*Server, *engine.Engine) {
 // @return 模型
 func createRepositoryExtraModel(t *testing.T, app *engine.Engine, name, key, tenant string) api.Model {
 	t.Helper()
-	model, err := app.RepositoryService().CreateModel(context.Background(), api.CreateModelRequest{
+	model, err := app.RepositoryService().CreateModel(tenantctx.With(context.Background(), tenant), api.CreateModelRequest{
 		Name: name, Key: key, TenantID: tenant,
 	})
 	if err != nil {
@@ -57,6 +58,7 @@ func repositoryExtraRequest(method, target string, body []byte, tenant, id strin
 	request := httptest.NewRequest(method, target, bytes.NewReader(body))
 	if tenant != "" {
 		request.Header.Set("X-Tenant-Id", tenant)
+		request = request.WithContext(tenantctx.With(request.Context(), tenant))
 	}
 	if id != "" {
 		request.SetPathValue("id", id)
@@ -125,11 +127,11 @@ func repositoryExtraCountDefinitions(t *testing.T, app *engine.Engine, key strin
 func TestRepositoryExtra_DeployModel(t *testing.T) {
 	server, app := newRepositoryExtraServer(t)
 	model := createRepositoryExtraModel(t, app, "Order Model", "orderKey", "t1")
-	if err := app.RepositoryService().SetModelSource(context.Background(), model.ID, []byte(restProcess)); err != nil {
+	if err := app.RepositoryService().SetModelSource(tenantctx.With(context.Background(), "t1"), model.ID, []byte(restProcess)); err != nil {
 		t.Fatalf("设置模型源码失败: %v", err)
 	}
 
-	request := repositoryExtraRequest(http.MethodPost, "/service/repository/models/"+model.ID+"/deployment", nil, "", model.ID)
+	request := repositoryExtraRequest(http.MethodPost, "/service/repository/models/"+model.ID+"/deployment", nil, "t1", model.ID)
 	recorder := callRepositoryExtraHandler(server.handleDeployModel, request)
 	if recorder.Code != http.StatusCreated {
 		t.Fatalf("模型部署应返回 201: %d %s", recorder.Code, recorder.Body.String())
@@ -138,11 +140,11 @@ func TestRepositoryExtra_DeployModel(t *testing.T) {
 	if deployment.Name != "Order Model" || deployment.TenantID != "t1" || deployment.ID == "" {
 		t.Fatalf("部署字段错误: %+v", deployment)
 	}
-	resources, err := app.RepositoryService().ListDeploymentResources(context.Background(), deployment.ID)
+	resources, err := app.RepositoryService().ListDeploymentResources(tenantctx.With(context.Background(), "t1"), deployment.ID)
 	if err != nil || len(resources) != 1 || resources[0] != "orderKey.bpmn20.xml" {
 		t.Fatalf("部署资源名错误: %v %v", resources, err)
 	}
-	data, err := app.RepositoryService().GetDeploymentResource(context.Background(), deployment.ID, resources[0])
+	data, err := app.RepositoryService().GetDeploymentResource(tenantctx.With(context.Background(), "t1"), deployment.ID, resources[0])
 	if err != nil || !bytes.Equal(data, []byte(restProcess)) {
 		t.Fatalf("部署资源内容错误: %v", err)
 	}
@@ -274,7 +276,7 @@ func TestRepositoryExtra_DuplicateFiltering(t *testing.T) {
 	if absent.Code != http.StatusCreated {
 		t.Fatalf("缺省参数应保持原行为: %d %s", absent.Code, absent.Body.String())
 	}
-	if count := repositoryExtraCountDefinitions(t, app, "rest"); count != 5 {
+	if count := repositoryExtraCountDefinitions(t, app, "rest"); count != 4 {
 		t.Fatalf("去重后的版本数错误: %d", count)
 	}
 }

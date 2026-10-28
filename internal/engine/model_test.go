@@ -13,6 +13,7 @@ import (
 // @param t 测试上下文
 func TestModelLifecycle(t *testing.T) {
 	engine := newTestEngine(t)
+	engine.cfg.TenantID = "t1"
 	ctx := context.Background()
 	model, err := engine.CreateModel(ctx, api.CreateModelRequest{
 		Name:     "Order Model",
@@ -109,7 +110,7 @@ func TestModelValidationAndSources(t *testing.T) {
 func TestModelListAndPersistence(t *testing.T) {
 	engine := newTestEngine(t)
 	ctx := context.Background()
-	first, err := engine.CreateModel(ctx, api.CreateModelRequest{Name: "A", Key: "a", TenantID: "t1"})
+	first, err := engine.CreateModel(tenant.With(ctx, "t1"), api.CreateModelRequest{Name: "A", Key: "a", TenantID: "t1"})
 	if err != nil {
 		t.Fatalf("创建模型失败: %v", err)
 	}
@@ -117,14 +118,14 @@ func TestModelListAndPersistence(t *testing.T) {
 	if err != nil {
 		t.Fatalf("创建模型失败: %v", err)
 	}
-	if err := engine.SetModelSource(ctx, first.ID, []byte("<a/>")); err != nil {
+	if err := engine.SetModelSource(tenant.With(ctx, "t1"), first.ID, []byte("<a/>")); err != nil {
 		t.Fatalf("设置源码失败: %v", err)
 	}
-	if err := engine.SetModelSourceExtra(ctx, first.ID, []byte("<extra/>")); err != nil {
+	if err := engine.SetModelSourceExtra(tenant.With(ctx, "t1"), first.ID, []byte("<extra/>")); err != nil {
 		t.Fatalf("设置扩展源码失败: %v", err)
 	}
 	models, err := engine.ListModels(ctx)
-	if err != nil || len(models) != 2 {
+	if err != nil || len(models) != 1 {
 		t.Fatalf("模型列表错误: %v %+v", err, models)
 	}
 	if filtered, err := engine.ListModels(tenant.With(ctx, "t1")); err != nil || len(filtered) != 1 || filtered[0].ID != first.ID {
@@ -155,15 +156,15 @@ func TestModelListAndPersistence(t *testing.T) {
 	if err := restored.RestoreRows(ctx, rows); err != nil {
 		t.Fatalf("恢复模型行失败: %v", err)
 	}
-	restoredModel, err := restored.GetModel(ctx, first.ID)
+	restoredModel, err := restored.GetModel(tenant.With(ctx, "t1"), first.ID)
 	if err != nil || restoredModel.Name != first.Name {
 		t.Fatalf("恢复模型错误: %v %+v", err, restoredModel)
 	}
-	source, err := restored.GetModelSource(ctx, first.ID)
+	source, err := restored.GetModelSource(tenant.With(ctx, "t1"), first.ID)
 	if err != nil || string(source) != "<a/>" {
 		t.Fatalf("恢复源码错误: %v %s", err, source)
 	}
-	extra, err := restored.GetModelSourceExtra(ctx, first.ID)
+	extra, err := restored.GetModelSourceExtra(tenant.With(ctx, "t1"), first.ID)
 	if err != nil || string(extra) != "<extra/>" {
 		t.Fatalf("恢复扩展源码错误: %v %s", err, extra)
 	}

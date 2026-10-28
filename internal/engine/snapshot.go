@@ -29,7 +29,11 @@ type batchSnapshot struct {
 }
 
 // snapshot 是引擎状态的持久化结构。
+// snapshotVersion 是当前快照结构版本，版本零表示兼容旧版无标记快照。
+const snapshotVersion = 1
+
 type snapshot struct {
+	Version            int                                `json:"version"`            // 格式版本
 	Deployments        []deploymentSnapshot               `json:"deployments"`        // 部署
 	Definitions        []definitionSnapshot               `json:"definitions"`        // 流程定义
 	Models             []*modelState                      `json:"models"`             // 流程模型及编辑源
@@ -66,7 +70,7 @@ type snapshot struct {
 // toSnapshot 将运行时状态转换为持久化结构。
 // @return 快照
 func (e *Engine) toSnapshot() *snapshot {
-	out := &snapshot{Versions: make(map[string]int, len(e.state.Versions))}
+	out := &snapshot{Version: snapshotVersion, Versions: make(map[string]int, len(e.state.Versions))}
 	for _, deployment := range e.state.Deployments {
 		out.Deployments = append(out.Deployments, deploymentSnapshot{Info: deployment.Info, Resources: deployment.Resources})
 	}
@@ -159,7 +163,7 @@ func (e *Engine) toSnapshot() *snapshot {
 // @param ctx 上下文
 // @return 保存错误
 func (e *Engine) saveState(ctx context.Context) error {
-	if e.rowSource {
+	if e.rowSource || e.suppressPersist {
 		return nil
 	}
 	if e.cfg.StateStore == nil {
@@ -192,6 +196,9 @@ func (e *Engine) loadState(ctx context.Context) error {
 	var stored snapshot
 	if err := json.Unmarshal(data, &stored); err != nil {
 		return api.NewError("ENGINE-0911", "解析状态文件失败", err)
+	}
+	if stored.Version < 0 || stored.Version > snapshotVersion {
+		return api.NewError("ENGINE-0917", "不支持的快照版本", api.ErrBadRequest)
 	}
 	restored := newState()
 	for _, deployment := range stored.Deployments {

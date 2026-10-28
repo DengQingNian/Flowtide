@@ -39,11 +39,15 @@ func (e *Engine) deploy(cc *commandContext, req api.DeploymentRequest) (api.Depl
 	if len(req.Resources) == 0 {
 		return api.Deployment{}, api.NewError("ENGINE-0201", "部署资源不能为空", api.ErrBadRequest)
 	}
+	tenantID, tenantErr := e.requestTenantID(cc.ctx, req.TenantID)
+	if tenantErr != nil {
+		return api.Deployment{}, tenantErr
+	}
 	deploymentID := e.newID()
 	info := api.Deployment{
 		ID:         deploymentID,
 		Name:       req.Name,
-		TenantID:   e.tenantOf(req.TenantID),
+		TenantID:   tenantID,
 		DeployTime: cc.now,
 	}
 	expanded, err := expandResources(req.Resources)
@@ -119,6 +123,9 @@ func (e *Engine) ListProcessDefinitions(ctx context.Context) ([]api.ProcessDefin
 	result, err := e.read(func() (any, error) {
 		out := make([]api.ProcessDefinition, 0, len(e.state.Definitions))
 		for _, definition := range e.state.Definitions {
+			if e.allowTenant(ctx, definition.Info.TenantID) != nil {
+				continue
+			}
 			out = append(out, definition.Info)
 		}
 		sort.Slice(out, func(i, j int) bool {
@@ -164,7 +171,7 @@ func (e *Engine) GetProcessDefinition(ctx context.Context, id string) (api.Proce
 // @return 查询错误
 func (e *Engine) GetProcessDefinitionByKey(ctx context.Context, key string) (api.ProcessDefinition, error) {
 	result, err := e.read(func() (any, error) {
-		definition, ok := e.findLatestDefinition(key)
+		definition, ok := e.findTenantDefinition(ctx, key)
 		if !ok {
 			return nil, api.NewError("ENGINE-0404", "流程定义不存在", api.ErrNotFound)
 		}

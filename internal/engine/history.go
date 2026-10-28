@@ -142,7 +142,7 @@ func (e *Engine) recordHistoricVariable(execution *executionState, name string, 
 	key := execution.ID + "|" + name
 	now := e.cfg.Clock.Now()
 	if existing, ok := e.state.HistoricVariables[key]; ok {
-		existing.Value = value
+		existing.Value = copyValue(value)
 		existing.Type = variableTypeName(value)
 		existing.LastUpdatedTime = now
 		e.recordHistoricDetail(execution.ProcessInstanceID, execution.ID, "", execution.ActivityID, name, value, now)
@@ -154,7 +154,7 @@ func (e *Engine) recordHistoricVariable(execution *executionState, name string, 
 		Type:              variableTypeName(value),
 		ProcessInstanceID: execution.ProcessInstanceID,
 		ExecutionID:       execution.ID,
-		Value:             value,
+		Value:             copyValue(value),
 		CreateTime:        now,
 		LastUpdatedTime:   now,
 	}
@@ -173,7 +173,7 @@ func (e *Engine) recordTaskHistoricVariable(task *taskState, name string, value 
 	}
 	key := "task|" + task.Task.ID + "|" + name
 	if existing, ok := e.state.HistoricVariables[key]; ok {
-		existing.Value = value
+		existing.Value = copyValue(value)
 		existing.Type = variableTypeName(value)
 		existing.LastUpdatedTime = now
 		e.recordHistoricDetail(task.Task.ProcessInstanceID, "", task.Task.ID, task.ActivityID, name, value, now)
@@ -185,7 +185,7 @@ func (e *Engine) recordTaskHistoricVariable(task *taskState, name string, value 
 		Type:              variableTypeName(value),
 		ProcessInstanceID: task.Task.ProcessInstanceID,
 		TaskID:            task.Task.ID,
-		Value:             value,
+		Value:             copyValue(value),
 		CreateTime:        now,
 		LastUpdatedTime:   now,
 	}
@@ -211,7 +211,7 @@ func (e *Engine) recordHistoricDetail(processInstanceID, executionID, taskID, ac
 		ActivityID:        activityID,
 		Name:              name,
 		VariableType:      variableTypeName(value),
-		Value:             value,
+		Value:             copyValue(value),
 		Time:              now,
 	}
 	e.state.HistoricDetails[detail.ID] = detail

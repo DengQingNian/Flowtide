@@ -13,6 +13,7 @@ import (
 // @param t 测试上下文
 func TestEventSubscriptionQueries(t *testing.T) {
 	engine := newTestEngine(t)
+	engine.cfg.TenantID = "t1"
 	deployXML(t, engine, messageCatchXML)
 	ctx := context.Background()
 	instance, err := engine.StartProcessInstance(ctx, api.StartRequest{ProcessDefinitionKey: "msgCatch", TenantID: "t1"})
@@ -53,6 +54,7 @@ func TestEventSubscriptionQueries(t *testing.T) {
 // @param t 测试上下文
 func TestGetCommentAndAttachment(t *testing.T) {
 	engine := newTestEngine(t)
+	engine.cfg.TenantID = "t1"
 	ctx := context.Background()
 	task, err := engine.CreateTask(ctx, api.CreateTaskRequest{Name: "Task", TenantID: "t1"})
 	if err != nil {

@@ -16,7 +16,7 @@ import (
 // @return 查询错误
 func (e *Engine) ListActivityInstances(ctx context.Context, processInstanceID string) ([]api.ActivityInstance, error) {
 	result, err := e.read(func() (any, error) {
-		requested := tenant.From(ctx)
+		requested := e.tenantOf(tenant.From(ctx))
 		out := make([]api.ActivityInstance, 0)
 		for _, instance := range e.state.Instances {
 			if instance.Ended {
@@ -25,7 +25,7 @@ func (e *Engine) ListActivityInstances(ctx context.Context, processInstanceID st
 			if processInstanceID != "" && instance.ID != processInstanceID {
 				continue
 			}
-			if requested != "" && requested != instance.TenantID {
+			if requested != instance.TenantID {
 				continue
 			}
 			definition, hasDefinition := e.findDefinition(instance.ProcessDefinitionID)

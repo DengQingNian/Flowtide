@@ -16,6 +16,9 @@ func (e *Engine) ListExecutions(ctx context.Context, processInstanceID string) (
 	result, err := e.read(func() (any, error) {
 		out := make([]api.ExecutionInfo, 0)
 		for _, execution := range e.state.Executions {
+			if e.allowInstance(ctx, execution.ProcessInstanceID) != nil {
+				continue
+			}
 			if processInstanceID != "" && execution.ProcessInstanceID != processInstanceID {
 				continue
 			}
@@ -41,6 +44,9 @@ func (e *Engine) GetExecution(ctx context.Context, executionID string) (api.Exec
 		if !ok {
 			return nil, api.NewError("ENGINE-0404", "执行不存在", api.ErrNotFound)
 		}
+		if err := e.allowInstance(ctx, execution.ProcessInstanceID); err != nil {
+			return nil, err
+		}
 		return toExecutionInfo(execution), nil
 	})
 	if err != nil {
@@ -60,6 +66,9 @@ func (e *Engine) GetHistoricProcessInstance(ctx context.Context, processInstance
 		if !ok {
 			return nil, api.NewError("ENGINE-0404", "历史流程实例不存在", api.ErrNotFound)
 		}
+		if err := e.allowTenant(ctx, historic.TenantID); err != nil {
+			return nil, err
+		}
 		return *historic, nil
 	})
 	if err != nil {
@@ -78,6 +87,9 @@ func (e *Engine) GetHistoricTaskInstance(ctx context.Context, taskID string) (ap
 		historic, ok := e.state.HistoricTasks[taskID]
 		if !ok {
 			return nil, api.NewError("ENGINE-0404", "历史任务不存在", api.ErrNotFound)
+		}
+		if err := e.allowTenant(ctx, historic.TenantID); err != nil {
+			return nil, err
 		}
 		return *historic, nil
 	})

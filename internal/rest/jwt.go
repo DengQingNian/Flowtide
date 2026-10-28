@@ -54,7 +54,7 @@ type JWTConfig struct {
 	// RolesClaim 是角色声明名，为空时默认使用 roles。
 	// 声明值支持字符串数组或空格分隔字符串。
 	RolesClaim string
-	// TenantClaim 是租户声明名；当前仅解析，不参与授权判断。
+	// TenantClaim 是用于授权的租户声明名；为空时使用 tenant_id。
 	TenantClaim string
 }
 
@@ -112,6 +112,9 @@ func WithJWT(config JWTConfig) Option {
 // @param config JWT 配置
 // @return 校验器
 func newJWTVerifier(config JWTConfig) *jwtVerifier {
+	if config.TenantClaim == "" {
+		config.TenantClaim = "tenant_id"
+	}
 	rolesClaim := strings.TrimSpace(config.RolesClaim)
 	// 未显式配置角色声明时回退到默认值
 	if rolesClaim == "" {

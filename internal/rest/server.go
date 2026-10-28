@@ -2,6 +2,7 @@
 package rest
 
 import (
+	"context"
 	"crypto/subtle"
 	"encoding/json"
 	"errors"
@@ -22,17 +23,19 @@ const MaxUploadSize = 64 << 20
 
 // Server 是 HTTP API 服务。
 type Server struct {
-	engine          api.Engine          // 引擎
-	mux             *http.ServeMux      // 路由
-	basicUsers      map[string]string   // Basic Auth 用户
-	bearerToken     string              // Bearer Token
-	userRoles       map[string][]string // 用户到角色
-	rolePermissions map[string][]string // 角色到权限
-	identityAuth    bool                // 使用身份库校验密码
-	limiter         *rateLimiter        // 限流器
-	auditLog        *auditLog           // 审计日志
-	httpMetrics     *httpMetrics        // HTTP 指标
-	jwt             *jwtVerifier        // JWT/JWKS 认证
+	engine               api.Engine          // 引擎
+	mux                  *http.ServeMux      // 路由
+	basicUsers           map[string]string   // Basic Auth 用户
+	bearerToken          string              // Bearer Token
+	userRoles            map[string][]string // 用户到角色
+	rolePermissions      map[string][]string // 角色到权限
+	identityAuth         bool                // 使用身份库校验密码
+	limiter              *rateLimiter        // 限流器
+	auditLog             *auditLog           // 审计日志
+	httpMetrics          *httpMetrics        // HTTP 指标
+	tenantBindings       map[string]string   // 认证账号的固定租户
+	tenantAdministrators map[string]bool     // 显式允许选择其他租户的账号
+	jwt                  *jwtVerifier        // JWT/JWKS 认证
 }
 
 // Option 是 REST 服务选项。
@@ -125,7 +128,7 @@ func New(engine api.Engine, options ...Option) *Server {
 // Handler 返回 HTTP 处理器。
 // @return 处理器
 func (s *Server) Handler() http.Handler {
-	return s.metrics(s.rateLimit(s.audit(s.withTenant(s.authenticate(s.mux)))))
+	return s.metrics(s.rateLimit(s.audit(s.authenticate(s.withTenant(s.mux)))))
 }
 
 // withTenant 将请求租户写入上下文。
@@ -133,7 +136,18 @@ func (s *Server) Handler() http.Handler {
 // @return 处理器
 func (s *Server) withTenant(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		next.ServeHTTP(w, r.WithContext(tenant.With(r.Context(), requestTenant(r))))
+		requested := requestTenant(r)
+		// 已认证身份决定租户，客户端选择只允许与身份相同或由显式管理员发起。
+		if identity, ok := r.Context().Value(authIdentityKey{}).(jwtIdentity); ok {
+			if requested != "" && requested != identity.Tenant && !s.tenantAdministrators[identity.Subject] {
+				writeError(w, api.NewError("REST-0403", "无权选择其他租户", api.ErrForbidden))
+				return
+			}
+			if requested == "" {
+				requested = identity.Tenant
+			}
+		}
+		next.ServeHTTP(w, r.WithContext(tenant.With(r.Context(), requested)))
 	})
 }
 
@@ -149,11 +163,13 @@ func (s *Server) authenticate(next http.Handler) http.Handler {
 			next.ServeHTTP(w, r)
 			return
 		}
-		if !s.authorized(r) {
+		identity, authenticated := s.authenticateIdentity(r)
+		if !authenticated {
 			w.Header().Set("WWW-Authenticate", `Basic realm="flowable"`)
 			writeError(w, api.NewError("REST-0401", "未认证", api.ErrUnauthorized))
 			return
 		}
+		r = r.WithContext(context.WithValue(r.Context(), authIdentityKey{}, identity))
 		if !s.permitted(r) {
 			writeError(w, api.NewError("REST-0403", "无权限", api.ErrForbidden))
 			return
@@ -177,8 +193,11 @@ func (s *Server) permitted(r *http.Request) bool {
 		}
 	}
 	// JWT 身份按 roles 声明映射 rolePermissions
-	if s.jwt != nil {
-		identity, ok := s.jwt.verifyRequest(r)
+	if _, bearer := bearerTokenFromHeader(r.Header.Get("Authorization")); s.jwt != nil && bearer {
+		identity, ok := r.Context().Value(authIdentityKey{}).(jwtIdentity)
+		if !ok {
+			identity, ok = s.jwt.verifyRequest(r)
+		}
 		if ok {
 			// 未配置 rolePermissions 时保持既有放行语义
 			if len(s.rolePermissions) == 0 {
@@ -241,28 +260,8 @@ func requiredPermission(method, path string) string {
 // @param r 请求
 // @return 是否通过
 func (s *Server) authorized(r *http.Request) bool {
-	// 静态 Bearer Token 优先，保持既有配置兼容
-	if s.bearerToken != "" {
-		token, ok := bearerTokenFromHeader(r.Header.Get("Authorization"))
-		if ok && subtle.ConstantTimeCompare([]byte(token), []byte(s.bearerToken)) == 1 {
-			return true
-		}
-	}
-	// JWT/JWKS Bearer 令牌校验，失败时不泄漏具体原因
-	if s.jwt != nil {
-		if _, ok := s.jwt.verifyRequest(r); ok {
-			return true
-		}
-	}
-	if user, password, ok := r.BasicAuth(); ok {
-		if expected, exists := s.basicUsers[user]; exists && subtle.ConstantTimeCompare([]byte(password), []byte(expected)) == 1 {
-			return true
-		}
-		if s.identityAuth && s.engine.IdentityService().CheckPassword(r.Context(), user, password) == nil {
-			return true
-		}
-	}
-	return false
+	_, ok := s.authenticateIdentity(r)
+	return ok
 }
 
 // routes 注册全部路由。
@@ -2872,6 +2871,9 @@ func writeError(w http.ResponseWriter, err error) {
 // @param r 请求
 // @return 租户
 func requestTenant(r *http.Request) string {
+	if tenant.Bound(r.Context()) {
+		return tenant.From(r.Context())
+	}
 	if tenant := r.Header.Get("X-Tenant-Id"); tenant != "" {
 		return tenant
 	}

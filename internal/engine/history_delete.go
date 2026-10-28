@@ -15,6 +15,9 @@ func (e *Engine) DeleteHistoricProcessInstance(ctx context.Context, processInsta
 		if _, ok := e.state.HistoricProcesses[processInstanceID]; !ok {
 			return nil, api.NewError("ENGINE-0404", "历史流程实例不存在", api.ErrNotFound)
 		}
+		if err := e.allowTenant(ctx, e.state.HistoricProcesses[processInstanceID].TenantID); err != nil {
+			return nil, err
+		}
 		delete(e.state.HistoricProcesses, processInstanceID)
 		for id, activity := range e.state.HistoricActivities {
 			if activity.ProcessInstanceID == processInstanceID {
@@ -70,6 +73,9 @@ func (e *Engine) DeleteHistoricTaskInstance(ctx context.Context, taskID string) 
 		if _, ok := e.state.HistoricTasks[taskID]; !ok {
 			return nil, api.NewError("ENGINE-0404", "历史任务不存在", api.ErrNotFound)
 		}
+		if err := e.allowTenant(ctx, e.state.HistoricTasks[taskID].TenantID); err != nil {
+			return nil, err
+		}
 		delete(e.state.HistoricTasks, taskID)
 		for id, log := range e.state.TaskLogs {
 			if log.TaskID == taskID {
@@ -105,6 +111,9 @@ func (e *Engine) DeleteHistoricDetail(ctx context.Context, detailID string) erro
 		if _, ok := e.state.HistoricDetails[detailID]; !ok {
 			return nil, api.NewError("ENGINE-0404", "历史明细不存在", api.ErrNotFound)
 		}
+		if err := e.allowHistoricResource(ctx, e.state.HistoricDetails[detailID].ProcessInstanceID, e.state.HistoricDetails[detailID].TaskID); err != nil {
+			return nil, err
+		}
 		delete(e.state.HistoricDetails, detailID)
 		return nil, nil
 	})
@@ -119,6 +128,9 @@ func (e *Engine) DeleteHistoricTaskLog(ctx context.Context, logID int64) error {
 	_, err := e.execute(ctx, func(cc *commandContext) (any, error) {
 		if _, ok := e.state.TaskLogs[logID]; !ok {
 			return nil, api.NewError("ENGINE-0404", "任务日志不存在", api.ErrNotFound)
+		}
+		if err := e.allowHistoricResource(ctx, e.state.TaskLogs[logID].ProcessInstanceID, e.state.TaskLogs[logID].TaskID); err != nil {
+			return nil, err
 		}
 		delete(e.state.TaskLogs, logID)
 		return nil, nil

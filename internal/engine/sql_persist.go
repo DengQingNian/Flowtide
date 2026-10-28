@@ -72,6 +72,24 @@ func (e *Engine) persistRows(ctx context.Context) error {
 // @param rows 行列表
 // @return 恢复错误
 func (e *Engine) RestoreRows(ctx context.Context, rows []flowablerow.Row) error {
+	_, err := e.execute(ctx, func(cc *commandContext) (any, error) {
+		// 在隔离引擎中完成全部解码和导入，最后作为一条命令发布状态。
+		staged := &Engine{cfg: e.cfg, state: cloneState(e.state)}
+		staged.cfg.StateStore = nil
+		if err := staged.restoreRows(ctx, rows); err != nil {
+			return nil, err
+		}
+		e.state = staged.state
+		return nil, nil
+	})
+	return err
+}
+
+// restoreRows 向隔离状态导入仓库、运行时和历史数据。
+// @param ctx 上下文
+// @param rows 行集合
+// @return 导入错误
+func (e *Engine) restoreRows(ctx context.Context, rows []flowablerow.Row) error {
 	repositoryRows := make([]flowablerow.Row, 0)
 	runtimeRows := make([]flowablerow.Row, 0)
 	historicRows := make([]flowablerow.Row, 0)
@@ -85,8 +103,6 @@ func (e *Engine) RestoreRows(ctx context.Context, rows []flowablerow.Row) error 
 			historicRows = append(historicRows, row)
 		}
 	}
-	e.suppressPersist = true
-	defer func() { e.suppressPersist = false }()
 	if len(repositoryRows) > 0 {
 		if err := e.ImportRows(ctx, repositoryRows); err != nil {
 			return err
@@ -102,6 +118,5 @@ func (e *Engine) RestoreRows(ctx context.Context, rows []flowablerow.Row) error 
 			return err
 		}
 	}
-	e.lastRows = rows
 	return nil
 }

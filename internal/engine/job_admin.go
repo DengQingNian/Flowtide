@@ -15,6 +15,9 @@ func (e *Engine) ListJobs(ctx context.Context) ([]api.JobInfo, error) {
 	result, err := e.read(func() (any, error) {
 		out := make([]api.JobInfo, 0, len(e.state.Jobs))
 		for _, job := range e.state.Jobs {
+			if e.allowJob(ctx, job) != nil {
+				continue
+			}
 			out = append(out, toJobInfo(job))
 		}
 		sortJobInfos(out)
@@ -35,6 +38,9 @@ func (e *Engine) DeleteJob(ctx context.Context, jobID string) error {
 		if _, ok := e.state.Jobs[jobID]; !ok {
 			return nil, api.NewError("ENGINE-1501", "作业不存在", api.ErrNotFound)
 		}
+		if err := e.allowJob(ctx, e.state.Jobs[jobID]); err != nil {
+			return nil, err
+		}
 		delete(e.state.Jobs, jobID)
 		return nil, nil
 	})
@@ -49,6 +55,9 @@ func (e *Engine) ListDeadLetterJobs(ctx context.Context) ([]api.JobInfo, error) 
 	result, err := e.read(func() (any, error) {
 		out := make([]api.JobInfo, 0, len(e.state.DeadLetters))
 		for _, job := range e.state.DeadLetters {
+			if e.allowJob(ctx, job) != nil {
+				continue
+			}
 			out = append(out, toJobInfo(job))
 		}
 		sortJobInfos(out)
@@ -70,6 +79,9 @@ func (e *Engine) MoveDeadLetterJobToExecutable(ctx context.Context, jobID string
 		job, ok := e.state.DeadLetters[jobID]
 		if !ok {
 			return nil, api.NewError("ENGINE-0404", "死信作业不存在", api.ErrNotFound)
+		}
+		if err := e.allowJob(ctx, job); err != nil {
+			return nil, err
 		}
 		if retries <= 0 {
 			retries = 3
@@ -122,6 +134,9 @@ func (e *Engine) GetJob(ctx context.Context, jobID string) (api.JobInfo, error) 
 		if !ok {
 			return nil, api.NewError("ENGINE-0404", "作业不存在", api.ErrNotFound)
 		}
+		if err := e.allowJob(ctx, job); err != nil {
+			return nil, err
+		}
 		return toJobInfo(job), nil
 	})
 	if err != nil {
@@ -141,6 +156,9 @@ func (e *Engine) GetDeadLetterJob(ctx context.Context, jobID string) (api.JobInf
 		if !ok {
 			return nil, api.NewError("ENGINE-0404", "死信作业不存在", api.ErrNotFound)
 		}
+		if err := e.allowJob(ctx, job); err != nil {
+			return nil, err
+		}
 		return toJobInfo(job), nil
 	})
 	if err != nil {
@@ -159,6 +177,9 @@ func (e *Engine) SetJobRetries(ctx context.Context, jobID string, retries int) e
 		job, ok := e.state.Jobs[jobID]
 		if !ok {
 			return nil, api.NewError("ENGINE-0404", "作业不存在", api.ErrNotFound)
+		}
+		if err := e.allowJob(ctx, job); err != nil {
+			return nil, err
 		}
 		if retries < 0 {
 			return nil, api.NewError("ENGINE-0916", "重试次数不能为负", api.ErrBadRequest)

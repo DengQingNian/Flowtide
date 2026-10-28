@@ -72,6 +72,7 @@ func TestExecutionVariableOperations(t *testing.T) {
 // @param t 测试上下文
 func TestExecutionVariableTenant(t *testing.T) {
 	engine := newTestEngine(t)
+	engine.cfg.TenantID = "t1"
 	deployXML(t, engine, simpleProcess)
 	ctx := context.Background()
 	instance, err := engine.StartProcessInstance(ctx, api.StartRequest{

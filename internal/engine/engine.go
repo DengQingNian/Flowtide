@@ -116,6 +116,14 @@ type commandContext struct {
 // @return 引擎
 // @return 创建错误
 func New(cfg Config) (*Engine, error) {
+	// 快照与行仓储必须只有一个权威来源，避免任一介质失败后形成分叉。
+	if cfg.RowRepository != nil && (cfg.StateStore != nil || cfg.StatePath != "") {
+		return nil, api.NewError("ENGINE-0916", "快照存储与行仓储不能同时配置", api.ErrBadRequest)
+	}
+	if cfg.LoadRows && cfg.RowRepository == nil {
+		return nil, api.NewError("ENGINE-0916", "加载行状态必须配置行仓储", api.ErrBadRequest)
+	}
+
 	if cfg.Clock == nil {
 		cfg.Clock = clock.Real{}
 	}
@@ -148,10 +156,13 @@ func New(cfg Config) (*Engine, error) {
 		if err != nil {
 			return nil, err
 		}
+		engine.lastRows = copyValue(rows).([]flowablerow.Row)
 		if len(rows) > 0 {
+			engine.suppressPersist = true
 			if err := engine.RestoreRows(context.Background(), rows); err != nil {
 				return nil, err
 			}
+			engine.suppressPersist = false
 		}
 	} else if err := engine.loadState(context.Background()); err != nil {
 		return nil, err
@@ -280,7 +291,7 @@ func (e *Engine) execute(ctx context.Context, fn func(*commandContext) (any, err
 			return nil, err
 		}
 	}
-	return result, nil
+	return copyValue(result), nil
 }
 
 // read 在只读锁中执行查询。
@@ -293,7 +304,8 @@ func (e *Engine) read(fn func() (any, error)) (any, error) {
 	if e.closed {
 		return nil, api.NewError("ENGINE-0002", "引擎已关闭", api.ErrEngineClosed)
 	}
-	return fn()
+	result, err := fn()
+	return copyValue(result), err
 }
 
 // findDefinition 按 ID 查找流程定义。
@@ -388,7 +400,7 @@ func (e *Engine) setVariable(execution *executionState, name string, value any) 
 	current := execution
 	for current != nil {
 		if _, ok := current.Variables[name]; ok {
-			current.Variables[name] = value
+			current.Variables[name] = copyValue(value)
 			e.recordHistoricVariable(current, name, value)
 			return
 		}
@@ -396,7 +408,7 @@ func (e *Engine) setVariable(execution *executionState, name string, value any) 
 			if current.Variables == nil {
 				current.Variables = make(map[string]any)
 			}
-			current.Variables[name] = value
+			current.Variables[name] = copyValue(value)
 			e.recordHistoricVariable(current, name, value)
 			return
 		}
@@ -409,7 +421,7 @@ func (e *Engine) setVariable(execution *executionState, name string, value any) 
 	if execution.Variables == nil {
 		execution.Variables = make(map[string]any)
 	}
-	execution.Variables[name] = value
+	execution.Variables[name] = copyValue(value)
 	e.recordHistoricVariable(execution, name, value)
 }
 
@@ -421,7 +433,7 @@ func (e *Engine) setVariableLocal(execution *executionState, name string, value 
 	if execution.Variables == nil {
 		execution.Variables = make(map[string]any)
 	}
-	execution.Variables[name] = value
+	execution.Variables[name] = copyValue(value)
 	e.recordHistoricVariable(execution, name, value)
 }
 

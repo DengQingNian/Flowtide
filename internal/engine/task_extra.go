@@ -90,6 +90,9 @@ func (e *Engine) ListProcessComments(ctx context.Context, processInstanceID stri
 	result, err := e.read(func() (any, error) {
 		out := make([]api.Comment, 0)
 		for _, comment := range e.state.Comments {
+			if e.allowHistoricResource(ctx, comment.ProcessInstanceID, comment.TaskID) != nil {
+				continue
+			}
 			if comment.ProcessInstanceID == processInstanceID && comment.TaskID == "" {
 				out = append(out, *comment)
 			}
@@ -117,6 +120,9 @@ func (e *Engine) ListInstanceComments(ctx context.Context, processInstanceID str
 	result, err := e.read(func() (any, error) {
 		out := make([]api.Comment, 0)
 		for _, comment := range e.state.Comments {
+			if e.allowHistoricResource(ctx, comment.ProcessInstanceID, comment.TaskID) != nil {
+				continue
+			}
 			if comment.ProcessInstanceID == processInstanceID {
 				out = append(out, *comment)
 			}
@@ -144,6 +150,9 @@ func (e *Engine) ListComments(ctx context.Context, taskID string) ([]api.Comment
 	result, err := e.read(func() (any, error) {
 		out := make([]api.Comment, 0)
 		for _, comment := range e.state.Comments {
+			if e.allowHistoricResource(ctx, comment.ProcessInstanceID, comment.TaskID) != nil {
+				continue
+			}
 			if taskID != "" && comment.TaskID != taskID {
 				continue
 			}
@@ -200,6 +209,10 @@ func (e *Engine) DeleteComment(ctx context.Context, commentID string) error {
 		if _, ok := e.state.Comments[commentID]; !ok {
 			return nil, api.NewError("ENGINE-0404", "评论不存在", api.ErrNotFound)
 		}
+		item := e.state.Comments[commentID]
+		if err := e.allowHistoricResource(ctx, item.ProcessInstanceID, item.TaskID); err != nil {
+			return nil, err
+		}
 		delete(e.state.Comments, commentID)
 		return nil, nil
 	})
@@ -246,6 +259,9 @@ func (e *Engine) ListProcessAttachments(ctx context.Context, processInstanceID s
 	result, err := e.read(func() (any, error) {
 		out := make([]api.Attachment, 0)
 		for _, attachment := range e.state.Attachments {
+			if e.allowHistoricResource(ctx, attachment.ProcessInstanceID, attachment.TaskID) != nil {
+				continue
+			}
 			if attachment.ProcessInstanceID == processInstanceID && attachment.TaskID == "" {
 				out = append(out, e.attachmentDTO(*attachment))
 			}
@@ -305,6 +321,9 @@ func (e *Engine) ListAttachments(ctx context.Context, taskID string) ([]api.Atta
 	result, err := e.read(func() (any, error) {
 		out := make([]api.Attachment, 0)
 		for _, attachment := range e.state.Attachments {
+			if e.allowHistoricResource(ctx, attachment.ProcessInstanceID, attachment.TaskID) != nil {
+				continue
+			}
 			if taskID != "" && attachment.TaskID != taskID {
 				continue
 			}
@@ -437,6 +456,10 @@ func (e *Engine) DeleteAttachment(ctx context.Context, attachmentID string) erro
 	_, err := e.execute(ctx, func(cc *commandContext) (any, error) {
 		if _, ok := e.state.Attachments[attachmentID]; !ok {
 			return nil, api.NewError("ENGINE-0404", "附件不存在", api.ErrNotFound)
+		}
+		item := e.state.Attachments[attachmentID]
+		if err := e.allowHistoricResource(ctx, item.ProcessInstanceID, item.TaskID); err != nil {
+			return nil, err
 		}
 		delete(e.state.Attachments, attachmentID)
 		return nil, nil

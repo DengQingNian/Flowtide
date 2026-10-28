@@ -15,7 +15,7 @@ import (
 // @return 投递错误
 func (e *Engine) MessageEventReceived(ctx context.Context, messageName string, variables []api.Variable) (int, error) {
 	result, err := e.execute(ctx, func(cc *commandContext) (any, error) {
-		subscriptions := e.subscriptionsFor("message", messageName)
+		subscriptions := e.tenantSubscriptions(cc.ctx, "message", messageName)
 		if len(subscriptions) == 0 {
 			return 0, nil
 		}
@@ -42,7 +42,7 @@ func (e *Engine) MessageEventReceived(ctx context.Context, messageName string, v
 // @return 投递错误
 func (e *Engine) SignalEventReceived(ctx context.Context, signalName string, variables []api.Variable) (int, error) {
 	result, err := e.execute(ctx, func(cc *commandContext) (any, error) {
-		subscriptions := e.subscriptionsFor("signal", signalName)
+		subscriptions := e.tenantSubscriptions(cc.ctx, "signal", signalName)
 		if len(subscriptions) == 0 {
 			return 0, nil
 		}
@@ -433,6 +433,21 @@ func mapToVariables(values map[string]any) []api.Variable {
 	out := make([]api.Variable, 0, len(values))
 	for name, value := range values {
 		out = append(out, api.Variable{Name: name, Value: value})
+	}
+	return out
+}
+
+// tenantSubscriptions 返回当前租户可见的匹配事件订阅。
+// @param ctx 上下文
+// @param eventType 事件类型
+// @param name 事件名
+// @return 订阅列表
+func (e *Engine) tenantSubscriptions(ctx context.Context, eventType, name string) []*subscriptionState {
+	out := make([]*subscriptionState, 0)
+	for _, subscription := range e.subscriptionsFor(eventType, name) {
+		if e.allowTenant(ctx, e.subscriptionTenant(subscription)) == nil {
+			out = append(out, subscription)
+		}
 	}
 	return out
 }

@@ -12,8 +12,8 @@ func TestWithFrom(t *testing.T) {
 	if From(ctx) != "" {
 		t.Fatalf("空上下文租户应为空")
 	}
-	if With(ctx, "") != ctx {
-		t.Fatalf("空租户应返回原上下文")
+	if From(With(With(ctx, "t1"), "")) != "" {
+		t.Fatal("空租户必须能覆盖原租户")
 	}
 	ctx = With(ctx, "t1")
 	if From(ctx) != "t1" {
@@ -21,5 +21,14 @@ func TestWithFrom(t *testing.T) {
 	}
 	if From(context.Background()) != "" {
 		t.Fatalf("其他上下文不应受影响")
+	}
+}
+
+// TestBound 验证默认租户也有明确作用域标记。
+// @param t 测试上下文
+// @return 无
+func TestBound(t *testing.T) {
+	if Bound(context.Background()) || !Bound(With(context.Background(), "")) || !Bound(With(context.Background(), "t1")) {
+		t.Fatal("租户作用域标记错误")
 	}
 }
