@@ -178,6 +178,7 @@ func (e *Engine) ImportRuntimeRows(ctx context.Context, rows []flowablerow.Row) 
 				ExecutionID:         subscription.ExecutionID,
 				EventType:           subscription.EventType,
 				EventName:           subscription.EventName,
+				Condition:           subscription.Condition,
 				ActivityID:          subscription.ActivityID,
 				ScopeExecutionID:    subscription.ScopeID,
 				TenantID:            subscription.TenantID,

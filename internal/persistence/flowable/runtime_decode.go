@@ -71,6 +71,7 @@ type RuntimeSubscription struct {
 	ID                 string    // 订阅 ID
 	EventType          string    // 事件类型
 	EventName          string    // 事件名
+	Condition          string    // 条件表达式（条件事件）
 	ExecutionID        string    // 执行 ID
 	ProcessInstanceID  string    // 实例 ID
 	ActivityID         string    // 活动 ID
@@ -592,8 +593,16 @@ func decodeSubscription(row Row) (RuntimeSubscription, error) {
 	if err != nil {
 		return RuntimeSubscription{}, err
 	}
+	configuration, err := optionalString(row, "CONFIGURATION_")
+	if err != nil {
+		return RuntimeSubscription{}, err
+	}
+	condition := ""
+	if eventType == "condition" && configuration != nil {
+		condition = *configuration
+	}
 	return RuntimeSubscription{
-		ID: id, EventType: eventType, EventName: eventName, ExecutionID: executionID,
+		ID: id, EventType: eventType, EventName: eventName, Condition: condition, ExecutionID: executionID,
 		ProcessInstanceID: processInstanceID, ActivityID: activityID, CreatedAt: created,
 		DefinitionID: definitionID, ScopeType: scopeType, ScopeDefinitionID: scopeDefinitionID,
 		ScopeDefinitionKey: scopeDefinitionKey, ScopeID: scopeID, SubScopeID: subScopeID, TenantID: tenant,

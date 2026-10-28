@@ -322,6 +322,20 @@ type RuntimeService interface {
 	// @return 触发数量
 	// @return 投递错误
 	SignalEventReceived(ctx context.Context, signalName string, variables []Variable) (int, error)
+	// MessageEventReceivedForExecution 向指定执行投递消息。
+	// @param ctx 上下文
+	// @param executionID 执行 ID
+	// @param messageName 消息名
+	// @param variables 变量
+	// @return 投递错误
+	MessageEventReceivedForExecution(ctx context.Context, executionID, messageName string, variables []Variable) error
+	// SignalEventReceivedForExecution 向指定执行投递信号。
+	// @param ctx 上下文
+	// @param executionID 执行 ID
+	// @param signalName 信号名
+	// @param variables 变量
+	// @return 投递错误
+	SignalEventReceivedForExecution(ctx context.Context, executionID, signalName string, variables []Variable) error
 	// SuspendProcessInstance 挂起流程实例。
 	// @param ctx 上下文
 	// @param processInstanceID 实例 ID

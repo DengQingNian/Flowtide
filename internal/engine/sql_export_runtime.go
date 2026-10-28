@@ -264,7 +264,11 @@ func (e *Engine) runtimeRowsLocked() ([]flowablerow.Row, error) {
 		_ = row.Set("EXECUTION_ID_", subscription.ExecutionID)
 		_ = row.Set("PROC_INST_ID_", subscription.ProcessInstanceID)
 		_ = row.Set("ACTIVITY_ID_", subscription.ActivityID)
-		_ = row.Set("CONFIGURATION_", subscription.EventName)
+		configuration := subscription.EventName
+		if subscription.Condition != "" {
+			configuration = subscription.Condition
+		}
+		_ = row.Set("CONFIGURATION_", configuration)
 		_ = row.Set("CREATED_", subscription.CreatedAt)
 		_ = row.Set("PROC_DEF_ID_", subscription.ProcessDefinitionID)
 		_ = row.Set("SUB_SCOPE_ID_", subscription.GatewayGroup)
