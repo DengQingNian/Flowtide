@@ -1018,6 +1018,13 @@ func (s *Server) handleListDefinitions(w http.ResponseWriter, r *http.Request) {
 			definitions = filtered
 		}
 	}
+	if userID := r.URL.Query().Get("startableByUser"); userID != "" {
+		definitions, err = s.filterStartableDefinitions(r.Context(), definitions, userID)
+		if err != nil {
+			writeError(w, err)
+			return
+		}
+	}
 	start, size := pageParams(r)
 	writePage(w, definitions, start, size)
 }

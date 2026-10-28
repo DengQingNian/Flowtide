@@ -184,4 +184,5 @@ curl -X POST 'http://localhost:8080/service/runtime/process-instances' \
 - DMN 决策/决策表元数据读取与决策表求值（FIRST/UNIQUE/ANY/RULE ORDER 子集）。
 - BPMN 业务规则任务：`businessRuleTask` 按 decisionRef 求值并写入结果变量。
 - 任务/实例身份链接单条读取与按类型删除。
+- 流程定义列表支持 `startableByUser` 候选人（用户/组）过滤。
 - 纯标准库实现，`CGO_ENABLED=0` 可构建。
