@@ -177,4 +177,5 @@ curl -X POST 'http://localhost:8080/service/runtime/process-instances' \
 - 查询变量过滤：实例/执行/任务/历史实例/任务/活动查询支持 equals/notEquals/like/数值比较。
 - 模型部署与部署去重（`enableDuplicateFiltering`）。
 - 任务委派状态与 resolve 处理，列表支持 `delegationState` 过滤。
+- 二进制变量：multipart 上传、`binary` 类型与原始字节下载。
 - 纯标准库实现，`CGO_ENABLED=0` 可构建。

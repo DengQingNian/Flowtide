@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"io"
 	"net/http"
+	"strings"
 
 	"github.com/flowable-go/flowable/api"
 )
@@ -31,6 +32,17 @@ func (s *Server) handleGetExecutionVariable(w http.ResponseWriter, r *http.Reque
 // @param w 响应
 // @param r 请求
 func (s *Server) handleSetExecutionVariable(w http.ResponseWriter, r *http.Request) {
+	if variable, ok, err := readMultipartVariable(r, r.PathValue("name")); err != nil {
+		writeError(w, err)
+		return
+	} else if ok {
+		if err := s.engine.RuntimeService().SetExecutionVariable(r.Context(), r.PathValue("id"), variable.Name, variable.Value); err != nil {
+			writeError(w, err)
+			return
+		}
+		writeJSON(w, http.StatusOK, variable)
+		return
+	}
 	var payload executionVariablePayload
 	if err := decodeTaskJSON(r, &payload); err != nil {
 		writeError(w, err)
@@ -253,6 +265,35 @@ func readVariableBody(r *http.Request) ([]api.Variable, error) {
 		return nil, api.NewError("REST-0118", "变量列表不能为空", api.ErrBadRequest)
 	}
 	return variables, nil
+}
+
+// readMultipartVariable 解析 multipart 二进制变量请求。
+// 非 multipart 返回 ok=false，由调用方继续解析 JSON。
+// @param r 请求
+// @param name 路径变量名，可为空
+// @return 变量
+// @return 是否 multipart
+// @return 解析错误
+func readMultipartVariable(r *http.Request, name string) (api.Variable, bool, error) {
+	if !strings.HasPrefix(r.Header.Get("Content-Type"), "multipart/form-data") {
+		return api.Variable{}, false, nil
+	}
+	data, ok, err := readMultipartSource(r)
+	if err != nil {
+		return api.Variable{}, true, err
+	}
+	if !ok || len(data) == 0 {
+		return api.Variable{}, true, api.NewError("REST-0144", "缺少上传文件", api.ErrBadRequest)
+	}
+	if name == "" && r.MultipartForm != nil {
+		if values := r.MultipartForm.Value["name"]; len(values) > 0 {
+			name = values[0]
+		}
+	}
+	if strings.TrimSpace(name) == "" {
+		return api.Variable{}, true, api.NewError("REST-0145", "变量名不能为空", api.ErrBadRequest)
+	}
+	return api.Variable{Name: name, Type: "binary", Value: data}, true, nil
 }
 
 // writeVariableData 输出变量原始内容。

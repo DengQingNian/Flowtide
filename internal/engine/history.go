@@ -227,7 +227,7 @@ func variableTypeName(value any) string {
 	case float32, float64:
 		return "double"
 	case []byte:
-		return "bytes"
+		return "binary"
 	default:
 		return "json"
 	}

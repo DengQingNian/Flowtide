@@ -69,7 +69,7 @@ func TestVariableTypeName(t *testing.T) {
 		want  string
 	}{
 		{nil, "null"}, {"x", "string"}, {true, "boolean"}, {1, "long"}, {1.5, "double"},
-		{[]byte("x"), "bytes"}, {map[string]any{}, "json"},
+		{[]byte("x"), "binary"}, {map[string]any{}, "json"},
 	}
 	for _, tc := range cases {
 		if got := variableTypeName(tc.value); got != tc.want {

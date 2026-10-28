@@ -1667,10 +1667,16 @@ func (s *Server) handleDeleteInstance(w http.ResponseWriter, r *http.Request) {
 // @param w 响应
 // @param r 请求
 func (s *Server) handleCreateInstanceVariable(w http.ResponseWriter, r *http.Request) {
-	var variable api.Variable
-	if err := decodeJSON(r, &variable); err != nil {
+	variable, multipart, err := readMultipartVariable(r, "")
+	if err != nil {
 		writeError(w, err)
 		return
+	}
+	if !multipart {
+		if err := decodeJSON(r, &variable); err != nil {
+			writeError(w, err)
+			return
+		}
 	}
 	if err := s.engine.RuntimeService().SetVariable(r.Context(), r.PathValue("id"), variable.Name, variable.Value); err != nil {
 		writeError(w, err)
@@ -1696,6 +1702,17 @@ func (s *Server) handleGetInstanceVariable(w http.ResponseWriter, r *http.Reques
 // @param w 响应
 // @param r 请求
 func (s *Server) handleUpdateInstanceVariable(w http.ResponseWriter, r *http.Request) {
+	if variable, ok, err := readMultipartVariable(r, r.PathValue("name")); err != nil {
+		writeError(w, err)
+		return
+	} else if ok {
+		if err := s.engine.RuntimeService().SetVariable(r.Context(), r.PathValue("id"), variable.Name, variable.Value); err != nil {
+			writeError(w, err)
+			return
+		}
+		w.WriteHeader(http.StatusNoContent)
+		return
+	}
 	var variable api.Variable
 	if err := decodeJSON(r, &variable); err != nil {
 		writeError(w, err)
@@ -1971,6 +1988,17 @@ func (s *Server) handleGetTaskVariable(w http.ResponseWriter, r *http.Request) {
 // @param w 响应
 // @param r 请求
 func (s *Server) handleUpdateTaskVariable(w http.ResponseWriter, r *http.Request) {
+	if variable, ok, err := readMultipartVariable(r, r.PathValue("name")); err != nil {
+		writeError(w, err)
+		return
+	} else if ok {
+		if err := s.engine.TaskService().SetTaskVariable(r.Context(), r.PathValue("id"), variable.Name, variable.Value); err != nil {
+			writeError(w, err)
+			return
+		}
+		w.WriteHeader(http.StatusNoContent)
+		return
+	}
 	var variable api.Variable
 	if err := decodeJSON(r, &variable); err != nil {
 		writeError(w, err)
