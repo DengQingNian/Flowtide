@@ -85,8 +85,9 @@ func (e *Engine) deploy(cc *commandContext, req api.DeploymentRequest) (api.Depl
 					ResourceName: name,
 					TenantID:     info.TenantID,
 				},
-				Model: bpmnModel,
-				XML:   append([]byte(nil), data...),
+				Model:        bpmnModel,
+				XML:          append([]byte(nil), data...),
+				StarterLinks: e.buildStarterLinks(definitionID, process, cc.now),
 			}
 			e.state.Definitions[definitionID] = definition
 			e.createStartSubscriptions(cc, definition, process)

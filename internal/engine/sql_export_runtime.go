@@ -299,6 +299,32 @@ func (e *Engine) runtimeRowsLocked() ([]flowablerow.Row, error) {
 		_ = row.Set("SCOPE_DEFINITION_ID_", "")
 		rows = append(rows, *row)
 	}
+	definitions := make([]*definitionState, 0, len(e.state.Definitions))
+	for _, definition := range e.state.Definitions {
+		definitions = append(definitions, definition)
+	}
+	sort.Slice(definitions, func(i, j int) bool { return definitions[i].Info.ID < definitions[j].Info.ID })
+	for _, definition := range definitions {
+		for _, link := range definition.StarterLinks {
+			row, rowErr := runtimeRow("ACT_RU_IDENTITYLINK", []string{"ID_", "REV_", "GROUP_ID_", "TYPE_", "USER_ID_", "TASK_ID_", "PROC_INST_ID_", "PROC_DEF_ID_", "SCOPE_ID_", "SUB_SCOPE_ID_", "SCOPE_TYPE_", "SCOPE_DEFINITION_ID_"})
+			if rowErr != nil {
+				return nil, rowErr
+			}
+			_ = row.Set("ID_", link.ID)
+			_ = row.Set("REV_", 1)
+			_ = row.Set("GROUP_ID_", link.GroupID)
+			_ = row.Set("TYPE_", link.Type)
+			_ = row.Set("USER_ID_", link.UserID)
+			_ = row.Set("TASK_ID_", "")
+			_ = row.Set("PROC_INST_ID_", "")
+			_ = row.Set("PROC_DEF_ID_", definition.Info.ID)
+			_ = row.Set("SCOPE_ID_", "")
+			_ = row.Set("SUB_SCOPE_ID_", "")
+			_ = row.Set("SCOPE_TYPE_", "")
+			_ = row.Set("SCOPE_DEFINITION_ID_", "")
+			rows = append(rows, *row)
+		}
+	}
 	sort.Slice(rows, func(i, j int) bool {
 		if rows[i].Table == rows[j].Table {
 			return rowID(rows[i]) < rowID(rows[j])

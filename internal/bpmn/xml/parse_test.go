@@ -126,6 +126,26 @@ func TestParse_Errors(t *testing.T) {
 	}
 }
 
+// TestParse_CandidateStarters 验证候选发起人解析。
+// @param t 测试上下文
+func TestParse_CandidateStarters(t *testing.T) {
+	xml := `<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:flowable="http://flowable.org/bpmn"><process id="p" isExecutable="true" flowable:candidateStarterUsers="alice, bob" flowable:candidateStarterGroups="g1,,g2"><startEvent id="s"/></process></definitions>`
+	parsed, err := Parse([]byte(xml))
+	if err != nil {
+		t.Fatalf("解析失败: %v", err)
+	}
+	if len(parsed.Processes) != 1 {
+		t.Fatalf("流程数量错误")
+	}
+	process := parsed.Processes[0]
+	if len(process.CandidateStarterUsers) != 2 || process.CandidateStarterUsers[0] != "alice" || process.CandidateStarterUsers[1] != "bob" {
+		t.Fatalf("候选用户解析错误: %+v", process.CandidateStarterUsers)
+	}
+	if len(process.CandidateStarterGroups) != 2 || process.CandidateStarterGroups[1] != "g2" {
+		t.Fatalf("候选组解析错误: %+v", process.CandidateStarterGroups)
+	}
+}
+
 // TestParse_DuplicateID 验证重复 ID。
 // @param t 测试上下文
 func TestParse_DuplicateID(t *testing.T) {

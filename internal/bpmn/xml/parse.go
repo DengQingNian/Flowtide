@@ -69,10 +69,12 @@ func parseProcess(node *Node) (*model.Process, error) {
 		return nil, api.NewError("BPMN-1001", "process 缺少 id", nil)
 	}
 	process := &model.Process{
-		ID:         id,
-		Name:       node.Attr("name"),
-		Executable: strings.EqualFold(node.Attr("isExecutable"), "true"),
-		Elements:   make(map[string]model.FlowElement),
+		ID:                     id,
+		Name:                   node.Attr("name"),
+		Executable:             strings.EqualFold(node.Attr("isExecutable"), "true"),
+		CandidateStarterUsers:  splitList(node.Attr("candidateStarterUsers")),
+		CandidateStarterGroups: splitList(node.Attr("candidateStarterGroups")),
+		Elements:               make(map[string]model.FlowElement),
 	}
 	if doc, ok := node.Child("documentation"); ok {
 		process.Documentation = doc.TextContent()

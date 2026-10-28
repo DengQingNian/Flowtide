@@ -30,12 +30,14 @@ type Signal struct {
 
 // Process 表示一个可执行流程。
 type Process struct {
-	ID            string                 // 流程 ID
-	Name          string                 // 流程名称
-	Documentation string                 // 文档说明
-	Executable    bool                   // 是否可执行
-	Elements      map[string]FlowElement // 按 ID 索引的元素
-	Order         []string               // 元素在文档中的顺序
+	ID                     string                 // 流程 ID
+	Name                   string                 // 流程名称
+	Documentation          string                 // 文档说明
+	Executable             bool                   // 是否可执行
+	CandidateStarterUsers  []string               // 候选发起人用户
+	CandidateStarterGroups []string               // 候选发起人组
+	Elements               map[string]FlowElement // 按 ID 索引的元素
+	Order                  []string               // 元素在文档中的顺序
 }
 
 // FlowElement 是所有 BPMN 元素的公共接口。

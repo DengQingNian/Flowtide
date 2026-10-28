@@ -198,7 +198,35 @@ func (e *Engine) ImportRuntimeRows(ctx context.Context, rows []flowablerow.Row) 
 		}
 		for _, link := range snapshot.Links {
 			// 任务身份链接按任务动态计算，不单独恢复
-			if link.ProcessInstanceID == "" || link.TaskID != "" {
+			if link.TaskID != "" {
+				continue
+			}
+			if link.ProcessInstanceID == "" {
+				if link.ProcessDefinitionID == "" {
+					continue
+				}
+				definition, ok := e.findDefinition(link.ProcessDefinitionID)
+				if !ok {
+					return nil, api.NewError("ENGINE-0404", "导入身份链接缺少定义: "+link.ProcessDefinitionID, api.ErrBadRequest)
+				}
+				// 部署时已从 BPMN 生成候选发起人，避免重复
+				duplicate := false
+				for _, existing := range definition.StarterLinks {
+					if existing.UserID == link.UserID && existing.GroupID == link.GroupID {
+						duplicate = true
+						break
+					}
+				}
+				if !duplicate {
+					definition.StarterLinks = append(definition.StarterLinks, &api.IdentityLink{
+						ID:                  link.ID,
+						Type:                link.Type,
+						UserID:              link.UserID,
+						GroupID:             link.GroupID,
+						ProcessDefinitionID: link.ProcessDefinitionID,
+						CreateTime:          cc.now,
+					})
+				}
 				continue
 			}
 			instance, ok := e.findInstance(link.ProcessInstanceID)

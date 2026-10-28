@@ -15,9 +15,10 @@ type deploymentState struct {
 
 // definitionState 是流程定义的运行时状态。
 type definitionState struct {
-	Info  api.ProcessDefinition // 流程定义信息
-	Model *model.BpmnModel      // 解析后的模型
-	XML   []byte                // 原始 XML
+	Info         api.ProcessDefinition // 流程定义信息
+	Model        *model.BpmnModel      // 解析后的模型
+	XML          []byte                // 原始 XML
+	StarterLinks []*api.IdentityLink   // 候选发起人链接
 }
 
 // instanceState 是流程实例的运行时状态。
@@ -207,6 +208,7 @@ func cloneState(source *state) *state {
 	}
 	for id, definition := range source.Definitions {
 		copied := *definition
+		copied.StarterLinks = cloneIdentityLinks(definition.StarterLinks)
 		target.Definitions[id] = &copied
 	}
 	for id, model := range source.Models {
@@ -335,9 +337,24 @@ func cloneAnyMap(source map[string]any) map[string]any {
 	return target
 }
 
-// cloneBytesMap 复制字节切片映射。
+// cloneIdentityLinks 深拷贝身份链接。
+// @param source 源链接
+// @return 拷贝结果
+func cloneIdentityLinks(source []*api.IdentityLink) []*api.IdentityLink {
+	if source == nil {
+		return nil
+	}
+	out := make([]*api.IdentityLink, 0, len(source))
+	for _, link := range source {
+		copied := *link
+		out = append(out, &copied)
+	}
+	return out
+}
+
+// cloneBytesMap 深拷贝字节映射。
 // @param source 源映射
-// @return 新映射
+// @return 拷贝结果
 func cloneBytesMap(source map[string][]byte) map[string][]byte {
 	if source == nil {
 		return nil

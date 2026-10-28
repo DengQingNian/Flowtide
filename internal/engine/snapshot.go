@@ -16,8 +16,9 @@ type deploymentSnapshot struct {
 
 // definitionSnapshot 是流程定义的持久化结构。
 type definitionSnapshot struct {
-	Info api.ProcessDefinition `json:"info"` // 流程定义信息
-	XML  []byte                `json:"xml"`  // 原始 BPMN XML
+	Info         api.ProcessDefinition `json:"info"`         // 流程定义信息
+	XML          []byte                `json:"xml"`          // 原始 BPMN XML
+	StarterLinks []*api.IdentityLink   `json:"starterLinks"` // 候选发起人
 }
 
 // snapshot 是引擎状态的持久化结构。
@@ -56,7 +57,7 @@ func (e *Engine) toSnapshot() *snapshot {
 		out.Deployments = append(out.Deployments, deploymentSnapshot{Info: deployment.Info, Resources: deployment.Resources})
 	}
 	for _, definition := range e.state.Definitions {
-		out.Definitions = append(out.Definitions, definitionSnapshot{Info: definition.Info, XML: definition.XML})
+		out.Definitions = append(out.Definitions, definitionSnapshot{Info: definition.Info, XML: definition.XML, StarterLinks: definition.StarterLinks})
 	}
 	for _, instance := range e.state.Instances {
 		out.Instances = append(out.Instances, instance)
@@ -168,7 +169,7 @@ func (e *Engine) loadState(ctx context.Context) error {
 		if err != nil {
 			return api.NewError("ENGINE-0912", "恢复流程定义失败: "+definition.Info.ID, err)
 		}
-		restored.Definitions[definition.Info.ID] = &definitionState{Info: definition.Info, Model: parsed, XML: definition.XML}
+		restored.Definitions[definition.Info.ID] = &definitionState{Info: definition.Info, Model: parsed, XML: definition.XML, StarterLinks: definition.StarterLinks}
 	}
 	for _, instance := range stored.Instances {
 		restored.Instances[instance.ID] = instance

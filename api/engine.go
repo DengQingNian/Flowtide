@@ -168,6 +168,34 @@ type RepositoryService interface {
 	// @param source 扩展源
 	// @return 设置错误
 	SetModelSourceExtra(ctx context.Context, modelID string, source []byte) error
+	// ListDefinitionIdentityLinks 返回流程定义候选发起人。
+	// @param ctx 上下文
+	// @param definitionID 流程定义 ID
+	// @return 链接列表
+	// @return 查询错误
+	ListDefinitionIdentityLinks(ctx context.Context, definitionID string) ([]IdentityLink, error)
+	// GetDefinitionIdentityLink 查询单个候选发起人。
+	// @param ctx 上下文
+	// @param definitionID 流程定义 ID
+	// @param family users 或 groups
+	// @param identityID 用户或组 ID
+	// @return 链接
+	// @return 查询错误
+	GetDefinitionIdentityLink(ctx context.Context, definitionID, family, identityID string) (IdentityLink, error)
+	// AddDefinitionIdentityLink 添加候选发起人。
+	// @param ctx 上下文
+	// @param definitionID 流程定义 ID
+	// @param link 链接
+	// @return 创建后的链接
+	// @return 创建错误
+	AddDefinitionIdentityLink(ctx context.Context, definitionID string, link IdentityLink) (IdentityLink, error)
+	// DeleteDefinitionIdentityLink 删除候选发起人。
+	// @param ctx 上下文
+	// @param definitionID 流程定义 ID
+	// @param family users 或 groups
+	// @param identityID 用户或组 ID
+	// @return 删除错误
+	DeleteDefinitionIdentityLink(ctx context.Context, definitionID, family, identityID string) error
 }
 
 // StartRequest 是启动流程实例的请求。
