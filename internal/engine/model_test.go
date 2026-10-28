@@ -145,7 +145,7 @@ func TestModelListAndPersistence(t *testing.T) {
 				t.Fatalf("源码 ID 未写入: %+v", row.Values)
 			}
 		}
-		if row.Table == "ACT_GE_BYTEARRAY" && row.Values["DEPLOYMENT_ID_"] == "" {
+		if row.Table == "ACT_GE_BYTEARRAY" && row.Values["DEPLOYMENT_ID_"] == nil {
 			sourceRows++
 		}
 	}

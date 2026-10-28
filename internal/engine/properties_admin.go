@@ -11,6 +11,9 @@ import (
 // @param name 属性名
 // @return 是否内置
 func isBuiltinProperty(name string) bool {
+	if strings.HasPrefix(name, "flowable-go.schema.") {
+		return true
+	}
 	switch name {
 	case "common.schema.version", "schema.version", "schema.history", "next.dbid", "engine.version", "historyLevel", "tenantId":
 		return true

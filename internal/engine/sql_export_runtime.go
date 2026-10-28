@@ -5,7 +5,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
-	"fmt"
+	"math"
 	"sort"
 	"strings"
 	"time"
@@ -77,7 +77,7 @@ func (e *Engine) runtimeRowsLocked() ([]flowablerow.Row, error) {
 	}
 	sort.Slice(tasks, func(i, j int) bool { return tasks[i].Task.ID < tasks[j].Task.ID })
 	for _, task := range tasks {
-		row, rowErr := runtimeRow("ACT_RU_TASK", []string{"ID_", "REV_", "EXECUTION_ID_", "PROC_INST_ID_", "PROC_DEF_ID_", "NAME_", "DESCRIPTION_", "TASK_DEF_KEY_", "PARENT_TASK_ID_", "OWNER_", "ASSIGNEE_", "PRIORITY_", "CREATE_TIME_", "DUE_DATE_", "CATEGORY_", "SUSPENSION_STATE_", "TENANT_ID_", "FORM_KEY_"})
+		row, rowErr := runtimeRow("ACT_RU_TASK", []string{"ID_", "REV_", "EXECUTION_ID_", "PROC_INST_ID_", "PROC_DEF_ID_", "NAME_", "DESCRIPTION_", "TASK_DEF_KEY_", "PARENT_TASK_ID_", "OWNER_", "ASSIGNEE_", "DELEGATION_", "PRIORITY_", "CREATE_TIME_", "DUE_DATE_", "CATEGORY_", "SUSPENSION_STATE_", "TENANT_ID_", "FORM_KEY_"})
 		if rowErr != nil {
 			return nil, rowErr
 		}
@@ -102,6 +102,7 @@ func (e *Engine) runtimeRowsLocked() ([]flowablerow.Row, error) {
 		_ = row.Set("PARENT_TASK_ID_", task.Task.ParentTaskID)
 		_ = row.Set("OWNER_", task.Task.Owner)
 		_ = row.Set("ASSIGNEE_", task.Task.Assignee)
+		_ = row.Set("DELEGATION_", task.Task.DelegationState)
 		_ = row.Set("PRIORITY_", task.Task.Priority)
 		_ = row.Set("CREATE_TIME_", task.Task.CreateTime)
 		if task.Task.DueDate != nil {
@@ -114,6 +115,32 @@ func (e *Engine) runtimeRowsLocked() ([]flowablerow.Row, error) {
 		_ = row.Set("TENANT_ID_", tenant)
 		_ = row.Set("FORM_KEY_", task.Task.FormKey)
 		rows = append(rows, *row)
+		// 候选集合来自身份链接，导入时不能只依赖 BPMN 初始表达式。
+		for _, group := range []struct {
+			users  bool
+			values []string
+		}{{true, task.CandidateUsers}, {false, task.CandidateGroups}} {
+			for _, identity := range group.values {
+				link, _ := flowablerow.NewRow("ACT_RU_IDENTITYLINK")
+				for _, column := range link.Columns() {
+					_ = link.Set(column, nil)
+				}
+				kind := "group"
+				if group.users {
+					kind = "user"
+				}
+				_ = link.Set("ID_", variableID(task.Task.ID, kind, identity))
+				_ = link.Set("REV_", 1)
+				_ = link.Set("TYPE_", "candidate")
+				if group.users {
+					_ = link.Set("USER_ID_", identity)
+				} else {
+					_ = link.Set("GROUP_ID_", identity)
+				}
+				_ = link.Set("TASK_ID_", task.Task.ID)
+				rows = append(rows, *link)
+			}
+		}
 	}
 
 	for _, execution := range executions {
@@ -281,6 +308,10 @@ func (e *Engine) runtimeRowsLocked() ([]flowablerow.Row, error) {
 	}
 	links := make([]*api.IdentityLink, 0, len(e.state.InstanceLinks))
 	for _, link := range e.state.InstanceLinks {
+		instance, exists := e.findInstance(link.ProcessInstanceID)
+		if !exists || instance.Ended {
+			continue
+		}
 		links = append(links, link)
 	}
 	sort.Slice(links, func(i, j int) bool { return links[i].ID < links[j].ID })
@@ -335,7 +366,12 @@ func (e *Engine) runtimeRowsLocked() ([]flowablerow.Row, error) {
 		}
 		return rows[i].Table < rows[j].Table
 	})
-	return rows, nil
+	controls, err := e.runtimeControlRows()
+	if err != nil {
+		return nil, err
+	}
+	rows = append(rows, controls...)
+	return expandVariableRows(e.normalizeExecutionReferences(rows))
 }
 
 // runtimeRow 创建带插入列的行。
@@ -389,6 +425,28 @@ func variableRow(executionID, processInstanceID, taskID, name string, value any)
 // @return TEXT_
 func variableColumns(value any) (string, any, any, any) {
 	switch typed := value.(type) {
+	case []byte:
+		return "bytes", nil, nil, typed
+	case time.Time:
+		return "date", typed.UnixMilli(), nil, nil
+	case int8:
+		return "long", int64(typed), nil, nil
+	case int16:
+		return "long", int64(typed), nil, nil
+	case int32:
+		return "long", int64(typed), nil, nil
+	case uint:
+		if uint64(typed) <= math.MaxInt64 {
+			return "long", int64(typed), nil, nil
+		}
+		return "unsupported", nil, nil, nil
+	case uint64:
+		if typed <= math.MaxInt64 {
+			return "long", int64(typed), nil, nil
+		}
+		return "unsupported", nil, nil, nil
+	case float32:
+		return "double", nil, float64(typed), nil
 	case string:
 		return "string", nil, nil, typed
 	case bool:
@@ -407,7 +465,7 @@ func variableColumns(value any) (string, any, any, any) {
 	default:
 		data, err := json.Marshal(typed)
 		if err != nil {
-			return "json", nil, nil, fmt.Sprint(typed)
+			return "unsupported", nil, nil, nil
 		}
 		return "json", nil, nil, string(data)
 	}

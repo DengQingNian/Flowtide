@@ -265,7 +265,7 @@ func (e *Engine) historicRowsLocked() ([]flowablerow.Row, error) {
 		}
 		return rows[i].Table < rows[j].Table
 	})
-	return rows, nil
+	return expandVariableRows(e.normalizeExecutionReferences(rows))
 }
 
 // historyRow 创建带插入列的历史行。

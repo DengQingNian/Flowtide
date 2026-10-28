@@ -72,6 +72,9 @@ func DecodeRows(rows []Row) (Snapshot, error) {
 			if err != nil {
 				return Snapshot{}, err
 			}
+			if strings.HasPrefix(name, "flowable-go-") {
+				continue
+			}
 			// 模型源使用 model/{id}/source 命名，与部署资源区分
 			if strings.HasPrefix(name, "model/") {
 				modelSources[name] = data
@@ -165,6 +168,9 @@ func decodeDeployment(row Row) (api.Deployment, error) {
 // @param name 属性名
 // @return 是否内置
 func isSchemaProperty(name string) bool {
+	if strings.HasPrefix(name, "flowable-go.schema.") {
+		return true
+	}
 	switch name {
 	case "common.schema.version", "schema.version", "schema.history", "next.dbid":
 		return true

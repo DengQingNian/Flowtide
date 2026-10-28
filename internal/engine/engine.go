@@ -259,6 +259,11 @@ func (e *Engine) execute(ctx context.Context, fn func(*commandContext) (any, err
 	if e.closed {
 		return nil, api.NewError("ENGINE-0002", "引擎已关闭", api.ErrEngineClosed)
 	}
+	if owner, ok := e.cfg.StateStore.(interface{ CheckOwner(context.Context) error }); ok {
+		if err := owner.CheckOwner(ctx); err != nil {
+			return nil, api.NewError("ENGINE-0922", "存储独占权校验失败", err)
+		}
+	}
 	backup := cloneState(e.state)
 	cc := &commandContext{
 		engine: e,

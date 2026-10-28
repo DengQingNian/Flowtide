@@ -11,8 +11,9 @@ import (
 
 // Table 描述一张 ACT_* 表的列。
 type Table struct {
-	Name    string   // 表名
-	Columns []string // 列顺序
+	Name       string   // 表名
+	Columns    []string // 列顺序
+	PrimaryKey string   // 主键列，缺省为 ID_
 }
 
 var tables = map[string]Table{
@@ -25,8 +26,9 @@ var tables = map[string]Table{
 		Columns: []string{"ID_", "REV_", "CATEGORY_", "NAME_", "KEY_", "VERSION_", "DEPLOYMENT_ID_", "RESOURCE_NAME_", "DGRM_RESOURCE_NAME_", "DESCRIPTION_", "HAS_START_FORM_KEY_", "HAS_GRAPHICAL_NOTATION_", "SUSPENSION_STATE_", "TENANT_ID_", "ENGINE_VERSION_", "DERIVED_FROM_", "DERIVED_FROM_ROOT_", "DERIVED_VERSION_"},
 	},
 	"ACT_GE_PROPERTY": {
-		Name:    "ACT_GE_PROPERTY",
-		Columns: []string{"NAME_", "VALUE_", "REV_"},
+		PrimaryKey: "NAME_",
+		Name:       "ACT_GE_PROPERTY",
+		Columns:    []string{"NAME_", "VALUE_", "REV_"},
 	},
 	"ACT_RE_MODEL": {
 		Name:    "ACT_RE_MODEL",
@@ -131,6 +133,11 @@ func (r *Row) Set(column string, value any) error {
 	}
 	for _, name := range table.Columns {
 		if name == column {
+			if text, ok := value.(string); ok && text == "" {
+				if _, foreign := foreignKeys[r.Table][column]; foreign {
+					value = nil
+				}
+			}
 			r.Values[column] = value
 			return nil
 		}
@@ -210,38 +217,42 @@ func (r *Row) UpdateSQL(dialect string, oldRevision int64) (string, []any, error
 	if err := validateDialect(dialect); err != nil {
 		return "", nil, err
 	}
-	id, ok := r.Values["ID_"]
-	if !ok {
-		return "", nil, api.NewError("ROW-0003", "行缺少 ID_", api.ErrBadRequest)
+	key := primaryKey(r.Table)
+	id, ok := r.Values[key]
+	if !ok || id == nil {
+		return "", nil, api.NewError("ROW-0003", "行缺少主键: "+key, api.ErrBadRequest)
 	}
-	if _, exists := r.Values["REV_"]; !exists {
+	versioned := tableHasColumn(r.Table, "REV_")
+	if _, exists := r.Values["REV_"]; versioned && !exists {
 		return "", nil, api.NewError("ROW-0006", "行缺少 REV_", api.ErrBadRequest)
 	}
-	columns := r.insertColumns()
-	assignments := make([]string, 0, len(columns))
-	args := make([]any, 0, len(columns)+2)
-	for index, column := range columns {
-		if column == "ID_" {
+	assignments := make([]string, 0)
+	args := make([]any, 0)
+	// 跳过主键后按实际参数数编号，避免 PostgreSQL 缺号或复用参数。
+	for _, column := range r.insertColumns() {
+		if column == key {
 			continue
 		}
 		value := r.Values[column]
 		if column == "REV_" {
 			value = oldRevision + 1
 		}
-		assignments = append(assignments, fmt.Sprintf("%s = %s", column, placeholder(dialect, index+1)))
 		args = append(args, value)
+		assignments = append(assignments, fmt.Sprintf("%s = %s", column, placeholder(dialect, len(args))))
 	}
 	if len(assignments) == 0 {
 		return "", nil, api.NewError("ROW-0007", "没有可更新的列", api.ErrBadRequest)
 	}
-	idPlaceholder := placeholder(dialect, len(assignments)+1)
-	revisionPlaceholder := placeholder(dialect, len(assignments)+2)
-	query := fmt.Sprintf("UPDATE %s SET %s WHERE ID_ = %s AND REV_ = %s", r.Table, strings.Join(assignments, ", "), idPlaceholder, revisionPlaceholder)
-	args = append(args, id, oldRevision)
+	args = append(args, id)
+	query := fmt.Sprintf("UPDATE %s SET %s WHERE %s = %s", r.Table, strings.Join(assignments, ", "), key, placeholder(dialect, len(args)))
+	if versioned {
+		args = append(args, oldRevision)
+		query += " AND REV_ = " + placeholder(dialect, len(args))
+	}
 	return query, args, nil
 }
 
-// DeleteSQL 生成按 ID_ 删除语句。
+// DeleteSQL 生成按真实主键及可用修订号删除的语句。
 // @param dialect 数据库方言
 // @return SQL
 // @return 参数
@@ -250,11 +261,41 @@ func (r *Row) DeleteSQL(dialect string) (string, []any, error) {
 	if err := validateDialect(dialect); err != nil {
 		return "", nil, err
 	}
-	id, ok := r.Values["ID_"]
-	if !ok {
-		return "", nil, api.NewError("ROW-0003", "行缺少 ID_", api.ErrBadRequest)
+	key := primaryKey(r.Table)
+	id, ok := r.Values[key]
+	if !ok || id == nil {
+		return "", nil, api.NewError("ROW-0003", "行缺少主键: "+key, api.ErrBadRequest)
 	}
-	return fmt.Sprintf("DELETE FROM %s WHERE ID_ = %s", r.Table, placeholder(dialect, 1)), []any{id}, nil
+	query := fmt.Sprintf("DELETE FROM %s WHERE %s = %s", r.Table, key, placeholder(dialect, 1))
+	args := []any{id}
+	if revision, ok := revisionValue(*r); ok {
+		query += " AND REV_ = " + placeholder(dialect, 2)
+		args = append(args, revision)
+	}
+	return query, args, nil
+}
+
+// primaryKey 返回当前支持表的实际主键列。
+// @param table 表名
+// @return 主键列
+func primaryKey(table string) string {
+	if key := tables[table].PrimaryKey; key != "" {
+		return key
+	}
+	return "ID_"
+}
+
+// tableHasColumn 判断表元数据是否包含指定列。
+// @param table 表名
+// @param column 列名
+// @return 是否存在
+func tableHasColumn(table, column string) bool {
+	for _, name := range tables[table].Columns {
+		if name == column {
+			return true
+		}
+	}
+	return false
 }
 
 // insertColumns 返回实际插入列。

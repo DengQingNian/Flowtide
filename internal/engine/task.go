@@ -135,6 +135,8 @@ func (e *Engine) GetTask(ctx context.Context, id string) (api.Task, error) {
 // @return 任务 DTO
 func (e *Engine) toTaskDTO(task *taskState) api.Task {
 	dto := task.Task
+	dto.CandidateUsers = append([]string(nil), task.CandidateUsers...)
+	dto.CandidateGroups = append([]string(nil), task.CandidateGroups...)
 	dto.Variables = make(map[string]any)
 	if execution, ok := e.findExecution(task.ExecutionID); ok {
 		for key, value := range e.variablesOf(execution) {

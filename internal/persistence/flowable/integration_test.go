@@ -3,6 +3,8 @@ package flowable
 import (
 	"context"
 	"database/sql"
+	_ "github.com/go-sql-driver/mysql"
+	_ "github.com/lib/pq"
 	"os"
 	"strings"
 	"testing"
@@ -17,8 +19,11 @@ import (
 func TestIntegrationSQL(t *testing.T) {
 	driverName := os.Getenv("FLOWABLE_TEST_DRIVER")
 	dsn := os.Getenv("FLOWABLE_TEST_DSN")
-	if driverName == "" || dsn == "" {
+	if driverName == "" && dsn == "" {
 		t.Skip("未配置 FLOWABLE_TEST_DRIVER/FLOWABLE_TEST_DSN")
+	}
+	if driverName == "" || dsn == "" {
+		t.Fatal("显式数据库测试配置不完整")
 	}
 	dialect := os.Getenv("FLOWABLE_TEST_DIALECT")
 	if dialect == "" {
@@ -26,11 +31,11 @@ func TestIntegrationSQL(t *testing.T) {
 	}
 	db, err := sql.Open(driverName, dsn)
 	if err != nil {
-		t.Skipf("打开数据库失败（驱动未注册）: %v", err)
+		t.Fatalf("打开数据库失败: %v", err)
 	}
 	defer func() { _ = db.Close() }()
 	if err := db.PingContext(context.Background()); err != nil {
-		t.Skipf("数据库不可达: %v", err)
+		t.Fatalf("数据库不可达: %v", err)
 	}
 	ddl, err := schema.Load(dialect)
 	if err != nil {

@@ -129,7 +129,7 @@ func TestHistoricVariableTypes(t *testing.T) {
 		t.Fatalf("非法 JSON 历史变量应失败")
 	}
 	unknown := "x"
-	if value, _ := historicVariableValue("unknown", nil, nil, &unknown); value != "x" {
+	if _, err := historicVariableValue("unknown", nil, nil, &unknown); err == nil {
 		t.Fatalf("未知历史类型回退错误")
 	}
 }
@@ -197,7 +197,7 @@ func TestDecodeHistoricRows_Errors(t *testing.T) {
 	if value, _ := historicVariableValue("double", nil, nil, nil); value != 0.0 {
 		t.Fatalf("空浮点回退错误")
 	}
-	if value, _ := historicVariableValue("unknown", nil, nil, nil); value != nil {
+	if _, err := historicVariableValue("unknown", nil, nil, nil); err == nil {
 		t.Fatalf("未知类型空值回退错误")
 	}
 }

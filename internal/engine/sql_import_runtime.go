@@ -2,7 +2,7 @@ package engine
 
 import (
 	"context"
-	"encoding/json"
+	"github.com/flowable-go/flowable/bpmn/model"
 	"time"
 
 	"github.com/flowable-go/flowable/api"
@@ -14,6 +14,10 @@ import (
 // @param rows 行列表
 // @return 导入错误
 func (e *Engine) ImportRuntimeRows(ctx context.Context, rows []flowablerow.Row) error {
+	controls, err := decodeRuntimeControls(rows)
+	if err != nil {
+		return err
+	}
 	snapshot, err := flowablerow.DecodeRuntimeRows(rows)
 	if err != nil {
 		return err
@@ -74,6 +78,7 @@ func (e *Engine) ImportRuntimeRows(ctx context.Context, rows []flowablerow.Row) 
 					ParentTaskID:        task.ParentTaskID,
 					Assignee:            task.Assignee,
 					Owner:               task.Owner,
+					DelegationState:     task.DelegationState,
 					Priority:            task.Priority,
 					FormKey:             task.FormKey,
 					Category:            task.Category,
@@ -84,6 +89,25 @@ func (e *Engine) ImportRuntimeRows(ctx context.Context, rows []flowablerow.Row) 
 				ExecutionID:    task.ExecutionID,
 				ActivityID:     task.TaskDefinitionKey,
 				LocalVariables: make(map[string]any),
+			}
+			restored := e.state.Tasks[task.ID]
+			restored.HistoricTaskID = task.ID
+			// 监听器只恢复声明，不在导入时重新执行 create 事件。
+			if task.DefinitionID != "" {
+				definition, exists := e.findDefinition(task.DefinitionID)
+				if !exists {
+					return nil, api.NewError("ENGINE-0404", "导入任务缺少定义", api.ErrBadRequest)
+				}
+				process := processOfDefinition(definition)
+				if process == nil {
+					return nil, api.NewError("ENGINE-0501", "流程定义不包含流程", api.ErrBadRequest)
+				}
+				element, exists := findElement(process, task.TaskDefinitionKey)
+				node, userTask := element.(*model.UserTask)
+				if !exists || !userTask {
+					return nil, api.NewError("ENGINE-0918", "导入任务活动不支持", api.ErrBadRequest)
+				}
+				restored.Listeners = append([]model.TaskListenerDefinition(nil), node.TaskListeners...)
 			}
 		}
 		for _, variable := range snapshot.Variables {
@@ -198,8 +222,20 @@ func (e *Engine) ImportRuntimeRows(ctx context.Context, rows []flowablerow.Row) 
 			e.state.Subscriptions[state.ID] = state
 		}
 		for _, link := range snapshot.Links {
-			// 任务身份链接按任务动态计算，不单独恢复
+			// 从持久身份链接重建候选集合，包括运行时增删后的结果。
 			if link.TaskID != "" {
+				task, exists := e.state.Tasks[link.TaskID]
+				if !exists {
+					return nil, api.NewError("ENGINE-0805", "导入身份链接缺少任务", api.ErrBadRequest)
+				}
+				if link.Type == "candidate" {
+					if link.UserID != "" && !contains(task.CandidateUsers, link.UserID) {
+						task.CandidateUsers = append(task.CandidateUsers, link.UserID)
+					}
+					if link.GroupID != "" && !contains(task.CandidateGroups, link.GroupID) {
+						task.CandidateGroups = append(task.CandidateGroups, link.GroupID)
+					}
+				}
 				continue
 			}
 			if link.ProcessInstanceID == "" {
@@ -245,7 +281,7 @@ func (e *Engine) ImportRuntimeRows(ctx context.Context, rows []flowablerow.Row) 
 			}
 			e.state.InstanceLinks[identity.ID] = identity
 		}
-		return nil, nil
+		return nil, e.restoreRuntimeControls(controls)
 	})
 	return err
 }
@@ -255,48 +291,5 @@ func (e *Engine) ImportRuntimeRows(ctx context.Context, rows []flowablerow.Row) 
 // @return 变量值
 // @return 转换错误
 func runtimeVariableValue(variable flowablerow.RuntimeVariable) (any, error) {
-	switch variable.Type {
-	case "string":
-		if variable.Text == nil {
-			return "", nil
-		}
-		return *variable.Text, nil
-	case "boolean":
-		if variable.Long == nil {
-			return false, nil
-		}
-		return *variable.Long != 0, nil
-	case "long":
-		if variable.Long == nil {
-			return int64(0), nil
-		}
-		return *variable.Long, nil
-	case "double":
-		if variable.Double == nil {
-			return 0.0, nil
-		}
-		return *variable.Double, nil
-	case "null":
-		return nil, nil
-	case "json":
-		if variable.Text == nil {
-			return nil, nil
-		}
-		var value any
-		if err := json.Unmarshal([]byte(*variable.Text), &value); err != nil {
-			return nil, api.NewError("ENGINE-0913", "导入 JSON 变量失败", err)
-		}
-		return value, nil
-	default:
-		if variable.Text != nil {
-			return *variable.Text, nil
-		}
-		if variable.Long != nil {
-			return *variable.Long, nil
-		}
-		if variable.Double != nil {
-			return *variable.Double, nil
-		}
-		return nil, nil
-	}
+	return flowablerow.VariableValue(variable.Type, variable.Long, variable.Double, variable.Text, variable.Bytes)
 }

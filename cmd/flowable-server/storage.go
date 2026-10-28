@@ -40,6 +40,17 @@ func newStateStore(ctx context.Context, storage, statePath, envPath string) (sta
 		_ = db.Close()
 		return nil, nil, err
 	}
-	store, err := sqlstate.New(sqlstate.SQLDB{DB: db}, "mysql")
-	return store, db.Close, err
+	store, release, err := sqlstate.NewExclusiveMySQL(ctx, db, cfg.Database)
+	if err != nil {
+		_ = db.Close()
+		return nil, nil, err
+	}
+	return store, func() error {
+		releaseErr := release()
+		closeErr := db.Close()
+		if releaseErr != nil {
+			return releaseErr
+		}
+		return closeErr
+	}, nil
 }

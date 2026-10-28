@@ -72,7 +72,7 @@ func (e *Engine) startProcess(cc *commandContext, req api.StartRequest) (api.Pro
 		return api.ProcessInstance{}, api.NewError("ENGINE-0404", "流程定义不存在", api.ErrNotFound)
 	}
 	instanceID := e.newID()
-	executionID := e.newID()
+	executionID := instanceID
 	variables := variablesToMap(req.Variables)
 	transient := variablesToMap(req.TransientVariables)
 	instance := &instanceState{

@@ -102,7 +102,7 @@ func TestRuntimeVariableValue(t *testing.T) {
 	if _, err := runtimeVariableValue(flowablerow.RuntimeVariable{Type: "json", Text: &bad}); err == nil {
 		t.Fatalf("非法 JSON 应失败")
 	}
-	if value, _ := runtimeVariableValue(flowablerow.RuntimeVariable{Type: "unknown"}); value != nil {
+	if _, err := runtimeVariableValue(flowablerow.RuntimeVariable{Type: "unknown"}); err == nil {
 		t.Fatalf("未知类型应返回 nil")
 	}
 }
@@ -214,22 +214,22 @@ func TestImportRuntimeRows_DefinitionErrors(t *testing.T) {
 	}
 }
 
-// TestRuntimeVariableValue_Default 验证未知变量类型回退。
+// TestRuntimeVariableValue_Default 验证未知变量类型始终阻断。
 // @param t 测试上下文
 func TestRuntimeVariableValue_Default(t *testing.T) {
 	text := "x"
 	long := int64(1)
 	double := 1.5
-	if value, _ := runtimeVariableValue(flowablerow.RuntimeVariable{Type: "unknown", Text: &text}); value != "x" {
+	if _, err := runtimeVariableValue(flowablerow.RuntimeVariable{Type: "unknown", Text: &text}); err == nil {
 		t.Fatalf("未知类型文本回退错误")
 	}
-	if value, _ := runtimeVariableValue(flowablerow.RuntimeVariable{Type: "unknown", Long: &long}); value != int64(1) {
+	if _, err := runtimeVariableValue(flowablerow.RuntimeVariable{Type: "unknown", Long: &long}); err == nil {
 		t.Fatalf("未知类型整数回退错误")
 	}
-	if value, _ := runtimeVariableValue(flowablerow.RuntimeVariable{Type: "unknown", Double: &double}); value != 1.5 {
+	if _, err := runtimeVariableValue(flowablerow.RuntimeVariable{Type: "unknown", Double: &double}); err == nil {
 		t.Fatalf("未知类型浮点回退错误")
 	}
-	if value, _ := runtimeVariableValue(flowablerow.RuntimeVariable{Type: "unknown"}); value != nil {
+	if _, err := runtimeVariableValue(flowablerow.RuntimeVariable{Type: "unknown"}); err == nil {
 		t.Fatalf("未知类型空值回退错误")
 	}
 }

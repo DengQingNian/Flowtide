@@ -59,11 +59,12 @@ func (e *Engine) persistRows(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
+	current = flowablerow.PreserveSchemaRows(e.lastRows, current)
 	operations := flowablerow.DiffOperations(e.lastRows, current)
 	if err := e.rowRepository.Apply(ctx, operations); err != nil {
 		return api.NewError("ENGINE-0915", "写入行仓储失败", err)
 	}
-	e.lastRows = current
+	e.lastRows = flowablerow.CommittedRows(e.lastRows, current)
 	return nil
 }
 
@@ -106,6 +107,12 @@ func (e *Engine) restoreRows(ctx context.Context, rows []flowablerow.Row) error 
 	if len(repositoryRows) > 0 {
 		if err := e.ImportRows(ctx, repositoryRows); err != nil {
 			return err
+		}
+	}
+	for _, row := range repositoryRows {
+		if row.Table == "ACT_GE_BYTEARRAY" {
+			runtimeRows = append(runtimeRows, row)
+			historicRows = append(historicRows, row)
 		}
 	}
 	if len(runtimeRows) > 0 {

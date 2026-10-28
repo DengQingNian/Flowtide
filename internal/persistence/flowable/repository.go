@@ -149,8 +149,8 @@ func (r *Repository) Update(ctx context.Context, row Row, oldRevision int64) (in
 	if err != nil {
 		return 0, api.NewError("ROW-0011", "读取更新行数失败", err)
 	}
-	if affected == 0 {
-		return 0, api.NewError("ROW-0012", "乐观锁冲突", api.ErrConflict)
+	if affected == 0 && tableHasColumn(row.Table, "REV_") {
+		return 0, api.NewError("ROW-0012", "乐观锁冲突: "+row.Table, api.ErrConflict)
 	}
 	return affected, nil
 }
@@ -169,7 +169,14 @@ func (r *Repository) Delete(ctx context.Context, row Row) (int64, error) {
 	if err != nil {
 		return 0, api.NewError("ROW-0013", "删除行失败", err)
 	}
-	return result.RowsAffected()
+	affected, err := result.RowsAffected()
+	if err != nil {
+		return 0, err
+	}
+	if _, versioned := revisionValue(row); versioned && affected == 0 {
+		return 0, api.NewError("ROW-0012", "删除时发生乐观锁冲突", api.ErrConflict)
+	}
+	return affected, nil
 }
 
 // Apply 在事务中执行一组行操作。
@@ -222,7 +229,12 @@ func (r *Repository) Apply(ctx context.Context, operations []Operation) error {
 func SnapshotOperations(rows []Row) []Operation {
 	operations := make([]Operation, 0, len(rows)*2)
 	for _, row := range rows {
-		operations = append(operations, Operation{Kind: OperationDelete, Row: row})
+		deletion := withRevision(row, Row{})
+		delete(deletion.Values, "REV_")
+		operations = append(operations, Operation{Kind: OperationDelete, Row: deletion})
+	}
+	operations = orderOperations(operations)
+	for _, row := range orderedRows(rows) {
 		operations = append(operations, Operation{Kind: OperationInsert, Row: row})
 	}
 	return operations
@@ -261,15 +273,16 @@ func DiffOperations(oldRows, newRows []Row) []Operation {
 			operations = append(operations, Operation{Kind: OperationInsert, Row: row})
 			continue
 		}
+		row = withRevision(row, old)
 		if reflect.DeepEqual(old.Values, row.Values) {
 			continue
 		}
 		revision, hasRevision := revisionValue(old)
 		if !hasRevision {
-			operations = append(operations, Operation{Kind: OperationDelete, Row: old})
-			operations = append(operations, Operation{Kind: OperationInsert, Row: row})
+			operations = append(operations, Operation{Kind: OperationUpdate, Row: row})
 			continue
 		}
+		row.Values["REV_"] = revision + 1
 		operations = append(operations, Operation{Kind: OperationUpdate, Row: row, OldRevision: revision})
 	}
 	for _, row := range oldRows {
@@ -281,7 +294,7 @@ func DiffOperations(oldRows, newRows []Row) []Operation {
 			operations = append(operations, Operation{Kind: OperationDelete, Row: row})
 		}
 	}
-	return operations
+	return orderOperations(operations)
 }
 
 // rowIDValue 读取行的 ID_。
@@ -289,7 +302,7 @@ func DiffOperations(oldRows, newRows []Row) []Operation {
 // @return ID
 // @return 是否存在
 func rowIDValue(row Row) (string, bool) {
-	value, ok := row.Values["ID_"]
+	value, ok := row.Values[primaryKey(row.Table)]
 	if !ok {
 		return "", false
 	}

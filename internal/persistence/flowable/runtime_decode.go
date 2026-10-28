@@ -28,6 +28,7 @@ type RuntimeExecution struct {
 
 // RuntimeTask 是运行时任务行。
 type RuntimeTask struct {
+	DelegationState   string     // 委派状态
 	ID                string     // 任务 ID
 	ExecutionID       string     // 执行 ID
 	ProcessInstanceID string     // 流程实例 ID
@@ -87,6 +88,8 @@ type RuntimeSubscription struct {
 
 // RuntimeVariable 是运行时变量行。
 type RuntimeVariable struct {
+	Bytes             []byte   // 外置字节数据
+	ByteArrayID       string   // 字节行引用
 	ID                string   // 变量 ID
 	Type              string   // 类型
 	Name              string   // 名称
@@ -134,8 +137,14 @@ func DecodeRuntimeRows(rows []Row) (RuntimeSnapshot, error) {
 		Subscriptions: make([]RuntimeSubscription, 0),
 		Links:         make([]RuntimeIdentityLink, 0),
 	}
+	arrays, err := variableByteArrays(rows)
+	if err != nil {
+		return RuntimeSnapshot{}, err
+	}
 	for _, row := range rows {
 		switch row.Table {
+		case "ACT_GE_BYTEARRAY":
+			continue
 		case "ACT_RU_EXECUTION":
 			execution, err := decodeExecution(row)
 			if err != nil {
@@ -152,6 +161,18 @@ func DecodeRuntimeRows(rows []Row) (RuntimeSnapshot, error) {
 			variable, err := decodeVariable(row)
 			if err != nil {
 				return RuntimeSnapshot{}, err
+			}
+			ref, err := optionalStringValue(row, "BYTEARRAY_ID_")
+			if err != nil {
+				return RuntimeSnapshot{}, err
+			}
+			variable.ByteArrayID = ref
+			if ref != "" {
+				data, exists := arrays[ref]
+				if !exists {
+					return RuntimeSnapshot{}, api.NewError("ROW-0032", "变量字节数据缺失: "+ref, api.ErrBadRequest)
+				}
+				variable.Bytes = data
 			}
 			snapshot.Variables = append(snapshot.Variables, variable)
 		case "ACT_RU_JOB":
@@ -386,8 +407,13 @@ func decodeTask(row Row) (RuntimeTask, error) {
 	if err != nil {
 		return RuntimeTask{}, err
 	}
+	delegation, err := optionalStringValue(row, "DELEGATION_")
+	if err != nil {
+		return RuntimeTask{}, err
+	}
 	return RuntimeTask{
-		ID: id, ExecutionID: executionID, ProcessInstanceID: processInstanceID,
+		DelegationState: delegation,
+		ID:              id, ExecutionID: executionID, ProcessInstanceID: processInstanceID,
 		DefinitionID: definitionID, Name: name, Description: description,
 		TaskDefinitionKey: taskKey, ParentTaskID: parentTaskID, Owner: owner, Assignee: assignee, Category: category,
 		FormKey: formKey, TenantID: tenant, Priority: priority, CreateTime: createTime,

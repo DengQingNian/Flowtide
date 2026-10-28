@@ -1,7 +1,6 @@
 package flowable
 
 import (
-	"encoding/json"
 	"sort"
 
 	"github.com/flowable-go/flowable/api"
@@ -36,8 +35,14 @@ func DecodeHistoricRows(rows []Row) (HistoricSnapshot, error) {
 		Details:     make([]api.HistoricDetail, 0),
 		TaskLogs:    make([]api.HistoricTaskLog, 0),
 	}
+	arrays, err := variableByteArrays(rows)
+	if err != nil {
+		return HistoricSnapshot{}, err
+	}
 	for _, row := range rows {
 		switch row.Table {
+		case "ACT_GE_BYTEARRAY":
+			continue
 		case "ACT_HI_PROCINST":
 			process, err := decodeHistoricProcess(row)
 			if err != nil {
@@ -57,7 +62,7 @@ func DecodeHistoricRows(rows []Row) (HistoricSnapshot, error) {
 			}
 			snapshot.Tasks = append(snapshot.Tasks, task)
 		case "ACT_HI_VARINST":
-			variable, err := decodeHistoricVariable(row)
+			variable, err := decodeHistoricVariable(row, arrays)
 			if err != nil {
 				return HistoricSnapshot{}, err
 			}
@@ -75,7 +80,7 @@ func DecodeHistoricRows(rows []Row) (HistoricSnapshot, error) {
 			}
 			snapshot.TaskLogs = append(snapshot.TaskLogs, log)
 		case "ACT_HI_DETAIL":
-			detail, err := decodeHistoricDetail(row)
+			detail, err := decodeHistoricDetail(row, arrays)
 			if err != nil {
 				return HistoricSnapshot{}, err
 			}
@@ -248,9 +253,10 @@ func decodeHistoricTask(row Row) (api.HistoricTaskInstance, error) {
 
 // decodeHistoricVariable 解析历史变量行。
 // @param row 行
+// @param arrays 同批次字节数据
 // @return 历史变量
 // @return 错误
-func decodeHistoricVariable(row Row) (api.HistoricVariableInstance, error) {
+func decodeHistoricVariable(row Row, arrays ...map[string][]byte) (api.HistoricVariableInstance, error) {
 	id, err := stringValue(row, "ID_")
 	if err != nil {
 		return api.HistoricVariableInstance{}, err
@@ -295,7 +301,7 @@ func decodeHistoricVariable(row Row) (api.HistoricVariableInstance, error) {
 	if err != nil {
 		return api.HistoricVariableInstance{}, err
 	}
-	value, err := historicVariableValue(variableType, longValue, doubleValue, textValue)
+	value, err := storedVariableValue(row, variableType, longValue, doubleValue, textValue, arrays)
 	if err != nil {
 		return api.HistoricVariableInstance{}, err
 	}
@@ -317,50 +323,7 @@ func decodeHistoricVariable(row Row) (api.HistoricVariableInstance, error) {
 // @return 值
 // @return 错误
 func historicVariableValue(variableType string, longValue *int64, doubleValue *float64, textValue *string) (any, error) {
-	switch variableType {
-	case "string":
-		if textValue == nil {
-			return "", nil
-		}
-		return *textValue, nil
-	case "boolean":
-		if longValue == nil {
-			return false, nil
-		}
-		return *longValue != 0, nil
-	case "long":
-		if longValue == nil {
-			return int64(0), nil
-		}
-		return *longValue, nil
-	case "double":
-		if doubleValue == nil {
-			return 0.0, nil
-		}
-		return *doubleValue, nil
-	case "null":
-		return nil, nil
-	case "json":
-		if textValue == nil {
-			return nil, nil
-		}
-		var value any
-		if err := json.Unmarshal([]byte(*textValue), &value); err != nil {
-			return nil, api.NewError("ROW-0031", "历史 JSON 变量解析失败", err)
-		}
-		return value, nil
-	default:
-		if textValue != nil {
-			return *textValue, nil
-		}
-		if longValue != nil {
-			return *longValue, nil
-		}
-		if doubleValue != nil {
-			return *doubleValue, nil
-		}
-		return nil, nil
-	}
+	return VariableValue(variableType, longValue, doubleValue, textValue, nil)
 }
 
 // decodeHistoricComment 解析历史评论行。
@@ -479,7 +442,7 @@ func decodeHistoricIdentityLink(row Row) (api.IdentityLink, error) {
 // @param row 行
 // @return 明细
 // @return 错误
-func decodeHistoricDetail(row Row) (api.HistoricDetail, error) {
+func decodeHistoricDetail(row Row, arrays ...map[string][]byte) (api.HistoricDetail, error) {
 	id, err := stringValue(row, "ID_")
 	if err != nil {
 		return api.HistoricDetail{}, err
@@ -528,7 +491,7 @@ func decodeHistoricDetail(row Row) (api.HistoricDetail, error) {
 	if err != nil {
 		return api.HistoricDetail{}, err
 	}
-	value, err := historicVariableValue(variableType, longValue, doubleValue, textValue)
+	value, err := storedVariableValue(row, variableType, longValue, doubleValue, textValue, arrays)
 	if err != nil {
 		return api.HistoricDetail{}, err
 	}

@@ -271,8 +271,8 @@ func TestDiffOperations(t *testing.T) {
 	_ = changedNoRevision.Set("ID_", "d1")
 	_ = changedNoRevision.Set("NAME_", "b")
 	operations = DiffOperations([]Row{*noRevision}, []Row{*changedNoRevision})
-	if len(operations) != 2 || operations[0].Kind != OperationDelete || operations[1].Kind != OperationInsert {
-		t.Fatalf("无 REV 更新应删插: %+v", operations)
+	if len(operations) != 1 || operations[0].Kind != OperationUpdate {
+		t.Fatalf("无 REV 行应直接更新: %+v", operations)
 	}
 	if operations := DiffOperations([]Row{{Table: "ACT_RU_JOB"}}, nil); len(operations) != 0 {
 		t.Fatalf("无 ID 行应忽略")

@@ -25,7 +25,7 @@ func (e *Engine) startCallActivity(cc *commandContext, parent *executionState, c
 		}
 		called = value
 	}
-	definition, ok := e.findLatestDefinition(called)
+	definition, ok := e.findTenantDefinition(cc.ctx, called)
 	if !ok {
 		return api.NewError("ENGINE-0612", "被调用流程不存在: "+called, api.ErrNotFound)
 	}
@@ -37,7 +37,7 @@ func (e *Engine) startCallActivity(cc *commandContext, parent *executionState, c
 		return api.NewError("ENGINE-0614", "调用活动嵌套超过 20 层", nil)
 	}
 	childID := e.newID()
-	rootID := e.newID()
+	rootID := childID
 	variables := make(map[string]any)
 	if call.InheritVariables {
 		variables = e.variablesOf(parent)

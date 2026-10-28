@@ -111,6 +111,9 @@ func New(db DB, dialect string) (*Store, error) {
 // @return 状态字节
 // @return 错误
 func (s *Store) Load(ctx context.Context) ([]byte, error) {
+	if err := s.CheckOwner(ctx); err != nil {
+		return nil, err
+	}
 	query := s.selectQuery()
 	rows, err := s.db.QueryContext(ctx, query, stateID)
 	if err != nil {
@@ -135,6 +138,9 @@ func (s *Store) Load(ctx context.Context) ([]byte, error) {
 // @param data 状态字节
 // @return 错误
 func (s *Store) Save(ctx context.Context, data []byte) error {
+	if err := s.CheckOwner(ctx); err != nil {
+		return err
+	}
 	// MySQL 使用单条原子更新，避免删除成功后写入失败导致旧快照丢失。
 	if s.dialect == "mysql" {
 		query := "INSERT INTO ACT_GE_BYTEARRAY (ID_, REV_, NAME_, BYTES_, GENERATED_) VALUES (?, ?, ?, ?, ?) " +
