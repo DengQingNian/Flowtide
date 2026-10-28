@@ -126,10 +126,18 @@ type taskState struct {
 	LocalVariables  map[string]any // 任务局部变量
 }
 
+// modelState 是流程模型及其编辑源。
+type modelState struct {
+	Info        api.Model // 模型元数据
+	Source      []byte    // 编辑源
+	SourceExtra []byte    // 扩展源码
+}
+
 // state 是引擎的全部可变状态。
 type state struct {
 	Deployments        map[string]*deploymentState              // 部署
 	Definitions        map[string]*definitionState              // 流程定义
+	Models             map[string]*modelState                   // 流程模型
 	Instances          map[string]*instanceState                // 流程实例
 	Executions         map[string]*executionState               // 执行
 	Tasks              map[string]*taskState                    // 任务
@@ -160,6 +168,7 @@ func newState() *state {
 	return &state{
 		Deployments:        make(map[string]*deploymentState),
 		Definitions:        make(map[string]*definitionState),
+		Models:             make(map[string]*modelState),
 		Instances:          make(map[string]*instanceState),
 		Executions:         make(map[string]*executionState),
 		Tasks:              make(map[string]*taskState),
@@ -197,6 +206,16 @@ func cloneState(source *state) *state {
 	for id, definition := range source.Definitions {
 		copied := *definition
 		target.Definitions[id] = &copied
+	}
+	for id, model := range source.Models {
+		copied := *model
+		if model.Source != nil {
+			copied.Source = append([]byte(nil), model.Source...)
+		}
+		if model.SourceExtra != nil {
+			copied.SourceExtra = append([]byte(nil), model.SourceExtra...)
+		}
+		target.Models[id] = &copied
 	}
 	for id, instance := range source.Instances {
 		copied := *instance

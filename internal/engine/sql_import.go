@@ -41,6 +41,13 @@ func (e *Engine) ImportRows(ctx context.Context, rows []flowablerow.Row) error {
 				e.state.Versions[definition.Key] = definition.Version
 			}
 		}
+		for _, model := range snapshot.Models {
+			e.state.Models[model.Info.ID] = &modelState{
+				Info:        model.Info,
+				Source:      model.Source,
+				SourceExtra: model.SourceExtra,
+			}
+		}
 		return nil, nil
 	})
 	return err

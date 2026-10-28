@@ -3,16 +3,36 @@ package flowable
 import (
 	"fmt"
 	"sort"
+	"strings"
 	"time"
 
 	"github.com/flowable-go/flowable/api"
 )
+
+// ModelRecord 是流程模型元数据与源码。
+type ModelRecord struct {
+	Info        api.Model // 模型元数据
+	Source      []byte    // 编辑源
+	SourceExtra []byte    // 扩展源码
+}
+
+// ModelSourceName 返回模型源在 ACT_GE_BYTEARRAY 中的名称。
+// @param modelID 模型 ID
+// @param extra 是否扩展源
+// @return 资源名称
+func ModelSourceName(modelID string, extra bool) string {
+	if extra {
+		return "model/" + modelID + "/extra"
+	}
+	return "model/" + modelID + "/source"
+}
 
 // Snapshot 是从 ACT 行恢复的仓库数据。
 type Snapshot struct {
 	Deployments []api.Deployment             // 部署
 	Resources   map[string]map[string][]byte // 部署 ID 到资源
 	Definitions []api.ProcessDefinition      // 流程定义
+	Models      []ModelRecord                // 流程模型
 }
 
 // DecodeRows 将 ACT 行恢复为部署、资源与流程定义。
@@ -24,7 +44,9 @@ func DecodeRows(rows []Row) (Snapshot, error) {
 		Deployments: make([]api.Deployment, 0),
 		Resources:   make(map[string]map[string][]byte),
 		Definitions: make([]api.ProcessDefinition, 0),
+		Models:      make([]ModelRecord, 0),
 	}
+	modelSources := make(map[string][]byte)
 	for _, row := range rows {
 		switch row.Table {
 		case "ACT_RE_DEPLOYMENT":
@@ -46,10 +68,21 @@ func DecodeRows(rows []Row) (Snapshot, error) {
 			if err != nil {
 				return Snapshot{}, err
 			}
+			// 模型源使用 model/{id}/source 命名，与部署资源区分
+			if strings.HasPrefix(name, "model/") {
+				modelSources[name] = data
+				continue
+			}
 			if snapshot.Resources[deploymentID] == nil {
 				snapshot.Resources[deploymentID] = make(map[string][]byte)
 			}
 			snapshot.Resources[deploymentID][name] = data
+		case "ACT_RE_MODEL":
+			model, err := decodeModel(row)
+			if err != nil {
+				return Snapshot{}, err
+			}
+			snapshot.Models = append(snapshot.Models, ModelRecord{Info: model})
 		case "ACT_RE_PROCDEF":
 			definition, err := decodeDefinition(row)
 			if err != nil {
@@ -62,6 +95,16 @@ func DecodeRows(rows []Row) (Snapshot, error) {
 	}
 	sort.Slice(snapshot.Deployments, func(i, j int) bool { return snapshot.Deployments[i].ID < snapshot.Deployments[j].ID })
 	sort.Slice(snapshot.Definitions, func(i, j int) bool { return snapshot.Definitions[i].ID < snapshot.Definitions[j].ID })
+	sort.Slice(snapshot.Models, func(i, j int) bool { return snapshot.Models[i].Info.ID < snapshot.Models[j].Info.ID })
+	for index := range snapshot.Models {
+		modelID := snapshot.Models[index].Info.ID
+		if source, ok := modelSources[ModelSourceName(modelID, false)]; ok {
+			snapshot.Models[index].Source = source
+		}
+		if extra, ok := modelSources[ModelSourceName(modelID, true)]; ok {
+			snapshot.Models[index].SourceExtra = extra
+		}
+	}
 	for _, definition := range snapshot.Definitions {
 		if _, ok := snapshot.Resources[definition.DeploymentID]; !ok {
 			return Snapshot{}, api.NewError("ROW-0011", "流程定义缺少部署资源: "+definition.ID, api.ErrBadRequest)
@@ -95,6 +138,58 @@ func decodeDeployment(row Row) (api.Deployment, error) {
 		return api.Deployment{}, err
 	}
 	return api.Deployment{ID: id, Name: name, TenantID: tenant, DeployTime: deployTime}, nil
+}
+
+// decodeModel 解析流程模型行。
+// @param row 行
+// @return 模型
+// @return 错误
+func decodeModel(row Row) (api.Model, error) {
+	id, err := stringValue(row, "ID_")
+	if err != nil {
+		return api.Model{}, err
+	}
+	name, err := stringValue(row, "NAME_")
+	if err != nil {
+		return api.Model{}, err
+	}
+	key, err := stringValue(row, "KEY_")
+	if err != nil {
+		return api.Model{}, err
+	}
+	category, err := stringValue(row, "CATEGORY_")
+	if err != nil {
+		return api.Model{}, err
+	}
+	version, err := intValue(row, "VERSION_")
+	if err != nil {
+		return api.Model{}, err
+	}
+	metaInfo, err := stringValue(row, "META_INFO_")
+	if err != nil {
+		return api.Model{}, err
+	}
+	deploymentID, err := stringValue(row, "DEPLOYMENT_ID_")
+	if err != nil {
+		return api.Model{}, err
+	}
+	tenant, err := stringValue(row, "TENANT_ID_")
+	if err != nil {
+		return api.Model{}, err
+	}
+	createTime, err := timeValue(row, "CREATE_TIME_")
+	if err != nil {
+		return api.Model{}, err
+	}
+	lastUpdate, err := timeValue(row, "LAST_UPDATE_TIME_")
+	if err != nil {
+		return api.Model{}, err
+	}
+	return api.Model{
+		ID: id, Name: name, Key: key, Category: category, Version: version,
+		MetaInfo: metaInfo, DeploymentID: deploymentID, TenantID: tenant,
+		CreateTime: createTime, LastUpdateTime: lastUpdate,
+	}, nil
 }
 
 // decodeDefinition 解析流程定义行。

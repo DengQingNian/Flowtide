@@ -115,6 +115,59 @@ type RepositoryService interface {
 	// @param includeInstances 是否同时激活实例
 	// @return 激活错误
 	ActivateProcessDefinition(ctx context.Context, definitionID string, includeInstances bool) error
+	// ListModels 返回全部流程模型。
+	// @param ctx 上下文
+	// @return 模型列表
+	// @return 查询错误
+	ListModels(ctx context.Context) ([]Model, error)
+	// GetModel 查询流程模型。
+	// @param ctx 上下文
+	// @param modelID 模型 ID
+	// @return 模型
+	// @return 查询错误
+	GetModel(ctx context.Context, modelID string) (Model, error)
+	// CreateModel 创建流程模型。
+	// @param ctx 上下文
+	// @param req 创建请求
+	// @return 模型
+	// @return 创建错误
+	CreateModel(ctx context.Context, req CreateModelRequest) (Model, error)
+	// UpdateModel 更新流程模型。
+	// @param ctx 上下文
+	// @param modelID 模型 ID
+	// @param update 更新内容
+	// @return 更新后的模型
+	// @return 更新错误
+	UpdateModel(ctx context.Context, modelID string, update ModelUpdate) (Model, error)
+	// DeleteModel 删除流程模型。
+	// @param ctx 上下文
+	// @param modelID 模型 ID
+	// @return 删除错误
+	DeleteModel(ctx context.Context, modelID string) error
+	// GetModelSource 返回模型编辑源。
+	// @param ctx 上下文
+	// @param modelID 模型 ID
+	// @return 源内容
+	// @return 查询错误
+	GetModelSource(ctx context.Context, modelID string) ([]byte, error)
+	// SetModelSource 设置模型编辑源。
+	// @param ctx 上下文
+	// @param modelID 模型 ID
+	// @param source 源内容
+	// @return 设置错误
+	SetModelSource(ctx context.Context, modelID string, source []byte) error
+	// GetModelSourceExtra 返回模型扩展源码。
+	// @param ctx 上下文
+	// @param modelID 模型 ID
+	// @return 扩展源
+	// @return 查询错误
+	GetModelSourceExtra(ctx context.Context, modelID string) ([]byte, error)
+	// SetModelSourceExtra 设置模型扩展源码。
+	// @param ctx 上下文
+	// @param modelID 模型 ID
+	// @param source 扩展源
+	// @return 设置错误
+	SetModelSourceExtra(ctx context.Context, modelID string, source []byte) error
 }
 
 // StartRequest 是启动流程实例的请求。

@@ -25,6 +25,41 @@ type Deployment struct {
 	DeployTime time.Time `json:"deployTime"` // 部署时间
 }
 
+// Model 是流程模型元数据。
+type Model struct {
+	ID             string    `json:"id"`                     // 模型 ID
+	Name           string    `json:"name"`                   // 名称
+	Key            string    `json:"key"`                    // Key
+	Category       string    `json:"category,omitempty"`     // 分类
+	Version        int       `json:"version"`                // 版本
+	MetaInfo       string    `json:"metaInfo,omitempty"`     // 元信息
+	DeploymentID   string    `json:"deploymentId,omitempty"` // 部署 ID
+	TenantID       string    `json:"tenantId,omitempty"`     // 租户
+	CreateTime     time.Time `json:"createTime"`             // 创建时间
+	LastUpdateTime time.Time `json:"lastUpdateTime"`         // 最后更新时间
+}
+
+// CreateModelRequest 是模型创建请求。
+type CreateModelRequest struct {
+	Name     string // 名称
+	Key      string // Key
+	Category string // 分类
+	MetaInfo string // 元信息
+	TenantID string // 租户
+	Version  int    // 版本，0 使用默认值
+}
+
+// ModelUpdate 是模型更新，nil 表示不修改。
+type ModelUpdate struct {
+	Name         *string // 名称
+	Key          *string // Key
+	Category     *string // 分类
+	MetaInfo     *string // 元信息
+	DeploymentID *string // 部署 ID
+	TenantID     *string // 租户
+	Version      *int    // 版本
+}
+
 // ProcessDefinition 是流程定义。
 type ProcessDefinition struct {
 	ID           string `json:"id"`           // 流程定义 ID

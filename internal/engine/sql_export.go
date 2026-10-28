@@ -98,6 +98,62 @@ func (e *Engine) repositoryRowsLocked() ([]flowablerow.Row, error) {
 		_ = procRow.Set("DERIVED_VERSION_", 0)
 		rows = append(rows, *procRow)
 	}
+	models := make([]*modelState, 0, len(e.state.Models))
+	for _, model := range e.state.Models {
+		models = append(models, model)
+	}
+	sort.Slice(models, func(i, j int) bool { return models[i].Info.ID < models[j].Info.ID })
+	for _, model := range models {
+		sourceID, extraID := "", ""
+		if model.Source != nil {
+			name := flowablerow.ModelSourceName(model.Info.ID, false)
+			sourceID = byteArrayID("", name)
+			byteRow, byteErr := flowablerow.NewRow("ACT_GE_BYTEARRAY")
+			if byteErr != nil {
+				return nil, byteErr
+			}
+			_ = byteRow.Set("ID_", sourceID)
+			_ = byteRow.Set("REV_", 1)
+			_ = byteRow.Set("NAME_", name)
+			_ = byteRow.Set("DEPLOYMENT_ID_", "")
+			_ = byteRow.Set("BYTES_", model.Source)
+			_ = byteRow.Set("GENERATED_", false)
+			rows = append(rows, *byteRow)
+		}
+		if model.SourceExtra != nil {
+			name := flowablerow.ModelSourceName(model.Info.ID, true)
+			extraID = byteArrayID("", name)
+			byteRow, byteErr := flowablerow.NewRow("ACT_GE_BYTEARRAY")
+			if byteErr != nil {
+				return nil, byteErr
+			}
+			_ = byteRow.Set("ID_", extraID)
+			_ = byteRow.Set("REV_", 1)
+			_ = byteRow.Set("NAME_", name)
+			_ = byteRow.Set("DEPLOYMENT_ID_", "")
+			_ = byteRow.Set("BYTES_", model.SourceExtra)
+			_ = byteRow.Set("GENERATED_", false)
+			rows = append(rows, *byteRow)
+		}
+		modelRow, rowErr := flowablerow.NewRow("ACT_RE_MODEL")
+		if rowErr != nil {
+			return nil, rowErr
+		}
+		_ = modelRow.Set("ID_", model.Info.ID)
+		_ = modelRow.Set("REV_", 1)
+		_ = modelRow.Set("NAME_", model.Info.Name)
+		_ = modelRow.Set("KEY_", model.Info.Key)
+		_ = modelRow.Set("CATEGORY_", model.Info.Category)
+		_ = modelRow.Set("CREATE_TIME_", model.Info.CreateTime)
+		_ = modelRow.Set("LAST_UPDATE_TIME_", model.Info.LastUpdateTime)
+		_ = modelRow.Set("VERSION_", model.Info.Version)
+		_ = modelRow.Set("META_INFO_", model.Info.MetaInfo)
+		_ = modelRow.Set("DEPLOYMENT_ID_", model.Info.DeploymentID)
+		_ = modelRow.Set("EDITOR_SOURCE_VALUE_ID_", sourceID)
+		_ = modelRow.Set("EDITOR_SOURCE_EXTRA_VALUE_ID_", extraID)
+		_ = modelRow.Set("TENANT_ID_", model.Info.TenantID)
+		rows = append(rows, *modelRow)
+	}
 	sort.Slice(rows, func(i, j int) bool {
 		if rows[i].Table == rows[j].Table {
 			return rowID(rows[i]) < rowID(rows[j])

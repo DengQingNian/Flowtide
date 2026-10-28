@@ -72,6 +72,56 @@ func byteArrayTestID(deploymentID, name string) string {
 	return "ba-" + deploymentID + "-" + name
 }
 
+// modelRow 构造模型行。
+// @param t 测试上下文
+// @param id 模型 ID
+// @return 行
+func modelRow(t *testing.T, id string) Row {
+	t.Helper()
+	row, _ := NewRow("ACT_RE_MODEL")
+	_ = row.Set("ID_", id)
+	_ = row.Set("REV_", 1)
+	_ = row.Set("NAME_", "Model")
+	_ = row.Set("KEY_", "model")
+	_ = row.Set("CATEGORY_", "cat")
+	_ = row.Set("CREATE_TIME_", time.Date(2026, 10, 28, 0, 0, 0, 0, time.UTC))
+	_ = row.Set("LAST_UPDATE_TIME_", time.Date(2026, 10, 28, 1, 0, 0, 0, time.UTC))
+	_ = row.Set("VERSION_", 2)
+	_ = row.Set("META_INFO_", "{}")
+	_ = row.Set("DEPLOYMENT_ID_", "")
+	_ = row.Set("EDITOR_SOURCE_VALUE_ID_", "")
+	_ = row.Set("EDITOR_SOURCE_EXTRA_VALUE_ID_", "")
+	_ = row.Set("TENANT_ID_", "t1")
+	return *row
+}
+
+// TestDecodeModelRows 验证模型与源码恢复。
+// @param t 测试上下文
+func TestDecodeModelRows(t *testing.T) {
+	rows := []Row{
+		modelRow(t, "m1"),
+		byteRow(t, "", ModelSourceName("m1", false), []byte("<xml/>")),
+		byteRow(t, "", ModelSourceName("m1", true), []byte("{}")),
+		modelRow(t, "m2"),
+	}
+	snapshot, err := DecodeRows(rows)
+	if err != nil {
+		t.Fatalf("恢复模型失败: %v", err)
+	}
+	if len(snapshot.Models) != 2 || snapshot.Models[0].Info.ID != "m1" || snapshot.Models[0].Info.Version != 2 {
+		t.Fatalf("模型恢复错误: %+v", snapshot.Models)
+	}
+	if string(snapshot.Models[0].Source) != "<xml/>" || string(snapshot.Models[0].SourceExtra) != "{}" {
+		t.Fatalf("模型源码恢复错误: %+v", snapshot.Models[0])
+	}
+	if snapshot.Models[1].Source != nil {
+		t.Fatalf("无源码模型应保持 nil")
+	}
+	if ModelSourceName("m", false) != "model/m/source" || ModelSourceName("m", true) != "model/m/extra" {
+		t.Fatalf("源码名称错误")
+	}
+}
+
 // TestDecodeRows 验证行恢复。
 // @param t 测试上下文
 func TestDecodeRows(t *testing.T) {
@@ -105,6 +155,8 @@ func TestDecodeRows_Errors(t *testing.T) {
 		{func() Row { row := procRow(t, "p1", "d1", "x"); return row }()},
 		{func() Row { row := byteRow(t, "d1", "x", []byte("x")); row.Values["BYTES_"] = "bad"; return row }()},
 		{procRow(t, "p1", "d1", "missing")},
+		{func() Row { row := modelRow(t, "m1"); delete(row.Values, "NAME_"); return row }()},
+		{func() Row { row := modelRow(t, "m1"); row.Values["VERSION_"] = "bad"; return row }()},
 	}
 	for _, rows := range cases {
 		if _, err := DecodeRows(rows); err == nil {
