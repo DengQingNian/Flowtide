@@ -51,3 +51,48 @@ var fontGlyphs = map[rune][]glyph{
 	')': {{2, 0, 3, 1}, {3, 1, 3, 5}, {3, 5, 2, 6}},
 	'+': {{2, 2, 2, 4}, {1, 3, 3, 3}},
 }
+
+// svgCharWidth 是 SVG 文本字宽估算系数。
+const svgCharWidth = 0.62
+
+// fitText 按可用宽度截断文本。
+// @param value 文本
+// @param maxWidth 最大宽度
+// @param fontSize 字号
+// @return 截断后的文本，超出宽度时追加省略号
+func fitText(value string, maxWidth, fontSize float64) string {
+	if value == "" || maxWidth <= 0 || fontSize <= 0 {
+		return ""
+	}
+	runes := []rune(value)
+	if float64(len(runes))*fontSize*svgCharWidth <= maxWidth {
+		return value
+	}
+	// 预留三个省略号的宽度
+	keep := int(maxWidth/(fontSize*svgCharWidth)) - 3
+	if keep < 0 {
+		keep = 0
+	}
+	if keep > len(runes) {
+		keep = len(runes)
+	}
+	return string(runes[:keep]) + "..."
+}
+
+// fitChars 按字符数截断文本。
+// @param value 文本
+// @param maxChars 最大字符数
+// @return 截断后的文本，超出时追加省略号
+func fitChars(value string, maxChars int) string {
+	if value == "" || maxChars <= 0 {
+		return ""
+	}
+	runes := []rune(value)
+	if len(runes) <= maxChars {
+		return value
+	}
+	if maxChars <= 3 {
+		return string(runes[:maxChars])
+	}
+	return string(runes[:maxChars-3]) + "..."
+}

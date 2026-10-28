@@ -12,6 +12,23 @@ import (
 // pngScale 是超采样倍数。
 const pngScale = 2
 
+// PNG 泳池/泳道样式常量。
+const (
+	pngContainerBand  = 30.0 // 名称带宽度
+	pngContainerScale = 1.5  // 泳池/泳道文字缩放
+	pngContainerGap   = 12.0 // 名称与边框的间距
+)
+
+// 泳池/泳道颜色。
+var (
+	pngPoolFill      = color.RGBA{R: 248, G: 250, B: 252, A: 255} // 泳池填充色
+	pngPoolBorder    = color.RGBA{R: 148, G: 163, B: 184, A: 255} // 泳池边框色
+	pngLaneFill      = color.RGBA{R: 255, G: 255, B: 255, A: 255} // 泳道填充色
+	pngLaneBorder    = color.RGBA{R: 203, G: 213, B: 225, A: 255} // 泳道边框色
+	pngLaneSeparator = color.RGBA{R: 148, G: 163, B: 184, A: 255} // 泳道分隔线颜色
+	pngContainerText = color.RGBA{R: 51, G: 65, B: 85, A: 255}    // 泳池/泳道文字颜色
+)
+
 // pngRenderer 是 PNG 渲染器。
 type pngRenderer struct {
 	img *image.RGBA // 画布
@@ -25,6 +42,13 @@ type pngRenderer struct {
 func RenderPNG(d *Diagram, highlights map[string]bool) ([]byte, error) {
 	renderer := &pngRenderer{img: image.NewRGBA(image.Rect(0, 0, d.Width*pngScale, d.Height*pngScale))}
 	renderer.fillBackground()
+	// 先绘制泳池与泳道，保证节点与连线位于其上层
+	for _, pool := range d.Pools {
+		renderer.drawPool(pool)
+	}
+	for _, lane := range d.Lanes {
+		renderer.drawLane(lane)
+	}
 	for _, edge := range d.Edges {
 		renderer.drawEdge(edge)
 	}
@@ -226,6 +250,54 @@ func insidePolygon(x, y float64, points []Point) bool {
 	return inside
 }
 
+// drawPool 绘制泳池。
+// @param pool 泳池
+func (r *pngRenderer) drawPool(pool Pool) {
+	b := pool.Bounds
+	r.fillRect(b.X, b.Y, b.W, b.H, pngPoolFill)
+	r.strokeRect(b.X, b.Y, b.W, b.H, pngPoolBorder)
+	// 水平泳池的名称带在左侧，垂直泳池的名称带在顶部
+	if pool.IsHorizontal {
+		band := math.Min(pngContainerBand, b.W/3)
+		r.line(b.X+band, b.Y, b.X+band, b.Y+b.H, 1, pngPoolBorder)
+		maxChars := int((b.H - pngContainerGap) / (7 * pngContainerScale))
+		if name := fitChars(pool.Name, maxChars); name != "" {
+			r.verticalText(b.X+band/2, b.Y+b.H/2, name, pngContainerScale, pngContainerText)
+		}
+		return
+	}
+	band := math.Min(pngContainerBand, b.H/3)
+	r.line(b.X, b.Y+band, b.X+b.W, b.Y+band, 1, pngPoolBorder)
+	maxChars := int((b.W - pngContainerGap) / (5 * pngContainerScale))
+	if name := fitChars(pool.Name, maxChars); name != "" {
+		r.textScaled(b.X+b.W/2, b.Y+band/2, name, pngContainerScale, pngContainerText)
+	}
+}
+
+// drawLane 绘制泳道。
+// @param lane 泳道
+func (r *pngRenderer) drawLane(lane Lane) {
+	b := lane.Bounds
+	r.fillRect(b.X, b.Y, b.W, b.H, pngLaneFill)
+	r.strokeRect(b.X, b.Y, b.W, b.H, pngLaneBorder)
+	// 泳道分隔线沿泳道起始边绘制
+	if lane.IsHorizontal {
+		r.line(b.X, b.Y, b.X+b.W, b.Y, 1.5, pngLaneSeparator)
+	} else {
+		r.line(b.X, b.Y, b.X, b.Y+b.H, 1.5, pngLaneSeparator)
+	}
+	maxChars := int((b.W - pngContainerGap) / (5 * pngContainerScale))
+	name := fitChars(lane.Name, maxChars)
+	if name == "" {
+		return
+	}
+	if lane.IsHorizontal {
+		r.textAt(b.X+6, b.Y+b.H/2, name, pngContainerScale, pngContainerText)
+		return
+	}
+	r.textScaled(b.X+b.W/2, b.Y+math.Min(pngContainerBand, b.H/3)/2, name, pngContainerScale, pngContainerText)
+}
+
 // drawShape 绘制图形节点。
 // @param shape 图形
 // @param highlighted 是否高亮
@@ -265,7 +337,65 @@ func (r *pngRenderer) drawShape(shape Shape, highlighted bool) {
 		r.fillRect(b.X, b.Y, b.W, b.H, fill)
 		r.strokeRect(b.X, b.Y, b.W, b.H, border)
 	}
+	r.drawMarker(shape, border)
 	r.drawLabel(shape, border)
+}
+
+// drawMarker 绘制图形内部标记。
+// @param shape 图形
+// @param c 描边颜色
+func (r *pngRenderer) drawMarker(shape Shape, c color.RGBA) {
+	if shape.Marker == "" {
+		return
+	}
+	box := markerBox(shape)
+	if box.W < 4 || box.H < 4 {
+		return
+	}
+	white := color.RGBA{R: 255, G: 255, B: 255, A: 255}
+	x, y, w, h := box.X, box.Y, box.W, box.H
+	cx, cy := x+w/2, y+h/2
+	switch shape.Marker {
+	case markerTimer:
+		radius := math.Min(w, h) / 2
+		r.circle(cx, cy, radius, white, c, 1)
+		r.line(cx, cy, cx, cy-radius*0.6, 1, c)
+		r.line(cx, cy, cx+radius*0.5, cy, 1, c)
+	case markerMessage, markerReceive:
+		ex, ey, ew, eh := x, y+h*0.15, w, h*0.7
+		r.strokeRect(ex, ey, ew, eh, c)
+		r.line(ex, ey, ex+ew/2, ey+eh*0.6, 1, c)
+		r.line(ex+ew/2, ey+eh*0.6, ex+ew, ey, 1, c)
+	case markerSend:
+		ex, ey, ew, eh := x, y+h*0.15, w, h*0.7
+		r.fillRect(ex, ey, ew, eh, c)
+		r.line(ex, ey, ex+ew/2, ey+eh*0.6, 1, white)
+		r.line(ex+ew/2, ey+eh*0.6, ex+ew, ey, 1, white)
+	case markerSignal:
+		r.polygon([]Point{
+			{X: cx, Y: y},
+			{X: x + w, Y: y + h},
+			{X: x, Y: y + h},
+		}, white, c)
+	case markerUser:
+		r.circle(cx, y+h*0.28, h*0.18, white, c, 1)
+		r.line(x+w*0.15, y+h, cx, y+h*0.5, 1, c)
+		r.line(cx, y+h*0.5, x+w*0.85, y+h, 1, c)
+	case markerService:
+		radius := math.Min(w, h) * 0.28
+		r.circle(cx, cy, radius, white, c, 1)
+		for index := 0; index < 6; index++ {
+			angle := math.Pi * 2 * float64(index) / 6
+			r.line(cx+math.Cos(angle)*radius, cy+math.Sin(angle)*radius,
+				cx+math.Cos(angle)*radius*1.55, cy+math.Sin(angle)*radius*1.55, 1, c)
+		}
+	case markerScript:
+		r.strokeRect(x, y, w, h, c)
+		for index := 0; index < 3; index++ {
+			lineY := y + h*(0.3+0.2*float64(index))
+			r.line(x+w*0.2, lineY, x+w*0.8, lineY, 1, c)
+		}
+	}
 }
 
 // drawLabel 绘制图形标签。
@@ -275,12 +405,7 @@ func (r *pngRenderer) drawLabel(shape Shape, c color.RGBA) {
 	if shape.Name == "" {
 		return
 	}
-	centerX := shape.Bounds.X + shape.Bounds.W/2
-	centerY := shape.Bounds.Y + shape.Bounds.H/2
-	if shape.Label != nil && shape.Label.W > 0 {
-		centerX = shape.Label.X + shape.Label.W/2
-		centerY = shape.Label.Y + shape.Label.H/2
-	}
+	centerX, centerY := shapeLabelPoint(shape)
 	r.text(centerX, centerY, shape.Name, c)
 }
 
@@ -290,22 +415,57 @@ func (r *pngRenderer) drawLabel(shape Shape, c color.RGBA) {
 // @param value 文本
 // @param c 颜色
 func (r *pngRenderer) text(centerX, centerY float64, value string, c color.RGBA) {
+	r.textScaled(centerX, centerY, value, 3, c)
+}
+
+// textScaled 按缩放倍数绘制居中的文本（仅 ASCII）。
+// @param centerX 中心横坐标
+// @param centerY 中心纵坐标
+// @param value 文本
+// @param scale 缩放倍数
+// @param c 颜色
+func (r *pngRenderer) textScaled(centerX, centerY float64, value string, scale float64, c color.RGBA) {
+	width := float64(len([]rune(strings.ToUpper(value)))) * 5 * scale
+	r.textAt(centerX-width/2, centerY, value, scale, c)
+}
+
+// textAt 从左侧起点绘制文本（仅 ASCII）。
+// @param startX 左侧起点横坐标
+// @param centerY 中心纵坐标
+// @param value 文本
+// @param scale 缩放倍数
+// @param c 颜色
+func (r *pngRenderer) textAt(startX, centerY float64, value string, scale float64, c color.RGBA) {
 	runes := []rune(strings.ToUpper(value))
-	scale := 3.0
-	advance := 5 * scale
-	totalWidth := float64(len(runes)) * advance
-	startX := centerX - totalWidth/2
 	startY := centerY - 3*scale
 	for index, char := range runes {
 		glyph, ok := fontGlyphs[char]
 		if !ok {
 			continue
 		}
-		offsetX := startX + float64(index)*advance
+		offsetX := startX + float64(index)*5*scale
 		for _, segment := range glyph {
 			r.line(offsetX+float64(segment[0])*scale, startY+float64(segment[1])*scale,
 				offsetX+float64(segment[2])*scale, startY+float64(segment[3])*scale, 1, c)
 		}
+	}
+}
+
+// verticalText 绘制竖排文本（用于水平泳池的名称带）。
+// @param centerX 中心横坐标
+// @param centerY 中心纵坐标
+// @param value 文本
+// @param scale 缩放倍数
+// @param c 颜色
+func (r *pngRenderer) verticalText(centerX, centerY float64, value string, scale float64, c color.RGBA) {
+	runes := []rune(strings.ToUpper(value))
+	if len(runes) == 0 {
+		return
+	}
+	advance := 7 * scale
+	startY := centerY - float64(len(runes))*advance/2 + advance/2
+	for index, char := range runes {
+		r.textScaled(centerX, startY+float64(index)*advance, string(char), scale, c)
 	}
 }
 

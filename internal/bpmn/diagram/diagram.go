@@ -30,6 +30,7 @@ type Shape struct {
 	ElementID string  // 元素 ID
 	Type      string  // 元素类型
 	Name      string  // 元素名称
+	Marker    string  // 内部标记类型：user/service/script/send/receive/timer/message/signal
 	Bounds    Bounds  // 图形区域
 	Label     *Bounds // 标签区域
 }
@@ -47,6 +48,8 @@ type Edge struct {
 type Diagram struct {
 	Width  int     // 画布宽度
 	Height int     // 画布高度
+	Pools  []Pool  // 泳池，按文档顺序
+	Lanes  []Lane  // 泳道，按文档顺序
 	Shapes []Shape // 图形节点
 	Edges  []Edge  // 连线
 }
@@ -64,12 +67,29 @@ func Parse(bpmn *model.BpmnModel, data []byte) (*Diagram, error) {
 	if err != nil {
 		return nil, api.NewError("ENGINE-1901", "解析 BPMN 图形失败", err)
 	}
-	diagram := &Diagram{Shapes: make([]Shape, 0), Edges: make([]Edge, 0)}
+	containers := collectContainers(root)
+	diagram := &Diagram{
+		Pools:  make([]Pool, 0),
+		Lanes:  make([]Lane, 0),
+		Shapes: make([]Shape, 0),
+		Edges:  make([]Edge, 0),
+	}
 	for _, diagramNode := range root.ChildrenNamed("BPMNDiagram") {
 		for _, plane := range diagramNode.ChildrenNamed("BPMNPlane") {
 			for _, child := range plane.Children {
 				switch child.Name.Local {
 				case "BPMNShape":
+					elementID := child.Attr("bpmnElement")
+					meta := containers[elementID]
+					// 泳池/泳道单独存放，避免污染节点列表
+					if pool, ok := parsePool(child, meta, bpmn); ok {
+						diagram.Pools = append(diagram.Pools, *pool)
+						continue
+					}
+					if lane, ok := parseLane(child, meta, bpmn); ok {
+						diagram.Lanes = append(diagram.Lanes, *lane)
+						continue
+					}
 					shape := parseShape(child, bpmn)
 					if shape != nil {
 						diagram.Shapes = append(diagram.Shapes, *shape)
@@ -102,31 +122,14 @@ func parseShape(node *bpmnxml.Node, bpmn *model.BpmnModel) *Shape {
 	if elementID == "" {
 		return nil
 	}
-	boundsNode, ok := node.Child("Bounds")
+	bounds, ok := parseBounds(node)
 	if !ok {
 		return nil
 	}
-	shape := &Shape{
-		ElementID: elementID,
-		Bounds: Bounds{
-			X: parseFloat(boundsNode.Attr("x")),
-			Y: parseFloat(boundsNode.Attr("y")),
-			W: parseFloat(boundsNode.Attr("width")),
-			H: parseFloat(boundsNode.Attr("height")),
-		},
-	}
+	shape := &Shape{ElementID: elementID, Bounds: bounds, Label: parseLabel(node)}
 	if bpmn != nil {
 		shape.Name, shape.Type = elementInfo(bpmn, elementID)
-	}
-	if label, ok := node.Child("BPMNLabel"); ok {
-		if labelBounds, exists := label.Child("Bounds"); exists {
-			shape.Label = &Bounds{
-				X: parseFloat(labelBounds.Attr("x")),
-				Y: parseFloat(labelBounds.Attr("y")),
-				W: parseFloat(labelBounds.Attr("width")),
-				H: parseFloat(labelBounds.Attr("height")),
-			}
-		}
+		shape.Marker = elementMarker(bpmn, elementID)
 	}
 	return shape
 }
@@ -140,7 +143,7 @@ func parseEdge(node *bpmnxml.Node, bpmn *model.BpmnModel) *Edge {
 	if elementID == "" {
 		return nil
 	}
-	edge := &Edge{ElementID: elementID, Waypoints: make([]Point, 0)}
+	edge := &Edge{ElementID: elementID, Waypoints: make([]Point, 0), Label: parseLabel(node)}
 	if bpmn != nil {
 		edge.Name, edge.Type = elementInfo(bpmn, elementID)
 	}
@@ -153,17 +156,44 @@ func parseEdge(node *bpmnxml.Node, bpmn *model.BpmnModel) *Edge {
 	if len(edge.Waypoints) < 2 {
 		return nil
 	}
-	if label, ok := node.Child("BPMNLabel"); ok {
-		if labelBounds, exists := label.Child("Bounds"); exists {
-			edge.Label = &Bounds{
-				X: parseFloat(labelBounds.Attr("x")),
-				Y: parseFloat(labelBounds.Attr("y")),
-				W: parseFloat(labelBounds.Attr("width")),
-				H: parseFloat(labelBounds.Attr("height")),
-			}
-		}
-	}
 	return edge
+}
+
+// parseBounds 解析 Bounds 子节点。
+// @param node 节点
+// @return 图形区域
+// @return 是否存在
+func parseBounds(node *bpmnxml.Node) (Bounds, bool) {
+	boundsNode, ok := node.Child("Bounds")
+	if !ok {
+		return Bounds{}, false
+	}
+	return Bounds{
+		X: parseFloat(boundsNode.Attr("x")),
+		Y: parseFloat(boundsNode.Attr("y")),
+		W: parseFloat(boundsNode.Attr("width")),
+		H: parseFloat(boundsNode.Attr("height")),
+	}, true
+}
+
+// parseLabel 解析 BPMNLabel 中的标签区域。
+// @param node 节点
+// @return 标签区域，不存在时为 nil
+func parseLabel(node *bpmnxml.Node) *Bounds {
+	label, ok := node.Child("BPMNLabel")
+	if !ok {
+		return nil
+	}
+	labelBounds, ok := label.Child("Bounds")
+	if !ok {
+		return nil
+	}
+	return &Bounds{
+		X: parseFloat(labelBounds.Attr("x")),
+		Y: parseFloat(labelBounds.Attr("y")),
+		W: parseFloat(labelBounds.Attr("width")),
+		H: parseFloat(labelBounds.Attr("height")),
+	}
 }
 
 // elementInfo 返回元素名称与类型。
@@ -172,12 +202,11 @@ func parseEdge(node *bpmnxml.Node, bpmn *model.BpmnModel) *Edge {
 // @return 名称
 // @return 类型
 func elementInfo(bpmn *model.BpmnModel, elementID string) (string, string) {
-	for _, process := range bpmn.Processes {
-		if element, ok := process.Elements[elementID]; ok {
-			return element.GetName(), element.ElementType()
-		}
+	element := findElement(bpmn, elementID)
+	if element == nil {
+		return "", ""
 	}
-	return "", ""
+	return element.GetName(), element.ElementType()
 }
 
 // parseFloat 解析浮点数。
@@ -194,28 +223,12 @@ func parseFloat(raw string) float64 {
 // computeSize 计算画布尺寸。
 func (d *Diagram) computeSize() {
 	maxX, maxY := 0.0, 0.0
-	for _, shape := range d.Shapes {
-		if shape.Bounds.X+shape.Bounds.W > maxX {
-			maxX = shape.Bounds.X + shape.Bounds.W
+	for _, bounds := range d.boundsList() {
+		if bounds.X+bounds.W > maxX {
+			maxX = bounds.X + bounds.W
 		}
-		if shape.Bounds.Y+shape.Bounds.H > maxY {
-			maxY = shape.Bounds.Y + shape.Bounds.H
-		}
-		if shape.Label != nil && shape.Label.X+shape.Label.W > maxX {
-			maxX = shape.Label.X + shape.Label.W
-		}
-		if shape.Label != nil && shape.Label.Y+shape.Label.H > maxY {
-			maxY = shape.Label.Y + shape.Label.H
-		}
-	}
-	for _, edge := range d.Edges {
-		for _, point := range edge.Waypoints {
-			if point.X > maxX {
-				maxX = point.X
-			}
-			if point.Y > maxY {
-				maxY = point.Y
-			}
+		if bounds.Y+bounds.H > maxY {
+			maxY = bounds.Y + bounds.H
 		}
 	}
 	// 留出边距
@@ -227,4 +240,28 @@ func (d *Diagram) computeSize() {
 	if d.Height < 100 {
 		d.Height = 100
 	}
+}
+
+// boundsList 返回参与画布尺寸计算的矩形。
+// @return 矩形列表
+func (d *Diagram) boundsList() []Bounds {
+	bounds := make([]Bounds, 0, len(d.Pools)+len(d.Lanes)+len(d.Shapes)*2)
+	for _, pool := range d.Pools {
+		bounds = append(bounds, pool.Bounds)
+	}
+	for _, lane := range d.Lanes {
+		bounds = append(bounds, lane.Bounds)
+	}
+	for _, shape := range d.Shapes {
+		bounds = append(bounds, shape.Bounds)
+		if shape.Label != nil {
+			bounds = append(bounds, *shape.Label)
+		}
+	}
+	for _, edge := range d.Edges {
+		for _, point := range edge.Waypoints {
+			bounds = append(bounds, Bounds{X: point.X, Y: point.Y})
+		}
+	}
+	return bounds
 }
