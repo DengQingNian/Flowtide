@@ -792,6 +792,11 @@ type ManagementService interface {
 	// @param retries 恢复后的重试次数
 	// @return 恢复错误
 	MoveDeadLetterJobToExecutable(ctx context.Context, jobID string, retries int) error
+	// DeleteJob 删除可执行作业。
+	// @param ctx 上下文
+	// @param jobID 作业 ID
+	// @return 删除错误
+	DeleteJob(ctx context.Context, jobID string) error
 	// Properties 返回引擎属性键值。
 	// @param ctx 上下文
 	// @return 属性映射

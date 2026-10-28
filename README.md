@@ -155,4 +155,5 @@ curl -X POST 'http://localhost:8080/service/runtime/process-instances' \
 - 流程实例身份链接：发起人自动登记、增删查、历史链接与 `ACT_RU_IDENTITYLINK` 行映射。
 - 流程定义候选发起人：BPMN 属性解析、增删查、幂等添加与行持久化。
 - 任务事件、历史任务表单、单条历史评论读取。
+- 管理作业分类：定时/挂起/历史/死信作业、作业删除与异常栈。
 - 纯标准库实现，`CGO_ENABLED=0` 可构建。

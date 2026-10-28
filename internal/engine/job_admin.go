@@ -26,6 +26,21 @@ func (e *Engine) ListJobs(ctx context.Context) ([]api.JobInfo, error) {
 	return result.([]api.JobInfo), nil
 }
 
+// DeleteJob 删除可执行作业。
+// @param ctx 上下文
+// @param jobID 作业 ID
+// @return 删除错误
+func (e *Engine) DeleteJob(ctx context.Context, jobID string) error {
+	_, err := e.execute(ctx, func(cc *commandContext) (any, error) {
+		if _, ok := e.state.Jobs[jobID]; !ok {
+			return nil, api.NewError("ENGINE-1501", "作业不存在", api.ErrNotFound)
+		}
+		delete(e.state.Jobs, jobID)
+		return nil, nil
+	})
+	return err
+}
+
 // ListDeadLetterJobs 返回死信作业。
 // @param ctx 上下文
 // @return 死信作业列表
