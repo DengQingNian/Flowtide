@@ -399,10 +399,13 @@ func (e *IntermediateCatchEvent) ElementType() string { return "intermediateCatc
 // SubProcess 表示嵌入式子流程。
 type SubProcess struct {
 	FlowNodeBase
-	Elements         map[string]FlowElement // 子元素
-	Order            []string               // 子元素顺序
-	TriggeredByEvent bool                   // 是否事件子流程
-	Transaction      bool                   // 是否事务子流程
+	Elements            map[string]FlowElement // 子元素
+	Order               []string               // 子元素顺序
+	TriggeredByEvent    bool                   // 是否事件子流程
+	Transaction         bool                   // 是否事务子流程
+	AdHoc               bool                   // 是否 Ad-hoc 子流程
+	AdHocOrdering       string                 // Ad-hoc 执行顺序：Parallel（默认）或 Sequential
+	CompletionCondition string                 // Ad-hoc 完成条件表达式
 }
 
 // ElementType 返回元素类型。

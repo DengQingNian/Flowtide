@@ -277,6 +277,10 @@ func (e *Engine) continueAt(cc *commandContext, executionID, activityID string) 
 		execution.CurrentHistActivityID = ""
 		return e.scheduleTakeOutgoing(cc, execution, node)
 	case *model.SubProcess:
+		// Ad-hoc 子流程没有开始事件，由内部活动动态激活
+		if node.AdHoc {
+			return e.enterAdHocSubProcess(cc, execution, node)
+		}
 		return e.enterSubProcess(cc, execution, node)
 	case *model.UserTask:
 		if node.LoopCharacteristics != nil && !execution.MIChild {
@@ -406,6 +410,10 @@ func (e *Engine) takeOutgoing(cc *commandContext, executionID, activityID string
 	// 多实例子执行完成，交给多实例根处理后续
 	if execution.MIChild {
 		return e.finishMultiInstanceChild(cc, execution)
+	}
+	// Ad-hoc 子流程内部活动完成，交给 Ad-hoc 作用域决定后续
+	if scope, sub, found := e.adHocScopeOf(execution); found {
+		return e.finishAdHocActivity(cc, execution, scope, sub)
 	}
 	definition, ok := e.findDefinition(execution.DefinitionID)
 	if !ok {

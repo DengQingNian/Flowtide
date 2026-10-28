@@ -247,6 +247,8 @@ func parseElement(node *Node) (model.FlowElement, error) {
 		return parseSubProcess(node, false)
 	case "transaction":
 		return parseSubProcess(node, true)
+	case "adHocSubProcess":
+		return parseAdHocSubProcess(node)
 	case "association":
 		association := &model.Association{SourceRef: node.Attr("sourceRef"), TargetRef: node.Attr("targetRef")}
 		association.ID = node.Attr("id")
@@ -554,15 +556,47 @@ func attachCompensationHandlers(elements map[string]model.FlowElement, order []s
 
 // parseSubProcess 解析嵌入式子流程。
 // @param node XML 节点
+// @param transaction 是否事务子流程
 // @return 子流程
 // @return 解析错误
 func parseSubProcess(node *Node, transaction bool) (model.FlowElement, error) {
+	return buildSubProcess(node, transaction, false)
+}
+
+// parseAdHocSubProcess 解析 Ad-hoc 子流程（adHocSubProcess 元素）。
+// @param node XML 节点
+// @return 子流程
+// @return 解析错误
+func parseAdHocSubProcess(node *Node) (model.FlowElement, error) {
+	return buildSubProcess(node, false, true)
+}
+
+// buildSubProcess 构建嵌入式子流程，兼容 BPMN 元素与 Flowable 的 adHoc 属性。
+// @param node XML 节点
+// @param transaction 是否事务子流程
+// @param adHoc 是否强制按 Ad-hoc 子流程解析
+// @return 子流程
+// @return 解析错误
+func buildSubProcess(node *Node, transaction bool, adHoc bool) (model.FlowElement, error) {
 	sub := &model.SubProcess{
-		TriggeredByEvent: strings.EqualFold(node.Attr("triggeredByEvent"), "true"),
-		Transaction:      transaction,
-		Elements:         make(map[string]model.FlowElement),
+		Transaction: transaction,
+		AdHoc:       adHoc || strings.EqualFold(attrAny(node, "adHoc"), "true"),
+		Elements:    make(map[string]model.FlowElement),
 	}
+	// Ad-hoc 子流程与事件子流程语义互斥，Ad-hoc 优先
+	sub.TriggeredByEvent = !sub.AdHoc && strings.EqualFold(node.Attr("triggeredByEvent"), "true")
 	parseFlowNodeBase(node, &sub.FlowNodeBase)
+	if sub.AdHoc {
+		ordering, condition, err := parseAdHocDefinition(node)
+		if err != nil {
+			return nil, err
+		}
+		sub.AdHocOrdering = ordering
+		sub.CompletionCondition = condition
+		if sub.ID == "" {
+			return nil, api.NewError("BPMN-1011", "Ad-hoc 子流程缺少 id", nil)
+		}
+	}
 	for _, child := range node.Children {
 		element, err := parseElement(child)
 		if err != nil {
@@ -585,10 +619,40 @@ func parseSubProcess(node *Node, transaction bool) (model.FlowElement, error) {
 	if err := attachCompensationHandlers(sub.Elements, sub.Order); err != nil {
 		return nil, err
 	}
+	// Ad-hoc 子流程没有开始事件，由引擎按内部活动动态激活
+	if sub.AdHoc {
+		return sub, nil
+	}
 	if len(sub.StartEvents()) == 0 {
 		return nil, api.NewError("BPMN-1003", fmt.Sprintf("子流程 %s 缺少开始事件", sub.ID), nil)
 	}
 	return sub, nil
+}
+
+// parseAdHocDefinition 解析 Ad-hoc 子流程的执行顺序与完成条件。
+// @param node Ad-hoc 子流程节点
+// @return 规范化后的执行顺序
+// @return 完成条件表达式
+// @return 解析错误
+func parseAdHocDefinition(node *Node) (string, string, error) {
+	rawOrdering := strings.TrimSpace(attrAny(node, "ordering"))
+	ordering := "Parallel"
+	// 空值按 BPMN 规范默认为并行
+	if rawOrdering != "" {
+		switch {
+		case strings.EqualFold(rawOrdering, "Parallel"):
+			ordering = "Parallel"
+		case strings.EqualFold(rawOrdering, "Sequential"):
+			ordering = "Sequential"
+		default:
+			return "", "", api.NewError("BPMN-1010", "Ad-hoc 子流程 ordering 非法: "+rawOrdering, nil)
+		}
+	}
+	condition := strings.TrimSpace(attrAny(node, "completionCondition"))
+	if child, ok := node.Child("completionCondition"); ok {
+		condition = strings.TrimSpace(child.TextContent())
+	}
+	return ordering, condition, nil
 }
 
 // attrAny 依次尝试 Flowable、Activiti 与无命名空间属性。
