@@ -206,6 +206,36 @@ type RuntimeService interface {
 	// @return 变量快照
 	// @return 查询错误
 	GetExecutionVariables(ctx context.Context, executionID string) (map[string]any, error)
+	// GetExecutionVariable 返回执行可见变量。
+	// @param ctx 上下文
+	// @param executionID 执行 ID
+	// @param name 变量名
+	// @return 变量值
+	// @return 查询错误
+	GetExecutionVariable(ctx context.Context, executionID, name string) (any, error)
+	// SetExecutionVariable 设置执行局部变量。
+	// @param ctx 上下文
+	// @param executionID 执行 ID
+	// @param name 变量名
+	// @param value 变量值
+	// @return 设置错误
+	SetExecutionVariable(ctx context.Context, executionID, name string, value any) error
+	// DeleteExecutionVariable 删除执行局部变量。
+	// @param ctx 上下文
+	// @param executionID 执行 ID
+	// @param name 变量名
+	// @return 删除错误
+	DeleteExecutionVariable(ctx context.Context, executionID, name string) error
+	// DeleteAllExecutionVariables 清空执行局部变量。
+	// @param ctx 上下文
+	// @param executionID 执行 ID
+	// @return 删除错误
+	DeleteAllExecutionVariables(ctx context.Context, executionID string) error
+	// DeleteAllInstanceVariables 清空流程实例变量。
+	// @param ctx 上下文
+	// @param processInstanceID 实例 ID
+	// @return 删除错误
+	DeleteAllInstanceVariables(ctx context.Context, processInstanceID string) error
 	// GetExecution 查询执行。
 	// @param ctx 上下文
 	// @param executionID 执行 ID
@@ -384,6 +414,11 @@ type TaskService interface {
 	// @param name 变量名
 	// @return 删除错误
 	DeleteTaskVariable(ctx context.Context, taskID, name string) error
+	// DeleteAllTaskVariables 清空任务局部变量。
+	// @param ctx 上下文
+	// @param taskID 任务 ID
+	// @return 删除错误
+	DeleteAllTaskVariables(ctx context.Context, taskID string) error
 	// ListIdentityLinks 返回任务参与者关联。
 	// @param ctx 上下文
 	// @param taskID 任务 ID
@@ -584,6 +619,26 @@ type HistoryService interface {
 	// @return 明细列表
 	// @return 查询错误
 	ListHistoricDetails(ctx context.Context, processInstanceID string) ([]HistoricDetail, error)
+	// GetHistoricDetail 查询历史变量明细。
+	// @param ctx 上下文
+	// @param detailID 明细 ID
+	// @return 明细
+	// @return 查询错误
+	GetHistoricDetail(ctx context.Context, detailID string) (HistoricDetail, error)
+	// GetHistoricVariableByName 按实例与变量名查询历史变量。
+	// @param ctx 上下文
+	// @param processInstanceID 实例 ID
+	// @param name 变量名
+	// @return 历史变量
+	// @return 查询错误
+	GetHistoricVariableByName(ctx context.Context, processInstanceID, name string) (HistoricVariableInstance, error)
+	// GetHistoricTaskVariableByName 按任务与变量名查询历史变量。
+	// @param ctx 上下文
+	// @param taskID 任务 ID
+	// @param name 变量名
+	// @return 历史变量
+	// @return 查询错误
+	GetHistoricTaskVariableByName(ctx context.Context, taskID, name string) (HistoricVariableInstance, error)
 	// ListHistoricIdentityLinks 返回历史身份链接。
 	// @param ctx 上下文
 	// @param taskID 任务 ID，空串表示全部

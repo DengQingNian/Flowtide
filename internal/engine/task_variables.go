@@ -97,6 +97,25 @@ func (e *Engine) SetTaskVariable(ctx context.Context, taskID, name string, value
 	return err
 }
 
+// DeleteAllTaskVariables 清空任务局部变量。
+// @param ctx 上下文
+// @param taskID 任务 ID
+// @return 删除错误
+func (e *Engine) DeleteAllTaskVariables(ctx context.Context, taskID string) error {
+	_, err := e.execute(ctx, func(cc *commandContext) (any, error) {
+		task, ok := e.findTask(taskID)
+		if !ok {
+			return nil, api.NewError("ENGINE-0805", "任务不存在", api.ErrNotFound)
+		}
+		if err := e.allowTask(cc.ctx, task.Task.ID); err != nil {
+			return nil, err
+		}
+		task.LocalVariables = make(map[string]any)
+		return nil, nil
+	})
+	return err
+}
+
 // DeleteTaskVariable 删除任务局部变量。
 // @param ctx 上下文
 // @param taskID 任务 ID
