@@ -291,12 +291,20 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("GET /service/management/history-jobs/{id}", s.handleGetHistoryJob)
 	s.mux.HandleFunc("GET /service/management/jobs/{id}", s.handleGetJob)
 	s.mux.HandleFunc("DELETE /service/management/jobs/{id}", s.handleDeleteJob)
+	s.mux.HandleFunc("DELETE /service/management/timer-jobs/{id}", s.handleDeleteTimerJob)
+	s.mux.HandleFunc("DELETE /service/management/suspended-jobs/{id}", s.handleDeleteSuspendedJob)
+	s.mux.HandleFunc("DELETE /service/management/deadletter-jobs/{id}", s.handleDeleteDeadLetterJob)
+	s.mux.HandleFunc("POST /service/management/timer-jobs/{id}", s.handleTimerJobAction)
+	s.mux.HandleFunc("POST /service/management/deadletter-jobs/{id}", s.handleDeadLetterJobAction)
 	s.mux.HandleFunc("GET /service/management/deadletter-jobs/{id}", s.handleGetDeadLetterJob)
 	s.mux.HandleFunc("GET /service/management/batches", s.handleListBatches)
 	s.mux.HandleFunc("GET /service/management/batches/{id}", s.handleGetBatch)
 	s.mux.HandleFunc("GET /service/management/batches/{id}/batch-parts", s.handleListBatchParts)
 	s.mux.HandleFunc("GET /service/management/batches/{id}/summary", s.handleBatchSummary)
+	s.mux.HandleFunc("GET /service/management/batches/{id}/batch-document", s.handleGetBatchDocument)
+	s.mux.HandleFunc("DELETE /service/management/batches/{id}", s.handleDeleteBatch)
 	s.mux.HandleFunc("GET /service/management/batch-parts/{id}", s.handleGetBatchPart)
+	s.mux.HandleFunc("GET /service/management/batch-parts/{id}/batch-part-document", s.handleGetBatchPartDocument)
 	s.mux.HandleFunc("GET /service/management/jobs/{id}/exception-stacktrace", s.handleJobStacktrace)
 	s.mux.HandleFunc("GET /service/management/timer-jobs/{id}/exception-stacktrace", s.handleTimerJobStacktrace)
 	s.mux.HandleFunc("GET /service/management/suspended-jobs/{id}/exception-stacktrace", s.handleSuspendedJobStacktrace)
@@ -309,6 +317,7 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("DELETE /service/repository/deployments/{id}", s.handleDeleteDeployment)
 	s.mux.HandleFunc("GET /service/repository/deployments/{id}/resources", s.handleListDeploymentResources)
 	s.mux.HandleFunc("GET /service/repository/deployments/{id}/resources/{name...}", s.handleGetDeploymentResource)
+	s.mux.HandleFunc("GET /service/repository/deployments/{id}/resourcedata/{resourceName}", s.handleGetDeploymentResourceData)
 	s.mux.HandleFunc("GET /service/repository/process-definitions", s.handleListDefinitions)
 	s.mux.HandleFunc("GET /service/repository/process-definitions/{id}", s.handleGetDefinition)
 	s.mux.HandleFunc("GET /service/repository/process-definitions/{id}/xml", s.handleGetDefinitionXML)
@@ -369,6 +378,8 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("GET /service/runtime/process-instances/{id}/identitylinks", s.handleListInstanceIdentityLinks)
 	s.mux.HandleFunc("POST /service/runtime/process-instances/{id}/identitylinks", s.handleAddInstanceIdentityLink)
 	s.mux.HandleFunc("DELETE /service/runtime/process-instances/{id}/identitylinks/{family}/{identityId}/{type}", s.handleDeleteInstanceIdentityLink)
+	s.mux.HandleFunc("DELETE /service/runtime/process-instances/{id}/identitylinks/users/{identityId}/{type}", s.handleDeleteInstanceUserIdentityLink)
+	s.mux.HandleFunc("GET /service/runtime/process-instances/{id}/identitylinks/users/{identityId}/{type}", s.handleGetInstanceUserIdentityLink)
 	s.mux.HandleFunc("GET /service/runtime/process-instances/{id}/identitylinks/{family}/{identityId}", s.handleGetInstanceIdentityLink)
 	s.mux.HandleFunc("GET /service/runtime/process-instances/{id}/identitylinks/{family}/{identityId}/{type}", s.handleGetInstanceIdentityLink)
 	s.mux.HandleFunc("GET /service/runtime/process-instances/{id}/tasks", s.handleGetInstanceTasks)
@@ -731,8 +742,16 @@ func (s *Server) handleListJobs(w http.ResponseWriter, r *http.Request) {
 		writeError(w, err)
 		return
 	}
+	filtered := make([]api.JobInfo, 0, len(jobs))
+	for _, job := range jobs {
+		// 可执行作业桶不包含定时器与挂起作业
+		if isTimerJob(job) || s.suspendedJob(r, job) {
+			continue
+		}
+		filtered = append(filtered, job)
+	}
 	start, size := pageParams(r)
-	writePage(w, jobs, start, size)
+	writePage(w, filtered, start, size)
 }
 
 // handleListDeadLetterJobs 返回死信作业。
@@ -761,6 +780,11 @@ func (s *Server) handleGetJob(w http.ResponseWriter, r *http.Request) {
 	job, err := s.engine.ManagementService().GetJob(r.Context(), r.PathValue("id"))
 	if err != nil {
 		writeError(w, err)
+		return
+	}
+	// 定时器与挂起作业通过各自桶端点读取
+	if isTimerJob(job) || s.suspendedJob(r, job) {
+		writeError(w, api.NewError("ENGINE-1501", "作业不存在", api.ErrNotFound))
 		return
 	}
 	writeJSON(w, http.StatusOK, job)
@@ -879,27 +903,19 @@ func (s *Server) handleDeleteDeployment(w http.ResponseWriter, r *http.Request) 
 // @param w 响应
 // @param r 请求
 func (s *Server) handleListDeploymentResources(w http.ResponseWriter, r *http.Request) {
-	names, err := s.engine.RepositoryService().ListDeploymentResources(r.Context(), r.PathValue("id"))
+	resources, err := s.deploymentResources(r, r.PathValue("id"))
 	if err != nil {
 		writeError(w, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, names)
+	writeJSON(w, http.StatusOK, resources)
 }
 
 // handleGetDeploymentResource 返回部署资源内容。
 // @param w 响应
 // @param r 请求
 func (s *Server) handleGetDeploymentResource(w http.ResponseWriter, r *http.Request) {
-	name := r.PathValue("name")
-	data, err := s.engine.RepositoryService().GetDeploymentResource(r.Context(), r.PathValue("id"), name)
-	if err != nil {
-		writeError(w, err)
-		return
-	}
-	w.Header().Set("Content-Type", deploymentResourceContentType(name))
-	w.WriteHeader(http.StatusOK)
-	_, _ = w.Write(data)
+	s.handleGetDeploymentResourceMetadata(w, r)
 }
 
 // deploymentResourceContentType 返回部署资源的 Content-Type。

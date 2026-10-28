@@ -2,7 +2,7 @@
 
 用**纯 Go** 重构 [Flowable](https://www.flowable.org/) 工作流引擎。目标是提供一个不依赖 JVM、不依赖 CGO 的 BPMN 2.0 引擎，逐步验证 Flowable 8.x 数据与流程 REST 兼容。当前仅完成新建库原型与双库行仓储本地验收，尚未通过 Java 存量迁移、回退或集群验收。
 
-> 当前状态：**BPMN 内核扩展实现阶段**。已完成纯 Go 的 BPMN 解析、部署、执行树、任务、网关、子流程、多实例、调用活动、消息/信号、定时器、错误、补偿、事件子流程、迁移、身份、历史、JSON 状态持久化与 REST 核心端点。  
+> 当前状态：**BPMN 内核扩展实现阶段**。已完成纯 Go 的 BPMN 解析、部署、执行树、任务、网关、子流程、多实例、调用活动、消息/信号、定时器、错误、补偿、事件子流程、迁移、身份、历史、JSON 状态持久化与 REST 核心端点。官方 184 个流程 REST 方法端点均已有路由，DMN 决策表全部命中策略与服务端 mTLS 已实现。
 > 参考基线：Java 提交 `f6017e32a4bdd3e59a8881f58b0ee181652d1d9e`，规范与 DDL 摘要见 `testdata/compatibility/baseline.json`。当前能力与发布边界见 [能力矩阵](docs/003-迁移审计/003-能力矩阵与迁移退出条件.md)。
 
 ## 为什么做
@@ -93,6 +93,11 @@ make build
 # 健康检查
 curl http://localhost:8080/healthz
 
+# 启用 mTLS：要求并校验客户端证书（证书与私钥必须同时提供）
+./bin/flowable-server -addr :8443 \
+  -tls-cert server.crt -tls-key server.key \
+  -tls-client-ca client-ca.pem -tls-client-auth require-verify
+
 # 部署 BPMN
 curl -X POST 'http://localhost:8080/service/repository/deployments?deploymentName=demo' \
   -H 'Content-Type: application/xml' \
@@ -169,7 +174,7 @@ go run ./cmd/flowable-server -storage mysql -env .env
 - ACT_* 行映射、导出与导入（仓库、运行时、作业/订阅/死信、历史/评论/附件/身份链接/变量明细/任务日志）。
 - MySQL 开发配置、连接池、Schema 初始化校验、原子 SQL 快照与真实数据库集成测试（默认跳过）。
 - 行级 SQL 仓储、`REV_` 乐观锁、事务工作单元、全量/增量/自动写入、启动恢复与单一状态源。
-- REST 认证/身份库、PBKDF2、用户/角色 CRUD、RBAC、租户隔离、限流、TLS、审计与 HTTP/引擎 Prometheus 指标。
+- REST 认证/身份库、PBKDF2、用户/角色 CRUD、RBAC、租户隔离、限流、TLS、双向 TLS（客户端证书校验）、审计与 HTTP/引擎 Prometheus 指标。
 - 部署管理（列表、详情、资源下载、级联删除、ZIP/BAR 部署包）。
 - 事件子流程（消息/信号启动、中断/非中断、作用域取消）。
 - 补偿（补偿边界、关联处理器、逆序执行；服务/手动处理器）。
@@ -177,7 +182,7 @@ go run ./cmd/flowable-server -storage mysql -env .env
 - 变量作用域、表达式子集、历史记录（流程/活动/任务/变量）。
 - JSON 状态文件持久化（原子写入、启动恢复、失败回滚）。
 - REST：部署、流程定义、实例、任务、变量、历史、健康检查。
-- 管理端点：引擎属性、41 张表的行数、列元数据与表数据分页。
+- 管理端点：引擎属性、41 张表的行数、列元数据与表数据分页；批次/分片文档与删除、定时/挂起/死信作业按桶删除及 move/reschedule。
 - 任务表单读取、历史实例变量/身份链接/评论子资源。
 - POST 组合查询：流程实例、执行、任务、活动实例、变量实例、历史实例/任务/活动/变量/明细，支持过滤、分页与排序。
 - 独立任务：创建、部分更新、完成、递归删除、子任务与租户隔离。
@@ -212,11 +217,12 @@ go run ./cmd/flowable-server -storage mysql -env .env
 - 任务事件与历史任务日志支持动作/用户/实例/时间范围过滤。
 - 部署内 `.form` 表单定义读取，启动/任务/历史表单按 formKey 渲染；部署资源按扩展名返回 Content-Type。
 - JWT/JWKS Bearer 认证：RS256/HS256、JWKS 缓存、iss/aud/exp 校验与 RBAC。
-- DMN 决策/决策表元数据读取与决策表求值（FIRST/UNIQUE/ANY/RULE ORDER 子集）。
+- DMN 决策/决策表元数据读取与决策表求值（FIRST/UNIQUE/ANY/RULE ORDER/COLLECT/OUTPUT ORDER/PRIORITY，含 SUM/MIN/MAX/COUNT 聚合）。
 - BPMN 业务规则任务：`businessRuleTask` 按 decisionRef 求值并写入结果变量。
 - 任务/实例身份链接单条读取与按类型删除。
 - 流程定义列表支持 `startableByUser` 候选人（用户/组）过滤。
 - BPMN 任务监听器：create/complete 事件的 class/delegateExpression 注册与执行。
+- 官方 184 个流程 REST 方法端点均已有路由；方法级缺口为 0，具体响应模式与 Java 行为仍待逐项验收（见 004 对照表）。
 - 核心采用 Go 实现，使用 MySQL 驱动、环境配置加载及数据库测试依赖，版本以 go.mod 为准；`CGO_ENABLED=0` 可构建。
 ## 整改后的验证入口
 

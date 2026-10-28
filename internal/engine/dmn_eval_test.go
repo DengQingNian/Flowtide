@@ -306,3 +306,448 @@ func TestDMNOutputAndPolicyHelpers(t *testing.T) {
 		t.Fatalf("dmnBadRequest 应可识别为 400: %v", err)
 	}
 }
+
+// TestParseDMNTableAggregationAndOutputValues 验证聚合器与 outputValues 的解析。
+// @param t 测试上下文
+func TestParseDMNTableAggregationAndOutputValues(t *testing.T) {
+	const document = `<definitions>
+  <decision id="decisionAggregation">
+    <decisionTable id="tableAggregation" hitPolicy="COLLECT" aggregation="sum">
+      <input id="amountInput"><inputExpression><text>amount</text></inputExpression></input>
+      <output id="total" name="合计" typeRef="number"><outputValues><text>10, 20,30</text></outputValues></output>
+      <output id="level" name="等级" typeRef="string"><outputValues><text>"high","low"</text></outputValues></output>
+      <output id="empty" name="空" typeRef="string"><outputValues><text>  </text></outputValues></output>
+      <rule><inputEntry><text>-</text></inputEntry><outputEntry><text>10</text></outputEntry></rule>
+    </decisionTable>
+  </decision>
+</definitions>`
+	decisions, err := parseDMNDecisions("aggregation.dmn", []byte(document))
+	if err != nil {
+		t.Fatalf("解析 DMN 失败: %v", err)
+	}
+	table := decisions[0].Table
+	if table.Aggregation != dmnAggregationSum {
+		t.Fatalf("聚合器解析错误: %q", table.Aggregation)
+	}
+	if !reflect.DeepEqual(table.Outputs[0].Values, []any{10, 20, 30}) {
+		t.Fatalf("数字顺序值解析错误: %#v", table.Outputs[0].Values)
+	}
+	if !reflect.DeepEqual(table.Outputs[1].Values, []any{"high", "low"}) {
+		t.Fatalf("字符串顺序值解析错误: %#v", table.Outputs[1].Values)
+	}
+	if table.Outputs[2].Values != nil {
+		t.Fatalf("空顺序值应返回 nil: %#v", table.Outputs[2].Values)
+	}
+
+	// 兼容部分文档使用 aggregator 作为属性名
+	const alias = `<definitions><decision id="d"><decisionTable id="t" hitPolicy="COLLECT" aggregator="max"/></decision></definitions>`
+	aliasDecisions, aliasErr := parseDMNDecisions("alias.dmn", []byte(alias))
+	if aliasErr != nil {
+		t.Fatalf("解析 aggregator 别名失败: %v", aliasErr)
+	}
+	if aliasDecisions[0].Table.Aggregation != dmnAggregationMax {
+		t.Fatalf("aggregator 别名解析错误: %q", aliasDecisions[0].Table.Aggregation)
+	}
+}
+
+// TestParseDMNTableModelErrors 验证聚合器与顺序值非法时返回 400。
+// @param t 测试上下文
+func TestParseDMNTableModelErrors(t *testing.T) {
+	cases := []struct {
+		name     string
+		document string
+		code     string
+	}{
+		{
+			name:     "非法聚合器",
+			document: `<definitions><decision id="d"><decisionTable id="t" aggregation="AVG"/></decision></definitions>`,
+			code:     dmnErrAggregation,
+		},
+		{
+			name:     "数字顺序值非法",
+			document: `<definitions><decision id="d"><decisionTable id="t"><output id="o" name="o" typeRef="number"><outputValues><text>10,abc</text></outputValues></output></decisionTable></decision></definitions>`,
+			code:     dmnErrOutputOrder,
+		},
+		{
+			name:     "布尔顺序值非法",
+			document: `<definitions><decision id="d"><decisionTable id="t"><output id="o" name="o" typeRef="boolean"><outputValues><text>maybe</text></outputValues></output></decisionTable></decision></definitions>`,
+			code:     dmnErrOutputOrder,
+		},
+		{
+			name:     "顺序值引号未闭合",
+			document: `<definitions><decision id="d"><decisionTable id="t"><output id="o" name="o" typeRef="string"><outputValues><text>"a,b</text></outputValues></output></decisionTable></decision></definitions>`,
+			code:     dmnErrOutputOrder,
+		},
+	}
+	for _, testCase := range cases {
+		t.Run(testCase.name, func(t *testing.T) {
+			_, err := parseDMNDecisions("bad.dmn", []byte(testCase.document))
+			if !errors.Is(err, api.ErrBadRequest) || !strings.Contains(err.Error(), testCase.code) {
+				t.Fatalf("期望 400 %s，实际 %v", testCase.code, err)
+			}
+		})
+	}
+}
+
+// TestNormalizeDMNAggregation 验证聚合器规范化与非法取值。
+// @param t 测试上下文
+func TestNormalizeDMNAggregation(t *testing.T) {
+	cases := map[string]string{
+		"":      "",
+		" sum ": dmnAggregationSum,
+		"min":   dmnAggregationMin,
+		"MAX":   dmnAggregationMax,
+		"Count": dmnAggregationCount,
+	}
+	for raw, want := range cases {
+		got, err := normalizeDMNAggregation(raw)
+		if err != nil || got != want {
+			t.Fatalf("聚合器 %q 期望 %q，实际 %q %v", raw, want, got, err)
+		}
+	}
+	if _, err := normalizeDMNAggregation("AVG"); !errors.Is(err, api.ErrBadRequest) || !strings.Contains(err.Error(), dmnErrAggregation) {
+		t.Fatalf("非法聚合器应返回 400 ENGINE-1921: %v", err)
+	}
+}
+
+// TestDMNOrderHelpers 验证顺序值下标、可排序判断与多列比较。
+// @param t 测试上下文
+func TestDMNOrderHelpers(t *testing.T) {
+	if index := dmnOrderIndex([]any{"high", "low"}, "low"); index != 1 {
+		t.Fatalf("字符串顺序值下标错误: %d", index)
+	}
+	if index := dmnOrderIndex([]any{10, 20}, 20.0); index != 1 {
+		t.Fatalf("数值顺序值下标应按数值比较: %d", index)
+	}
+	if index := dmnOrderIndex([]any{true}, true); index != 0 {
+		t.Fatalf("布尔顺序值下标错误: %d", index)
+	}
+	if index := dmnOrderIndex([]any{"a"}, nil); index != -1 {
+		t.Fatalf("nil 应视为不在顺序列表: %d", index)
+	}
+	if index := dmnOrderIndex([]any{"a"}, "z"); index != -1 {
+		t.Fatalf("未命中顺序值应返回 -1: %d", index)
+	}
+
+	for _, value := range []any{nil, "a", true, 1, 1.5} {
+		if !dmnOrderableValue(value) {
+			t.Fatalf("值 %v 应可排序", value)
+		}
+	}
+	for _, value := range []any{map[string]any{"a": 1}, []any{1}} {
+		if dmnOrderableValue(value) {
+			t.Fatalf("值 %v 不应可排序", value)
+		}
+	}
+
+	table := &dmnTableModel{Outputs: []dmnOutputModel{
+		{ID: "grade", Values: []any{"A", "B"}},
+		{ID: "rank", Values: []any{1, 2}},
+	}}
+	left := []dmnOutputValue{{ID: "grade", Value: "A", Set: true}, {ID: "rank", Value: 2, Set: true}}
+	right := []dmnOutputValue{{ID: "grade", Value: "B", Set: true}, {ID: "rank", Value: 1, Set: true}}
+	if comparison := compareDMNOutputRows(table, left, right); comparison >= 0 {
+		t.Fatalf("应先比较输出列 grade: %d", comparison)
+	}
+	same := []dmnOutputValue{{ID: "grade", Value: "A", Set: true}, {ID: "rank", Value: 2, Set: true}}
+	if comparison := compareDMNOutputRows(table, left, same); comparison != 0 {
+		t.Fatalf("相同顺序值应返回 0: %d", comparison)
+	}
+
+	// 未配置顺序值的输出列不参与比较
+	ignored := &dmnTableModel{Outputs: []dmnOutputModel{{ID: "grade", Values: []any{"A"}}, {ID: "note"}}}
+	leftIgnored := []dmnOutputValue{{Value: "A", Set: true}, {Value: "x", Set: true}}
+	rightIgnored := []dmnOutputValue{{Value: "A", Set: true}, {Value: "y", Set: true}}
+	if comparison := compareDMNOutputRows(ignored, leftIgnored, rightIgnored); comparison != 0 {
+		t.Fatalf("未配置顺序值的输出列不应参与比较: %d", comparison)
+	}
+}
+
+// TestSortDMNOutputOrder 验证 OUTPUT ORDER 的排序、稳定性与错误。
+// @param t 测试上下文
+func TestSortDMNOutputOrder(t *testing.T) {
+	table := &dmnTableModel{HitPolicy: "OUTPUT ORDER", Outputs: []dmnOutputModel{
+		{ID: "level", Values: []any{"high", "medium", "low"}},
+	}}
+	rows := [][]dmnOutputValue{
+		{{ID: "level", Value: "low", Set: true}},
+		{{ID: "level", Value: "high", Set: true}},
+		{{ID: "level", Value: "medium", Set: true}},
+		{{ID: "level", Value: "other", Set: true}},
+	}
+	sorted, err := sortDMNOutputOrder(table, rows)
+	if err != nil {
+		t.Fatalf("排序失败: %v", err)
+	}
+	want := []any{"other", "high", "medium", "low"}
+	for index, row := range sorted {
+		if row[0].Value != want[index] {
+			t.Fatalf("排序结果错误: %#v", sorted)
+		}
+	}
+	if rows[0][0].Value != "low" {
+		t.Fatalf("排序不应修改原结果行: %#v", rows)
+	}
+
+	// 顺序值相同时保持文档顺序
+	stable := &dmnTableModel{HitPolicy: "OUTPUT ORDER", Outputs: []dmnOutputModel{
+		{ID: "grade", Values: []any{"A"}},
+		{ID: "note"},
+	}}
+	stableRows := [][]dmnOutputValue{
+		{{Value: "A", Set: true}, {Value: "n1", Set: true}},
+		{{Value: "A", Set: true}, {Value: "n2", Set: true}},
+		{{Value: "A", Set: true}, {Value: "n3", Set: true}},
+	}
+	stableSorted, err := sortDMNOutputOrder(stable, stableRows)
+	if err != nil {
+		t.Fatalf("稳定排序失败: %v", err)
+	}
+	for index, note := range []string{"n1", "n2", "n3"} {
+		if stableSorted[index][1].Value != note {
+			t.Fatalf("稳定排序结果错误: %#v", stableSorted)
+		}
+	}
+
+	// 空值视为不在顺序列表中，排在最前
+	nilTable := &dmnTableModel{HitPolicy: "PRIORITY", Outputs: []dmnOutputModel{{ID: "level", Values: []any{"b"}}}}
+	nilRows := [][]dmnOutputValue{{{Value: "b", Set: true}}, {{Set: false}}}
+	nilSorted, err := sortDMNOutputOrder(nilTable, nilRows)
+	if err != nil || nilSorted[0][0].Set {
+		t.Fatalf("空值应排在最前: %#v %v", nilSorted, err)
+	}
+
+	if _, err := sortDMNOutputOrder(&dmnTableModel{HitPolicy: "OUTPUT ORDER", Outputs: []dmnOutputModel{{ID: "level"}}}, rows); !errors.Is(err, api.ErrBadRequest) || !strings.Contains(err.Error(), dmnErrOutputOrder) {
+		t.Fatalf("缺少顺序值应返回 400 ENGINE-1922: %v", err)
+	}
+	badTable := &dmnTableModel{HitPolicy: "OUTPUT ORDER", Outputs: []dmnOutputModel{{ID: "level", Values: []any{"a"}}}}
+	if _, err := sortDMNOutputOrder(badTable, [][]dmnOutputValue{{{Value: map[string]any{"a": 1}, Set: true}}}); !errors.Is(err, api.ErrBadRequest) || !strings.Contains(err.Error(), dmnErrOutputOrder) {
+		t.Fatalf("不可排序输出值应返回 400 ENGINE-1922: %v", err)
+	}
+}
+
+// TestCollectDMNMatches 验证 COLLECT 的收集、聚合与错误。
+// @param t 测试上下文
+func TestCollectDMNMatches(t *testing.T) {
+	outputs := []dmnOutputModel{{ID: "total", Name: "合计", Type: "number"}}
+	rows := [][]dmnOutputValue{
+		{{ID: "total", Value: 10, Set: true}},
+		{{ID: "total", Value: 20, Set: true}},
+	}
+	collected, err := collectDMNMatches(&dmnTableModel{Outputs: outputs}, rows)
+	if err != nil || len(collected) != 2 {
+		t.Fatalf("COLLECT 无聚合器应返回全部匹配: %v %#v", err, collected)
+	}
+	for _, testCase := range []struct {
+		aggregation string
+		want        float64
+	}{
+		{dmnAggregationSum, 30},
+		{dmnAggregationMin, 10},
+		{dmnAggregationMax, 20},
+		{dmnAggregationCount, 2},
+	} {
+		aggregated, aggregateErr := collectDMNMatches(&dmnTableModel{Aggregation: testCase.aggregation, Outputs: outputs}, rows)
+		if aggregateErr != nil {
+			t.Fatalf("聚合 %s 失败: %v", testCase.aggregation, aggregateErr)
+		}
+		if len(aggregated) != 1 || !aggregated[0][0].Set || aggregated[0][0].Value != testCase.want {
+			t.Fatalf("聚合 %s 结果错误: %#v", testCase.aggregation, aggregated)
+		}
+		if aggregated[0][0].ID != "total" {
+			t.Fatalf("聚合结果应保留输出列 id: %#v", aggregated[0][0])
+		}
+	}
+
+	// 降序输入覆盖 MIN 的候选值更新分支
+	reversed := [][]dmnOutputValue{
+		{{ID: "total", Value: 20, Set: true}},
+		{{ID: "total", Value: 10, Set: true}},
+	}
+	if aggregated, err := collectDMNMatches(&dmnTableModel{Aggregation: dmnAggregationMin, Outputs: outputs}, reversed); err != nil || aggregated[0][0].Value != 10.0 {
+		t.Fatalf("MIN 降序输入聚合错误: %#v %v", aggregated, err)
+	}
+	if aggregated, err := collectDMNMatches(&dmnTableModel{Aggregation: dmnAggregationMax, Outputs: outputs}, reversed); err != nil || aggregated[0][0].Value != 20.0 {
+		t.Fatalf("MAX 降序输入聚合错误: %#v %v", aggregated, err)
+	}
+
+	// 匹配行均未产生输出值时返回单条空结果
+	emptyRows := [][]dmnOutputValue{{{ID: "total", Set: false}}}
+	emptyAggregated, emptyErr := collectDMNMatches(&dmnTableModel{Aggregation: dmnAggregationSum, Outputs: outputs}, emptyRows)
+	if emptyErr != nil || len(emptyAggregated) != 1 || emptyAggregated[0][0].Set {
+		t.Fatalf("无输出值时应返回单条空结果: %#v %v", emptyAggregated, emptyErr)
+	}
+
+	// 四种聚合器都要求数值输出
+	textRows := [][]dmnOutputValue{
+		{{ID: "total", Value: "a", Set: true}},
+		{{ID: "total", Value: "b", Set: true}},
+	}
+	for _, aggregation := range []string{dmnAggregationSum, dmnAggregationMin, dmnAggregationMax, dmnAggregationCount} {
+		if _, err := collectDMNMatches(&dmnTableModel{Aggregation: aggregation, Outputs: outputs}, textRows); !errors.Is(err, api.ErrBadRequest) || !strings.Contains(err.Error(), dmnErrAggregation) {
+			t.Fatalf("聚合器 %s 遇到非数值输出应返回 400 ENGINE-1921: %v", aggregation, err)
+		}
+	}
+
+	// COUNT 仍需数值输出，返回有值行数
+	countRows := [][]dmnOutputValue{
+		{{ID: "total", Value: 10, Set: true}},
+		{{ID: "total", Value: 20, Set: true}},
+		{{ID: "total", Set: false}},
+	}
+	countAggregated, countErr := collectDMNMatches(&dmnTableModel{Aggregation: dmnAggregationCount, Outputs: outputs}, countRows)
+	if countErr != nil || countAggregated[0][0].Value != 2.0 {
+		t.Fatalf("COUNT 应统计有值的数字行数: %#v %v", countAggregated, countErr)
+	}
+}
+
+// TestValidateDMNCollectionAggregation 验证 COLLECT 聚合的输出列约束。
+// @param t 测试上下文
+func TestValidateDMNCollectionAggregation(t *testing.T) {
+	// 未配置聚合器时不限制输出列数与类型
+	if err := validateDMNCollectionAggregation(&dmnTableModel{Outputs: []dmnOutputModel{{ID: "a"}, {ID: "b"}}}); err != nil {
+		t.Fatalf("未配置聚合器不应校验输出列: %v", err)
+	}
+	// 多输出加聚合器违反 Flowable 约束
+	multi := &dmnTableModel{Aggregation: dmnAggregationSum, Outputs: []dmnOutputModel{{ID: "a", Type: "number"}, {ID: "b", Type: "number"}}}
+	if err := validateDMNCollectionAggregation(multi); !errors.Is(err, api.ErrBadRequest) || !strings.Contains(err.Error(), dmnErrAggregation) {
+		t.Fatalf("多输出聚合应返回 400 ENGINE-1921: %v", err)
+	}
+	// 单输出但类型不是 number
+	for _, outputType := range []string{"string", "", "boolean"} {
+		table := &dmnTableModel{Aggregation: dmnAggregationCount, Outputs: []dmnOutputModel{{ID: "a", Type: outputType}}}
+		if err := validateDMNCollectionAggregation(table); !errors.Is(err, api.ErrBadRequest) || !strings.Contains(err.Error(), dmnErrAggregation) {
+			t.Fatalf("输出类型 %q 聚合应返回 400 ENGINE-1921: %v", outputType, err)
+		}
+	}
+	// 单输出且类型为 number 时通过，类型比较不区分大小写
+	valid := &dmnTableModel{Aggregation: dmnAggregationMax, Outputs: []dmnOutputModel{{ID: "a", Type: "Number"}}}
+	if err := validateDMNCollectionAggregation(valid); err != nil {
+		t.Fatalf("单输出 number 应通过校验: %v", err)
+	}
+}
+
+// TestEvaluateDMNTableCollectValidation 验证 COLLECT 聚合校验先于输入求值执行。
+// @param t 测试上下文
+func TestEvaluateDMNTableCollectValidation(t *testing.T) {
+	// 输入表达式与聚合约束同时非法时，聚合约束先返回
+	table := &dmnTableModel{
+		HitPolicy:   "COLLECT",
+		Aggregation: dmnAggregationSum,
+		Inputs:      []dmnInputModel{{Expression: "amount +"}},
+		Outputs:     []dmnOutputModel{{ID: "a", Type: "number"}, {ID: "b", Type: "number"}},
+		Rules:       []dmnRuleModel{{Inputs: []string{"-"}, Outputs: []string{"1", "2"}}},
+	}
+	_, err := (&Engine{}).evaluateDMNTable(context.Background(), table, map[string]any{"amount": 1})
+	if !errors.Is(err, api.ErrBadRequest) || !strings.Contains(err.Error(), dmnErrAggregation) {
+		t.Fatalf("COLLECT 聚合约束应先于输入求值返回 400 ENGINE-1921: %v", err)
+	}
+}
+
+// TestDMNResultVariableRowsValue 验证多行结果变量的转换。
+// @param t 测试上下文
+func TestDMNResultVariableRowsValue(t *testing.T) {
+	rows := [][]dmnOutputValue{
+		{{ID: "result", Value: "a", Set: true}},
+		{{ID: "result", Value: "b", Set: true}},
+	}
+	value, err := dmnResultVariableRowsValue(rows)
+	if err != nil {
+		t.Fatalf("转换多行结果失败: %v", err)
+	}
+	if !reflect.DeepEqual(value, []any{"a", "b"}) {
+		t.Fatalf("多行单输出应返回切片: %#v", value)
+	}
+
+	multi := [][]dmnOutputValue{
+		{{ID: "level", Value: "A", Set: true}, {ID: "note", Set: false}},
+		{{ID: "level", Value: "B", Set: true}, {ID: "note", Value: "x", Set: true}},
+	}
+	value, err = dmnResultVariableRowsValue(multi)
+	if err != nil {
+		t.Fatalf("转换多行多输出失败: %v", err)
+	}
+	expected := []any{
+		map[string]any{"level": "A"},
+		map[string]any{"level": "B", "note": "x"},
+	}
+	if !reflect.DeepEqual(value, expected) {
+		t.Fatalf("多行多输出转换错误: %#v", value)
+	}
+
+	single, err := dmnResultVariableRowsValue([][]dmnOutputValue{{{ID: "result", Value: 42, Set: true}}})
+	if err != nil || single != 42 {
+		t.Fatalf("单行结果应保持标量: %#v %v", single, err)
+	}
+
+	if _, err := dmnResultVariableRowsValue([][]dmnOutputValue{
+		{{Set: true}, {Set: true}},
+		{{Set: true}, {Set: true}},
+	}); err == nil {
+		t.Fatalf("多行多输出缺少名称应返回错误")
+	}
+
+	if _, err := dmnOutputVariableName(dmnOutputValue{}); err == nil {
+		t.Fatalf("缺少 id 与 name 应返回错误")
+	}
+	if name, err := dmnOutputVariableName(dmnOutputValue{Name: "备注"}); err != nil || name != "备注" {
+		t.Fatalf("变量名应回退 name: %q %v", name, err)
+	}
+}
+
+// TestParseDMNOutputValue 验证单个顺序值的类型转换与错误。
+// @param t 测试上下文
+func TestParseDMNOutputValue(t *testing.T) {
+	cases := []struct {
+		name       string
+		text       string
+		outputType string
+		want       any
+		wantErr    bool
+	}{
+		{name: "数字类型", text: "10", outputType: "number", want: 10},
+		{name: "数字类型带引号", text: `"10"`, outputType: "number", want: 10},
+		{name: "数字类型非法", text: "abc", outputType: "number", wantErr: true},
+		{name: "布尔类型真", text: "true", outputType: "boolean", want: true},
+		{name: "布尔类型假", text: "false", outputType: "bool", want: false},
+		{name: "布尔类型非法", text: "maybe", outputType: "boolean", wantErr: true},
+		{name: "字符串类型", text: "high", outputType: "string", want: "high"},
+		{name: "推断布尔", text: "true", want: true},
+		{name: "推断布尔假", text: "false", want: false},
+		{name: "推断数字", text: "1.5", want: 1.5},
+		{name: "推断字符串", text: "plain", want: "plain"},
+		{name: "引号未闭合", text: `"a`, outputType: "string", wantErr: true},
+	}
+	for _, testCase := range cases {
+		t.Run(testCase.name, func(t *testing.T) {
+			got, err := parseDMNOutputValue(testCase.text, testCase.outputType)
+			if testCase.wantErr {
+				if err == nil {
+					t.Fatalf("顺序值 %q 应返回错误", testCase.text)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("解析顺序值失败: %v", err)
+			}
+			if !reflect.DeepEqual(got, testCase.want) {
+				t.Fatalf("顺序值 %q 期望 %#v，实际 %#v", testCase.text, testCase.want, got)
+			}
+		})
+	}
+}
+
+// TestEvaluateDMNTableRuleInputOverflow 验证规则输入条件多于输入列时返回 400。
+// @param t 测试上下文
+func TestEvaluateDMNTableRuleInputOverflow(t *testing.T) {
+	table := &dmnTableModel{
+		HitPolicy: "FIRST",
+		Inputs:    []dmnInputModel{{Expression: "amount"}},
+		Outputs:   []dmnOutputModel{{ID: "result"}},
+		Rules:     []dmnRuleModel{{Inputs: []string{"-", "-"}, Outputs: []string{`"a"`}}},
+	}
+	_, err := (&Engine{}).evaluateDMNTable(context.Background(), table, map[string]any{"amount": 1})
+	if !errors.Is(err, api.ErrBadRequest) || !strings.Contains(err.Error(), dmnErrInputEntry) {
+		t.Fatalf("输入条件多于输入列应返回 400 ENGINE-1914: %v", err)
+	}
+}

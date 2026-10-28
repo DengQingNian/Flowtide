@@ -1,7 +1,7 @@
 # 004 REST 端点对照
 
 > 自动生成：`make contract-update`；校验：`make contract`。以方法及规范化路径为主键。
-> 官方方法端点 184；实现方法端点 231。已编码表示路由存在，尚未证明响应模式和 Java 行为兼容。
+> 官方方法端点 184；实现方法端点 242。已编码表示路由存在，尚未证明响应模式和 Java 行为兼容。
 
 | 方法与规范化路径 | 官方路径 | 实现路径 | 状态与限制 |
 | --- | --- | --- | --- |
@@ -17,12 +17,12 @@
 | `DELETE /identity/users/{}` | `/identity/users/{userId}` | `/identity/users/{id}` | 已编码；待契约与 Java 行为验收 |
 | `DELETE /identity/users/{}/groups/{}` | `` | `/identity/users/{id}/groups/{groupId}` | 实现扩展；不计入官方覆盖 |
 | `DELETE /identity/users/{}/info/{}` | `/identity/users/{userId}/info/{key}` | `/identity/users/{id}/info/{key}` | 已编码；待契约与 Java 行为验收 |
-| `DELETE /management/batches/{}` | `/management/batches/{batchId}` | `` | 缺失；迁移验收阻断 |
-| `DELETE /management/deadletter-jobs/{}` | `/management/deadletter-jobs/{jobId}` | `` | 缺失；迁移验收阻断 |
+| `DELETE /management/batches/{}` | `/management/batches/{batchId}` | `/management/batches/{id}` | 已编码；待契约与 Java 行为验收 |
+| `DELETE /management/deadletter-jobs/{}` | `/management/deadletter-jobs/{jobId}` | `/management/deadletter-jobs/{id}` | 已编码；待契约与 Java 行为验收 |
 | `DELETE /management/engine-properties/{}` | `` | `/management/engine-properties/{name}` | 实现扩展；不计入官方覆盖 |
 | `DELETE /management/jobs/{}` | `/management/jobs/{jobId}` | `/management/jobs/{id}` | 已编码；待契约与 Java 行为验收 |
-| `DELETE /management/suspended-jobs/{}` | `/management/suspended-jobs/{jobId}` | `` | 缺失；迁移验收阻断 |
-| `DELETE /management/timer-jobs/{}` | `/management/timer-jobs/{jobId}` | `` | 缺失；迁移验收阻断 |
+| `DELETE /management/suspended-jobs/{}` | `/management/suspended-jobs/{jobId}` | `/management/suspended-jobs/{id}` | 已编码；待契约与 Java 行为验收 |
+| `DELETE /management/timer-jobs/{}` | `/management/timer-jobs/{jobId}` | `/management/timer-jobs/{id}` | 已编码；待契约与 Java 行为验收 |
 | `DELETE /repository/deployments/{}` | `/repository/deployments/{deploymentId}` | `/repository/deployments/{id}` | 已编码；待契约与 Java 行为验收 |
 | `DELETE /repository/models/{}` | `/repository/models/{modelId}` | `/repository/models/{id}` | 已编码；待契约与 Java 行为验收 |
 | `DELETE /repository/process-definitions/{}/identitylinks/{}/{}` | `/repository/process-definitions/{processDefinitionId}/identitylinks/{family}/{identityId}` | `/repository/process-definitions/{id}/identitylinks/{family}/{identityId}` | 已编码；待契约与 Java 行为验收 |
@@ -31,7 +31,7 @@
 | `DELETE /runtime/process-instances/{}` | `/runtime/process-instances/{processInstanceId}` | `/runtime/process-instances/{id}` | 已编码；待契约与 Java 行为验收 |
 | `DELETE /runtime/process-instances/{}/attachments/{}` | `` | `/runtime/process-instances/{id}/attachments/{attachmentId}` | 实现扩展；不计入官方覆盖 |
 | `DELETE /runtime/process-instances/{}/comments/{}` | `` | `/runtime/process-instances/{id}/comments/{commentId}` | 实现扩展；不计入官方覆盖 |
-| `DELETE /runtime/process-instances/{}/identitylinks/users/{}/{}` | `/runtime/process-instances/{processInstanceId}/identitylinks/users/{identityId}/{type}` | `` | 缺失；迁移验收阻断 |
+| `DELETE /runtime/process-instances/{}/identitylinks/users/{}/{}` | `/runtime/process-instances/{processInstanceId}/identitylinks/users/{identityId}/{type}` | `/runtime/process-instances/{id}/identitylinks/users/{identityId}/{type}` | 已编码；待契约与 Java 行为验收 |
 | `DELETE /runtime/process-instances/{}/identitylinks/{}/{}/{}` | `` | `/runtime/process-instances/{id}/identitylinks/{family}/{identityId}/{type}` | 实现扩展；不计入官方覆盖 |
 | `DELETE /runtime/process-instances/{}/variables` | `/runtime/process-instances/{processInstanceId}/variables` | `/runtime/process-instances/{id}/variables` | 已编码；待契约与 Java 行为验收 |
 | `DELETE /runtime/process-instances/{}/variables/{}` | `/runtime/process-instances/{processInstanceId}/variables/{variableName}` | `/runtime/process-instances/{id}/variables/{name}` | 已编码；待契约与 Java 行为验收 |
@@ -78,10 +78,10 @@
 | `GET /identity/users/{}/picture` | `/identity/users/{userId}/picture` | `/identity/users/{id}/picture` | 已编码；待契约与 Java 行为验收 |
 | `GET /management/audit-logs` | `` | `/management/audit-logs` | 实现扩展；不计入官方覆盖 |
 | `GET /management/batch-parts/{}` | `/management/batch-parts/{batchPartId}` | `/management/batch-parts/{id}` | 已编码；待契约与 Java 行为验收 |
-| `GET /management/batch-parts/{}/batch-part-document` | `/management/batch-parts/{batchPartId}/batch-part-document` | `` | 缺失；迁移验收阻断 |
+| `GET /management/batch-parts/{}/batch-part-document` | `/management/batch-parts/{batchPartId}/batch-part-document` | `/management/batch-parts/{id}/batch-part-document` | 已编码；待契约与 Java 行为验收 |
 | `GET /management/batches` | `/management/batches` | `/management/batches` | 已编码；待契约与 Java 行为验收 |
 | `GET /management/batches/{}` | `/management/batches/{batchId}` | `/management/batches/{id}` | 已编码；待契约与 Java 行为验收 |
-| `GET /management/batches/{}/batch-document` | `/management/batches/{batchId}/batch-document` | `` | 缺失；迁移验收阻断 |
+| `GET /management/batches/{}/batch-document` | `/management/batches/{batchId}/batch-document` | `/management/batches/{id}/batch-document` | 已编码；待契约与 Java 行为验收 |
 | `GET /management/batches/{}/batch-parts` | `/management/batches/{batchId}/batch-parts` | `/management/batches/{id}/batch-parts` | 已编码；待契约与 Java 行为验收 |
 | `GET /management/batches/{}/summary` | `` | `/management/batches/{id}/summary` | 实现扩展；不计入官方覆盖 |
 | `GET /management/deadletter-jobs` | `/management/deadletter-jobs` | `/management/deadletter-jobs` | 已编码；待契约与 Java 行为验收 |
@@ -107,10 +107,9 @@
 | `GET /management/timer-jobs/{}/exception-stacktrace` | `/management/timer-jobs/{jobId}/exception-stacktrace` | `/management/timer-jobs/{id}/exception-stacktrace` | 已编码；待契约与 Java 行为验收 |
 | `GET /repository/deployments` | `/repository/deployments` | `/repository/deployments` | 已编码；待契约与 Java 行为验收 |
 | `GET /repository/deployments/{}` | `/repository/deployments/{deploymentId}` | `/repository/deployments/{id}` | 已编码；待契约与 Java 行为验收 |
-| `GET /repository/deployments/{}/resourcedata/{}` | `/repository/deployments/{deploymentId}/resourcedata/{resourceName}` | `` | 缺失；迁移验收阻断 |
+| `GET /repository/deployments/{}/resourcedata/{}` | `/repository/deployments/{deploymentId}/resourcedata/{resourceName}` | `/repository/deployments/{id}/resourcedata/{resourceName}` | 已编码；待契约与 Java 行为验收 |
 | `GET /repository/deployments/{}/resources` | `/repository/deployments/{deploymentId}/resources` | `/repository/deployments/{id}/resources` | 已编码；待契约与 Java 行为验收 |
-| `GET /repository/deployments/{}/resources/**` | `/repository/deployments/{deploymentId}/resources/**` | `` | 缺失；迁移验收阻断 |
-| `GET /repository/deployments/{}/resources/{}` | `` | `/repository/deployments/{id}/resources/{name...}` | 实现扩展；不计入官方覆盖 |
+| `GET /repository/deployments/{}/resources/{**}` | `/repository/deployments/{deploymentId}/resources/**` | `/repository/deployments/{id}/resources/{name...}` | 已编码；待契约与 Java 行为验收 |
 | `GET /repository/models` | `/repository/models` | `/repository/models` | 已编码；待契约与 Java 行为验收 |
 | `GET /repository/models/{}` | `/repository/models/{modelId}` | `/repository/models/{id}` | 已编码；待契约与 Java 行为验收 |
 | `GET /repository/models/{}/source` | `/repository/models/{modelId}/source` | `/repository/models/{id}/source` | 已编码；待契约与 Java 行为验收 |
@@ -142,7 +141,7 @@
 | `GET /runtime/process-instances/{}/comments` | `` | `/runtime/process-instances/{id}/comments` | 实现扩展；不计入官方覆盖 |
 | `GET /runtime/process-instances/{}/diagram` | `/runtime/process-instances/{processInstanceId}/diagram` | `/runtime/process-instances/{id}/diagram` | 已编码；待契约与 Java 行为验收 |
 | `GET /runtime/process-instances/{}/identitylinks` | `/runtime/process-instances/{processInstanceId}/identitylinks` | `/runtime/process-instances/{id}/identitylinks` | 已编码；待契约与 Java 行为验收 |
-| `GET /runtime/process-instances/{}/identitylinks/users/{}/{}` | `/runtime/process-instances/{processInstanceId}/identitylinks/users/{identityId}/{type}` | `` | 缺失；迁移验收阻断 |
+| `GET /runtime/process-instances/{}/identitylinks/users/{}/{}` | `/runtime/process-instances/{processInstanceId}/identitylinks/users/{identityId}/{type}` | `/runtime/process-instances/{id}/identitylinks/users/{identityId}/{type}` | 已编码；待契约与 Java 行为验收 |
 | `GET /runtime/process-instances/{}/identitylinks/{}/{}` | `` | `/runtime/process-instances/{id}/identitylinks/{family}/{identityId}` | 实现扩展；不计入官方覆盖 |
 | `GET /runtime/process-instances/{}/identitylinks/{}/{}/{}` | `` | `/runtime/process-instances/{id}/identitylinks/{family}/{identityId}/{type}` | 实现扩展；不计入官方覆盖 |
 | `GET /runtime/process-instances/{}/tasks` | `` | `/runtime/process-instances/{id}/tasks` | 实现扩展；不计入官方覆盖 |
@@ -178,11 +177,11 @@
 | `POST /identity/users` | `/identity/users` | `/identity/users` | 已编码；待契约与 Java 行为验收 |
 | `POST /identity/users/{}/groups` | `` | `/identity/users/{id}/groups` | 实现扩展；不计入官方覆盖 |
 | `POST /identity/users/{}/info` | `/identity/users/{userId}/info` | `/identity/users/{id}/info` | 已编码；待契约与 Java 行为验收 |
-| `POST /management/deadletter-jobs/{}` | `/management/deadletter-jobs/{jobId}` | `` | 缺失；迁移验收阻断 |
+| `POST /management/deadletter-jobs/{}` | `/management/deadletter-jobs/{jobId}` | `/management/deadletter-jobs/{id}` | 已编码；待契约与 Java 行为验收 |
 | `POST /management/engine-properties` | `` | `/management/engine-properties` | 实现扩展；不计入官方覆盖 |
 | `POST /management/jobs/run` | `` | `/management/jobs/run` | 实现扩展；不计入官方覆盖 |
 | `POST /management/jobs/{}` | `/management/jobs/{jobId}` | `/management/jobs/{id}` | 已编码；待契约与 Java 行为验收 |
-| `POST /management/timer-jobs/{}` | `/management/timer-jobs/{jobId}` | `` | 缺失；迁移验收阻断 |
+| `POST /management/timer-jobs/{}` | `/management/timer-jobs/{jobId}` | `/management/timer-jobs/{id}` | 已编码；待契约与 Java 行为验收 |
 | `POST /query/activity-instances` | `` | `/query/activity-instances` | 实现扩展；不计入官方覆盖 |
 | `POST /query/executions` | `/query/executions` | `/query/executions` | 已编码；待契约与 Java 行为验收 |
 | `POST /query/historic-activity-instances` | `/query/historic-activity-instances` | `/query/historic-activity-instances` | 已编码；待契约与 Java 行为验收 |

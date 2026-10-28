@@ -30,6 +30,9 @@ func main() {
 	basicAuth := flag.String("basic-auth", "", "Basic Auth 用户，格式 user:pass")
 	tlsCert := flag.String("tls-cert", "", "TLS 证书路径")
 	tlsKey := flag.String("tls-key", "", "TLS 私钥路径")
+	tlsClientCA := flag.String("tls-client-ca", "", "客户端 CA 证书路径（PEM，可含多个证书），设置后要求并校验客户端证书")
+	tlsClientAuth := flag.String("tls-client-auth", "none", "客户端证书认证模式：none/request/require-any/require-verify")
+	tlsMinVersion := flag.String("tls-min-version", "1.2", "TLS 最低版本：1.2 或 1.3")
 	rateLimit := flag.Float64("rate-limit", 0, "每秒请求数，0 表示关闭限流")
 	rateBurst := flag.Int("rate-burst", 0, "限流桶容量")
 	bearerToken := flag.String("bearer-token", "", "Bearer Token")
@@ -93,8 +96,9 @@ func main() {
 	if *rateLimit > 0 && *rateBurst > 0 {
 		options = append(options, rest.WithRateLimit(*rateLimit, *rateBurst))
 	}
-	if (*tlsCert == "") != (*tlsKey == "") {
-		slog.Error("TLS 证书与私钥必须同时配置")
+	tlsConfig, err := buildTLSConfig(*tlsCert, *tlsKey, *tlsClientCA, *tlsClientAuth, *tlsMinVersion)
+	if err != nil {
+		slog.Error("TLS 配置非法", "error", err)
 		os.Exit(1)
 	}
 	server := &http.Server{
@@ -104,6 +108,10 @@ func main() {
 		ReadTimeout:       30 * time.Second,
 		WriteTimeout:      60 * time.Second,
 		IdleTimeout:       120 * time.Second,
+	}
+	// 仅在启用 TLS 时注入配置，未启用时保持原有明文监听行为。
+	if tlsConfig != nil {
+		server.TLSConfig = tlsConfig
 	}
 
 	go func() {

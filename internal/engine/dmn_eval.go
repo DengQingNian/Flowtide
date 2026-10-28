@@ -29,6 +29,27 @@ const (
 	dmnErrHitPolicy       = "ENGINE-1918" // 不支持的命中策略
 	dmnErrOutputEntry     = "ENGINE-1919" // 输出项解析或求值失败
 	dmnErrOutputName      = "ENGINE-1920" // 输出列缺少 id 与 name
+	dmnErrAggregation     = "ENGINE-1921" // 聚合器属性或聚合输出值非法
+	dmnErrOutputOrder     = "ENGINE-1922" // OUTPUT ORDER / PRIORITY 无法按顺序值排序
+)
+
+// DMN 命中策略取值，与 Flowable HitPolicy 一致。
+const (
+	dmnPolicyFirst       = "FIRST"        // 首条匹配
+	dmnPolicyUnique      = "UNIQUE"       // 唯一匹配
+	dmnPolicyAny         = "ANY"          // 多条匹配但输出一致
+	dmnPolicyRuleOrder   = "RULE ORDER"   // 文档顺序返回全部匹配
+	dmnPolicyOutputOrder = "OUTPUT ORDER" // 按输出列顺序值返回全部匹配
+	dmnPolicyPriority    = "PRIORITY"     // 按输出列顺序值取第一条
+	dmnPolicyCollect     = "COLLECT"      // 收集全部匹配或按聚合器聚合
+)
+
+// DMN 内置聚合器取值，与 Flowable BuiltinAggregator 一致。
+const (
+	dmnAggregationSum   = "SUM"   // 求和
+	dmnAggregationMin   = "MIN"   // 最小值
+	dmnAggregationMax   = "MAX"   // 最大值
+	dmnAggregationCount = "COUNT" // 计数
 )
 
 // dmnDecisionModel 是求值使用的决策模型，保留规则原文。
@@ -41,11 +62,12 @@ type dmnDecisionModel struct {
 
 // dmnTableModel 是求值使用的决策表模型。
 type dmnTableModel struct {
-	ID        string           // 决策表 ID
-	HitPolicy string           // 原始命中策略
-	Inputs    []dmnInputModel  // 输入列
-	Outputs   []dmnOutputModel // 输出列
-	Rules     []dmnRuleModel   // 规则，保持文档顺序
+	ID          string           // 决策表 ID
+	HitPolicy   string           // 原始命中策略
+	Aggregation string           // 规范化后的聚合器，空表示不做聚合
+	Inputs      []dmnInputModel  // 输入列
+	Outputs     []dmnOutputModel // 输出列
+	Rules       []dmnRuleModel   // 规则，保持文档顺序
 }
 
 // dmnInputModel 是决策表输入列。
@@ -58,9 +80,10 @@ type dmnInputModel struct {
 
 // dmnOutputModel 是决策表输出列。
 type dmnOutputModel struct {
-	ID   string // 输出 ID
-	Name string // 输出名称
-	Type string // 输出类型
+	ID     string // 输出 ID
+	Name   string // 输出名称
+	Type   string // 输出类型
+	Values []any  // outputValues 预定义顺序值，空表示未配置
 }
 
 // dmnRuleModel 是一条规则及其输入、输出单元格原文。
@@ -98,33 +121,76 @@ func (e *Engine) executeBusinessRuleTask(cc *commandContext, execution *executio
 	if decision.Table == nil || len(decision.Table.Outputs) == 0 {
 		return dmnBadRequest(dmnErrTableInvalid, "决策表没有输出列: "+decisionRef)
 	}
-	values, err := e.evaluateDMNTable(cc.ctx, decision.Table, e.variablesOf(execution))
+	rows, err := e.evaluateDMNTable(cc.ctx, decision.Table, e.variablesOf(execution))
 	if err != nil {
 		return err
 	}
 	if task.ResultVariable != "" {
-		value, valueErr := dmnResultVariableValue(values)
+		value, valueErr := dmnResultVariableRowsValue(rows)
 		if valueErr != nil {
 			return valueErr
 		}
 		e.setVariable(execution, task.ResultVariable, value)
 		return nil
 	}
-	// 未配置结果变量时，按输出列的 id/name 分别写入流程变量
-	for _, value := range values {
-		if !value.Set {
+	return e.writeDMNOutputVariables(execution, rows)
+}
+
+// writeDMNOutputVariables 未配置结果变量时按输出列写入流程变量。
+// 单条结果按输出列写标量；多条结果把每个输出列写成 []any 并跳过未产生值的行。
+// @param execution 当前执行
+// @param rows 匹配结果行
+// @return 写入错误
+func (e *Engine) writeDMNOutputVariables(execution *executionState, rows [][]dmnOutputValue) error {
+	if len(rows) == 1 {
+		// 单条结果沿用标量写入语义，输出为 "-" 时跳过
+		for _, value := range rows[0] {
+			if !value.Set {
+				continue
+			}
+			name, nameErr := dmnOutputVariableName(value)
+			if nameErr != nil {
+				return nameErr
+			}
+			e.setVariable(execution, name, value.Value)
+		}
+		return nil
+	}
+	// 多条结果按输出列聚合为切片，列内未产生值的行直接跳过
+	for index := range rows[0] {
+		values := make([]any, 0, len(rows))
+		for _, row := range rows {
+			if !row[index].Set {
+				continue
+			}
+			values = append(values, row[index].Value)
+		}
+		if len(values) == 0 {
+			// 整列都没有产生值时保持已有变量不变
 			continue
 		}
-		name := value.ID
-		if name == "" {
-			name = value.Name
+		name, nameErr := dmnOutputVariableName(rows[0][index])
+		if nameErr != nil {
+			return nameErr
 		}
-		if name == "" {
-			return dmnBadRequest(dmnErrOutputName, "决策表输出列缺少 id 与 name，无法写入流程变量")
-		}
-		e.setVariable(execution, name, value.Value)
+		e.setVariable(execution, name, values)
 	}
 	return nil
+}
+
+// dmnOutputVariableName 返回输出列写入流程变量时使用的变量名。
+// @param value 输出列结果
+// @return 变量名，优先 id，其次 name
+// @return 缺少 id 与 name 时的 400 错误
+func dmnOutputVariableName(value dmnOutputValue) (string, error) {
+	name := value.ID
+	if name == "" {
+		name = value.Name
+	}
+	if name == "" {
+		return "", dmnBadRequest(dmnErrOutputName, "决策表输出列缺少 id 与 name，无法写入流程变量")
+	}
+	return name, nil
 }
 
 // findDMNDecision 在流程定义所在部署中按 decision id 或 decision table id 查找决策。
@@ -190,11 +256,15 @@ func parseDMNDecisions(resourceName string, data []byte) ([]*dmnDecisionModel, e
 		if decisionID == "" {
 			decisionID = tableID
 		}
+		table, tableErr := buildDMNTableModel(tableNode)
+		if tableErr != nil {
+			return nil, tableErr
+		}
 		decisions = append(decisions, &dmnDecisionModel{
 			ID:    decisionID,
 			Key:   decisionID,
 			Name:  decisionNode.Attr("name"),
-			Table: buildDMNTableModel(tableNode),
+			Table: table,
 		})
 	}
 	return decisions, nil
@@ -203,13 +273,24 @@ func parseDMNDecisions(resourceName string, data []byte) ([]*dmnDecisionModel, e
 // buildDMNTableModel 将 decisionTable 节点转换为求值模型。
 // @param tableNode 决策表节点
 // @return 决策表求值模型
-func buildDMNTableModel(tableNode *bpmnxml.Node) *dmnTableModel {
+// @return 解析错误，聚合器或输出顺序值非法时返回 400
+func buildDMNTableModel(tableNode *bpmnxml.Node) (*dmnTableModel, error) {
+	rawAggregation := tableNode.Attr("aggregation")
+	if rawAggregation == "" {
+		// 兼容部分文档使用 aggregator 作为属性名
+		rawAggregation = tableNode.Attr("aggregator")
+	}
+	aggregation, aggregationErr := normalizeDMNAggregation(rawAggregation)
+	if aggregationErr != nil {
+		return nil, aggregationErr
+	}
 	table := &dmnTableModel{
-		ID:        tableNode.Attr("id"),
-		HitPolicy: tableNode.Attr("hitPolicy"),
-		Inputs:    make([]dmnInputModel, 0),
-		Outputs:   make([]dmnOutputModel, 0),
-		Rules:     make([]dmnRuleModel, 0),
+		ID:          tableNode.Attr("id"),
+		HitPolicy:   tableNode.Attr("hitPolicy"),
+		Aggregation: aggregation,
+		Inputs:      make([]dmnInputModel, 0),
+		Outputs:     make([]dmnOutputModel, 0),
+		Rules:       make([]dmnRuleModel, 0),
 	}
 	for _, inputNode := range tableNode.ChildrenNamed("input") {
 		input := dmnInputModel{ID: inputNode.Attr("id"), Label: inputNode.Attr("label")}
@@ -228,11 +309,20 @@ func buildDMNTableModel(tableNode *bpmnxml.Node) *dmnTableModel {
 		if outputType == "" {
 			outputType = outputNode.Attr("typeRef")
 		}
-		table.Outputs = append(table.Outputs, dmnOutputModel{
+		output := dmnOutputModel{
 			ID:   outputNode.Attr("id"),
 			Name: outputNode.Attr("name"),
 			Type: outputType,
-		})
+		}
+		if valuesNode, ok := outputNode.Child("outputValues"); ok {
+			values, valuesErr := parseDMNOutputValues(valuesNode.TextContent(), outputType)
+			if valuesErr != nil {
+				// 顺序值解析失败会让 OUTPUT ORDER / PRIORITY 结果不可判定，按 400 拒绝
+				return nil, dmnBadRequest(dmnErrOutputOrder, fmt.Sprintf("决策表输出列 %q 的顺序值非法: %v", dmnOutputName(output), valuesErr))
+			}
+			output.Values = values
+		}
+		table.Outputs = append(table.Outputs, output)
 	}
 	for _, ruleNode := range tableNode.ChildrenNamed("rule") {
 		rule := dmnRuleModel{
@@ -247,22 +337,124 @@ func buildDMNTableModel(tableNode *bpmnxml.Node) *dmnTableModel {
 		}
 		table.Rules = append(table.Rules, rule)
 	}
-	return table
+	return table, nil
 }
 
-// evaluateDMNTable 按命中策略求值决策表。
+// normalizeDMNAggregation 规范化 decisionTable 的聚合器属性。
+// 只接受 SUM、MIN、MAX、COUNT 四种取值，大小写不敏感，缺省返回空串。
+// @param raw 原始聚合器属性值
+// @return 规范化后的聚合器，空串表示不做聚合
+// @return 非法聚合器的 400 错误
+func normalizeDMNAggregation(raw string) (string, error) {
+	normalized := strings.ToUpper(strings.TrimSpace(raw))
+	if normalized == "" {
+		return "", nil
+	}
+	switch normalized {
+	case dmnAggregationSum, dmnAggregationMin, dmnAggregationMax, dmnAggregationCount:
+		// 合法聚合器
+		return normalized, nil
+	default:
+		return "", dmnBadRequest(dmnErrAggregation, "决策表聚合器非法: "+raw)
+	}
+}
+
+// parseDMNOutputValues 解析输出列的 outputValues 顺序值列表。
+// 多个值按顶层逗号分隔，引号内的逗号不拆分。
+// @param text outputValues 文本
+// @param outputType 输出列类型，用于类型转换
+// @return 顺序值列表，文本为空时返回 nil
+// @return 解析错误
+func parseDMNOutputValues(text, outputType string) ([]any, error) {
+	trimmed := strings.TrimSpace(text)
+	if trimmed == "" {
+		return nil, nil
+	}
+	parts, err := splitDMNAlternatives(trimmed)
+	if err != nil {
+		return nil, err
+	}
+	values := make([]any, 0, len(parts))
+	for _, part := range parts {
+		value, valueErr := parseDMNOutputValue(strings.TrimSpace(part), outputType)
+		if valueErr != nil {
+			return nil, valueErr
+		}
+		values = append(values, value)
+	}
+	return values, nil
+}
+
+// parseDMNOutputValue 按输出列类型转换单个顺序值。
+// 类型缺失时按布尔、数字、字符串的顺序推断。
+// @param text 顺序值原文，可带引号
+// @param outputType 输出列类型
+// @return 顺序值
+// @return 解析错误
+func parseDMNOutputValue(text, outputType string) (any, error) {
+	literal := text
+	if len(literal) > 0 && (literal[0] == '"' || literal[0] == '\'') {
+		unquoted, err := unquoteDMNString(literal)
+		if err != nil {
+			return nil, err
+		}
+		// 去掉引号后继续按输出类型转换
+		literal = unquoted
+	}
+	switch strings.ToLower(strings.TrimSpace(outputType)) {
+	case "number":
+		number, ok := parseDMNNumberValue(literal)
+		if !ok {
+			return nil, fmt.Errorf("顺序值 %q 不是数字", text)
+		}
+		return number, nil
+	case "boolean", "bool":
+		switch strings.ToLower(strings.TrimSpace(literal)) {
+		case "true":
+			return true, nil
+		case "false":
+			return false, nil
+		default:
+			return nil, fmt.Errorf("顺序值 %q 不是布尔值", text)
+		}
+	case "string":
+		return literal, nil
+	default:
+		// 类型缺失时按字面量推断，无法识别时按字符串处理
+		switch strings.ToLower(strings.TrimSpace(literal)) {
+		case "true":
+			return true, nil
+		case "false":
+			return false, nil
+		}
+		if number, ok := parseDMNNumberValue(literal); ok {
+			return number, nil
+		}
+		return literal, nil
+	}
+}
+
+// evaluateDMNTable 按命中策略求值决策表并返回匹配结果行。
+// 每行按输出列顺序保存一条规则的结果；单结果策略只返回一行。
 // @param ctx 上下文，用于取消表达式求值
 // @param table 决策表
 // @param vars 流程变量快照
-// @return 输出列结果，顺序与输出列一致
+// @return 匹配结果行，每行与输出列一一对应
 // @return 求值错误
-func (e *Engine) evaluateDMNTable(ctx context.Context, table *dmnTableModel, vars map[string]any) ([]dmnOutputValue, error) {
+func (e *Engine) evaluateDMNTable(ctx context.Context, table *dmnTableModel, vars map[string]any) ([][]dmnOutputValue, error) {
 	policy := normalizeDMNHitPolicy(table.HitPolicy)
 	switch policy {
-	case "FIRST", "UNIQUE", "ANY", "RULE ORDER":
+	case dmnPolicyFirst, dmnPolicyUnique, dmnPolicyAny, dmnPolicyRuleOrder,
+		dmnPolicyOutputOrder, dmnPolicyPriority, dmnPolicyCollect:
 		// 支持的命中策略
 	default:
 		return nil, dmnBadRequest(dmnErrHitPolicy, "不支持的决策表命中策略: "+table.HitPolicy)
+	}
+	// COLLECT 使用聚合器时的部署约束，与 Flowable sanityCheckDecisionTable 保持一致
+	if policy == dmnPolicyCollect {
+		if validateErr := validateDMNCollectionAggregation(table); validateErr != nil {
+			return nil, validateErr
+		}
 	}
 	inputs := make([]any, len(table.Inputs))
 	for index, input := range table.Inputs {
@@ -272,7 +464,7 @@ func (e *Engine) evaluateDMNTable(ctx context.Context, table *dmnTableModel, var
 		}
 		inputs[index] = value
 	}
-	matches := make([][]dmnOutputValue, 0, 1)
+	matches := make([][]dmnOutputValue, 0, len(table.Rules))
 	for ruleIndex, rule := range table.Rules {
 		if len(rule.Inputs) > len(table.Inputs) {
 			return nil, dmnBadRequest(dmnErrInputEntry, fmt.Sprintf("决策表第 %d 条规则的输入条件多于输入列", ruleIndex+1))
@@ -288,31 +480,252 @@ func (e *Engine) evaluateDMNTable(ctx context.Context, table *dmnTableModel, var
 		if err != nil {
 			return nil, err
 		}
-		switch policy {
-		case "FIRST", "RULE ORDER":
-			// RULE ORDER 简化为顺序首个匹配，与 FIRST 一致
-			return values, nil
-		default:
-			matches = append(matches, values)
-			if policy == "UNIQUE" && len(matches) > 1 {
-				return nil, dmnBadRequest(dmnErrUniqueConflict, "决策表命中策略为 UNIQUE，但有多条规则同时匹配")
+		// FIRST 命中首条后立即返回，与 Flowable 的 ContinueEvaluating 行为一致
+		if policy == dmnPolicyFirst {
+			return [][]dmnOutputValue{values}, nil
+		}
+		matches = append(matches, values)
+		// UNIQUE 出现第二条匹配立即报冲突
+		if policy == dmnPolicyUnique && len(matches) > 1 {
+			return nil, dmnBadRequest(dmnErrUniqueConflict, "决策表命中策略为 UNIQUE，但有多条规则同时匹配")
+		}
+	}
+	// 没有任何规则匹配时统一报错，避免静默写入空结果
+	if len(matches) == 0 {
+		return nil, dmnBadRequest(dmnErrNoMatch, "决策表没有匹配的规则")
+	}
+	switch policy {
+	case dmnPolicyUnique:
+		return matches[:1], nil
+	case dmnPolicyAny:
+		// ANY 允许多条匹配，但要求逐列输出一致
+		for _, other := range matches[1:] {
+			if !dmnOutputsEqual(matches[0], other) {
+				return nil, dmnBadRequest(dmnErrAnyConflict, "决策表命中策略为 ANY，但多条规则的输出不一致")
+			}
+		}
+		return matches[:1], nil
+	case dmnPolicyOutputOrder:
+		return sortDMNOutputOrder(table, matches)
+	case dmnPolicyPriority:
+		sorted, err := sortDMNOutputOrder(table, matches)
+		if err != nil {
+			return nil, err
+		}
+		// PRIORITY 只取排序后的第一条
+		return sorted[:1], nil
+	case dmnPolicyCollect:
+		return collectDMNMatches(table, matches)
+	default:
+		// RULE ORDER 按文档顺序返回全部匹配结果
+		return matches, nil
+	}
+}
+
+// sortDMNOutputOrder 按输出列的 outputValues 顺序值稳定排序匹配结果。
+// 输出值不在顺序列表中时按 Flowable indexOf 语义视为 -1，排在列表值之前。
+// @param table 决策表
+// @param rows 匹配结果行
+// @return 排序后的结果行
+// @return 排序错误
+func sortDMNOutputOrder(table *dmnTableModel, rows [][]dmnOutputValue) ([][]dmnOutputValue, error) {
+	hasOrder := false
+	for _, output := range table.Outputs {
+		if len(output.Values) > 0 {
+			hasOrder = true
+			break
+		}
+	}
+	// 没有顺序值列表时无法判断优先级，按 Flowable 严格模式返回 400
+	if !hasOrder {
+		return nil, dmnBadRequest(dmnErrOutputOrder, "命中策略 "+normalizeDMNHitPolicy(table.HitPolicy)+" 需要在输出列配置 outputValues 顺序值")
+	}
+	// 排序前先校验输出值可比较，避免比较函数无法返回错误
+	for _, row := range rows {
+		for index, output := range table.Outputs {
+			if len(output.Values) == 0 {
+				continue
+			}
+			if !dmnOrderableValue(row[index].Value) {
+				return nil, dmnBadRequest(dmnErrOutputOrder, fmt.Sprintf("输出列 %q 的值不是可排序的标量: %v", dmnOutputName(output), row[index].Value))
 			}
 		}
 	}
-	if policy == "UNIQUE" || policy == "ANY" {
-		if len(matches) == 0 {
-			return nil, dmnBadRequest(dmnErrNoMatch, "决策表没有匹配的规则")
+	sorted := make([][]dmnOutputValue, len(rows))
+	copy(sorted, rows)
+	// 稳定排序，顺序值相同的规则保持文档顺序
+	sort.SliceStable(sorted, func(left, right int) bool {
+		return compareDMNOutputRows(table, sorted[left], sorted[right]) < 0
+	})
+	return sorted, nil
+}
+
+// compareDMNOutputRows 按输出列声明顺序比较两行结果的顺序值下标。
+// @param table 决策表
+// @param left 左行
+// @param right 右行
+// @return 负数表示左行在前，0 表示顺序相同
+func compareDMNOutputRows(table *dmnTableModel, left, right []dmnOutputValue) int {
+	for index, output := range table.Outputs {
+		if len(output.Values) == 0 {
+			continue
 		}
-		if policy == "ANY" {
-			for _, other := range matches[1:] {
-				if !dmnOutputsEqual(matches[0], other) {
-					return nil, dmnBadRequest(dmnErrAnyConflict, "决策表命中策略为 ANY，但多条规则的输出不一致")
-				}
+		leftIndex := dmnOrderIndex(output.Values, left[index].Value)
+		rightIndex := dmnOrderIndex(output.Values, right[index].Value)
+		if leftIndex != rightIndex {
+			return leftIndex - rightIndex
+		}
+	}
+	return 0
+}
+
+// dmnOrderIndex 返回值在 outputValues 顺序列表中的下标。
+// @param values 顺序值列表
+// @param value 输出值
+// @return 下标，未命中或空值时返回 -1
+func dmnOrderIndex(values []any, value any) int {
+	for index, candidate := range values {
+		if dmnValuesEqual(candidate, value) {
+			return index
+		}
+	}
+	return -1
+}
+
+// dmnOrderableValue 判断输出值是否属于可参与顺序排序的标量。
+// 支持数字、字符串、布尔与 nil；其他类型无法与顺序值比较。
+// @param value 输出值
+// @return 是否可排序
+func dmnOrderableValue(value any) bool {
+	if value == nil {
+		return true
+	}
+	switch value.(type) {
+	case string, bool:
+		return true
+	}
+	_, isNumber := dmnNumberToFloat(value)
+	return isNumber
+}
+
+// validateDMNCollectionAggregation 校验 COLLECT 聚合的部署约束。
+// 与 Flowable 的 sanityCheckDecisionTable 一致：配置聚合器时输出列必须恰好一列且类型为 number。
+// @param table 决策表
+// @return 违反约束时的 400 错误
+func validateDMNCollectionAggregation(table *dmnTableModel) error {
+	if table.Aggregation == "" {
+		return nil
+	}
+	// 多输出无法确定聚合目标，按 Flowable 严格模式拒绝
+	if len(table.Outputs) != 1 {
+		return dmnBadRequest(dmnErrAggregation, "命中策略 COLLECT 使用聚合器时只允许一个输出列")
+	}
+	outputType := strings.ToLower(strings.TrimSpace(table.Outputs[0].Type))
+	// COUNT 与 SUM/MIN/MAX 一样要求输出列类型为 number
+	if outputType != "number" {
+		return dmnBadRequest(dmnErrAggregation, "命中策略 COLLECT 使用聚合器时输出列类型必须是 number")
+	}
+	return nil
+}
+
+// collectDMNMatches 按 COLLECT 策略汇总匹配结果。
+// 未配置聚合器时返回全部匹配结果；配置聚合器时聚合唯一输出列并返回单条结果，
+// 调用方需先通过 validateDMNCollectionAggregation 校验输出列数与类型。
+// @param table 决策表
+// @param rows 匹配结果行
+// @return 结果行
+// @return 聚合错误
+func collectDMNMatches(table *dmnTableModel, rows [][]dmnOutputValue) ([][]dmnOutputValue, error) {
+	if table.Aggregation == "" {
+		return rows, nil
+	}
+	column := dmnFirstPopulatedOutput(table, rows)
+	if column < 0 {
+		// 匹配规则均未产生输出值时返回单条空结果，与 Flowable 的空决策结果一致
+		return [][]dmnOutputValue{dmnEmptyOutputRow(table.Outputs)}, nil
+	}
+	value, err := aggregateDMNColumn(table.Aggregation, rows, column)
+	if err != nil {
+		return nil, err
+	}
+	result := dmnEmptyOutputRow(table.Outputs)
+	result[column].Value = value
+	result[column].Set = true
+	return [][]dmnOutputValue{result}, nil
+}
+
+// dmnFirstPopulatedOutput 返回第一个在匹配行中产生值的输出列下标。
+// @param table 决策表
+// @param rows 匹配结果行
+// @return 输出列下标，全部为空时返回 -1
+func dmnFirstPopulatedOutput(table *dmnTableModel, rows [][]dmnOutputValue) int {
+	for index := range table.Outputs {
+		for _, row := range rows {
+			if row[index].Set {
+				return index
 			}
 		}
-		return matches[0], nil
 	}
-	return nil, dmnBadRequest(dmnErrNoMatch, "决策表没有匹配的规则")
+	return -1
+}
+
+// dmnEmptyOutputRow 构造只保留输出列 id/name 的空结果行。
+// @param outputs 输出列
+// @return 空结果行
+func dmnEmptyOutputRow(outputs []dmnOutputModel) []dmnOutputValue {
+	row := make([]dmnOutputValue, len(outputs))
+	for index, output := range outputs {
+		row[index] = dmnOutputValue{ID: output.ID, Name: output.Name}
+	}
+	return row
+}
+
+// aggregateDMNColumn 对指定输出列执行 SUM、MIN、MAX 或 COUNT 聚合。
+// 四种聚合都要求输出值是数字，与 Flowable 将输出统一转换为 Double 的行为一致。
+// @param aggregation 规范化后的聚合器
+// @param rows 匹配结果行
+// @param column 输出列下标
+// @return 聚合值，统一为 float64，与 Flowable 的 Double 结果一致
+// @return 聚合错误
+func aggregateDMNColumn(aggregation string, rows [][]dmnOutputValue, column int) (any, error) {
+	values := make([]float64, 0, len(rows))
+	for _, row := range rows {
+		if !row[column].Set {
+			continue
+		}
+		number, ok := dmnNumberToFloat(row[column].Value)
+		if !ok {
+			return nil, dmnBadRequest(dmnErrAggregation, fmt.Sprintf("聚合器 %s 要求输出值为数字，实际为 %v", aggregation, row[column].Value))
+		}
+		values = append(values, number)
+	}
+	switch aggregation {
+	case dmnAggregationSum:
+		sum := 0.0
+		for _, value := range values {
+			sum += value
+		}
+		return sum, nil
+	case dmnAggregationMin:
+		minimum := values[0]
+		for _, value := range values[1:] {
+			if value < minimum {
+				minimum = value
+			}
+		}
+		return minimum, nil
+	case dmnAggregationMax:
+		maximum := values[0]
+		for _, value := range values[1:] {
+			if value > maximum {
+				maximum = value
+			}
+		}
+		return maximum, nil
+	default:
+		// 剩余聚合器为 COUNT，返回有值的行数
+		return float64(len(values)), nil
+	}
 }
 
 // matchDMNInputs 判断单条规则的全部输入条件是否匹配。
@@ -363,6 +776,26 @@ func evaluateDMNOutputs(ctx context.Context, rule dmnRuleModel, outputs []dmnOut
 		}
 		values[index].Value = value
 		values[index].Set = set
+	}
+	return values, nil
+}
+
+// dmnResultVariableRowsValue 把匹配结果行转换为结果变量的值。
+// 单行沿用单条结果规则（单输出标量、多输出映射）；多行返回逐行转换后的 []any。
+// @param rows 匹配结果行
+// @return 结果变量值
+// @return 转换错误
+func dmnResultVariableRowsValue(rows [][]dmnOutputValue) (any, error) {
+	if len(rows) == 1 {
+		return dmnResultVariableValue(rows[0])
+	}
+	values := make([]any, 0, len(rows))
+	for _, row := range rows {
+		value, err := dmnResultVariableValue(row)
+		if err != nil {
+			return nil, err
+		}
+		values = append(values, value)
 	}
 	return values, nil
 }

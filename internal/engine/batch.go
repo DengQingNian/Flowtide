@@ -2,7 +2,9 @@ package engine
 
 import (
 	"context"
+	"encoding/json"
 	"sort"
+	"time"
 
 	"github.com/flowable-go/flowable/api"
 )
@@ -171,6 +173,22 @@ func (e *Engine) BatchMigrateProcessInstances(ctx context.Context, targetDefinit
 			TenantID:  tenantID,
 		}
 		created := &batchState{Info: *batch, Parts: make(map[string]*api.BatchPart, len(instanceIDs))}
+		document, marshalErr := json.Marshal(batchDocument{
+			ID:                        batch.ID,
+			Type:                      batch.Type,
+			Total:                     batch.Total,
+			Status:                    batch.Status,
+			TargetProcessDefinitionID: targetDefinitionID,
+			ProcessInstanceIDs:        instanceIDs,
+			StartTime:                 batch.StartTime,
+			TenantID:                  tenantID,
+		})
+		// 文档序列化失败说明内部数据结构异常，直接中止批次创建
+		if marshalErr != nil {
+			return nil, api.NewError("ENGINE-0703", "批次文档序列化失败", marshalErr)
+		}
+		batch.Document = document
+		created.Info.Document = document
 		for _, instanceID := range instanceIDs {
 			part := &api.BatchPart{
 				ID:                e.newID(),
@@ -180,6 +198,19 @@ func (e *Engine) BatchMigrateProcessInstances(ctx context.Context, targetDefinit
 				Status:            BatchPartStatusQueued,
 				StartTime:         cc.now,
 			}
+			partDocument, partErr := json.Marshal(batchPartDocument{
+				ID:                part.ID,
+				BatchID:           part.BatchID,
+				Type:              part.Type,
+				ProcessInstanceID: part.ProcessInstanceID,
+				Status:            part.Status,
+				StartTime:         part.StartTime,
+			})
+			// 分片文档与批次文档使用同一序列化路径，失败视为内部错误
+			if partErr != nil {
+				return nil, api.NewError("ENGINE-0704", "分片文档序列化失败", partErr)
+			}
+			part.Document = partDocument
 			created.Parts[part.ID] = part
 			partIDs = append(partIDs, part.ID)
 		}
@@ -281,5 +312,103 @@ func (e *Engine) finishBatch(ctx context.Context, batchID string, completed int)
 func cloneBatchPart(source *api.BatchPart) api.BatchPart {
 	copied := *source
 	copied.EndTime = cloneTime(source.EndTime)
+	// 文档是可变字节切片，必须复制，避免读接口修改内部快照
+	copied.Document = append([]byte(nil), source.Document...)
 	return copied
+}
+
+// batchDocument 是批次文档的 JSON 结构。
+type batchDocument struct {
+	ID                        string    `json:"id"`                        // 批次 ID
+	Type                      string    `json:"type"`                      // 批次类型
+	Total                     int       `json:"total"`                     // 分片总数
+	Status                    string    `json:"status"`                    // 创建时状态
+	TargetProcessDefinitionID string    `json:"targetProcessDefinitionId"` // 目标流程定义
+	ProcessInstanceIDs        []string  `json:"processInstanceIds"`        // 待迁移实例
+	StartTime                 time.Time `json:"startTime"`                 // 开始时间
+	TenantID                  string    `json:"tenantId,omitempty"`        // 租户
+}
+
+// batchPartDocument 是批次分片文档的 JSON 结构。
+type batchPartDocument struct {
+	ID                string    `json:"id"`                          // 分片 ID
+	BatchID           string    `json:"batchId"`                     // 所属批次 ID
+	Type              string    `json:"type"`                        // 分片类型
+	ProcessInstanceID string    `json:"processInstanceId,omitempty"` // 流程实例 ID
+	Status            string    `json:"status"`                      // 创建时状态
+	StartTime         time.Time `json:"startTime"`                   // 开始时间
+}
+
+// DeleteBatch 删除批次及其全部分片。
+// @param ctx 上下文
+// @param batchID 批次 ID
+// @return 删除错误
+func (e *Engine) DeleteBatch(ctx context.Context, batchID string) error {
+	_, err := e.execute(ctx, func(cc *commandContext) (any, error) {
+		batch, ok := e.state.Batches[batchID]
+		if !ok {
+			return nil, api.NewError("ENGINE-0700", "批处理作业不存在", api.ErrNotFound)
+		}
+		if err := e.allowTenant(ctx, batch.Info.TenantID); err != nil {
+			return nil, err
+		}
+		// 删除批次时连同分片一起移除，避免残留不可达的分片
+		delete(e.state.Batches, batchID)
+		return nil, nil
+	})
+	return err
+}
+
+// GetBatchDocument 返回批次文档。
+// @param ctx 上下文
+// @param batchID 批次 ID
+// @return 文档字节
+// @return 查询错误
+func (e *Engine) GetBatchDocument(ctx context.Context, batchID string) ([]byte, error) {
+	result, err := e.read(func() (any, error) {
+		batch, ok := e.state.Batches[batchID]
+		if !ok {
+			return nil, api.NewError("ENGINE-0700", "批处理作业不存在", api.ErrNotFound)
+		}
+		if err := e.allowTenant(ctx, batch.Info.TenantID); err != nil {
+			return nil, err
+		}
+		// 旧快照或未写入文档的批次按 Flowable 语义视为不存在
+		if len(batch.Info.Document) == 0 {
+			return nil, api.NewError("ENGINE-0705", "批次没有文档", api.ErrNotFound)
+		}
+		return append([]byte(nil), batch.Info.Document...), nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.([]byte), nil
+}
+
+// GetBatchPartDocument 返回批次分片文档。
+// @param ctx 上下文
+// @param partID 分片 ID
+// @return 文档字节
+// @return 查询错误
+func (e *Engine) GetBatchPartDocument(ctx context.Context, partID string) ([]byte, error) {
+	result, err := e.read(func() (any, error) {
+		for _, batch := range e.state.Batches {
+			if e.allowTenant(ctx, batch.Info.TenantID) != nil {
+				continue
+			}
+			part, ok := batch.Parts[partID]
+			if !ok {
+				continue
+			}
+			if len(part.Document) == 0 {
+				return nil, api.NewError("ENGINE-0706", "批次分片没有文档", api.ErrNotFound)
+			}
+			return append([]byte(nil), part.Document...), nil
+		}
+		return nil, api.NewError("ENGINE-0701", "批处理分片不存在", api.ErrNotFound)
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.([]byte), nil
 }

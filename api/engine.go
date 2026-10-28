@@ -852,6 +852,7 @@ type JobInfo struct {
 	Retries           int       `json:"retries"`                     // 剩余重试次数
 	Exception         string    `json:"exception,omitempty"`         // 最近异常
 	DueDate           time.Time `json:"dueDate"`                     // 到期时间
+	Executable        bool      `json:"executable,omitempty"`        // 是否已被移入可执行作业桶
 }
 
 // ManagementService 提供引擎管理信息。
@@ -905,6 +906,32 @@ type ManagementService interface {
 	// @param jobID 作业 ID
 	// @return 删除错误
 	DeleteJob(ctx context.Context, jobID string) error
+	// DeleteTimerJob 删除定时器作业。
+	// @param ctx 上下文
+	// @param jobID 作业 ID
+	// @return 删除错误
+	DeleteTimerJob(ctx context.Context, jobID string) error
+	// DeleteSuspendedJob 删除挂起作业。
+	// @param ctx 上下文
+	// @param jobID 作业 ID
+	// @return 删除错误
+	DeleteSuspendedJob(ctx context.Context, jobID string) error
+	// DeleteDeadLetterJob 删除死信作业。
+	// @param ctx 上下文
+	// @param jobID 作业 ID
+	// @return 删除错误
+	DeleteDeadLetterJob(ctx context.Context, jobID string) error
+	// MoveTimerJobToExecutable 将定时器作业移入可执行作业桶。
+	// @param ctx 上下文
+	// @param jobID 作业 ID
+	// @return 移动错误
+	MoveTimerJobToExecutable(ctx context.Context, jobID string) error
+	// RescheduleTimerJob 修改定时器作业的到期时间。
+	// @param ctx 上下文
+	// @param jobID 作业 ID
+	// @param dueDate RFC3339 到期时间
+	// @return 修改错误
+	RescheduleTimerJob(ctx context.Context, jobID, dueDate string) error
 	// CreateProperty 创建自定义引擎属性。
 	// @param ctx 上下文
 	// @param name 名称
@@ -971,6 +998,23 @@ type ManagementService interface {
 	// @return 分片
 	// @return 查询错误
 	GetBatchPart(ctx context.Context, partID string) (BatchPart, error)
+	// DeleteBatch 删除批次及其全部分片。
+	// @param ctx 上下文
+	// @param batchID 批次 ID
+	// @return 删除错误
+	DeleteBatch(ctx context.Context, batchID string) error
+	// GetBatchDocument 返回批次文档。
+	// @param ctx 上下文
+	// @param batchID 批次 ID
+	// @return 文档字节
+	// @return 查询错误
+	GetBatchDocument(ctx context.Context, batchID string) ([]byte, error)
+	// GetBatchPartDocument 返回批次分片文档。
+	// @param ctx 上下文
+	// @param partID 分片 ID
+	// @return 文档字节
+	// @return 查询错误
+	GetBatchPartDocument(ctx context.Context, partID string) ([]byte, error)
 	// BatchMigrateProcessInstances 批量迁移流程实例并记录批次与分片。
 	// @param ctx 上下文
 	// @param targetDefinitionID 目标流程定义 ID

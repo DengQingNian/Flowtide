@@ -3,6 +3,8 @@ package engine
 import (
 	"context"
 	"sort"
+	"strings"
+	"time"
 
 	"github.com/flowable-go/flowable/api"
 )
@@ -35,16 +37,153 @@ func (e *Engine) ListJobs(ctx context.Context) ([]api.JobInfo, error) {
 // @return 删除错误
 func (e *Engine) DeleteJob(ctx context.Context, jobID string) error {
 	_, err := e.execute(ctx, func(cc *commandContext) (any, error) {
-		if _, ok := e.state.Jobs[jobID]; !ok {
+		job, ok := e.state.Jobs[jobID]
+		// 定时器与挂起作业属于其他作业桶，不能从可执行作业入口删除
+		if !ok || !e.executableJob(job) {
 			return nil, api.NewError("ENGINE-1501", "作业不存在", api.ErrNotFound)
 		}
-		if err := e.allowJob(ctx, e.state.Jobs[jobID]); err != nil {
+		if err := e.allowJob(ctx, job); err != nil {
 			return nil, err
 		}
 		delete(e.state.Jobs, jobID)
 		return nil, nil
 	})
 	return err
+}
+
+// DeleteTimerJob 删除定时器作业。
+// 仅接受未挂起、未被移入可执行桶的定时器作业。
+// @param ctx 上下文
+// @param jobID 作业 ID
+// @return 删除错误
+func (e *Engine) DeleteTimerJob(ctx context.Context, jobID string) error {
+	_, err := e.execute(ctx, func(cc *commandContext) (any, error) {
+		job, ok := e.state.Jobs[jobID]
+		// 跨桶删除返回 404，避免误删可执行或挂起作业
+		if !ok || !e.timerJob(job) {
+			return nil, api.NewError("ENGINE-1502", "定时器作业不存在", api.ErrNotFound)
+		}
+		if err := e.allowJob(ctx, job); err != nil {
+			return nil, err
+		}
+		delete(e.state.Jobs, jobID)
+		return nil, nil
+	})
+	return err
+}
+
+// DeleteSuspendedJob 删除挂起作业。
+// @param ctx 上下文
+// @param jobID 作业 ID
+// @return 删除错误
+func (e *Engine) DeleteSuspendedJob(ctx context.Context, jobID string) error {
+	_, err := e.execute(ctx, func(cc *commandContext) (any, error) {
+		job, ok := e.state.Jobs[jobID]
+		// 只有所属流程实例处于挂起状态的作业才属于挂起桶
+		if !ok || !e.suspendedJob(job) {
+			return nil, api.NewError("ENGINE-1503", "挂起作业不存在", api.ErrNotFound)
+		}
+		if err := e.allowJob(ctx, job); err != nil {
+			return nil, err
+		}
+		delete(e.state.Jobs, jobID)
+		return nil, nil
+	})
+	return err
+}
+
+// DeleteDeadLetterJob 删除死信作业。
+// @param ctx 上下文
+// @param jobID 作业 ID
+// @return 删除错误
+func (e *Engine) DeleteDeadLetterJob(ctx context.Context, jobID string) error {
+	_, err := e.execute(ctx, func(cc *commandContext) (any, error) {
+		job, ok := e.state.DeadLetters[jobID]
+		if !ok {
+			return nil, api.NewError("ENGINE-1504", "死信作业不存在", api.ErrNotFound)
+		}
+		if err := e.allowJob(ctx, job); err != nil {
+			return nil, err
+		}
+		delete(e.state.DeadLetters, jobID)
+		return nil, nil
+	})
+	return err
+}
+
+// MoveTimerJobToExecutable 将定时器作业移入可执行作业桶。
+// 作业保留原处理器类型，仅不再作为定时器参与到期调度。
+// @param ctx 上下文
+// @param jobID 作业 ID
+// @return 移动错误
+func (e *Engine) MoveTimerJobToExecutable(ctx context.Context, jobID string) error {
+	_, err := e.execute(ctx, func(cc *commandContext) (any, error) {
+		job, ok := e.state.Jobs[jobID]
+		if !ok || !e.timerJob(job) {
+			return nil, api.NewError("ENGINE-1502", "定时器作业不存在", api.ErrNotFound)
+		}
+		if err := e.allowJob(ctx, job); err != nil {
+			return nil, err
+		}
+		job.Executable = true
+		job.DueDate = cc.now
+		if job.Retries <= 0 {
+			job.Retries = 3
+		}
+		job.Exception = ""
+		return nil, nil
+	})
+	return err
+}
+
+// RescheduleTimerJob 修改定时器作业的到期时间。
+// @param ctx 上下文
+// @param jobID 作业 ID
+// @param dueDate RFC3339 到期时间
+// @return 修改错误
+func (e *Engine) RescheduleTimerJob(ctx context.Context, jobID, dueDate string) error {
+	parsed, parseErr := time.Parse(time.RFC3339, dueDate)
+	// 非法日期属于请求错误，必须在事务外拒绝
+	if parseErr != nil {
+		return api.NewError("ENGINE-1506", "到期时间格式非法", api.ErrBadRequest)
+	}
+	_, err := e.execute(ctx, func(cc *commandContext) (any, error) {
+		job, ok := e.state.Jobs[jobID]
+		if !ok || !e.timerJob(job) {
+			return nil, api.NewError("ENGINE-1502", "定时器作业不存在", api.ErrNotFound)
+		}
+		if err := e.allowJob(ctx, job); err != nil {
+			return nil, err
+		}
+		job.DueDate = parsed
+		return nil, nil
+	})
+	return err
+}
+
+// timerJob 判断作业是否属于定时器桶。
+// @param job 作业
+// @return 是否定时器作业
+func (e *Engine) timerJob(job *jobState) bool {
+	return !job.Executable && strings.Contains(job.Type, "timer") && !e.suspendedJob(job)
+}
+
+// suspendedJob 判断作业是否属于挂起桶。
+// @param job 作业
+// @return 是否挂起作业
+func (e *Engine) suspendedJob(job *jobState) bool {
+	if job.ProcessInstanceID == "" {
+		return false
+	}
+	instance, ok := e.findInstance(job.ProcessInstanceID)
+	return ok && instance.Suspended
+}
+
+// executableJob 判断作业是否属于可执行桶。
+// @param job 作业
+// @return 是否可执行作业
+func (e *Engine) executableJob(job *jobState) bool {
+	return !e.timerJob(job) && !e.suspendedJob(job)
 }
 
 // ListDeadLetterJobs 返回死信作业。
@@ -90,6 +229,8 @@ func (e *Engine) MoveDeadLetterJobToExecutable(ctx context.Context, jobID string
 		job.Retries = retries
 		job.DueDate = cc.now
 		job.Exception = ""
+		// 死信作业恢复后归入可执行桶，即使原类型为定时器
+		job.Executable = true
 		e.state.Jobs[job.ID] = job
 		return nil, nil
 	})
@@ -109,6 +250,7 @@ func toJobInfo(job *jobState) api.JobInfo {
 		Retries:           job.Retries,
 		Exception:         job.Exception,
 		DueDate:           job.DueDate,
+		Executable:        job.Executable,
 	}
 }
 

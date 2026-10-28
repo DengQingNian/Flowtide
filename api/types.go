@@ -448,6 +448,7 @@ type Batch struct {
 	StartTime time.Time  `json:"startTime"`          // 开始时间
 	EndTime   *time.Time `json:"endTime,omitempty"`  // 结束时间
 	TenantID  string     `json:"tenantId,omitempty"` // 租户
+	Document  []byte     `json:"document,omitempty"` // 批次文档，旧快照可为空
 }
 
 // BatchPart 是批处理分片。
@@ -460,4 +461,5 @@ type BatchPart struct {
 	StartTime         time.Time  `json:"startTime"`                   // 开始时间
 	EndTime           *time.Time `json:"endTime,omitempty"`           // 结束时间
 	ErrorMessage      string     `json:"errorMessage,omitempty"`      // 失败原因
+	Document          []byte     `json:"document,omitempty"`          // 分片文档，旧快照可为空
 }

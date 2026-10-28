@@ -17,7 +17,7 @@ const timerJobXML = `<?xml version="1.0" encoding="UTF-8"?>
   </process>
 </definitions>`
 
-// TestDeleteJob 验证可执行作业删除。
+// TestDeleteJob 验证定时器作业不能从可执行桶删除。
 // @param t 测试上下文
 func TestDeleteJob(t *testing.T) {
 	engine := newTestEngine(t)
@@ -28,8 +28,12 @@ func TestDeleteJob(t *testing.T) {
 		t.Fatalf("定时作业未创建: %v %+v", err, jobs)
 	}
 	jobID := jobs[0].ID
-	if err := engine.DeleteJob(ctx, jobID); err != nil {
-		t.Fatalf("删除作业失败: %v", err)
+	// 定时器作业属于独立桶，跨桶删除必须 404
+	if err := engine.DeleteJob(ctx, jobID); !errors.Is(err, api.ErrNotFound) {
+		t.Fatalf("定时器作业从可执行桶删除应 404: %v", err)
+	}
+	if err := engine.DeleteTimerJob(ctx, jobID); err != nil {
+		t.Fatalf("删除定时器作业失败: %v", err)
 	}
 	if jobs, _ := engine.ListJobs(ctx); len(jobs) != 0 {
 		t.Fatalf("删除后作业应为空: %+v", jobs)
@@ -37,7 +41,28 @@ func TestDeleteJob(t *testing.T) {
 	if _, err := engine.GetJob(ctx, jobID); !errors.Is(err, api.ErrNotFound) {
 		t.Fatalf("删除后查询应 404: %v", err)
 	}
-	if err := engine.DeleteJob(ctx, jobID); !errors.Is(err, api.ErrNotFound) {
+	if err := engine.DeleteTimerJob(ctx, jobID); !errors.Is(err, api.ErrNotFound) {
+		t.Fatalf("重复删除应 404: %v", err)
+	}
+}
+
+// TestDeleteExecutableJob 验证可执行作业删除。
+// @param t 测试上下文
+func TestDeleteExecutableJob(t *testing.T) {
+	engine := newTestEngine(t)
+	engine.RegisterDelegate("noop", func(ctx context.Context, execution *Execution) error { return nil })
+	deployXML(t, engine, asyncServiceXML("asyncDelete", `flowable:asyncBefore="true"`))
+	if _, err := engine.StartProcessInstance(context.Background(), api.StartRequest{ProcessDefinitionKey: "asyncDelete"}); err != nil {
+		t.Fatalf("启动实例失败: %v", err)
+	}
+	jobs, err := engine.ListJobs(context.Background())
+	if err != nil || len(jobs) != 1 {
+		t.Fatalf("可执行作业未创建: %v %+v", err, jobs)
+	}
+	if err := engine.DeleteJob(context.Background(), jobs[0].ID); err != nil {
+		t.Fatalf("删除可执行作业失败: %v", err)
+	}
+	if err := engine.DeleteJob(context.Background(), jobs[0].ID); !errors.Is(err, api.ErrNotFound) {
 		t.Fatalf("重复删除应 404: %v", err)
 	}
 }

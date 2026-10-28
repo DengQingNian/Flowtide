@@ -165,7 +165,14 @@ func TestREST_NestedDeploymentResource(t *testing.T) {
 	}
 	_ = json.NewDecoder(response.Body).Decode(&deployment)
 	_ = response.Body.Close()
-	response, _ = http.Get(server.URL + "/service/repository/deployments/" + deployment.ID + "/resources/forms/nested.bpmn20.xml")
+	response, _ = http.Get(server.URL + "/service/repository/deployments/" + deployment.ID + "/resources/forms%2Fnested.bpmn20.xml")
+	var metadata map[string]any
+	_ = json.NewDecoder(response.Body).Decode(&metadata)
+	_ = response.Body.Close()
+	if response.StatusCode != http.StatusOK || metadata["id"] != "forms/nested.bpmn20.xml" || metadata["type"] != "processDefinition" {
+		t.Fatalf("嵌套资源元数据错误: %d %+v", response.StatusCode, metadata)
+	}
+	response, _ = http.Get(server.URL + "/service/repository/deployments/" + deployment.ID + "/resourcedata/forms%2Fnested.bpmn20.xml")
 	if response.StatusCode != http.StatusOK {
 		t.Fatalf("嵌套资源读取失败: %d", response.StatusCode)
 	}

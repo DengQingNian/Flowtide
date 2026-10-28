@@ -11,7 +11,7 @@ import (
 // @param job 作业
 // @return 是否定时器
 func isTimerJob(job api.JobInfo) bool {
-	return strings.Contains(job.Type, "timer")
+	return !job.Executable && strings.Contains(job.Type, "timer")
 }
 
 // handleListTimerJobs 返回定时器作业。

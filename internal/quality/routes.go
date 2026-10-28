@@ -18,7 +18,6 @@ func RouteReport(specification, implementation string, differences map[string]st
 	pathPattern := regexp.MustCompile(`^  (/[^:]+):\s*$`)
 	methodPattern := regexp.MustCompile(`^    (get|post|put|delete|patch|head|options):`)
 	routePattern := regexp.MustCompile(`"(GET|POST|PUT|DELETE|PATCH|HEAD|OPTIONS) /service([^"\s]+)"`)
-	variable := regexp.MustCompile(`\{[^}]+\}`)
 	// 方法和路径参数统一后逐项比较，参数名差异不计作缺失端点。
 	current := ""
 	for _, line := range strings.Split(specification, "\n") {
@@ -27,11 +26,11 @@ func RouteReport(specification, implementation string, differences map[string]st
 		}
 		if match := methodPattern.FindStringSubmatch(line); match != nil && current != "" {
 			method := strings.ToUpper(match[1])
-			official[method+" "+variable.ReplaceAllString(current, "{}")] = current
+			official[method+" "+normalizeRoutePath(current)] = current
 		}
 	}
 	for _, match := range routePattern.FindAllStringSubmatch(implementation, -1) {
-		implemented[match[1]+" "+variable.ReplaceAllString(match[2], "{}")] = match[2]
+		implemented[match[1]+" "+normalizeRoutePath(match[2])] = match[2]
 	}
 	keys := make([]string, 0)
 	for key := range official {
@@ -60,4 +59,29 @@ func RouteReport(specification, implementation string, differences map[string]st
 		fmt.Fprintf(&output, "| `%s` | `%s` | `%s` | %s |\n", key, source, target, status)
 	}
 	return output.String()
+}
+
+// normalizeRoutePath 将单段路径变量统一为 {}，跨段通配统一为 {**}。
+// 只处理完整路径段，避免把普通字符误判为参数而产生误报。
+// @param routePath 路由路径
+// @return 规范化路径
+func normalizeRoutePath(routePath string) string {
+	segments := strings.Split(routePath, "/")
+	for index, segment := range segments {
+		// 官方 resources/** 与实现 {name...} 都表示可跨斜杠的资源名
+		if segment == "**" {
+			segments[index] = "{**}"
+			continue
+		}
+		if !strings.HasPrefix(segment, "{") || !strings.HasSuffix(segment, "}") {
+			continue
+		}
+		// 跨段通配保留独立标记，避免与单段路径变量互相误匹配
+		if strings.HasSuffix(segment, "...}") {
+			segments[index] = "{**}"
+		} else {
+			segments[index] = "{}"
+		}
+	}
+	return strings.Join(segments, "/")
 }

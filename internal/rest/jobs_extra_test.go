@@ -29,8 +29,8 @@ func TestREST_TimerJobs(t *testing.T) {
 	}
 	_ = response.Body.Close()
 	response, _ = http.Get(server.URL + "/service/management/jobs/" + jobID)
-	if response.StatusCode != http.StatusOK {
-		t.Fatalf("可执行作业详情失败: %d", response.StatusCode)
+	if response.StatusCode != http.StatusNotFound {
+		t.Fatalf("定时器作业不应出现在可执行桶: %d", response.StatusCode)
 	}
 	_ = response.Body.Close()
 	response, _ = http.Get(server.URL + "/service/management/timer-jobs/" + jobID + "/exception-stacktrace")
@@ -56,8 +56,14 @@ func TestREST_TimerJobs(t *testing.T) {
 
 	request, _ := http.NewRequest(http.MethodDelete, server.URL+"/service/management/jobs/"+jobID, nil)
 	response, _ = http.DefaultClient.Do(request)
+	if response.StatusCode != http.StatusNotFound {
+		t.Fatalf("跨桶删除定时器作业应 404: %d", response.StatusCode)
+	}
+	_ = response.Body.Close()
+	request, _ = http.NewRequest(http.MethodDelete, server.URL+"/service/management/timer-jobs/"+jobID, nil)
+	response, _ = http.DefaultClient.Do(request)
 	if response.StatusCode != http.StatusNoContent {
-		t.Fatalf("删除作业失败: %d", response.StatusCode)
+		t.Fatalf("删除定时器作业失败: %d", response.StatusCode)
 	}
 	_ = response.Body.Close()
 	response, _ = http.Get(server.URL + "/service/management/timer-jobs")
@@ -65,7 +71,7 @@ func TestREST_TimerJobs(t *testing.T) {
 	if page.Total != 0 {
 		t.Fatalf("删除后定时作业应为空: %+v", page)
 	}
-	request, _ = http.NewRequest(http.MethodDelete, server.URL+"/service/management/jobs/"+jobID, nil)
+	request, _ = http.NewRequest(http.MethodDelete, server.URL+"/service/management/timer-jobs/"+jobID, nil)
 	response, _ = http.DefaultClient.Do(request)
 	if response.StatusCode != http.StatusNotFound {
 		t.Fatalf("重复删除应 404: %d", response.StatusCode)
@@ -159,6 +165,12 @@ func TestREST_SuspendedAndHistoryJobs(t *testing.T) {
 	}
 	_ = response.Body.Close()
 	request, _ = http.NewRequest(http.MethodDelete, server.URL+"/service/management/jobs/"+jobID, nil)
+	response, _ = http.DefaultClient.Do(request)
+	if response.StatusCode != http.StatusNotFound {
+		t.Fatalf("跨桶删除挂起作业应 404: %d", response.StatusCode)
+	}
+	_ = response.Body.Close()
+	request, _ = http.NewRequest(http.MethodDelete, server.URL+"/service/management/suspended-jobs/"+jobID, nil)
 	response, _ = http.DefaultClient.Do(request)
 	if response.StatusCode != http.StatusNoContent {
 		t.Fatalf("删除挂起作业失败: %d", response.StatusCode)

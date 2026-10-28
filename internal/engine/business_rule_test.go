@@ -38,10 +38,23 @@ func businessRuleBPMN(processID, attributes string) string {
 // @param rules 规则 XML
 // @return DMN XML
 func dmnTableDocument(decisionID, tableID, hitPolicy, inputs, outputs, rules string) string {
+	return dmnTableDocumentWithAggregation(decisionID, tableID, hitPolicy, "", inputs, outputs, rules)
+}
+
+// dmnTableDocumentWithAggregation 构造带聚合器属性的决策表 DMN 文档。
+// @param decisionID 决策 ID
+// @param tableID 决策表 ID
+// @param hitPolicy 命中策略，空串表示默认
+// @param aggregation 聚合器，空串表示不做聚合
+// @param inputs 输入列 XML
+// @param outputs 输出列 XML
+// @param rules 规则 XML
+// @return DMN XML
+func dmnTableDocumentWithAggregation(decisionID, tableID, hitPolicy, aggregation, inputs, outputs, rules string) string {
 	document := `<?xml version="1.0" encoding="UTF-8"?>
 <definitions xmlns="https://www.omg.org/spec/DMN/20191111/MODEL/">
   <decision id="__DID__" name="决策">
-    <decisionTable id="__TID__" hitPolicy="__HIT__">
+    <decisionTable id="__TID__" hitPolicy="__HIT__" aggregation="__AGG__">
       __INPUTS__
       __OUTPUTS__
       __RULES__
@@ -51,6 +64,7 @@ func dmnTableDocument(decisionID, tableID, hitPolicy, inputs, outputs, rules str
 	document = strings.ReplaceAll(document, "__DID__", decisionID)
 	document = strings.ReplaceAll(document, "__TID__", tableID)
 	document = strings.ReplaceAll(document, "__HIT__", hitPolicy)
+	document = strings.ReplaceAll(document, "__AGG__", aggregation)
 	document = strings.ReplaceAll(document, "__INPUTS__", inputs)
 	document = strings.ReplaceAll(document, "__OUTPUTS__", outputs)
 	document = strings.ReplaceAll(document, "__RULES__", rules)
@@ -76,6 +90,21 @@ func dmnOutputColumn(id, name string) string {
 	column := `<output id="__ID__" name="__NAME__" typeRef="string"/>`
 	column = strings.ReplaceAll(column, "__ID__", id)
 	column = strings.ReplaceAll(column, "__NAME__", name)
+	return column
+}
+
+// dmnOutputColumnWithValues 构造带 outputValues 顺序值列表的输出列。
+// @param id 输出 ID
+// @param name 输出名称
+// @param typeName 输出类型
+// @param values 顺序值文本，多个值用逗号分隔
+// @return 输出列 XML
+func dmnOutputColumnWithValues(id, name, typeName, values string) string {
+	column := `<output id="__ID__" name="__NAME__" typeRef="__TYPE__"><outputValues><text>__VALUES__</text></outputValues></output>`
+	column = strings.ReplaceAll(column, "__ID__", id)
+	column = strings.ReplaceAll(column, "__NAME__", name)
+	column = strings.ReplaceAll(column, "__TYPE__", typeName)
+	column = strings.ReplaceAll(column, "__VALUES__", values)
 	return column
 }
 
@@ -258,7 +287,7 @@ func TestBusinessRuleTask_MultiOutputResultVariable(t *testing.T) {
 	}
 }
 
-// TestBusinessRuleTask_HitPolicies 验证 FIRST、UNIQUE、ANY、RULE ORDER 与不支持策略。
+// TestBusinessRuleTask_HitPolicies 验证 FIRST、UNIQUE、ANY、RULE ORDER 与不支持的策略。
 // @param t 测试上下文
 func TestBusinessRuleTask_HitPolicies(t *testing.T) {
 	t.Run("FIRST 默认策略", func(t *testing.T) {
@@ -275,7 +304,7 @@ func TestBusinessRuleTask_HitPolicies(t *testing.T) {
 		}
 	})
 
-	t.Run("RULE ORDER 简化为首个匹配", func(t *testing.T) {
+	t.Run("RULE ORDER 返回全部匹配", func(t *testing.T) {
 		engine := newTestEngine(t)
 		dmn := dmnTableDocument("decisionOrder", "tableOrder", "RULE ORDER", dmnInputColumn("amountInput", "amount"), dmnOutputColumn("result", "result"),
 			dmnRuleXML([]string{"-"}, []string{"\"first\""})+dmnRuleXML([]string{"-"}, []string{"\"second\""}))
@@ -284,8 +313,10 @@ func TestBusinessRuleTask_HitPolicies(t *testing.T) {
 		if err != nil {
 			t.Fatalf("启动流程失败: %v", err)
 		}
-		if instance.Variables["result"] != "first" {
-			t.Fatalf("RULE ORDER 策略应按顺序返回首个匹配: %+v", instance.Variables)
+		// RULE ORDER 按文档顺序返回全部匹配结果
+		expected := []any{"first", "second"}
+		if !reflect.DeepEqual(instance.Variables["result"], expected) {
+			t.Fatalf("RULE ORDER 策略应按文档顺序返回全部匹配: %#v", instance.Variables["result"])
 		}
 	})
 
@@ -348,12 +379,12 @@ func TestBusinessRuleTask_HitPolicies(t *testing.T) {
 		requireBusinessRuleError(t, err, "ENGINE-1915")
 	})
 
-	t.Run("不支持 COLLECT", func(t *testing.T) {
+	t.Run("不支持 UNORDERED", func(t *testing.T) {
 		engine := newTestEngine(t)
-		dmn := dmnTableDocument("decisionCollect", "tableCollect", "COLLECT", dmnInputColumn("amountInput", "amount"), dmnOutputColumn("result", "result"),
+		dmn := dmnTableDocument("decisionUnordered", "tableUnordered", "UNORDERED", dmnInputColumn("amountInput", "amount"), dmnOutputColumn("result", "result"),
 			dmnRuleXML([]string{"-"}, []string{"\"a\""}))
-		deployBusinessRuleBundle(t, engine, "collectProcess", `flowable:decisionRef="decisionCollect" flowable:resultVariable="result"`, dmn)
-		_, err := startBusinessRule(t, engine, "collectProcess", api.Variable{Name: "amount", Value: 1})
+		deployBusinessRuleBundle(t, engine, "unorderedProcess", `flowable:decisionRef="decisionUnordered" flowable:resultVariable="result"`, dmn)
+		_, err := startBusinessRule(t, engine, "unorderedProcess", api.Variable{Name: "amount", Value: 1})
 		requireBusinessRuleError(t, err, "ENGINE-1918")
 	})
 }
@@ -560,4 +591,369 @@ func TestBusinessRuleTask_PlainProcessUnchanged(t *testing.T) {
 	if len(tasks) != 1 || tasks[0].TaskDefinitionKey != "approve" || tasks[0].Assignee != "alice" {
 		t.Fatalf("普通流程任务行为发生变化: %+v", tasks)
 	}
+}
+
+// TestBusinessRuleTask_RuleOrderAllMatches 验证 RULE ORDER 无结果变量时逐列写入全部匹配值。
+// @param t 测试上下文
+func TestBusinessRuleTask_RuleOrderAllMatches(t *testing.T) {
+	engine := newTestEngine(t)
+	outputs := dmnOutputColumn("level", "等级") + dmnOutputColumn("note", "备注")
+	dmn := dmnTableDocument("decisionRuleAll", "tableRuleAll", "RULE ORDER",
+		dmnInputColumn("amountInput", "amount"), outputs,
+		dmnRuleXML([]string{"> 0"}, []string{`"A"`, `"first"`})+
+			dmnRuleXML([]string{"> 10"}, []string{`"B"`, "-"})+
+			dmnRuleXML([]string{"-"}, []string{`"C"`, `"last"`}))
+	deployBusinessRuleBundle(t, engine, "ruleAllProcess", `flowable:decisionRef="decisionRuleAll"`, dmn)
+
+	instance, err := startBusinessRule(t, engine, "ruleAllProcess", api.Variable{Name: "amount", Value: 50})
+	if err != nil {
+		t.Fatalf("启动流程失败: %v", err)
+	}
+	if !reflect.DeepEqual(instance.Variables["level"], []any{"A", "B", "C"}) {
+		t.Fatalf("RULE ORDER 多结果输出列错误: %#v", instance.Variables["level"])
+	}
+	// 未产生值的输出项被跳过，不写入空值
+	if !reflect.DeepEqual(instance.Variables["note"], []any{"first", "last"}) {
+		t.Fatalf("RULE ORDER 跳过未产生值错误: %#v", instance.Variables["note"])
+	}
+}
+
+// TestBusinessRuleTask_Collect 验证 COLLECT 的收集与 SUM/MIN/MAX/COUNT 聚合。
+// @param t 测试上下文
+func TestBusinessRuleTask_Collect(t *testing.T) {
+	t.Run("无聚合器返回全部匹配", func(t *testing.T) {
+		engine := newTestEngine(t)
+		dmn := dmnTableDocument("decisionCollectAll", "tableCollectAll", "COLLECT",
+			dmnInputColumn("amountInput", "amount"), dmnOutputColumn("result", "结果"),
+			dmnRuleXML([]string{"-"}, []string{`"a"`})+
+				dmnRuleXML([]string{"-"}, []string{`"b"`})+
+				dmnRuleXML([]string{"> 100"}, []string{`"c"`}))
+		deployBusinessRuleBundle(t, engine, "collectAllProcess", `flowable:decisionRef="decisionCollectAll" flowable:resultVariable="result"`, dmn)
+		instance, err := startBusinessRule(t, engine, "collectAllProcess", api.Variable{Name: "amount", Value: 1})
+		if err != nil {
+			t.Fatalf("启动流程失败: %v", err)
+		}
+		if !reflect.DeepEqual(instance.Variables["result"], []any{"a", "b"}) {
+			t.Fatalf("COLLECT 无聚合器应返回全部匹配: %#v", instance.Variables["result"])
+		}
+	})
+
+	aggregations := []struct {
+		name        string
+		aggregation string
+		want        float64
+	}{
+		{name: "SUM 聚合", aggregation: "SUM", want: 60},
+		{name: "MIN 聚合", aggregation: "MIN", want: 10},
+		{name: "MAX 聚合", aggregation: "MAX", want: 30},
+		{name: "COUNT 聚合", aggregation: "COUNT", want: 3},
+	}
+	for _, testCase := range aggregations {
+		t.Run(testCase.name, func(t *testing.T) {
+			engine := newTestEngine(t)
+			outputs := dmnOutputColumnWithValues("total", "合计", "number", "10,20,30")
+			dmn := dmnTableDocumentWithAggregation("decisionAggregate", "tableAggregate", "COLLECT", testCase.aggregation,
+				dmnInputColumn("amountInput", "amount"), outputs,
+				dmnRuleXML([]string{"-"}, []string{"10"})+
+					dmnRuleXML([]string{"-"}, []string{"20"})+
+					dmnRuleXML([]string{"-"}, []string{"30"}))
+			processID := "aggregate" + strings.ToLower(testCase.aggregation)
+			deployBusinessRuleBundle(t, engine, processID, `flowable:decisionRef="decisionAggregate" flowable:resultVariable="total"`, dmn)
+			instance, err := startBusinessRule(t, engine, processID, api.Variable{Name: "amount", Value: 1})
+			if err != nil {
+				t.Fatalf("启动流程失败: %v", err)
+			}
+			// 聚合结果统一为 float64，与 Flowable 的 Double 一致
+			if !reflect.DeepEqual(instance.Variables["total"], testCase.want) {
+				t.Fatalf("聚合结果期望 %v，实际 %#v", testCase.want, instance.Variables["total"])
+			}
+		})
+	}
+
+	t.Run("多输出聚合报错", func(t *testing.T) {
+		engine := newTestEngine(t)
+		outputs := dmnOutputColumnWithValues("first", "第一列", "number", "1,2") +
+			dmnOutputColumnWithValues("second", "第二列", "number", "1,2")
+		dmn := dmnTableDocumentWithAggregation("decisionMultiAggregate", "tableMultiAggregate", "COLLECT", "SUM",
+			dmnInputColumn("amountInput", "amount"), outputs,
+			dmnRuleXML([]string{"-"}, []string{"1", "2"}))
+		deployBusinessRuleBundle(t, engine, "multiAggregateProcess", `flowable:decisionRef="decisionMultiAggregate" flowable:resultVariable="decision"`, dmn)
+		_, err := startBusinessRule(t, engine, "multiAggregateProcess", api.Variable{Name: "amount", Value: 1})
+		requireBusinessRuleError(t, err, "ENGINE-1921")
+	})
+
+	t.Run("COUNT 非数值输出报错", func(t *testing.T) {
+		engine := newTestEngine(t)
+		outputs := dmnOutputColumnWithValues("total", "合计", "number", "1,2")
+		dmn := dmnTableDocumentWithAggregation("decisionCountText", "tableCountText", "COLLECT", "COUNT",
+			dmnInputColumn("amountInput", "amount"), outputs,
+			dmnRuleXML([]string{"-"}, []string{`"a"`}))
+		deployBusinessRuleBundle(t, engine, "countTextProcess", `flowable:decisionRef="decisionCountText" flowable:resultVariable="total"`, dmn)
+		_, err := startBusinessRule(t, engine, "countTextProcess", api.Variable{Name: "amount", Value: 1})
+		requireBusinessRuleError(t, err, "ENGINE-1921")
+	})
+
+	t.Run("非数值聚合报错", func(t *testing.T) {
+		engine := newTestEngine(t)
+		outputs := dmnOutputColumnWithValues("total", "合计", "number", "1,2")
+		dmn := dmnTableDocumentWithAggregation("decisionSumText", "tableSumText", "COLLECT", "SUM",
+			dmnInputColumn("amountInput", "amount"), outputs,
+			dmnRuleXML([]string{"-"}, []string{`"a"`}))
+		deployBusinessRuleBundle(t, engine, "sumTextProcess", `flowable:decisionRef="decisionSumText" flowable:resultVariable="total"`, dmn)
+		_, err := startBusinessRule(t, engine, "sumTextProcess", api.Variable{Name: "amount", Value: 1})
+		requireBusinessRuleError(t, err, "ENGINE-1921")
+	})
+
+	t.Run("单输出类型不是 number 聚合报错", func(t *testing.T) {
+		engine := newTestEngine(t)
+		dmn := dmnTableDocumentWithAggregation("decisionStringAggregate", "tableStringAggregate", "COLLECT", "SUM",
+			dmnInputColumn("amountInput", "amount"), dmnOutputColumn("total", "合计"),
+			dmnRuleXML([]string{"-"}, []string{"1"}))
+		deployBusinessRuleBundle(t, engine, "stringAggregateProcess", `flowable:decisionRef="decisionStringAggregate" flowable:resultVariable="total"`, dmn)
+		_, err := startBusinessRule(t, engine, "stringAggregateProcess", api.Variable{Name: "amount", Value: 1})
+		requireBusinessRuleError(t, err, "ENGINE-1921")
+	})
+
+	t.Run("单输出缺少类型聚合报错", func(t *testing.T) {
+		engine := newTestEngine(t)
+		dmn := dmnTableDocumentWithAggregation("decisionNoTypeAggregate", "tableNoTypeAggregate", "COLLECT", "COUNT",
+			dmnInputColumn("amountInput", "amount"), `<output id="total" name="合计"/>`,
+			dmnRuleXML([]string{"-"}, []string{"1"}))
+		deployBusinessRuleBundle(t, engine, "noTypeAggregateProcess", `flowable:decisionRef="decisionNoTypeAggregate" flowable:resultVariable="total"`, dmn)
+		_, err := startBusinessRule(t, engine, "noTypeAggregateProcess", api.Variable{Name: "amount", Value: 1})
+		requireBusinessRuleError(t, err, "ENGINE-1921")
+	})
+
+	t.Run("非法聚合器", func(t *testing.T) {
+		engine := newTestEngine(t)
+		outputs := dmnOutputColumn("result", "结果")
+		dmn := dmnTableDocumentWithAggregation("decisionBadAggregation", "tableBadAggregation", "COLLECT", "AVG",
+			dmnInputColumn("amountInput", "amount"), outputs,
+			dmnRuleXML([]string{"-"}, []string{"1"}))
+		deployBusinessRuleBundle(t, engine, "badAggregationProcess", `flowable:decisionRef="decisionBadAggregation" flowable:resultVariable="result"`, dmn)
+		_, err := startBusinessRule(t, engine, "badAggregationProcess", api.Variable{Name: "amount", Value: 1})
+		requireBusinessRuleError(t, err, "ENGINE-1921")
+	})
+
+	t.Run("无匹配", func(t *testing.T) {
+		engine := newTestEngine(t)
+		outputs := dmnOutputColumn("result", "结果")
+		dmn := dmnTableDocument("decisionCollectEmpty", "tableCollectEmpty", "COLLECT",
+			dmnInputColumn("amountInput", "amount"), outputs,
+			dmnRuleXML([]string{"> 100"}, []string{`"a"`}))
+		deployBusinessRuleBundle(t, engine, "collectEmptyProcess", `flowable:decisionRef="decisionCollectEmpty" flowable:resultVariable="result"`, dmn)
+		_, err := startBusinessRule(t, engine, "collectEmptyProcess", api.Variable{Name: "amount", Value: 1})
+		requireBusinessRuleError(t, err, "ENGINE-1915")
+	})
+}
+
+// TestBusinessRuleTask_OutputOrderAndPriority 验证 OUTPUT ORDER 与 PRIORITY 的顺序值排序。
+// @param t 测试上下文
+func TestBusinessRuleTask_OutputOrderAndPriority(t *testing.T) {
+	orderedRules := dmnRuleXML([]string{"-"}, []string{`"medium"`}) +
+		dmnRuleXML([]string{"-"}, []string{`"low"`}) +
+		dmnRuleXML([]string{"-"}, []string{`"high"`})
+	levelOutput := dmnOutputColumnWithValues("level", "等级", "string", "high,medium,low")
+
+	t.Run("OUTPUT ORDER 返回全部并按顺序值排序", func(t *testing.T) {
+		engine := newTestEngine(t)
+		dmn := dmnTableDocument("decisionOutputOrder", "tableOutputOrder", "OUTPUT ORDER",
+			dmnInputColumn("amountInput", "amount"), levelOutput, orderedRules)
+		deployBusinessRuleBundle(t, engine, "outputOrderProcess", `flowable:decisionRef="decisionOutputOrder" flowable:resultVariable="level"`, dmn)
+		instance, err := startBusinessRule(t, engine, "outputOrderProcess", api.Variable{Name: "amount", Value: 1})
+		if err != nil {
+			t.Fatalf("启动流程失败: %v", err)
+		}
+		if !reflect.DeepEqual(instance.Variables["level"], []any{"high", "medium", "low"}) {
+			t.Fatalf("OUTPUT ORDER 排序错误: %#v", instance.Variables["level"])
+		}
+	})
+
+	t.Run("PRIORITY 取排序后第一条", func(t *testing.T) {
+		engine := newTestEngine(t)
+		dmn := dmnTableDocument("decisionPriority", "tablePriority", "PRIORITY",
+			dmnInputColumn("amountInput", "amount"), levelOutput, orderedRules)
+		deployBusinessRuleBundle(t, engine, "priorityProcess", `flowable:decisionRef="decisionPriority" flowable:resultVariable="level"`, dmn)
+		instance, err := startBusinessRule(t, engine, "priorityProcess", api.Variable{Name: "amount", Value: 1})
+		if err != nil {
+			t.Fatalf("启动流程失败: %v", err)
+		}
+		if instance.Variables["level"] != "high" {
+			t.Fatalf("PRIORITY 应取顺序值最前的规则: %#v", instance.Variables["level"])
+		}
+	})
+
+	t.Run("PRIORITY 无匹配", func(t *testing.T) {
+		engine := newTestEngine(t)
+		dmn := dmnTableDocument("decisionPriorityEmpty", "tablePriorityEmpty", "PRIORITY",
+			dmnInputColumn("amountInput", "amount"), levelOutput,
+			dmnRuleXML([]string{"> 100"}, []string{`"high"`}))
+		deployBusinessRuleBundle(t, engine, "priorityEmptyProcess", `flowable:decisionRef="decisionPriorityEmpty" flowable:resultVariable="level"`, dmn)
+		_, err := startBusinessRule(t, engine, "priorityEmptyProcess", api.Variable{Name: "amount", Value: 1})
+		requireBusinessRuleError(t, err, "ENGINE-1915")
+	})
+
+	t.Run("按输出列顺序依次比较", func(t *testing.T) {
+		engine := newTestEngine(t)
+		outputs := dmnOutputColumnWithValues("grade", "等级", "string", "A,B") +
+			dmnOutputColumnWithValues("rank", "序号", "number", "1,2")
+		dmn := dmnTableDocument("decisionMultiOrder", "tableMultiOrder", "OUTPUT ORDER",
+			dmnInputColumn("amountInput", "amount"), outputs,
+			dmnRuleXML([]string{"-"}, []string{`"B"`, "1"})+
+				dmnRuleXML([]string{"-"}, []string{`"A"`, "2"})+
+				dmnRuleXML([]string{"-"}, []string{`"A"`, "1"}))
+		deployBusinessRuleBundle(t, engine, "multiOrderProcess", `flowable:decisionRef="decisionMultiOrder" flowable:resultVariable="decision"`, dmn)
+		instance, err := startBusinessRule(t, engine, "multiOrderProcess", api.Variable{Name: "amount", Value: 1})
+		if err != nil {
+			t.Fatalf("启动流程失败: %v", err)
+		}
+		expected := []any{
+			map[string]any{"grade": "A", "rank": 1},
+			map[string]any{"grade": "A", "rank": 2},
+			map[string]any{"grade": "B", "rank": 1},
+		}
+		if !reflect.DeepEqual(instance.Variables["decision"], expected) {
+			t.Fatalf("多列顺序值排序错误: %#v", instance.Variables["decision"])
+		}
+	})
+
+	t.Run("顺序值之外的值排在最前", func(t *testing.T) {
+		engine := newTestEngine(t)
+		outputs := dmnOutputColumnWithValues("level", "等级", "string", "b,c")
+		dmn := dmnTableDocument("decisionUnknownValue", "tableUnknownValue", "OUTPUT ORDER",
+			dmnInputColumn("amountInput", "amount"), outputs,
+			dmnRuleXML([]string{"-"}, []string{`"c"`})+
+				dmnRuleXML([]string{"-"}, []string{`"b"`})+
+				dmnRuleXML([]string{"-"}, []string{`"a"`}))
+		deployBusinessRuleBundle(t, engine, "unknownValueProcess", `flowable:decisionRef="decisionUnknownValue" flowable:resultVariable="level"`, dmn)
+		instance, err := startBusinessRule(t, engine, "unknownValueProcess", api.Variable{Name: "amount", Value: 1})
+		if err != nil {
+			t.Fatalf("启动流程失败: %v", err)
+		}
+		// 与 Flowable 的 indexOf 语义一致：不在列表中的值下标为 -1，排在最前
+		if !reflect.DeepEqual(instance.Variables["level"], []any{"a", "b", "c"}) {
+			t.Fatalf("顺序值之外的值应排在最前: %#v", instance.Variables["level"])
+		}
+	})
+
+	t.Run("缺少顺序值报错", func(t *testing.T) {
+		engine := newTestEngine(t)
+		dmn := dmnTableDocument("decisionNoOrder", "tableNoOrder", "OUTPUT ORDER",
+			dmnInputColumn("amountInput", "amount"), dmnOutputColumn("level", "等级"),
+			dmnRuleXML([]string{"-"}, []string{`"A"`}))
+		deployBusinessRuleBundle(t, engine, "noOrderProcess", `flowable:decisionRef="decisionNoOrder" flowable:resultVariable="level"`, dmn)
+		_, err := startBusinessRule(t, engine, "noOrderProcess", api.Variable{Name: "amount", Value: 1})
+		requireBusinessRuleError(t, err, "ENGINE-1922")
+	})
+
+	t.Run("PRIORITY 缺少顺序值报错", func(t *testing.T) {
+		engine := newTestEngine(t)
+		dmn := dmnTableDocument("decisionPriorityNoOrder", "tablePriorityNoOrder", "PRIORITY",
+			dmnInputColumn("amountInput", "amount"), dmnOutputColumn("level", "等级"),
+			dmnRuleXML([]string{"-"}, []string{`"A"`}))
+		deployBusinessRuleBundle(t, engine, "priorityNoOrderProcess", `flowable:decisionRef="decisionPriorityNoOrder" flowable:resultVariable="level"`, dmn)
+		_, err := startBusinessRule(t, engine, "priorityNoOrderProcess", api.Variable{Name: "amount", Value: 1})
+		requireBusinessRuleError(t, err, "ENGINE-1922")
+	})
+	t.Run("输出值不可排序报错", func(t *testing.T) {
+		engine := newTestEngine(t)
+		outputs := dmnOutputColumnWithValues("payload", "载荷", "string", "a,b")
+		dmn := dmnTableDocument("decisionBadOrderValue", "tableBadOrderValue", "OUTPUT ORDER",
+			dmnInputColumn("amountInput", "amount"), outputs,
+			dmnRuleXML([]string{"-"}, []string{"${payload}"}))
+		deployBusinessRuleBundle(t, engine, "badOrderValueProcess", `flowable:decisionRef="decisionBadOrderValue" flowable:resultVariable="payload"`, dmn)
+		_, err := startBusinessRule(t, engine, "badOrderValueProcess",
+			api.Variable{Name: "payload", Value: map[string]any{"x": 1}})
+		requireBusinessRuleError(t, err, "ENGINE-1922")
+	})
+}
+
+// TestBusinessRuleTask_MultiResultOutputs 验证多条结果下结果变量与按列写入。
+// @param t 测试上下文
+func TestBusinessRuleTask_MultiResultOutputs(t *testing.T) {
+	outputs := dmnOutputColumn("level", "等级") + dmnOutputColumn("note", "备注")
+	rules := dmnRuleXML([]string{"-"}, []string{`"A"`, `"ok"`}) +
+		dmnRuleXML([]string{"-"}, []string{`"B"`, "-"}) +
+		dmnRuleXML([]string{"-"}, []string{`"C"`, `"x"`})
+
+	t.Run("多行多输出结果变量", func(t *testing.T) {
+		engine := newTestEngine(t)
+		dmn := dmnTableDocument("decisionMultiResult", "tableMultiResult", "RULE ORDER",
+			dmnInputColumn("amountInput", "amount"), outputs, rules)
+		deployBusinessRuleBundle(t, engine, "multiResultProcess", `flowable:decisionRef="decisionMultiResult" flowable:resultVariable="decision"`, dmn)
+		instance, err := startBusinessRule(t, engine, "multiResultProcess", api.Variable{Name: "amount", Value: 1})
+		if err != nil {
+			t.Fatalf("启动流程失败: %v", err)
+		}
+		expected := []any{
+			map[string]any{"level": "A", "note": "ok"},
+			map[string]any{"level": "B"},
+			map[string]any{"level": "C", "note": "x"},
+		}
+		if !reflect.DeepEqual(instance.Variables["decision"], expected) {
+			t.Fatalf("多结果变量错误: %#v", instance.Variables["decision"])
+		}
+	})
+
+	t.Run("多行无结果变量按列写入", func(t *testing.T) {
+		engine := newTestEngine(t)
+		dmn := dmnTableDocument("decisionMultiColumn", "tableMultiColumn", "RULE ORDER",
+			dmnInputColumn("amountInput", "amount"), outputs, rules)
+		deployBusinessRuleBundle(t, engine, "multiColumnProcess", `flowable:decisionRef="decisionMultiColumn"`, dmn)
+		instance, err := startBusinessRule(t, engine, "multiColumnProcess", api.Variable{Name: "amount", Value: 1})
+		if err != nil {
+			t.Fatalf("启动流程失败: %v", err)
+		}
+		if !reflect.DeepEqual(instance.Variables["level"], []any{"A", "B", "C"}) {
+			t.Fatalf("多结果输出列 level 错误: %#v", instance.Variables["level"])
+		}
+		// 第二条规则的 "-" 不产生值，列内跳过
+		if !reflect.DeepEqual(instance.Variables["note"], []any{"ok", "x"}) {
+			t.Fatalf("多结果输出列 note 错误: %#v", instance.Variables["note"])
+		}
+	})
+
+	t.Run("多行整列无值时跳过", func(t *testing.T) {
+		engine := newTestEngine(t)
+		outputs := dmnOutputColumn("level", "等级") + dmnOutputColumn("unused", "未用")
+		dmn := dmnTableDocument("decisionSkipColumn", "tableSkipColumn", "RULE ORDER",
+			dmnInputColumn("amountInput", "amount"), outputs,
+			dmnRuleXML([]string{"-"}, []string{`"A"`, "-"})+
+				dmnRuleXML([]string{"-"}, []string{`"B"`, "-"}))
+		deployBusinessRuleBundle(t, engine, "skipColumnProcess", `flowable:decisionRef="decisionSkipColumn"`, dmn)
+		instance, err := startBusinessRule(t, engine, "skipColumnProcess",
+			api.Variable{Name: "amount", Value: 1}, api.Variable{Name: "unused", Value: "keep"})
+		if err != nil {
+			t.Fatalf("启动流程失败: %v", err)
+		}
+		if !reflect.DeepEqual(instance.Variables["level"], []any{"A", "B"}) {
+			t.Fatalf("多结果输出列 level 错误: %#v", instance.Variables["level"])
+		}
+		if instance.Variables["unused"] != "keep" {
+			t.Fatalf("整列无值不应覆盖已有变量: %#v", instance.Variables["unused"])
+		}
+	})
+
+	t.Run("多行结果变量缺少名称", func(t *testing.T) {
+		engine := newTestEngine(t)
+		unnamed := dmnOutputColumn("named", "有名称") + "<output/>"
+		dmn := dmnTableDocument("decisionResultNoName", "tableResultNoName", "RULE ORDER",
+			dmnInputColumn("amountInput", "amount"), unnamed,
+			dmnRuleXML([]string{"-"}, []string{`"A"`, `"x"`})+
+				dmnRuleXML([]string{"-"}, []string{`"B"`, `"y"`}))
+		deployBusinessRuleBundle(t, engine, "resultNoNameProcess", `flowable:decisionRef="decisionResultNoName" flowable:resultVariable="decision"`, dmn)
+		_, err := startBusinessRule(t, engine, "resultNoNameProcess", api.Variable{Name: "amount", Value: 1})
+		requireBusinessRuleError(t, err, "ENGINE-1920")
+	})
+	t.Run("多行输出列缺少名称", func(t *testing.T) {
+		engine := newTestEngine(t)
+		unnamed := dmnOutputColumn("named", "有名称") + "<output/>"
+		dmn := dmnTableDocument("decisionMultiNoName", "tableMultiNoName", "RULE ORDER",
+			dmnInputColumn("amountInput", "amount"), unnamed,
+			dmnRuleXML([]string{"-"}, []string{`"A"`, `"x"`})+
+				dmnRuleXML([]string{"-"}, []string{`"B"`, `"y"`}))
+		deployBusinessRuleBundle(t, engine, "multiNoNameProcess", `flowable:decisionRef="decisionMultiNoName"`, dmn)
+		_, err := startBusinessRule(t, engine, "multiNoNameProcess", api.Variable{Name: "amount", Value: 1})
+		requireBusinessRuleError(t, err, "ENGINE-1920")
+	})
 }

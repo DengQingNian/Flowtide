@@ -77,3 +77,30 @@ s.mux.HandleFunc("GET /service/extension", handler)`
 		t.Fatal("端点表必须可重复生成")
 	}
 }
+
+// TestNormalizeRoutePathPrecision 验证单段变量与跨段通配不会互相误匹配。
+// @param t 测试上下文
+func TestNormalizeRoutePathPrecision(t *testing.T) {
+	cases := map[string]string{
+		"/repository/deployments/{id}/resources/**":        "/repository/deployments/{}/resources/{**}",
+		"/repository/deployments/{id}/resources/{name...}": "/repository/deployments/{}/resources/{**}",
+		"/runtime/items/{itemId}":                          "/runtime/items/{}",
+	}
+	for input, expected := range cases {
+		if actual := normalizeRoutePath(input); actual != expected {
+			t.Fatalf("规范化错误 %s: %s", input, actual)
+		}
+	}
+
+	spec := "paths:\n  /repository/deployments/{deploymentId}/resources/**:\n    get:\n"
+	single := `s.mux.HandleFunc("GET /service/repository/deployments/{id}/resources/{name}", handler)`
+	report := RouteReport(spec, single, nil)
+	if !strings.Contains(report, "缺失；迁移验收阻断") {
+		t.Fatalf("单段通配不应匹配官方跨段通配: %s", report)
+	}
+	multi := `s.mux.HandleFunc("GET /service/repository/deployments/{id}/resources/{name...}", handler)`
+	report = RouteReport(spec, multi, nil)
+	if strings.Contains(report, "缺失；迁移验收阻断") {
+		t.Fatalf("跨段通配应匹配官方路径: %s", report)
+	}
+}

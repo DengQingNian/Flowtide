@@ -451,15 +451,16 @@ func TestREST_Deployments(t *testing.T) {
 	}
 	_ = response.Body.Close()
 	response, _ = http.Get(server.URL + "/service/repository/deployments/" + deploymentID + "/resources")
-	var names []string
-	_ = json.NewDecoder(response.Body).Decode(&names)
+	var resources []map[string]any
+	_ = json.NewDecoder(response.Body).Decode(&resources)
 	_ = response.Body.Close()
-	if len(names) != 1 {
-		t.Fatalf("资源列表错误: %+v", names)
+	if len(resources) != 1 {
+		t.Fatalf("资源列表错误: %+v", resources)
 	}
-	response, _ = http.Get(server.URL + "/service/repository/deployments/" + deploymentID + "/resources/" + names[0])
+	name, _ := resources[0]["id"].(string)
+	response, _ = http.Get(server.URL + "/service/repository/deployments/" + deploymentID + "/resources/" + name)
 	if response.StatusCode != http.StatusOK {
-		t.Fatalf("资源内容失败: %d", response.StatusCode)
+		t.Fatalf("资源元数据失败: %d", response.StatusCode)
 	}
 	_ = response.Body.Close()
 	request, _ := http.NewRequest(http.MethodDelete, server.URL+"/service/repository/deployments/"+deploymentID, nil)
