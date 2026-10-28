@@ -43,6 +43,8 @@ type snapshot struct {
 	Comments           []*api.Comment                  `json:"comments"`           // 评论
 	Attachments        []*api.Attachment               `json:"attachments"`        // 附件
 	Users              []*api.User                     `json:"users"`              // 用户
+	UserInfo           map[string]map[string]string    `json:"userInfo"`           // 用户信息
+	UserPictures       map[string]*userPictureState    `json:"userPictures"`       // 用户头像
 	Groups             []*api.Group                    `json:"groups"`             // 组
 	Roles              []*api.Role                     `json:"roles"`              // 角色
 	Memberships        map[string]bool                 `json:"memberships"`        // 成员关系
@@ -109,6 +111,8 @@ func (e *Engine) toSnapshot() *snapshot {
 	for _, user := range e.state.Users {
 		out.Users = append(out.Users, user)
 	}
+	out.UserInfo = e.state.UserInfo
+	out.UserPictures = e.state.UserPictures
 	for _, group := range e.state.Groups {
 		out.Groups = append(out.Groups, group)
 	}
@@ -222,6 +226,12 @@ func (e *Engine) loadState(ctx context.Context) error {
 	}
 	for _, user := range stored.Users {
 		restored.Users[user.ID] = user
+	}
+	if stored.UserInfo != nil {
+		restored.UserInfo = stored.UserInfo
+	}
+	if stored.UserPictures != nil {
+		restored.UserPictures = stored.UserPictures
 	}
 	for _, group := range stored.Groups {
 		restored.Groups[group.ID] = group

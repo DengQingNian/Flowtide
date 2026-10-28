@@ -158,4 +158,5 @@ curl -X POST 'http://localhost:8080/service/runtime/process-instances' \
 - 管理作业分类：定时/挂起/历史/死信作业、作业删除与异常栈。
 - 活动实例查询：运行中活动列表、组合查询与执行活动 ID。
 - 变量实例查询：运行中变量列表、组合查询、稳定变量 ID 与原始值下载。
+- 用户信息键值与头像：增删改查、multipart 上传与状态快照持久化。
 - 纯标准库实现，`CGO_ENABLED=0` 可构建。

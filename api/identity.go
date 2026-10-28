@@ -62,6 +62,46 @@ type IdentityService interface {
 	// @return 用户
 	// @return 更新错误
 	UpdateUser(ctx context.Context, user User) (User, error)
+	// GetUserInfo 返回用户信息键值。
+	// @param ctx 上下文
+	// @param userID 用户 ID
+	// @return 信息映射
+	// @return 查询错误
+	GetUserInfo(ctx context.Context, userID string) (map[string]string, error)
+	// GetUserInfoValue 返回单个用户信息。
+	// @param ctx 上下文
+	// @param userID 用户 ID
+	// @param key 键
+	// @return 值
+	// @return 查询错误
+	GetUserInfoValue(ctx context.Context, userID, key string) (string, error)
+	// SetUserInfo 设置用户信息。
+	// @param ctx 上下文
+	// @param userID 用户 ID
+	// @param key 键
+	// @param value 值
+	// @return 设置错误
+	SetUserInfo(ctx context.Context, userID, key, value string) error
+	// DeleteUserInfo 删除用户信息。
+	// @param ctx 上下文
+	// @param userID 用户 ID
+	// @param key 键
+	// @return 删除错误
+	DeleteUserInfo(ctx context.Context, userID, key string) error
+	// GetUserPicture 返回用户头像。
+	// @param ctx 上下文
+	// @param userID 用户 ID
+	// @return 图片数据
+	// @return MIME 类型
+	// @return 查询错误
+	GetUserPicture(ctx context.Context, userID string) ([]byte, string, error)
+	// SetUserPicture 设置用户头像。
+	// @param ctx 上下文
+	// @param userID 用户 ID
+	// @param data 图片数据
+	// @param mimeType MIME 类型
+	// @return 设置错误
+	SetUserPicture(ctx context.Context, userID string, data []byte, mimeType string) error
 	// SetUserRoles 设置用户角色。
 	// @param ctx 上下文
 	// @param userID 用户 ID

@@ -134,6 +134,12 @@ type modelState struct {
 	SourceExtra []byte    // 扩展源码
 }
 
+// userPictureState 是用户头像。
+type userPictureState struct {
+	Data     []byte `json:"data"`     // 图片数据
+	MimeType string `json:"mimeType"` // MIME 类型
+}
+
 // state 是引擎的全部可变状态。
 type state struct {
 	Deployments        map[string]*deploymentState              // 部署
@@ -158,6 +164,8 @@ type state struct {
 	Comments           map[string]*api.Comment                  // 评论
 	Attachments        map[string]*api.Attachment               // 附件
 	Users              map[string]*api.User                     // 用户
+	UserInfo           map[string]map[string]string             // 用户信息
+	UserPictures       map[string]*userPictureState             // 用户头像
 	Groups             map[string]*api.Group                    // 组
 	Roles              map[string]*api.Role                     // 角色
 	Memberships        map[string]bool                          // 成员关系，key=user|group
@@ -189,6 +197,8 @@ func newState() *state {
 		Comments:           make(map[string]*api.Comment),
 		Attachments:        make(map[string]*api.Attachment),
 		Users:              make(map[string]*api.User),
+		UserInfo:           make(map[string]map[string]string),
+		UserPictures:       make(map[string]*userPictureState),
 		Groups:             make(map[string]*api.Group),
 		Roles:              make(map[string]*api.Role),
 		Memberships:        make(map[string]bool),
@@ -296,6 +306,18 @@ func cloneState(source *state) *state {
 	for id, user := range source.Users {
 		copied := *user
 		target.Users[id] = &copied
+	}
+	for userID, info := range source.UserInfo {
+		copied := make(map[string]string, len(info))
+		for key, value := range info {
+			copied[key] = value
+		}
+		target.UserInfo[userID] = copied
+	}
+	for userID, picture := range source.UserPictures {
+		copied := *picture
+		copied.Data = append([]byte(nil), picture.Data...)
+		target.UserPictures[userID] = &copied
 	}
 	for id, comment := range source.Comments {
 		copied := *comment

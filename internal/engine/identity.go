@@ -93,10 +93,149 @@ func (e *Engine) DeleteUser(ctx context.Context, userID string) error {
 			return nil, api.NewError("ENGINE-0404", "用户不存在", api.ErrNotFound)
 		}
 		delete(e.state.Users, userID)
+		delete(e.state.UserInfo, userID)
+		delete(e.state.UserPictures, userID)
 		for key := range e.state.Memberships {
 			if strings.HasPrefix(key, userID+"|") {
 				delete(e.state.Memberships, key)
 			}
+		}
+		return nil, nil
+	})
+	return err
+}
+
+// GetUserInfo 返回用户信息键值。
+// @param ctx 上下文
+// @param userID 用户 ID
+// @return 信息映射
+// @return 查询错误
+func (e *Engine) GetUserInfo(ctx context.Context, userID string) (map[string]string, error) {
+	result, err := e.read(func() (any, error) {
+		if _, ok := e.state.Users[userID]; !ok {
+			return nil, api.NewError("ENGINE-0404", "用户不存在", api.ErrNotFound)
+		}
+		out := make(map[string]string)
+		for key, value := range e.state.UserInfo[userID] {
+			out[key] = value
+		}
+		return out, nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(map[string]string), nil
+}
+
+// GetUserInfoValue 返回单个用户信息。
+// @param ctx 上下文
+// @param userID 用户 ID
+// @param key 键
+// @return 值
+// @return 查询错误
+func (e *Engine) GetUserInfoValue(ctx context.Context, userID, key string) (string, error) {
+	result, err := e.read(func() (any, error) {
+		if _, ok := e.state.Users[userID]; !ok {
+			return nil, api.NewError("ENGINE-0404", "用户不存在", api.ErrNotFound)
+		}
+		value, ok := e.state.UserInfo[userID][key]
+		if !ok {
+			return nil, api.NewError("ENGINE-1701", "用户信息不存在", api.ErrNotFound)
+		}
+		return value, nil
+	})
+	if err != nil {
+		return "", err
+	}
+	return result.(string), nil
+}
+
+// SetUserInfo 设置用户信息。
+// @param ctx 上下文
+// @param userID 用户 ID
+// @param key 键
+// @param value 值
+// @return 设置错误
+func (e *Engine) SetUserInfo(ctx context.Context, userID, key, value string) error {
+	_, err := e.execute(ctx, func(cc *commandContext) (any, error) {
+		if _, ok := e.state.Users[userID]; !ok {
+			return nil, api.NewError("ENGINE-0404", "用户不存在", api.ErrNotFound)
+		}
+		if strings.TrimSpace(key) == "" {
+			return nil, api.NewError("ENGINE-1702", "用户信息键不能为空", api.ErrBadRequest)
+		}
+		if e.state.UserInfo[userID] == nil {
+			e.state.UserInfo[userID] = make(map[string]string)
+		}
+		e.state.UserInfo[userID][key] = value
+		return nil, nil
+	})
+	return err
+}
+
+// DeleteUserInfo 删除用户信息。
+// @param ctx 上下文
+// @param userID 用户 ID
+// @param key 键
+// @return 删除错误
+func (e *Engine) DeleteUserInfo(ctx context.Context, userID, key string) error {
+	_, err := e.execute(ctx, func(cc *commandContext) (any, error) {
+		if _, ok := e.state.Users[userID]; !ok {
+			return nil, api.NewError("ENGINE-0404", "用户不存在", api.ErrNotFound)
+		}
+		if _, ok := e.state.UserInfo[userID][key]; !ok {
+			return nil, api.NewError("ENGINE-1701", "用户信息不存在", api.ErrNotFound)
+		}
+		delete(e.state.UserInfo[userID], key)
+		return nil, nil
+	})
+	return err
+}
+
+// GetUserPicture 返回用户头像。
+// @param ctx 上下文
+// @param userID 用户 ID
+// @return 图片数据
+// @return MIME 类型
+// @return 查询错误
+func (e *Engine) GetUserPicture(ctx context.Context, userID string) ([]byte, string, error) {
+	result, err := e.read(func() (any, error) {
+		if _, ok := e.state.Users[userID]; !ok {
+			return nil, api.NewError("ENGINE-0404", "用户不存在", api.ErrNotFound)
+		}
+		picture, ok := e.state.UserPictures[userID]
+		if !ok {
+			return nil, api.NewError("ENGINE-1703", "用户头像不存在", api.ErrNotFound)
+		}
+		return *picture, nil
+	})
+	if err != nil {
+		return nil, "", err
+	}
+	picture := result.(userPictureState)
+	return append([]byte(nil), picture.Data...), picture.MimeType, nil
+}
+
+// SetUserPicture 设置用户头像。
+// @param ctx 上下文
+// @param userID 用户 ID
+// @param data 图片数据
+// @param mimeType MIME 类型
+// @return 设置错误
+func (e *Engine) SetUserPicture(ctx context.Context, userID string, data []byte, mimeType string) error {
+	_, err := e.execute(ctx, func(cc *commandContext) (any, error) {
+		if _, ok := e.state.Users[userID]; !ok {
+			return nil, api.NewError("ENGINE-0404", "用户不存在", api.ErrNotFound)
+		}
+		if len(data) == 0 {
+			return nil, api.NewError("ENGINE-1704", "用户头像不能为空", api.ErrBadRequest)
+		}
+		if strings.TrimSpace(mimeType) == "" {
+			mimeType = "image/jpeg"
+		}
+		e.state.UserPictures[userID] = &userPictureState{
+			Data:     append([]byte(nil), data...),
+			MimeType: mimeType,
 		}
 		return nil, nil
 	})
