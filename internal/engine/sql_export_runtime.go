@@ -76,7 +76,7 @@ func (e *Engine) runtimeRowsLocked() ([]flowablerow.Row, error) {
 	}
 	sort.Slice(tasks, func(i, j int) bool { return tasks[i].Task.ID < tasks[j].Task.ID })
 	for _, task := range tasks {
-		row, rowErr := runtimeRow("ACT_RU_TASK", []string{"ID_", "REV_", "EXECUTION_ID_", "PROC_INST_ID_", "PROC_DEF_ID_", "NAME_", "DESCRIPTION_", "TASK_DEF_KEY_", "OWNER_", "ASSIGNEE_", "PRIORITY_", "CREATE_TIME_", "DUE_DATE_", "CATEGORY_", "SUSPENSION_STATE_", "TENANT_ID_", "FORM_KEY_"})
+		row, rowErr := runtimeRow("ACT_RU_TASK", []string{"ID_", "REV_", "EXECUTION_ID_", "PROC_INST_ID_", "PROC_DEF_ID_", "NAME_", "DESCRIPTION_", "TASK_DEF_KEY_", "PARENT_TASK_ID_", "OWNER_", "ASSIGNEE_", "PRIORITY_", "CREATE_TIME_", "DUE_DATE_", "CATEGORY_", "SUSPENSION_STATE_", "TENANT_ID_", "FORM_KEY_"})
 		if rowErr != nil {
 			return nil, rowErr
 		}
@@ -84,9 +84,11 @@ func (e *Engine) runtimeRowsLocked() ([]flowablerow.Row, error) {
 		if instance, ok := e.findInstance(task.Task.ProcessInstanceID); ok && instance.Suspended {
 			suspension = 2
 		}
-		tenant := ""
-		if definition, ok := e.findDefinition(task.Task.ProcessDefinitionID); ok {
-			tenant = definition.Info.TenantID
+		tenant := task.Task.TenantID
+		if tenant == "" {
+			if definition, ok := e.findDefinition(task.Task.ProcessDefinitionID); ok {
+				tenant = definition.Info.TenantID
+			}
 		}
 		_ = row.Set("ID_", task.Task.ID)
 		_ = row.Set("REV_", 1)
@@ -96,6 +98,7 @@ func (e *Engine) runtimeRowsLocked() ([]flowablerow.Row, error) {
 		_ = row.Set("NAME_", task.Task.Name)
 		_ = row.Set("DESCRIPTION_", task.Task.Description)
 		_ = row.Set("TASK_DEF_KEY_", task.Task.TaskDefinitionKey)
+		_ = row.Set("PARENT_TASK_ID_", task.Task.ParentTaskID)
 		_ = row.Set("OWNER_", task.Task.Owner)
 		_ = row.Set("ASSIGNEE_", task.Task.Assignee)
 		_ = row.Set("PRIORITY_", task.Task.Priority)

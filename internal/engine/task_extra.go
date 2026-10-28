@@ -21,7 +21,7 @@ func (e *Engine) AddComment(ctx context.Context, taskID, userID, message string)
 		if !ok {
 			return nil, api.NewError("ENGINE-0805", "任务不存在", api.ErrNotFound)
 		}
-		if err := e.allowInstance(ctx, task.Task.ProcessInstanceID); err != nil {
+		if err := e.allowTask(ctx, task.Task.ID); err != nil {
 			return nil, err
 		}
 		if strings.TrimSpace(message) == "" {
@@ -248,7 +248,7 @@ func (e *Engine) AddAttachment(ctx context.Context, taskID string, attachment ap
 		if !ok {
 			return nil, api.NewError("ENGINE-0805", "任务不存在", api.ErrNotFound)
 		}
-		if err := e.allowInstance(ctx, task.Task.ProcessInstanceID); err != nil {
+		if err := e.allowTask(ctx, task.Task.ID); err != nil {
 			return nil, err
 		}
 		if strings.TrimSpace(attachment.Name) == "" {

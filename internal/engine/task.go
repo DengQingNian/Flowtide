@@ -115,7 +115,7 @@ func (e *Engine) GetTask(ctx context.Context, id string) (api.Task, error) {
 		if !ok {
 			return nil, api.NewError("ENGINE-0805", "任务不存在", api.ErrNotFound)
 		}
-		if err := e.allowInstance(ctx, task.Task.ProcessInstanceID); err != nil {
+		if err := e.allowTask(ctx, task.Task.ID); err != nil {
 			return nil, err
 		}
 		return e.toTaskDTO(task), nil
@@ -198,6 +198,9 @@ func (e *Engine) matchesTask(task *taskState, filter api.TaskFilter) bool {
 	if filter.ProcessInstanceID != "" && task.Task.ProcessInstanceID != filter.ProcessInstanceID {
 		return false
 	}
+	if filter.ParentTaskID != "" && task.Task.ParentTaskID != filter.ParentTaskID {
+		return false
+	}
 	if filter.ProcessDefinitionKey != "" {
 		instance, ok := e.state.Instances[task.Task.ProcessInstanceID]
 		if !ok || instance.ProcessDefinitionKey != filter.ProcessDefinitionKey {
@@ -205,8 +208,11 @@ func (e *Engine) matchesTask(task *taskState, filter api.TaskFilter) bool {
 		}
 	}
 	if filter.TenantID != "" {
-		instance, ok := e.findInstance(task.Task.ProcessInstanceID)
-		if !ok || instance.TenantID != filter.TenantID {
+		tenant := task.Task.TenantID
+		if instance, ok := e.findInstance(task.Task.ProcessInstanceID); ok {
+			tenant = instance.TenantID
+		}
+		if tenant != filter.TenantID {
 			return false
 		}
 	}
@@ -269,7 +275,7 @@ func (e *Engine) Claim(ctx context.Context, taskID, userID string) error {
 		if !ok {
 			return nil, api.NewError("ENGINE-0805", "任务不存在", api.ErrNotFound)
 		}
-		if err := e.allowInstance(ctx, task.Task.ProcessInstanceID); err != nil {
+		if err := e.allowTask(ctx, task.Task.ID); err != nil {
 			return nil, err
 		}
 		instance, _ := e.findInstance(task.Task.ProcessInstanceID)
@@ -314,12 +320,8 @@ func (e *Engine) completeTask(cc *commandContext, taskID string, req api.Complet
 	if !ok {
 		return api.NewError("ENGINE-0805", "任务不存在", api.ErrNotFound)
 	}
-	if err := e.allowInstance(cc.ctx, task.Task.ProcessInstanceID); err != nil {
+	if err := e.allowTask(cc.ctx, task.Task.ID); err != nil {
 		return err
-	}
-	execution, ok := e.findExecution(task.ExecutionID)
-	if !ok {
-		return api.NewError("ENGINE-0405", "任务所属执行不存在", nil)
 	}
 	instance, _ := e.findInstance(task.Task.ProcessInstanceID)
 	if instance != nil && instance.Suspended {
@@ -327,6 +329,25 @@ func (e *Engine) completeTask(cc *commandContext, taskID string, req api.Complet
 	}
 	if req.UserID != "" && task.Task.Assignee != "" && task.Task.Assignee != req.UserID {
 		return api.NewError("ENGINE-0808", "任务处理人不匹配", api.ErrForbidden)
+	}
+	// 独立任务没有执行，完成时只记录任务变量并移除任务
+	if task.ExecutionID == "" {
+		for _, variable := range req.Variables {
+			task.LocalVariables[variable.Name] = variable.Value
+			e.recordTaskHistoricVariable(task, variable.Name, variable.Value, cc.now)
+		}
+		for _, variable := range req.LocalVariables {
+			task.LocalVariables[variable.Name] = variable.Value
+			e.recordTaskHistoricVariable(task, variable.Name, variable.Value, cc.now)
+		}
+		e.recordTaskLog(cc, task, "complete", req.UserID, "")
+		e.recordTaskEnd(cc, task)
+		delete(e.state.Tasks, taskID)
+		return nil
+	}
+	execution, ok := e.findExecution(task.ExecutionID)
+	if !ok {
+		return api.NewError("ENGINE-0405", "任务所属执行不存在", nil)
 	}
 	for _, variable := range req.Variables {
 		e.setVariable(execution, variable.Name, variable.Value)
@@ -359,7 +380,7 @@ func (e *Engine) Delegate(ctx context.Context, taskID, userID string) error {
 		if !ok {
 			return nil, api.NewError("ENGINE-0805", "任务不存在", api.ErrNotFound)
 		}
-		if err := e.allowInstance(ctx, task.Task.ProcessInstanceID); err != nil {
+		if err := e.allowTask(ctx, task.Task.ID); err != nil {
 			return nil, err
 		}
 		instance, _ := e.findInstance(task.Task.ProcessInstanceID)

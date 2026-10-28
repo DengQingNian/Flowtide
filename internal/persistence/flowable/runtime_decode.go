@@ -35,6 +35,7 @@ type RuntimeTask struct {
 	Name              string     // 名称
 	Description       string     // 描述
 	TaskDefinitionKey string     // 任务定义 Key
+	ParentTaskID      string     // 父任务 ID
 	Owner             string     // 所有者
 	Assignee          string     // 处理人
 	Category          string     // 分类
@@ -274,6 +275,14 @@ func decodeTask(row Row) (RuntimeTask, error) {
 	if err != nil {
 		return RuntimeTask{}, err
 	}
+	parentTask, err := optionalString(row, "PARENT_TASK_ID_")
+	if err != nil {
+		return RuntimeTask{}, err
+	}
+	parentTaskID := ""
+	if parentTask != nil {
+		parentTaskID = *parentTask
+	}
 	owner, err := text("OWNER_")
 	if err != nil {
 		return RuntimeTask{}, err
@@ -313,7 +322,7 @@ func decodeTask(row Row) (RuntimeTask, error) {
 	return RuntimeTask{
 		ID: id, ExecutionID: executionID, ProcessInstanceID: processInstanceID,
 		DefinitionID: definitionID, Name: name, Description: description,
-		TaskDefinitionKey: taskKey, Owner: owner, Assignee: assignee, Category: category,
+		TaskDefinitionKey: taskKey, ParentTaskID: parentTaskID, Owner: owner, Assignee: assignee, Category: category,
 		FormKey: formKey, TenantID: tenant, Priority: priority, CreateTime: createTime,
 		DueDate: due, Suspended: suspension == 2,
 	}, nil

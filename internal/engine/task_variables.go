@@ -18,7 +18,7 @@ func (e *Engine) GetTaskVariable(ctx context.Context, taskID, name string) (any,
 		if !ok {
 			return nil, api.NewError("ENGINE-0805", "任务不存在", api.ErrNotFound)
 		}
-		if err := e.allowInstance(ctx, task.Task.ProcessInstanceID); err != nil {
+		if err := e.allowTask(ctx, task.Task.ID); err != nil {
 			return nil, err
 		}
 		if value, exists := task.LocalVariables[name]; exists {
@@ -48,7 +48,7 @@ func (e *Engine) GetTaskVariables(ctx context.Context, taskID string) (map[strin
 		if !ok {
 			return nil, api.NewError("ENGINE-0805", "任务不存在", api.ErrNotFound)
 		}
-		if err := e.allowInstance(ctx, task.Task.ProcessInstanceID); err != nil {
+		if err := e.allowTask(ctx, task.Task.ID); err != nil {
 			return nil, err
 		}
 		values := make(map[string]any)
@@ -80,14 +80,18 @@ func (e *Engine) SetTaskVariable(ctx context.Context, taskID, name string, value
 		if !ok {
 			return nil, api.NewError("ENGINE-0805", "任务不存在", api.ErrNotFound)
 		}
-		if err := e.allowInstance(ctx, task.Task.ProcessInstanceID); err != nil {
+		if err := e.allowTask(ctx, task.Task.ID); err != nil {
 			return nil, err
 		}
 		if name == "" {
 			return nil, api.NewError("ENGINE-1103", "变量名不能为空", api.ErrBadRequest)
 		}
 		task.LocalVariables[name] = value
-		e.recordHistoricDetail(task.Task.ProcessInstanceID, task.ExecutionID, task.Task.ID, task.ActivityID, name, value, cc.now)
+		if task.ExecutionID == "" {
+			e.recordTaskHistoricVariable(task, name, value, cc.now)
+		} else {
+			e.recordHistoricDetail(task.Task.ProcessInstanceID, task.ExecutionID, task.Task.ID, task.ActivityID, name, value, cc.now)
+		}
 		return nil, nil
 	})
 	return err
@@ -104,7 +108,7 @@ func (e *Engine) DeleteTaskVariable(ctx context.Context, taskID, name string) er
 		if !ok {
 			return nil, api.NewError("ENGINE-0805", "任务不存在", api.ErrNotFound)
 		}
-		if err := e.allowInstance(ctx, task.Task.ProcessInstanceID); err != nil {
+		if err := e.allowTask(ctx, task.Task.ID); err != nil {
 			return nil, err
 		}
 		delete(task.LocalVariables, name)

@@ -95,14 +95,16 @@ func (e *Engine) historicRowsLocked() ([]flowablerow.Row, error) {
 	sort.Slice(tasks, func(i, j int) bool { return tasks[i].ID < tasks[j].ID })
 	for _, historic := range tasks {
 		instance, _ := e.findInstance(historic.ProcessInstanceID)
-		row, rowErr := historyRow("ACT_HI_TASKINST", []string{"ID_", "REV_", "PROC_DEF_ID_", "TASK_DEF_KEY_", "PROC_INST_ID_", "NAME_", "ASSIGNEE_", "START_TIME_", "END_TIME_", "DURATION_", "TENANT_ID_"})
+		row, rowErr := historyRow("ACT_HI_TASKINST", []string{"ID_", "REV_", "PROC_DEF_ID_", "TASK_DEF_KEY_", "PROC_INST_ID_", "NAME_", "ASSIGNEE_", "START_TIME_", "END_TIME_", "DURATION_", "TENANT_ID_", "DELETE_REASON_"})
 		if rowErr != nil {
 			return nil, rowErr
 		}
-		definitionID, tenant := "", ""
+		definitionID, tenant := "", historic.TenantID
 		if instance != nil {
 			definitionID = instance.ProcessDefinitionID
-			tenant = instance.TenantID
+			if tenant == "" {
+				tenant = instance.TenantID
+			}
 		}
 		_ = row.Set("ID_", historic.ID)
 		_ = row.Set("REV_", 1)
@@ -115,6 +117,7 @@ func (e *Engine) historicRowsLocked() ([]flowablerow.Row, error) {
 		_ = row.Set("END_TIME_", optionalTimeValue(historic.EndTime))
 		_ = row.Set("DURATION_", historic.DurationMillis)
 		_ = row.Set("TENANT_ID_", tenant)
+		_ = row.Set("DELETE_REASON_", historic.DeleteReason)
 		rows = append(rows, *row)
 	}
 

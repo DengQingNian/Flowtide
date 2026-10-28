@@ -93,6 +93,7 @@ func (e *Engine) recordTaskStart(cc *commandContext, task *taskState) string {
 		ProcessInstanceID: task.Task.ProcessInstanceID,
 		TaskDefinitionKey: task.Task.TaskDefinitionKey,
 		Assignee:          task.Task.Assignee,
+		TenantID:          task.Task.TenantID,
 		StartTime:         task.Task.CreateTime,
 	}
 	e.state.HistoricTasks[id] = historic
@@ -152,6 +153,37 @@ func (e *Engine) recordHistoricVariable(execution *executionState, name string, 
 	}
 	e.state.HistoricVariables[key] = historic
 	e.recordHistoricDetail(execution.ProcessInstanceID, execution.ID, "", execution.ActivityID, name, value, now)
+}
+
+// recordTaskHistoricVariable 记录独立任务的历史变量。
+// @param task 任务
+// @param name 变量名
+// @param value 变量值
+// @param now 时间
+func (e *Engine) recordTaskHistoricVariable(task *taskState, name string, value any, now time.Time) {
+	if !e.historyAtLeast(HistoryActivity) {
+		return
+	}
+	key := "task|" + task.Task.ID + "|" + name
+	if existing, ok := e.state.HistoricVariables[key]; ok {
+		existing.Value = value
+		existing.Type = variableTypeName(value)
+		existing.LastUpdatedTime = now
+		e.recordHistoricDetail(task.Task.ProcessInstanceID, "", task.Task.ID, task.ActivityID, name, value, now)
+		return
+	}
+	historic := &api.HistoricVariableInstance{
+		ID:                e.newID(),
+		Name:              name,
+		Type:              variableTypeName(value),
+		ProcessInstanceID: task.Task.ProcessInstanceID,
+		TaskID:            task.Task.ID,
+		Value:             value,
+		CreateTime:        now,
+		LastUpdatedTime:   now,
+	}
+	e.state.HistoricVariables[key] = historic
+	e.recordHistoricDetail(task.Task.ProcessInstanceID, "", task.Task.ID, task.ActivityID, name, value, now)
 }
 
 // recordHistoricDetail 记录变量明细。

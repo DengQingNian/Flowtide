@@ -57,8 +57,11 @@ func (e *Engine) ImportRuntimeRows(ctx context.Context, rows []flowablerow.Row) 
 			}
 		}
 		for _, task := range snapshot.Tasks {
-			if _, ok := e.state.Executions[task.ExecutionID]; !ok {
-				return nil, api.NewError("ENGINE-0405", "导入任务缺少执行: "+task.ExecutionID, api.ErrBadRequest)
+			// 独立任务没有执行，允许 EXECUTION_ID_ 为空
+			if task.ExecutionID != "" {
+				if _, ok := e.state.Executions[task.ExecutionID]; !ok {
+					return nil, api.NewError("ENGINE-0405", "导入任务缺少执行: "+task.ExecutionID, api.ErrBadRequest)
+				}
 			}
 			e.state.Tasks[task.ID] = &taskState{
 				Task: api.Task{
@@ -68,11 +71,13 @@ func (e *Engine) ImportRuntimeRows(ctx context.Context, rows []flowablerow.Row) 
 					ProcessInstanceID:   task.ProcessInstanceID,
 					ProcessDefinitionID: task.DefinitionID,
 					TaskDefinitionKey:   task.TaskDefinitionKey,
+					ParentTaskID:        task.ParentTaskID,
 					Assignee:            task.Assignee,
 					Owner:               task.Owner,
 					Priority:            task.Priority,
 					FormKey:             task.FormKey,
 					Category:            task.Category,
+					TenantID:            task.TenantID,
 					CreateTime:          task.CreateTime,
 					DueDate:             task.DueDate,
 				},

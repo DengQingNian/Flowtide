@@ -65,11 +65,41 @@ type Task struct {
 	Priority            int            `json:"priority"`                  // 优先级
 	FormKey             string         `json:"formKey,omitempty"`         // 表单 Key
 	Category            string         `json:"category,omitempty"`        // 分类
+	ParentTaskID        string         `json:"parentTaskId,omitempty"`    // 父任务 ID
+	TenantID            string         `json:"tenantId,omitempty"`        // 租户
 	CreateTime          time.Time      `json:"createTime"`                // 创建时间
 	DueDate             *time.Time     `json:"dueDate,omitempty"`         // 到期时间
 	CandidateUsers      []string       `json:"candidateUsers,omitempty"`  // 候选用户
 	CandidateGroups     []string       `json:"candidateGroups,omitempty"` // 候选组
 	Variables           map[string]any `json:"variables,omitempty"`       // 任务变量
+}
+
+// CreateTaskRequest 是独立任务创建请求。
+type CreateTaskRequest struct {
+	Name         string     // 名称
+	Description  string     // 描述
+	Assignee     string     // 处理人
+	Owner        string     // 所有者
+	Priority     int        // 优先级，0 使用默认值
+	DueDate      *time.Time // 到期时间
+	Category     string     // 分类
+	FormKey      string     // 表单 Key
+	ParentTaskID string     // 父任务 ID
+	TenantID     string     // 租户
+}
+
+// TaskUpdate 是任务属性更新，nil 表示不修改。
+type TaskUpdate struct {
+	Name         *string    // 名称
+	Description  *string    // 描述
+	Assignee     *string    // 处理人
+	Owner        *string    // 所有者
+	Priority     *int       // 优先级
+	DueDate      *time.Time // 到期时间
+	ClearDueDate bool       // 清空到期时间
+	Category     *string    // 分类
+	FormKey      *string    // 表单 Key
+	UserID       string     // 操作人，用于审计日志
 }
 
 // TaskFilter 是任务查询条件。
@@ -79,6 +109,7 @@ type TaskFilter struct {
 	ProcessInstanceID    string // 流程实例 ID
 	ProcessDefinitionKey string // 流程定义 Key
 	CandidateUser        string // 候选人
+	ParentTaskID         string // 父任务 ID
 	TenantID             string // 租户
 	Start                int    // 偏移量
 	Size                 int    // 每页数量
@@ -112,14 +143,16 @@ type HistoricActivityInstance struct {
 
 // HistoricTaskInstance 是历史任务实例。
 type HistoricTaskInstance struct {
-	ID                string     `json:"id"`                 // 任务 ID
-	Name              string     `json:"name"`               // 名称
-	ProcessInstanceID string     `json:"processInstanceId"`  // 流程实例 ID
-	TaskDefinitionKey string     `json:"taskDefinitionKey"`  // 任务定义 Key
-	Assignee          string     `json:"assignee,omitempty"` // 处理人
-	StartTime         time.Time  `json:"startTime"`          // 开始时间
-	EndTime           *time.Time `json:"endTime,omitempty"`  // 结束时间
-	DurationMillis    int64      `json:"durationMillis"`     // 持续时间毫秒
+	ID                string     `json:"id"`                     // 任务 ID
+	Name              string     `json:"name"`                   // 名称
+	ProcessInstanceID string     `json:"processInstanceId"`      // 流程实例 ID
+	TaskDefinitionKey string     `json:"taskDefinitionKey"`      // 任务定义 Key
+	Assignee          string     `json:"assignee,omitempty"`     // 处理人
+	TenantID          string     `json:"tenantId,omitempty"`     // 租户
+	DeleteReason      string     `json:"deleteReason,omitempty"` // 删除原因
+	StartTime         time.Time  `json:"startTime"`              // 开始时间
+	EndTime           *time.Time `json:"endTime,omitempty"`      // 结束时间
+	DurationMillis    int64      `json:"durationMillis"`         // 持续时间毫秒
 }
 
 // IdentityLink 是任务/流程参与者关联。

@@ -41,6 +41,10 @@ func (e *Engine) allowTask(ctx context.Context, taskID string) error {
 	if !ok {
 		return api.NewError("ENGINE-0805", "任务不存在", api.ErrNotFound)
 	}
+	// 独立任务没有流程实例，直接校验任务租户
+	if task.Task.ProcessInstanceID == "" {
+		return e.allowTenant(ctx, task.Task.TenantID)
+	}
 	return e.allowInstance(ctx, task.Task.ProcessInstanceID)
 }
 

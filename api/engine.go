@@ -255,6 +255,32 @@ type TaskService interface {
 	// @return 任务
 	// @return 查询错误
 	GetTask(ctx context.Context, id string) (Task, error)
+	// CreateTask 创建独立任务。
+	// @param ctx 上下文
+	// @param req 创建请求
+	// @return 任务
+	// @return 创建错误
+	CreateTask(ctx context.Context, req CreateTaskRequest) (Task, error)
+	// UpdateTask 更新任务属性。
+	// @param ctx 上下文
+	// @param taskID 任务 ID
+	// @param update 更新内容
+	// @return 更新后的任务
+	// @return 更新错误
+	UpdateTask(ctx context.Context, taskID string, update TaskUpdate) (Task, error)
+	// DeleteTask 删除任务。
+	// @param ctx 上下文
+	// @param taskID 任务 ID
+	// @param cascadeHistory 是否级联删除历史
+	// @param deleteReason 删除原因
+	// @return 删除错误
+	DeleteTask(ctx context.Context, taskID string, cascadeHistory bool, deleteReason string) error
+	// ListSubTasks 返回子任务。
+	// @param ctx 上下文
+	// @param taskID 父任务 ID
+	// @return 子任务列表
+	// @return 查询错误
+	ListSubTasks(ctx context.Context, taskID string) ([]Task, error)
 	// Claim 签收任务。
 	// @param ctx 上下文
 	// @param taskID 任务 ID
