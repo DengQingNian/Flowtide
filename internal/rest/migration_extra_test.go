@@ -119,10 +119,21 @@ func TestREST_MigrationValidateAndMigrate(t *testing.T) {
 		"processInstanceIds": []string{second.ID},
 		"activityMappings":   map[string]string{"oldTask": "newTask"},
 	}, "")
-	if response.StatusCode != http.StatusNoContent {
+	if response.StatusCode != http.StatusCreated {
 		t.Fatalf("批处理迁移失败: %d", response.StatusCode)
 	}
+	var batch struct {
+		Total     int    `json:"total"`
+		Completed int    `json:"completed"`
+		Status    string `json:"status"`
+	}
+	if err := json.NewDecoder(response.Body).Decode(&batch); err != nil {
+		t.Fatalf("解析批次响应失败: %v", err)
+	}
 	_ = response.Body.Close()
+	if batch.Total != 1 || batch.Completed != 1 || batch.Status != "completed" {
+		t.Fatalf("批次统计错误: %+v", batch)
+	}
 	response = postQuery(t, server.URL, "/service/repository/process-definitions/"+v2+"/migrate", map[string]any{}, "")
 	if response.StatusCode != http.StatusBadRequest {
 		t.Fatalf("空实例列表应 400: %d", response.StatusCode)

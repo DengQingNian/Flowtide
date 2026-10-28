@@ -369,3 +369,28 @@ type Page[T any] struct {
 	Sort  string `json:"sort,omitempty"`  // 排序字段
 	Order string `json:"order,omitempty"` // 排序方向
 }
+
+// Batch 是批处理作业。
+// 对应 Flowable 的 ACT_RU_BATCH 表，但仅保存内存快照所需的字段。
+type Batch struct {
+	ID        string     `json:"id"`                 // 批次 ID
+	Type      string     `json:"type"`               // 批次类型
+	Total     int        `json:"total"`              // 分片总数
+	Completed int        `json:"completed"`          // 已完成分片数
+	Status    string     `json:"status"`             // 批次状态
+	StartTime time.Time  `json:"startTime"`          // 开始时间
+	EndTime   *time.Time `json:"endTime,omitempty"`  // 结束时间
+	TenantID  string     `json:"tenantId,omitempty"` // 租户
+}
+
+// BatchPart 是批处理分片。
+type BatchPart struct {
+	ID                string     `json:"id"`                          // 分片 ID
+	BatchID           string     `json:"batchId"`                     // 所属批次 ID
+	Type              string     `json:"type"`                        // 分片类型
+	ProcessInstanceID string     `json:"processInstanceId,omitempty"` // 流程实例 ID
+	Status            string     `json:"status"`                      // 分片状态
+	StartTime         time.Time  `json:"startTime"`                   // 开始时间
+	EndTime           *time.Time `json:"endTime,omitempty"`           // 结束时间
+	ErrorMessage      string     `json:"errorMessage,omitempty"`      // 失败原因
+}

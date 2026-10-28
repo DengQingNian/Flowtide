@@ -134,6 +134,12 @@ type modelState struct {
 	SourceExtra []byte    // 扩展源码
 }
 
+// batchState 是批处理作业的运行时状态。
+type batchState struct {
+	Info  api.Batch                 // 批次信息
+	Parts map[string]*api.BatchPart // 分片，key=分片 ID
+}
+
 // attachmentContentState 是附件二进制内容。
 type attachmentContentState struct {
 	Data []byte `json:"data"` // 内容
@@ -157,6 +163,7 @@ type state struct {
 	DeadLetters        map[string]*jobState                     // 死信作业
 	Subscriptions      map[string]*subscriptionState            // 事件订阅
 	Compensations      map[string][]*compensationState          // 补偿登记
+	Batches            map[string]*batchState                   // 批处理作业
 	HistoricProcesses  map[string]*api.HistoricProcessInstance  // 历史流程实例
 	HistoricActivities map[string]*api.HistoricActivityInstance // 历史活动
 	HistoricTasks      map[string]*api.HistoricTaskInstance     // 历史任务
@@ -193,6 +200,7 @@ func newState() *state {
 		DeadLetters:        make(map[string]*jobState),
 		Subscriptions:      make(map[string]*subscriptionState),
 		Compensations:      make(map[string][]*compensationState),
+		Batches:            make(map[string]*batchState),
 		HistoricProcesses:  make(map[string]*api.HistoricProcessInstance),
 		HistoricActivities: make(map[string]*api.HistoricActivityInstance),
 		HistoricTasks:      make(map[string]*api.HistoricTaskInstance),
@@ -276,6 +284,15 @@ func cloneState(source *state) *state {
 		}
 		target.Compensations[instanceID] = copied
 	}
+	for id, batch := range source.Batches {
+		copied := &batchState{Info: cloneBatchInfo(batch.Info), Parts: make(map[string]*api.BatchPart, len(batch.Parts))}
+		for partID, part := range batch.Parts {
+			item := *part
+			item.EndTime = cloneTime(part.EndTime)
+			copied.Parts[partID] = &item
+		}
+		target.Batches[id] = copied
+	}
 	for id, historic := range source.HistoricProcesses {
 		copied := *historic
 		copied.EndTime = cloneTime(historic.EndTime)
@@ -358,6 +375,15 @@ func cloneState(source *state) *state {
 		target.Versions[key] = version
 	}
 	return target
+}
+
+// cloneBatchInfo 深拷贝批次信息。
+// @param source 源批次
+// @return 拷贝后的批次
+func cloneBatchInfo(source api.Batch) api.Batch {
+	copied := source
+	copied.EndTime = cloneTime(source.EndTime)
+	return copied
 }
 
 // cloneAnyMap 复制任意值映射（浅拷贝值）。

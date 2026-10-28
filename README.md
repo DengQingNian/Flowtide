@@ -166,4 +166,5 @@ curl -X POST 'http://localhost:8080/service/runtime/process-instances' \
 - 迁移预检与按定义批量迁移；变量异步端点同步兼容实现。
 - 流程定义模型 JSON 与决策/决策表/表单定义查询（后三者为空数组）。
 - 组更新、批量任务更新、执行变量批量更新与嵌套部署资源名。
+- 批处理批次/分片/统计查询；执行与实例级活动迁移（change-state）。
 - 纯标准库实现，`CGO_ENABLED=0` 可构建。

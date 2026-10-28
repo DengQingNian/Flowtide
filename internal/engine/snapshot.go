@@ -3,6 +3,7 @@ package engine
 import (
 	"context"
 	"encoding/json"
+	"sort"
 
 	"github.com/flowable-go/flowable/api"
 	bpmnxml "github.com/flowable-go/flowable/internal/bpmn/xml"
@@ -21,6 +22,12 @@ type definitionSnapshot struct {
 	StarterLinks []*api.IdentityLink   `json:"starterLinks"` // 候选发起人
 }
 
+// batchSnapshot 是批处理作业的持久化结构。
+type batchSnapshot struct {
+	Info  api.Batch        `json:"info"`  // 批次信息
+	Parts []*api.BatchPart `json:"parts"` // 分片
+}
+
 // snapshot 是引擎状态的持久化结构。
 type snapshot struct {
 	Deployments        []deploymentSnapshot               `json:"deployments"`        // 部署
@@ -32,6 +39,7 @@ type snapshot struct {
 	DeadLetters        []*jobState                        `json:"deadLetters"`        // 死信作业
 	Subscriptions      []*subscriptionState               `json:"subscriptions"`      // 事件订阅
 	Compensations      map[string][]*compensationState    `json:"compensations"`      // 补偿登记
+	Batches            []batchSnapshot                    `json:"batches"`            // 批处理作业
 	HistoricProcesses  []*api.HistoricProcessInstance     `json:"historicProcesses"`  // 历史流程
 	HistoricActivities []*api.HistoricActivityInstance    `json:"historicActivities"` // 历史活动
 	HistoricTasks      []*api.HistoricTaskInstance        `json:"historicTasks"`      // 历史任务
@@ -82,6 +90,15 @@ func (e *Engine) toSnapshot() *snapshot {
 		out.Subscriptions = append(out.Subscriptions, subscription)
 	}
 	out.Compensations = e.state.Compensations
+	for _, batch := range e.state.Batches {
+		item := batchSnapshot{Info: batch.Info, Parts: make([]*api.BatchPart, 0, len(batch.Parts))}
+		for _, part := range batch.Parts {
+			item.Parts = append(item.Parts, part)
+		}
+		// 排序保证快照稳定，便于比对和迁移
+		sort.SliceStable(item.Parts, func(i, j int) bool { return item.Parts[i].ID < item.Parts[j].ID })
+		out.Batches = append(out.Batches, item)
+	}
 	for _, historic := range e.state.HistoricProcesses {
 		out.HistoricProcesses = append(out.HistoricProcesses, historic)
 	}
@@ -199,6 +216,13 @@ func (e *Engine) loadState(ctx context.Context) error {
 	}
 	if stored.Compensations != nil {
 		restored.Compensations = stored.Compensations
+	}
+	for _, batch := range stored.Batches {
+		copied := &batchState{Info: batch.Info, Parts: make(map[string]*api.BatchPart, len(batch.Parts))}
+		for _, part := range batch.Parts {
+			copied.Parts[part.ID] = part
+		}
+		restored.Batches[batch.Info.ID] = copied
 	}
 	for _, historic := range stored.HistoricProcesses {
 		restored.HistoricProcesses[historic.ID] = historic

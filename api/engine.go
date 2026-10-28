@@ -343,6 +343,18 @@ type RuntimeService interface {
 	// @return 校验消息
 	// @return 查询错误
 	ValidateMigration(ctx context.Context, req MigrationRequest) ([]string, error)
+	// ChangeActivityState 将执行移动到新的活动。
+	// @param ctx 上下文
+	// @param executionID 执行 ID
+	// @param activityIDs 目标活动 ID 列表
+	// @return 迁移错误
+	ChangeActivityState(ctx context.Context, executionID string, activityIDs []string) error
+	// ChangeProcessInstanceState 将实例根执行移动到新的活动。
+	// @param ctx 上下文
+	// @param processInstanceID 实例 ID
+	// @param activityIDs 目标活动 ID 列表
+	// @return 迁移错误
+	ChangeProcessInstanceState(ctx context.Context, processInstanceID string, activityIDs []string) error
 	// ListInstanceIdentityLinks 返回流程实例身份链接。
 	// @param ctx 上下文
 	// @param processInstanceID 实例 ID
@@ -882,4 +894,35 @@ type ManagementService interface {
 	// @return 分页数据
 	// @return 查询错误
 	QueryTableData(ctx context.Context, tableName string, start, size int, sortColumn, order string) (Page[map[string]any], error)
+	// ListBatches 返回全部批处理作业。
+	// @param ctx 上下文
+	// @return 批次列表
+	// @return 查询错误
+	ListBatches(ctx context.Context) ([]Batch, error)
+	// GetBatch 查询批处理作业。
+	// @param ctx 上下文
+	// @param batchID 批次 ID
+	// @return 批次
+	// @return 查询错误
+	GetBatch(ctx context.Context, batchID string) (Batch, error)
+	// ListBatchParts 返回批次的分片列表。
+	// @param ctx 上下文
+	// @param batchID 批次 ID
+	// @return 分片列表
+	// @return 查询错误
+	ListBatchParts(ctx context.Context, batchID string) ([]BatchPart, error)
+	// GetBatchPart 查询批处理分片。
+	// @param ctx 上下文
+	// @param partID 分片 ID
+	// @return 分片
+	// @return 查询错误
+	GetBatchPart(ctx context.Context, partID string) (BatchPart, error)
+	// BatchMigrateProcessInstances 批量迁移流程实例并记录批次与分片。
+	// @param ctx 上下文
+	// @param targetDefinitionID 目标流程定义 ID
+	// @param instanceIDs 流程实例 ID 列表
+	// @param activityMappings 源活动 ID 到目标活动 ID
+	// @return 最终批次
+	// @return 迁移错误
+	BatchMigrateProcessInstances(ctx context.Context, targetDefinitionID string, instanceIDs []string, activityMappings map[string]string) (Batch, error)
 }
