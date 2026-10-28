@@ -2,7 +2,7 @@
 
 用**纯 Go** 重构 [Flowable](https://www.flowable.org/) 工作流引擎。目标是提供一个不依赖 JVM、不依赖 CGO 的 BPMN 2.0 引擎，逐步验证 Flowable 8.x 数据与流程 REST 兼容。当前仅完成新建库原型与双库行仓储本地验收，尚未通过 Java 存量迁移、回退或集群验收。
 
-> 当前状态：**BPMN 内核扩展实现阶段**。已完成纯 Go 的 BPMN 解析、部署、执行树、任务、网关、子流程、多实例、调用活动、消息/信号、定时器、错误、补偿、事件子流程、迁移、身份、历史、JSON 状态持久化与 REST 核心端点。官方 184 个流程 REST 方法端点均已有路由，DMN 决策表全部命中策略与服务端 mTLS 已实现。
+> 当前状态：**BPMN 内核扩展实现阶段**。已完成纯 Go 的 BPMN 解析、部署、执行树、任务、网关、子流程、多实例、调用活动、消息/信号、定时器、错误、补偿、事件子流程、迁移、身份、历史、JSON 状态持久化与 REST 核心端点。官方 184 个流程 REST 方法端点均已有路由，DMN 全部命中策略、mTLS 证书身份映射、MySQL 行仓储服务模式与停写静默检查已实现。
 > 参考基线：Java 提交 `f6017e32a4bdd3e59a8881f58b0ee181652d1d9e`，规范与 DDL 摘要见 `testdata/compatibility/baseline.json`。当前能力与发布边界见 [能力矩阵](docs/003-迁移审计/003-能力矩阵与迁移退出条件.md)。
 
 ## 为什么做
@@ -96,7 +96,8 @@ curl http://localhost:8080/healthz
 # 启用 mTLS：要求并校验客户端证书（证书与私钥必须同时提供）
 ./bin/flowable-server -addr :8443 \
   -tls-cert server.crt -tls-key server.key \
-  -tls-client-ca client-ca.pem -tls-client-auth require-verify
+  -tls-client-ca client-ca.pem -tls-client-auth require-verify \
+  -tls-client-identity
 
 # 部署 BPMN
 curl -X POST 'http://localhost:8080/service/repository/deployments?deploymentName=demo' \
@@ -113,10 +114,13 @@ MySQL 开发库接入和分阶段计划见 [052 MySQL 集成计划与首阶段�
 
 ```bash
 go run ./cmd/flowable-migrate -dialect mysql -apply -env .env
+# SQL 快照模式
 go run ./cmd/flowable-server -storage mysql -env .env
+# 按表行仓储模式（单执行者独占；与快照互斥）
+go run ./cmd/flowable-server -storage mysql-rows -env .env
 ```
 
-第一阶段使用 SQL 快照保存完整状态；按表持久化和多实例协调仍待实施。
+`mysql` 模式使用 SQL 快照保存完整状态；`mysql-rows` 模式把 ACT_* 行作为权威状态，启动时从行表恢复、命令后增量写入，并以数据库独占锁限制单执行者。查询下推、多实例协调与集群租约仍未实现；详见 [058 MySQL 行仓储服务模式](docs/002-迁移实施/058-MySQL行仓储服务模式.md)。
 
 既有 Java 数据库可先运行只读迁移预检，连接配置沿用 `.env`；该模式不初始化或修改源库：
 
@@ -129,6 +133,15 @@ go run ./cmd/flowable-server -storage mysql -env .env
 ```
 
 退出码 `0` 表示当前检查未发现阻断，`2` 表示报告存在阻断，`1` 表示参数、连接、扫描或输出失败。预检没有发现问题不代表 Java 实例已可由 Go 接管；转换、Java 对照续跑与回退仍须独立验收。检查范围与限制见 [053 既有 Java 数据库只读预检](docs/002-迁移实施/053-既有Java数据库只读预检.md)。
+
+停写切换前可运行只读静默检查：在观察窗口前后各扫描一次，比较表集合、行数与确定性内容指纹。`stable=true` 只证明窗口内未观察到变化，不替代停写、备份和回退演练：
+
+```bash
+./bin/flowable-migrate -cutover-check -dialect mysql -env .env -quiesce-window 30s -out cutover.json
+# 退出码：0 稳定、2 检测到变化、1 参数/连接/扫描/输出失败。
+```
+
+详见 [059 停写切换静默检查](docs/002-迁移实施/059-停写切换静默检查.md)。
 
 预检通过后可准备离线 Go 状态文件；该模式只创建新文件，不执行源库写入，也替代不了停写协调：
 
@@ -174,7 +187,8 @@ go run ./cmd/flowable-server -storage mysql -env .env
 - ACT_* 行映射、导出与导入（仓库、运行时、作业/订阅/死信、历史/评论/附件/身份链接/变量明细/任务日志）。
 - MySQL 开发配置、连接池、Schema 初始化校验、原子 SQL 快照与真实数据库集成测试（默认跳过）。
 - 行级 SQL 仓储、`REV_` 乐观锁、事务工作单元、全量/增量/自动写入、启动恢复与单一状态源。
-- REST 认证/身份库、PBKDF2、用户/角色 CRUD、RBAC、租户隔离、限流、TLS、双向 TLS（客户端证书校验）、审计与 HTTP/引擎 Prometheus 指标。
+- MySQL 行仓储服务模式：`-storage mysql-rows`、启动恢复、命令后增量写入、与快照共用独占锁并拒绝混用。
+- REST 认证/身份库、PBKDF2、用户/角色 CRUD、RBAC、租户隔离、限流、TLS、双向 TLS（客户端证书校验与 CN/O/OU 身份映射）、审计与 HTTP/引擎 Prometheus 指标。
 - 部署管理（列表、详情、资源下载、级联删除、ZIP/BAR 部署包）。
 - 事件子流程（消息/信号启动、中断/非中断、作用域取消）。
 - 补偿（补偿边界、关联处理器、逆序执行；服务/手动处理器）。
@@ -201,6 +215,7 @@ go run ./cmd/flowable-server -storage mysql -env .env
 - 链接事件：中间抛出/捕获、同名跳转与直通。
 - 附件二进制内容：multipart 上传、contentUrl 与内容下载、字节数组行持久化。
 - 迁移预检与按定义批量迁移；变量异步端点同步兼容实现。
+- 停写切换静默检查：两次只读快照、表级内容指纹、作业计数与退出码 0/2。
 - 既有 Java 简单用户任务执行树的离线状态转换、Java audit 列保留与 H2 真实样本对照。
 - 流程定义模型 JSON 与决策/决策表/表单定义查询（后三者为空数组）。
 - 组更新、批量任务更新、执行变量批量更新与嵌套部署资源名。
@@ -223,9 +238,12 @@ go run ./cmd/flowable-server -storage mysql -env .env
 - 流程定义列表支持 `startableByUser` 候选人（用户/组）过滤。
 - BPMN 任务监听器：create/complete 事件的 class/delegateExpression 注册与执行。
 - 官方 184 个流程 REST 方法端点均已有路由；方法级缺口为 0，具体响应模式与 Java 行为仍待逐项验收（见 004 对照表）。
+- 首轮本机容量基线：`make bench` 可复现命令、查询、全量导出与行操作基准，边界见 061。
 - 核心采用 Go 实现，使用 MySQL 驱动、环境配置加载及数据库测试依赖，版本以 go.mod 为准；`CGO_ENABLED=0` 可构建。
 ## 整改后的验证入口
 
 执行 `make check` 验证格式、中文函数注释、vet、测试、覆盖率、固定基线、方法级端点表、独立 SDK 及构建；`make race` 单独运行竞争检测。真实数据库使用 `make test-mysql` 与 `make test-postgres`，连接配置分别来自开发环境与 `FLOWABLE_POSTGRES_DSN`。显式启用后任何连接或执行错误都必须失败。
 
-公共嵌入入口为 `flowable.New(flowable.Config{})`，服务接口位于 `api`；独立 module 验收位于 `testdata/sdk`。MySQL 服务快照模式强制独占连接，禁止多执行者共享快照。
+公共嵌入入口为 `flowable.New(flowable.Config{})`，服务接口位于 `api`；独立 module 验收位于 `testdata/sdk`。MySQL 快照与行仓储模式都强制独占连接，禁止多执行者共享同一状态源。
+
+容量基线使用 `make bench`（`BENCHTIME` 可覆盖采样时间）；首轮本机结果与边界见 [061 容量基线](docs/002-迁移实施/061-容量基线.md)，不作为生产容量承诺。

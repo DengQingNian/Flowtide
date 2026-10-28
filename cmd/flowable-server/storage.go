@@ -2,55 +2,137 @@ package main
 
 import (
 	"context"
+	"database/sql"
+	"errors"
 	"fmt"
+	"sync"
 
+	flowablerow "github.com/flowable-go/flowable/internal/persistence/flowable"
 	mysqlstore "github.com/flowable-go/flowable/internal/persistence/mysql"
 	"github.com/flowable-go/flowable/internal/persistence/sqlstate"
 	statestore "github.com/flowable-go/flowable/internal/persistence/state"
 )
 
-// newStateStore 根据启动参数创建状态存储及资源清理函数。
+// storageSetup 是启动参数解析后的存储初始化结果。
+type storageSetup struct {
+	Store      statestore.Store        // 快照存储；行模式为空
+	Repository *flowablerow.Repository // 按表行仓储；快照模式为空
+	LoadRows   bool                    // 启动时是否从行仓储恢复
+	once       sync.Once               // 保证资源释放只执行一次
+	closeFn    func() error            // 释放独占锁并关闭连接池
+	closeErr   error                   // 首次释放结果
+}
+
+// parseStorageMode 校验存储类型及与状态文件的互斥关系。
+// @param storage 存储类型，空值表示沿用内存或文件模式
+// @param statePath 状态文件路径
+// @return 是否为 MySQL 行仓储模式
+// @return 配置错误
+func parseStorageMode(storage, statePath string) (bool, error) {
+	switch storage {
+	case "":
+		return false, nil
+	case "mysql":
+		// 快照模式保持原有行为，但仍不允许与状态文件同时配置。
+		if statePath != "" {
+			return false, errors.New("-storage mysql 与 -state 不能同时使用")
+		}
+		return false, nil
+	case "mysql-rows":
+		// 行仓储与状态文件同样只能选择一个权威来源。
+		if statePath != "" {
+			return false, errors.New("-storage mysql-rows 与 -state 不能同时使用")
+		}
+		return true, nil
+	default:
+		return false, fmt.Errorf("不支持的存储类型: %s", storage)
+	}
+}
+
+// newStorage 根据启动参数初始化快照存储或按表行仓储。
 // @param ctx 初始化上下文
 // @param storage 存储类型，空值保留原有内存或文件模式
-// @param statePath 原有文件路径，与 MySQL 互斥
+// @param statePath 原有状态文件路径，与 MySQL 模式互斥
 // @param envPath MySQL 配置文件路径
-// @return 状态存储，默认模式返回空值
-// @return 数据库关闭函数
-// @return 创建错误
-func newStateStore(ctx context.Context, storage, statePath, envPath string) (statestore.Store, func() error, error) {
+// @return 存储初始化结果
+// @return 初始化错误
+func newStorage(ctx context.Context, storage, statePath, envPath string) (*storageSetup, error) {
+	rowMode, err := parseStorageMode(storage, statePath)
+	if err != nil {
+		return nil, err
+	}
+	// 未显式选择数据库时保留原有内存或文件模式，不读取配置文件。
 	if storage == "" {
-		return nil, func() error { return nil }, nil
-	}
-	// 显式选择数据库，避免配置文件存在时改变原有部署行为。
-	if storage != "mysql" {
-		return nil, nil, fmt.Errorf("不支持的存储类型: %s", storage)
-	}
-	if statePath != "" {
-		return nil, nil, fmt.Errorf("-storage mysql 与 -state 不能同时使用")
+		return &storageSetup{}, nil
 	}
 	cfg, err := mysqlstore.LoadConfig(envPath)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 	db, err := mysqlstore.Open(ctx, cfg)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 	if err := mysqlstore.EnsureSchema(ctx, db, false); err != nil {
 		_ = db.Close()
-		return nil, nil, err
+		return nil, err
+	}
+	if rowMode {
+		return newRowStorage(ctx, db, cfg.Database)
 	}
 	store, release, err := sqlstate.NewExclusiveMySQL(ctx, db, cfg.Database)
 	if err != nil {
 		_ = db.Close()
-		return nil, nil, err
+		return nil, err
 	}
-	return store, func() error {
+	return &storageSetup{Store: store, closeFn: func() error {
 		releaseErr := release()
 		closeErr := db.Close()
 		if releaseErr != nil {
 			return releaseErr
 		}
 		return closeErr
-	}, nil
+	}}, nil
+}
+
+// newRowStorage 在已校验 Schema 的连接池上建立行仓储及其独占锁。
+// @param ctx 初始化上下文
+// @param db 已校验的数据库连接池
+// @param database 数据库名称，用于生成与快照模式一致的独占锁
+// @return 行仓储初始化结果
+// @return 初始化错误
+func newRowStorage(ctx context.Context, db *sql.DB, database string) (*storageSetup, error) {
+	locked, err := mysqlstore.NewLockedRows(ctx, db, database)
+	if err != nil {
+		_ = db.Close()
+		return nil, err
+	}
+	// 先销毁持锁连接再关闭连接池，避免把带锁会话归还池中。
+	cleanup := func() error {
+		releaseErr := locked.Release()
+		closeErr := db.Close()
+		if releaseErr != nil {
+			return releaseErr
+		}
+		return closeErr
+	}
+	// 持锁后再检查快照标记，防止检查与快照实例启动交错。
+	if err := mysqlstore.CheckNoSnapshot(ctx, db); err != nil {
+		return nil, errors.Join(err, cleanup())
+	}
+	repository, err := flowablerow.NewRepository(locked, "mysql")
+	if err != nil {
+		return nil, errors.Join(err, cleanup())
+	}
+	return &storageSetup{Repository: repository, LoadRows: true, closeFn: cleanup}, nil
+}
+
+// Close 释放独占锁并关闭连接池，重复调用返回首次结果。
+// @return 释放或关闭错误
+func (s *storageSetup) Close() error {
+	if s == nil || s.closeFn == nil {
+		return nil
+	}
+	s.once.Do(func() { s.closeErr = s.closeFn() })
+	return s.closeErr
 }

@@ -24,7 +24,7 @@ func main() {
 	historyLevel := flag.String("history", engine.HistoryAudit, "历史级别")
 	tenantID := flag.String("tenant", "", "默认租户")
 	statePath := flag.String("state", "", "状态文件路径，为空时仅使用内存")
-	storage := flag.String("storage", "", "状态存储：mysql；为空时使用原有内存或文件模式")
+	storage := flag.String("storage", "", "状态存储：mysql 快照或 mysql-rows 行仓储；为空时使用原有内存或文件模式")
 	envPath := flag.String("env", ".env", "MySQL 开发配置文件路径")
 	jobsInterval := flag.Duration("jobs-interval", time.Second, "定时器扫描间隔，0 表示关闭后台扫描")
 	basicAuth := flag.String("basic-auth", "", "Basic Auth 用户，格式 user:pass")
@@ -33,22 +33,38 @@ func main() {
 	tlsClientCA := flag.String("tls-client-ca", "", "客户端 CA 证书路径（PEM，可含多个证书），设置后要求并校验客户端证书")
 	tlsClientAuth := flag.String("tls-client-auth", "none", "客户端证书认证模式：none/request/require-any/require-verify")
 	tlsMinVersion := flag.String("tls-min-version", "1.2", "TLS 最低版本：1.2 或 1.3")
+	tlsClientIdentity := flag.Bool("tls-client-identity", false, "使用已校验的客户端证书建立 REST 身份，要求 -tls-client-auth=require-verify")
 	rateLimit := flag.Float64("rate-limit", 0, "每秒请求数，0 表示关闭限流")
 	rateBurst := flag.Int("rate-burst", 0, "限流桶容量")
 	bearerToken := flag.String("bearer-token", "", "Bearer Token")
 	flag.Parse()
 
 	initCtx, cancelInit := context.WithTimeout(context.Background(), 30*time.Second)
-	store, closeDB, err := newStateStore(initCtx, *storage, *statePath, *envPath)
+	setup, err := newStorage(initCtx, *storage, *statePath, *envPath)
 	cancelInit()
 	if err != nil {
 		slog.Error("初始化状态存储失败", "error", err)
 		os.Exit(1)
 	}
-	defer func() { _ = closeDB() }()
-	app, err := engine.New(engine.Config{HistoryLevel: *historyLevel, TenantID: *tenantID, StatePath: *statePath, StateStore: store})
+	// defer 的入栈顺序保证先关闭引擎并持久化行差异，再释放独占锁和连接池。
+	defer func() {
+		if err := setup.Close(); err != nil {
+			slog.Error("释放存储资源失败", "error", err)
+		}
+	}()
+	app, err := engine.New(engine.Config{
+		HistoryLevel:  *historyLevel,
+		TenantID:      *tenantID,
+		StatePath:     *statePath,
+		StateStore:    setup.Store,
+		RowRepository: setup.Repository,
+		LoadRows:      setup.LoadRows,
+	})
 	if err != nil {
 		slog.Error("创建引擎失败", "error", err)
+		if closeErr := setup.Close(); closeErr != nil {
+			slog.Error("释放存储资源失败", "error", closeErr)
+		}
 		os.Exit(1)
 	}
 	defer func() {
@@ -100,6 +116,14 @@ func main() {
 	if err != nil {
 		slog.Error("TLS 配置非法", "error", err)
 		os.Exit(1)
+	}
+	// 证书身份映射只接受 TLS 层已验证的证书链，避免误配后所有请求 401 或使用未验证身份
+	if *tlsClientIdentity {
+		if err := validateClientCertIdentity(*tlsCert, *tlsClientCA, *tlsClientAuth); err != nil {
+			slog.Error("TLS 客户端身份配置非法", "error", err)
+			os.Exit(1)
+		}
+		options = append(options, rest.WithClientCertificateIdentity())
 	}
 	server := &http.Server{
 		Addr:              *addr,

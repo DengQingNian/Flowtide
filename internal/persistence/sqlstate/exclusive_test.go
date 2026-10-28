@@ -2,11 +2,29 @@ package sqlstate
 
 import (
 	"context"
+	"crypto/sha256"
 	"errors"
+	"fmt"
 	"testing"
 
 	"github.com/DATA-DOG/go-sqlmock"
 )
+
+// TestLockName 验证快照与行仓储共用的锁名规则稳定且不超过 MySQL 限制。
+// @param t 测试上下文
+// @return 无
+func TestLockName(t *testing.T) {
+	want := fmt.Sprintf("flowable-go:%x", sha256.Sum256([]byte("开发库")))[:64]
+	if got := LockName("开发库"); got != want {
+		t.Fatalf("锁名=%s，期望=%s", got, want)
+	}
+	if len(LockName("开发库")) != 64 {
+		t.Fatal("锁名长度必须为 64")
+	}
+	if LockName("库一") == LockName("库二") {
+		t.Fatal("不同数据库必须得到不同锁名")
+	}
+}
 
 // TestExclusiveMySQL 验证占用拒绝、所有权检查和关闭释放。
 // @param t 测试上下文

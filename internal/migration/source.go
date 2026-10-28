@@ -56,13 +56,7 @@ func Scan(ctx context.Context, db *sql.DB, dialect string) (snapshot SourceSnaps
 	if err != nil {
 		return SourceSnapshot{}, err
 	}
-	known := make(map[string]bool)
-	for _, name := range flowable.Tables() {
-		known[name] = true
-	}
-	for _, name := range []string{"ACT_RU_ACTINST", "ACT_RU_TIMER_JOB", "ACT_RU_SUSPENDED_JOB", "ACT_RU_EXTERNAL_JOB", "ACT_RU_HISTORY_JOB", "ACT_HI_JOB_LOG"} {
-		known[name] = true
-	}
+	known := sourceKnownTables()
 	snapshot = SourceSnapshot{Dialect: dialect, Tables: make([]TableSummary, 0, len(names)), Rows: make([]flowable.Row, 0)}
 	for _, name := range names {
 		canonical := strings.ToUpper(name)
@@ -90,6 +84,19 @@ func Scan(ctx context.Context, db *sql.DB, dialect string) (snapshot SourceSnaps
 		}
 	}
 	return snapshot, nil
+}
+
+// sourceKnownTables 返回可逐行读取的已支持源表集合；未列出的 ACT 表只做行数统计。
+// @return 规范表名集合
+func sourceKnownTables() map[string]bool {
+	known := make(map[string]bool)
+	for _, name := range flowable.Tables() {
+		known[name] = true
+	}
+	for _, name := range []string{"ACT_RU_ACTINST", "ACT_RU_TIMER_JOB", "ACT_RU_SUSPENDED_JOB", "ACT_RU_EXTERNAL_JOB", "ACT_RU_HISTORY_JOB", "ACT_HI_JOB_LOG"} {
+		known[name] = true
+	}
+	return known
 }
 
 // sourceTables 发现当前数据库或模式中的源表并拒绝不安全或规范化后冲突的名称。

@@ -149,3 +149,25 @@ func loadClientCAPool(path string) (*x509.CertPool, error) {
 	}
 	return pool, nil
 }
+
+// validateClientCertIdentity 校验客户端证书身份映射的启动前提。
+// 身份映射只能使用 TLS 层已验证的证书链，因此必须启用本地 TLS、配置客户端 CA 并要求校验。
+// @param certFile 服务端证书路径
+// @param clientCAFile 客户端 CA 证书路径
+// @param clientAuth 客户端证书认证模式
+// @return 配置不满足前提时的错误
+func validateClientCertIdentity(certFile, clientCAFile, clientAuth string) error {
+	// 未启用本地 TLS 时 r.TLS 为空，证书身份永远不会生效
+	if certFile == "" {
+		return errors.New("-tls-client-identity 需要同时配置 -tls-cert 与 -tls-key")
+	}
+	// 没有客户端 CA 就无法校验证书链，身份映射不可信
+	if clientCAFile == "" {
+		return errors.New("-tls-client-identity 需要配置 -tls-client-ca")
+	}
+	// require-verify 才能保证 VerifiedChains 非空；其他模式不会产生可映射身份
+	if !strings.EqualFold(strings.TrimSpace(clientAuth), tlsClientAuthRequireVerify) {
+		return fmt.Errorf("-tls-client-identity 需要 -tls-client-auth=%s", tlsClientAuthRequireVerify)
+	}
+	return nil
+}

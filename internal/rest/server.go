@@ -36,6 +36,7 @@ type Server struct {
 	tenantBindings       map[string]string   // 认证账号的固定租户
 	tenantAdministrators map[string]bool     // 显式允许选择其他租户的账号
 	jwt                  *jwtVerifier        // JWT/JWKS 认证
+	clientCertIdentity   bool                // 是否启用 mTLS 客户端证书身份映射
 }
 
 // Option 是 REST 服务选项。
@@ -155,7 +156,8 @@ func (s *Server) withTenant(next http.Handler) http.Handler {
 // @param next 下游处理器
 // @return 处理器
 func (s *Server) authenticate(next http.Handler) http.Handler {
-	if !s.identityAuth && len(s.basicUsers) == 0 && s.bearerToken == "" && s.jwt == nil {
+	// 启用客户端证书身份映射后同样需要认证中间件，否则证书主体无法进入上下文
+	if !s.identityAuth && len(s.basicUsers) == 0 && s.bearerToken == "" && s.jwt == nil && !s.clientCertIdentity {
 		return next
 	}
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -213,6 +215,12 @@ func (s *Server) permitted(r *http.Request) bool {
 				}
 			}
 			return false
+		}
+	}
+	// 证书身份没有角色映射：未配置 rolePermissions 时放行，配置后因无角色应拒绝
+	if s.clientCertIdentity && r.Header.Get("Authorization") == "" {
+		if _, ok := r.Context().Value(authIdentityKey{}).(jwtIdentity); ok {
+			return len(s.rolePermissions) == 0
 		}
 	}
 	user, _, ok := r.BasicAuth()

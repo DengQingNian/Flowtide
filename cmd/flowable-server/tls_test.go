@@ -314,3 +314,31 @@ func TestMTLSHandshake(t *testing.T) {
 		}
 	}
 }
+
+// TestValidateClientCertIdentity 验证证书身份映射必须启用本地 TLS、客户端 CA 与 require-verify。
+// @param t 测试上下文
+// @return 无
+func TestValidateClientCertIdentity(t *testing.T) {
+	cases := []struct {
+		name       string // 场景
+		cert       string // 服务端证书
+		clientCA   string // 客户端 CA
+		clientAuth string // 认证模式
+		wantErr    bool   // 是否期望错误
+	}{
+		{"合法配置", "server.crt", "ca.pem", "require-verify", false},
+		{"大小写与空白", "server.crt", "ca.pem", " Require-Verify ", false},
+		{"未启用本地TLS", "", "ca.pem", "require-verify", true},
+		{"缺少客户端CA", "server.crt", "", "require-verify", true},
+		{"未要求校验证书", "server.crt", "ca.pem", "require-any", true},
+		{"单向TLS", "server.crt", "ca.pem", "none", true},
+	}
+	for _, testCase := range cases {
+		t.Run(testCase.name, func(t *testing.T) {
+			err := validateClientCertIdentity(testCase.cert, testCase.clientCA, testCase.clientAuth)
+			if (err != nil) != testCase.wantErr {
+				t.Fatalf("错误=%v 期望错误=%v", err, testCase.wantErr)
+			}
+		})
+	}
+}

@@ -1,8 +1,9 @@
 # Flowable Go 常用构建与验收目标。
 GO ?= go
 BIN_DIR ?= bin
+BENCHTIME ?= 1s
 
-.PHONY: all build test test-mysql test-postgres test-sdk race cover lint fmt-check doccheck contract contract-update check run clean
+.PHONY: all build test test-mysql test-postgres test-sdk race cover bench lint fmt-check doccheck contract contract-update check run clean
 
 all: build
 
@@ -35,6 +36,10 @@ race:
 cover:
 	$(GO) test -p 2 -count=1 -coverprofile=coverage.out ./...
 	$(GO) run ./tools/quality -coverage coverage.out -min 0.90
+
+## bench 运行核心引擎与行仓储基准；结果仅作本机基线，不是容量承诺。
+bench:
+	$(GO) test -run '^$$' -bench . -benchmem -benchtime=$(BENCHTIME) ./internal/engine ./internal/persistence/flowable
 
 ## fmt-check 拒绝未格式化的已跟踪 Go 文件。
 fmt-check:

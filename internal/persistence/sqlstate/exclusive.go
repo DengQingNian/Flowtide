@@ -10,6 +10,13 @@ import (
 	"time"
 )
 
+// LockName 返回数据库独占锁名称；快照与行仓储共用同一命名规则。
+// @param namespace 数据库名称
+// @return 锁名称
+func LockName(namespace string) string {
+	return fmt.Sprintf("flowable-go:%x", sha256.Sum256([]byte(namespace)))[:64]
+}
+
 // exclusiveMySQLDB 将快照与 MySQL 会话独占锁绑定到同一物理连接。
 type exclusiveMySQLDB struct {
 	conn *sql.Conn // 持有锁的连接
@@ -28,7 +35,7 @@ func NewExclusiveMySQL(ctx context.Context, db *sql.DB, namespace string) (*Stor
 	if err != nil {
 		return nil, nil, fmt.Errorf("获取快照独占连接失败: %w", err)
 	}
-	name := fmt.Sprintf("flowable-go:%x", sha256.Sum256([]byte(namespace)))[:64]
+	name := LockName(namespace)
 	var granted sql.NullInt64
 	if err := conn.QueryRowContext(ctx, "SELECT GET_LOCK(?, 0)", name).Scan(&granted); err != nil || !granted.Valid || granted.Int64 != 1 {
 		_ = conn.Close()

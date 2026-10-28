@@ -52,5 +52,11 @@ func (s *Server) authenticateIdentity(r *http.Request) (jwtIdentity, bool) {
 			return jwtIdentity{Subject: user, Tenant: s.tenantBindings[user]}, true
 		}
 	}
+	// 仅在完全未携带 HTTP 凭据时启用证书认证；Basic/Bearer/JWT 失败不得回退，避免绕过
+	if r.Header.Get("Authorization") == "" {
+		if identity, ok := s.clientCertificateIdentity(r); ok {
+			return identity, true
+		}
+	}
 	return jwtIdentity{}, false
 }
