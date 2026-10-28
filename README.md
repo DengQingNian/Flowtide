@@ -77,7 +77,9 @@ docs/{三位流水号}-{描述}/
 
 ## 许可证
 
-本项目遵循 Apache License 2.0。参考 Flowable 的代码、测试语料与文档均保留其原始版权与许可声明。
+本项目遵循 [MIT License](LICENSE)。
+
+参考的 Flowable 代码、测试语料、SQL Schema 与文档仍遵循其原始 Apache-2.0 许可，并保留原始版权与许可声明。
 
 ## 快速开始
 
