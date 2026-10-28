@@ -180,4 +180,6 @@ curl -X POST 'http://localhost:8080/service/runtime/process-instances' \
 - 二进制变量：multipart 上传、`binary` 类型与原始字节下载。
 - 任务事件与历史任务日志支持动作/用户/实例/时间范围过滤。
 - 部署内 `.form` 表单定义读取，启动/任务/历史表单按 formKey 渲染；部署资源按扩展名返回 Content-Type。
+- JWT/JWKS Bearer 认证：RS256/HS256、JWKS 缓存、iss/aud/exp 校验与 RBAC。
+- DMN 决策/决策表元数据读取（决策表输入、输出、命中策略与规则数）。
 - 纯标准库实现，`CGO_ENABLED=0` 可构建。

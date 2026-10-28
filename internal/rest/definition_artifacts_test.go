@@ -467,3 +467,208 @@ func TestREST_DefinitionFormDefinitionsInvalid(t *testing.T) {
 		t.Fatalf("错误码错误: %s", recorder.Body.String())
 	}
 }
+
+// restDMNAlphaXML 是 REST 测试使用的第一个 DMN 文档。
+const restDMNAlphaXML = `<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="https://www.omg.org/spec/DMN/20191111/MODEL/" id="alpha" name="Alpha">
+  <decision id="decisionA" name="Decision A">
+    <decisionTable id="tableA" hitPolicy="UNIQUE">
+      <input id="inputA" label="金额">
+        <inputExpression><text>amount</text></inputExpression>
+      </input>
+      <output id="outputA" name="结果" typeRef="string"/>
+      <rule id="ruleA"/>
+    </decisionTable>
+  </decision>
+</definitions>`
+
+// restDMNZetaXML 是 REST 测试使用的第二个 DMN 文档。
+const restDMNZetaXML = `<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="https://www.omg.org/spec/DMN/20191111/MODEL/" id="zeta" name="Zeta">
+  <decision id="decisionB" name="Decision B">
+    <decisionTable id="tableB" hitPolicy="FIRST">
+      <input id="inputB" label="类型">
+        <inputExpression><text>type</text></inputExpression>
+      </input>
+      <output id="outputB" name="等级" type="string"/>
+      <rule id="ruleB1"/>
+      <rule id="ruleB2"/>
+    </decisionTable>
+  </decision>
+</definitions>`
+
+// newDefinitionDMNFixture 构建带真实 DMN 资源的 REST 服务。
+// @param t 测试上下文
+// @return REST 服务
+// @return 流程定义
+func newDefinitionDMNFixture(t *testing.T) (*Server, api.ProcessDefinition) {
+	t.Helper()
+	app, err := engine.New(engine.Config{HistoryLevel: engine.HistoryAudit})
+	if err != nil {
+		t.Fatalf("创建引擎失败: %v", err)
+	}
+	t.Cleanup(func() { _ = app.Close(context.Background()) })
+	if _, err := app.RepositoryService().Deploy(context.Background(), api.DeploymentRequest{
+		Name: "dmn-artifacts",
+		Resources: map[string][]byte{
+			"dmn.bpmn20.xml":      []byte(definitionArtifactsXML),
+			"decisions/zeta.DMN":  []byte(restDMNZetaXML),
+			"decisions/alpha.dmn": []byte(restDMNAlphaXML),
+		},
+	}); err != nil {
+		t.Fatalf("部署失败: %v", err)
+	}
+	definitions, err := app.RepositoryService().ListProcessDefinitions(context.Background())
+	if err != nil || len(definitions) != 1 {
+		t.Fatalf("查询流程定义失败: %v %+v", err, definitions)
+	}
+	return New(app), definitions[0]
+}
+
+// TestREST_DefinitionDecisions 验证决策端点返回真实列表与 camelCase 字段。
+// @param t 测试上下文
+func TestREST_DefinitionDecisions(t *testing.T) {
+	server, definition := newDefinitionDMNFixture(t)
+	recorder := callDefinitionArtifactHandler(server.handleDefinitionDecisions, definition.ID)
+	if recorder.Code != http.StatusOK {
+		t.Fatalf("决策端点状态码错误: %d %s", recorder.Code, recorder.Body.String())
+	}
+	var decisions []api.DecisionDefinition
+	if err := json.Unmarshal(recorder.Body.Bytes(), &decisions); err != nil {
+		t.Fatalf("解析决策定义失败: %v", err)
+	}
+	if len(decisions) != 2 {
+		t.Fatalf("决策定义数量错误: %s", recorder.Body.String())
+	}
+	// 按资源名排序
+	if decisions[0].ID != "decisionA" || decisions[0].Key != "decisionA" || decisions[0].Name != "Decision A" {
+		t.Fatalf("第一个决策定义错误: %+v", decisions[0])
+	}
+	if decisions[0].DeploymentID != definition.DeploymentID || decisions[0].ResourceName != "decisions/alpha.dmn" {
+		t.Fatalf("第一个决策定义归属错误: %+v", decisions[0])
+	}
+	if decisions[0].TenantID != definition.TenantID || decisions[0].Version != definition.Version {
+		t.Fatalf("第一个决策定义租户或版本错误: %+v", decisions[0])
+	}
+	if decisions[1].ID != "decisionB" || decisions[1].ResourceName != "decisions/zeta.DMN" {
+		t.Fatalf("第二个决策定义错误: %+v", decisions[1])
+	}
+	var raw []map[string]json.RawMessage
+	if err := json.Unmarshal(recorder.Body.Bytes(), &raw); err != nil {
+		t.Fatalf("解析原始决策响应失败: %v", err)
+	}
+	for _, key := range []string{"id", "key", "name", "deploymentId", "resourceName", "tenantId", "version"} {
+		if _, ok := raw[0][key]; !ok {
+			t.Fatalf("缺少决策字段 %s: %s", key, recorder.Body.String())
+		}
+	}
+}
+
+// TestREST_DefinitionDecisionTables 验证决策表端点返回输入、输出与规则数。
+// @param t 测试上下文
+func TestREST_DefinitionDecisionTables(t *testing.T) {
+	server, definition := newDefinitionDMNFixture(t)
+	recorder := callDefinitionArtifactHandler(server.handleDefinitionDecisionTables, definition.ID)
+	if recorder.Code != http.StatusOK {
+		t.Fatalf("决策表端点状态码错误: %d %s", recorder.Code, recorder.Body.String())
+	}
+	var tables []api.DecisionTableDefinition
+	if err := json.Unmarshal(recorder.Body.Bytes(), &tables); err != nil {
+		t.Fatalf("解析决策表失败: %v", err)
+	}
+	if len(tables) != 2 {
+		t.Fatalf("决策表数量错误: %s", recorder.Body.String())
+	}
+	tableA := tables[0]
+	if tableA.ID != "tableA" || tableA.Key != "decisionA" || tableA.HitPolicy != "UNIQUE" || tableA.RuleCount != 1 {
+		t.Fatalf("第一个决策表错误: %+v", tableA)
+	}
+	if len(tableA.Inputs) != 1 || tableA.Inputs[0].ID != "inputA" || tableA.Inputs[0].Label != "金额" || tableA.Inputs[0].Expression != "amount" {
+		t.Fatalf("第一个决策表输入错误: %+v", tableA.Inputs)
+	}
+	if len(tableA.Outputs) != 1 || tableA.Outputs[0].ID != "outputA" || tableA.Outputs[0].Name != "结果" || tableA.Outputs[0].Type != "string" {
+		t.Fatalf("第一个决策表输出错误: %+v", tableA.Outputs)
+	}
+	tableB := tables[1]
+	if tableB.ID != "tableB" || tableB.Key != "decisionB" || tableB.HitPolicy != "FIRST" || tableB.RuleCount != 2 {
+		t.Fatalf("第二个决策表错误: %+v", tableB)
+	}
+	var raw []map[string]json.RawMessage
+	if err := json.Unmarshal(recorder.Body.Bytes(), &raw); err != nil {
+		t.Fatalf("解析原始决策表响应失败: %v", err)
+	}
+	for _, key := range []string{"id", "key", "name", "deploymentId", "resourceName", "tenantId", "hitPolicy", "inputs", "outputs", "ruleCount"} {
+		if _, ok := raw[0][key]; !ok {
+			t.Fatalf("缺少决策表字段 %s: %s", key, recorder.Body.String())
+		}
+	}
+}
+
+// TestREST_DefinitionDMNInvalid 验证非法 DMN XML 返回 400。
+// @param t 测试上下文
+func TestREST_DefinitionDMNInvalid(t *testing.T) {
+	app, err := engine.New(engine.Config{HistoryLevel: engine.HistoryAudit})
+	if err != nil {
+		t.Fatalf("创建引擎失败: %v", err)
+	}
+	t.Cleanup(func() { _ = app.Close(context.Background()) })
+	if _, err := app.RepositoryService().Deploy(context.Background(), api.DeploymentRequest{
+		Name: "bad-dmn",
+		Resources: map[string][]byte{
+			"dmn.bpmn20.xml":    []byte(definitionArtifactsXML),
+			"decisions/bad.dmn": []byte("<definitions>"),
+		},
+	}); err != nil {
+		t.Fatalf("部署失败: %v", err)
+	}
+	definitions, err := app.RepositoryService().ListProcessDefinitions(context.Background())
+	if err != nil || len(definitions) != 1 {
+		t.Fatalf("查询流程定义失败: %v %+v", err, definitions)
+	}
+	server := New(app)
+	for _, handler := range []http.HandlerFunc{server.handleDefinitionDecisions, server.handleDefinitionDecisionTables} {
+		recorder := callDefinitionArtifactHandler(handler, definitions[0].ID)
+		if recorder.Code != http.StatusBadRequest {
+			t.Fatalf("非法 DMN 应 400: %d %s", recorder.Code, recorder.Body.String())
+		}
+		var body map[string]any
+		if err := json.Unmarshal(recorder.Body.Bytes(), &body); err != nil {
+			t.Fatalf("解析错误响应失败: %v", err)
+		}
+		if code, _ := body["code"].(string); code != "ENGINE-1207" {
+			t.Fatalf("错误码错误: %s", recorder.Body.String())
+		}
+	}
+}
+
+// stubDMNEngine 是 DMNService 返回 nil 的引擎桩。
+type stubDMNEngine struct {
+	api.Engine // 其余方法由嵌入接口提供
+}
+
+// DMNService 返回空服务。
+// @return DMN 服务
+func (s stubDMNEngine) DMNService() api.DMNService { return nil }
+
+// TestREST_DefinitionDMNUnsupported 验证引擎未提供 DMN 服务时返回 500。
+// @param t 测试上下文
+func TestREST_DefinitionDMNUnsupported(t *testing.T) {
+	cases := []struct {
+		name   string
+		engine api.Engine
+	}{
+		{name: "缺少能力", engine: stubDefinitionEngine{}},
+		{name: "空服务", engine: stubDMNEngine{}},
+	}
+	for _, testCase := range cases {
+		t.Run(testCase.name, func(t *testing.T) {
+			server := &Server{engine: testCase.engine}
+			for _, handler := range []http.HandlerFunc{server.handleDefinitionDecisions, server.handleDefinitionDecisionTables} {
+				recorder := callDefinitionArtifactHandler(handler, "any")
+				if recorder.Code != http.StatusInternalServerError {
+					t.Fatalf("缺少 DMN 服务应 500: %d %s", recorder.Code, recorder.Body.String())
+				}
+			}
+		})
+	}
+}

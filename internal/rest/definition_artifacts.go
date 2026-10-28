@@ -74,28 +74,62 @@ func (s *Server) handleDefinitionModel(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, buildDefinitionModelDTO(definition, bpmnModel))
 }
 
-// handleDefinitionDecisions 返回流程定义关联的决策。
+// handleDefinitionDecisions 返回流程定义所在部署的决策定义。
 // @param w 响应
 // @param r 请求
-// 说明：当前引擎尚未集成 DMN 决策引擎，校验流程定义后返回空数组。
 func (s *Server) handleDefinitionDecisions(w http.ResponseWriter, r *http.Request) {
-	if _, err := s.engine.RepositoryService().GetProcessDefinition(r.Context(), r.PathValue("id")); err != nil {
+	service, err := s.dmnService()
+	if err != nil {
 		writeError(w, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, []any{})
+	decisions, err := service.ListDecisionDefinitions(r.Context(), r.PathValue("id"))
+	if err != nil {
+		writeError(w, err)
+		return
+	}
+	// 空结果统一输出 []，避免 JSON null
+	if decisions == nil {
+		decisions = []api.DecisionDefinition{}
+	}
+	writeJSON(w, http.StatusOK, decisions)
 }
 
-// handleDefinitionDecisionTables 返回流程定义关联的决策表。
+// handleDefinitionDecisionTables 返回流程定义所在部署的决策表定义。
 // @param w 响应
 // @param r 请求
-// 说明：当前引擎尚未集成 DMN 决策引擎，校验流程定义后返回空数组。
 func (s *Server) handleDefinitionDecisionTables(w http.ResponseWriter, r *http.Request) {
-	if _, err := s.engine.RepositoryService().GetProcessDefinition(r.Context(), r.PathValue("id")); err != nil {
+	service, err := s.dmnService()
+	if err != nil {
 		writeError(w, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, []any{})
+	tables, err := service.ListDecisionTables(r.Context(), r.PathValue("id"))
+	if err != nil {
+		writeError(w, err)
+		return
+	}
+	// 空结果统一输出 []，避免 JSON null
+	if tables == nil {
+		tables = []api.DecisionTableDefinition{}
+	}
+	writeJSON(w, http.StatusOK, tables)
+}
+
+// dmnService 返回引擎提供的 DMN 服务。
+// 说明：门面接口未强制依赖 DMN，通过可选接口探测，避免影响其他引擎实现。
+// @return DMN 服务
+// @return 能力缺失错误
+func (s *Server) dmnService() (api.DMNService, error) {
+	engine, ok := s.engine.(api.DMNEngine)
+	if !ok {
+		return nil, api.NewError("ENGINE-1208", "引擎未实现 DMN 服务", nil)
+	}
+	service := engine.DMNService()
+	if service == nil {
+		return nil, api.NewError("ENGINE-1208", "引擎未实现 DMN 服务", nil)
+	}
+	return service, nil
 }
 
 // handleDefinitionFormDefinitions 返回流程定义所在部署的表单定义。

@@ -32,6 +32,7 @@ type Server struct {
 	limiter         *rateLimiter        // 限流器
 	auditLog        *auditLog           // 审计日志
 	httpMetrics     *httpMetrics        // HTTP 指标
+	jwt             *jwtVerifier        // JWT/JWKS 认证
 }
 
 // Option 是 REST 服务选项。
@@ -140,7 +141,7 @@ func (s *Server) withTenant(next http.Handler) http.Handler {
 // @param next 下游处理器
 // @return 处理器
 func (s *Server) authenticate(next http.Handler) http.Handler {
-	if !s.identityAuth && len(s.basicUsers) == 0 && s.bearerToken == "" {
+	if !s.identityAuth && len(s.basicUsers) == 0 && s.bearerToken == "" && s.jwt == nil {
 		return next
 	}
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -168,9 +169,32 @@ func (s *Server) permitted(r *http.Request) bool {
 	if len(s.rolePermissions) == 0 && !s.identityAuth {
 		return true
 	}
-	// Bearer Token 视为服务账号，拥有全部权限
-	if s.bearerToken != "" && strings.HasPrefix(r.Header.Get("Authorization"), "Bearer ") {
-		return true
+	// 静态 Bearer Token 视为服务账号，拥有全部权限
+	if s.bearerToken != "" {
+		token, ok := bearerTokenFromHeader(r.Header.Get("Authorization"))
+		if ok && subtle.ConstantTimeCompare([]byte(token), []byte(s.bearerToken)) == 1 {
+			return true
+		}
+	}
+	// JWT 身份按 roles 声明映射 rolePermissions
+	if s.jwt != nil {
+		identity, ok := s.jwt.verifyRequest(r)
+		if ok {
+			// 未配置 rolePermissions 时保持既有放行语义
+			if len(s.rolePermissions) == 0 {
+				return true
+			}
+			required := requiredPermission(r.Method, r.URL.Path)
+			// 任一角色具备 admin 或端点所需权限即放行
+			for _, role := range identity.Roles {
+				for _, permission := range s.rolePermissions[role] {
+					if permission == "admin" || permission == required {
+						return true
+					}
+				}
+			}
+			return false
+		}
 	}
 	user, _, ok := r.BasicAuth()
 	if !ok {
@@ -217,9 +241,16 @@ func requiredPermission(method, path string) string {
 // @param r 请求
 // @return 是否通过
 func (s *Server) authorized(r *http.Request) bool {
+	// 静态 Bearer Token 优先，保持既有配置兼容
 	if s.bearerToken != "" {
-		token := strings.TrimPrefix(r.Header.Get("Authorization"), "Bearer ")
-		if token != "" && subtle.ConstantTimeCompare([]byte(token), []byte(s.bearerToken)) == 1 {
+		token, ok := bearerTokenFromHeader(r.Header.Get("Authorization"))
+		if ok && subtle.ConstantTimeCompare([]byte(token), []byte(s.bearerToken)) == 1 {
+			return true
+		}
+	}
+	// JWT/JWKS Bearer 令牌校验，失败时不泄漏具体原因
+	if s.jwt != nil {
+		if _, ok := s.jwt.verifyRequest(r); ok {
 			return true
 		}
 	}
