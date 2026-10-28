@@ -203,7 +203,11 @@ func parseElement(node *Node) (model.FlowElement, error) {
 		parseFlowNodeBase(node, &event.FlowNodeBase)
 		return event, nil
 	case "intermediateCatchEvent":
-		event := &model.IntermediateCatchEvent{LinkName: parseLinkName(node)}
+		condition, err := parseCondition(node)
+		if err != nil {
+			return nil, err
+		}
+		event := &model.IntermediateCatchEvent{LinkName: parseLinkName(node), Condition: condition}
 		parseFlowNodeBase(node, &event.FlowNodeBase)
 		event.MessageRef, event.SignalRef, event.Timer = parseEventDefinition(node)
 		return event, nil
@@ -219,6 +223,10 @@ func parseElement(node *Node) (model.FlowElement, error) {
 		return activity, nil
 	case "boundaryEvent":
 		messageRef, signalRef, timer := parseEventDefinition(node)
+		condition, err := parseCondition(node)
+		if err != nil {
+			return nil, err
+		}
 		event := &model.BoundaryEvent{
 			AttachedToRef:  node.Attr("attachedToRef"),
 			CancelActivity: !strings.EqualFold(node.Attr("cancelActivity"), "false"),
@@ -228,6 +236,7 @@ func parseElement(node *Node) (model.FlowElement, error) {
 			SignalRef:      signalRef,
 			ErrorRef:       parseErrorRef(node),
 			Cancel:         hasChild(node, "cancelEventDefinition"),
+			Condition:      condition,
 		}
 		parseFlowNodeBase(node, &event.FlowNodeBase)
 		if event.AttachedToRef == "" {
@@ -403,6 +412,30 @@ func parseErrorRef(node *Node) string {
 		return attrAny(child, "errorRef")
 	}
 	return ""
+}
+
+// parseCondition 解析条件事件定义中的条件表达式。
+// 兼容 BPMN 标准的 condition 子元素与 Flowable 的 conditionExpression 子元素。
+// @param node 事件节点
+// @return 条件表达式
+// @return 解析错误
+func parseCondition(node *Node) (string, error) {
+	definition, ok := node.Child("conditionalEventDefinition")
+	if !ok {
+		return "", nil
+	}
+	condition, exists := definition.Child("condition")
+	if !exists {
+		condition, exists = definition.Child("conditionExpression")
+	}
+	if !exists {
+		return "", api.NewError("BPMN-1009", "条件事件缺少 condition 表达式", nil)
+	}
+	value := condition.TextContent()
+	if value == "" {
+		return "", api.NewError("BPMN-1009", "条件事件的 condition 表达式不能为空", nil)
+	}
+	return value, nil
 }
 
 // parseEventDefinition 解析事件定义。

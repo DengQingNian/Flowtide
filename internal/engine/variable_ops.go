@@ -60,7 +60,11 @@ func (e *Engine) SetExecutionVariable(ctx context.Context, executionID, name str
 		}
 		execution.Variables[name] = value
 		e.recordHistoricVariable(execution, name, value)
-		return nil, nil
+		// 变量变化后立即求值条件事件
+		if err := e.evaluateConditionalSubscriptions(cc, execution.ProcessInstanceID); err != nil {
+			return nil, err
+		}
+		return nil, cc.agenda.run(cc)
 	})
 	return err
 }

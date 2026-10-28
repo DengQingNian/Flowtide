@@ -234,6 +234,17 @@ func (e *Engine) emitEvent(cc *commandContext, definition *definitionState, mess
 // @param subscription 订阅
 // @return 触发错误
 func (e *Engine) triggerBoundarySubscription(cc *commandContext, subscription *subscriptionState) error {
+	return e.triggerBoundaryEvent(cc, subscription, false)
+}
+
+// triggerBoundaryEvent 触发边界事件。
+// forceInterrupt 为 true 时忽略 cancelActivity 配置强制中断依附活动，
+// 条件边界事件使用该模式，仅支持中断语义。
+// @param cc 命令上下文
+// @param subscription 订阅
+// @param forceInterrupt 是否强制中断
+// @return 触发错误
+func (e *Engine) triggerBoundaryEvent(cc *commandContext, subscription *subscriptionState, forceInterrupt bool) error {
 	delete(e.state.Subscriptions, subscription.ID)
 	execution, ok := e.findExecution(subscription.ExecutionID)
 	if !ok || execution.Ended {
@@ -259,7 +270,7 @@ func (e *Engine) triggerBoundarySubscription(cc *commandContext, subscription *s
 	if !ok {
 		return nil
 	}
-	if boundary.CancelActivity {
+	if boundary.CancelActivity || forceInterrupt {
 		for taskID, task := range e.state.Tasks {
 			if task.ExecutionID != execution.ID {
 				continue

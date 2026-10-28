@@ -349,6 +349,8 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("PUT /service/runtime/process-instances/{id}/variables-async", s.handleAsyncInstanceVariables)
 	s.mux.HandleFunc("PUT /service/runtime/process-instances/{id}/variables-async/{name}", s.handleAsyncInstanceVariable)
 	s.mux.HandleFunc("POST /service/runtime/process-instances/{id}/change-state", s.handleInstanceChangeState)
+	s.mux.HandleFunc("POST /service/runtime/process-instances/{id}/inject", s.handleInjectActivity)
+	s.mux.HandleFunc("POST /service/runtime/process-instances/{id}/evaluate-conditions", s.handleEvaluateConditions)
 	s.mux.HandleFunc("GET /service/form/form-data", s.handleGetFormData)
 	s.mux.HandleFunc("POST /service/form/form-data", s.handleSubmitFormData)
 	s.mux.HandleFunc("GET /service/identity/roles", s.handleListRoles)

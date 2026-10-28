@@ -167,4 +167,6 @@ curl -X POST 'http://localhost:8080/service/runtime/process-instances' \
 - 流程定义模型 JSON 与决策/决策表/表单定义查询（后三者为空数组）。
 - 组更新、批量任务更新、执行变量批量更新与嵌套部署资源名。
 - 批处理批次/分片/统计查询；执行与实例级活动迁移（change-state）。
+- 条件事件：边界/中间捕获、变量变化触发与显式 evaluate-conditions。
+- 动态活动注入：实例内独立用户任务，不影响主流程。
 - 纯标准库实现，`CGO_ENABLED=0` 可构建。

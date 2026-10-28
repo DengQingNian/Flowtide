@@ -225,6 +225,14 @@ func (e *Engine) continueAt(cc *commandContext, executionID, activityID string) 
 			execution.CurrentHistActivityID = ""
 			return e.scheduleTakeOutgoing(cc, execution, node)
 		}
+		if strings.TrimSpace(node.Condition) != "" {
+			if err := e.registerConditionalCatchSubscription(cc, execution, definition, node); err != nil {
+				return err
+			}
+			execution.Waiting = true
+			// 进入后立即求值一次，条件已满足则不等待
+			return e.evaluateConditionalSubscriptions(cc, execution.ProcessInstanceID)
+		}
 		if node.Timer != nil {
 			if err := e.scheduleTimerCatch(cc, execution, node.ID, node.Timer); err != nil {
 				return err
@@ -274,7 +282,14 @@ func (e *Engine) continueAt(cc *commandContext, executionID, activityID string) 
 		if node.LoopCharacteristics != nil && !execution.MIChild {
 			return e.enterMultiInstance(cc, execution, node, node.LoopCharacteristics)
 		}
-		return e.createUserTask(cc, execution, node)
+		if err := e.createUserTask(cc, execution, node); err != nil {
+			return err
+		}
+		if err := e.registerConditionalBoundarySubscriptions(cc, execution, node); err != nil {
+			return err
+		}
+		// 进入任务后立即求值边界条件，避免条件已满足时继续等待
+		return e.evaluateConditionalSubscriptions(cc, execution.ProcessInstanceID)
 	case *model.ServiceTask:
 		if node.LoopCharacteristics != nil && !execution.MIChild {
 			return e.enterMultiInstance(cc, execution, node, node.LoopCharacteristics)
@@ -882,7 +897,11 @@ func (e *Engine) SetVariable(ctx context.Context, processInstanceID, name string
 			return nil, api.NewError("ENGINE-0405", "根执行不存在", nil)
 		}
 		e.setVariable(root, name, value)
-		return nil, nil
+		// 变量变化后立即求值条件事件
+		if err := e.evaluateConditionalSubscriptions(cc, processInstanceID); err != nil {
+			return nil, err
+		}
+		return nil, cc.agenda.run(cc)
 	})
 	return err
 }

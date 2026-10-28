@@ -91,6 +91,11 @@ func (e *Engine) SetTaskVariable(ctx context.Context, taskID, name string, value
 			e.recordTaskHistoricVariable(task, name, value, cc.now)
 		} else {
 			e.recordHistoricDetail(task.Task.ProcessInstanceID, task.ExecutionID, task.Task.ID, task.ActivityID, name, value, cc.now)
+			// 任务局部变量参与条件求值，变化后立即触发
+			if err := e.evaluateConditionalSubscriptions(cc, task.Task.ProcessInstanceID); err != nil {
+				return nil, err
+			}
+			return nil, cc.agenda.run(cc)
 		}
 		return nil, nil
 	})

@@ -412,6 +412,18 @@ type RuntimeService interface {
 	// @return 订阅
 	// @return 查询错误
 	GetEventSubscription(ctx context.Context, subscriptionID string) (EventSubscription, error)
+	// EvaluateConditions 显式求值流程实例的全部条件事件订阅。
+	// @param ctx 上下文
+	// @param processInstanceID 流程实例 ID
+	// @return 求值错误
+	EvaluateConditions(ctx context.Context, processInstanceID string) error
+	// InjectUserTask 在流程实例中注入动态用户任务。
+	// @param ctx 上下文
+	// @param processInstanceID 流程实例 ID
+	// @param req 注入请求
+	// @return 任务
+	// @return 注入错误
+	InjectUserTask(ctx context.Context, processInstanceID string, req InjectRequest) (Task, error)
 }
 
 // MigrationRequest 是流程实例迁移请求。

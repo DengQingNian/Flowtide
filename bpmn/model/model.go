@@ -352,6 +352,7 @@ type BoundaryEvent struct {
 	ErrorRef              string           // 错误引用
 	Cancel                bool             // 是否取消边界
 	Compensate            bool             // 是否补偿边界
+	Condition             string           // 条件表达式
 	CompensationHandlerID string           // 补偿处理器 ID
 }
 
@@ -388,6 +389,7 @@ type IntermediateCatchEvent struct {
 	SignalRef  string           // 信号引用
 	Timer      *TimerDefinition // 定时器定义
 	LinkName   string           // 链接事件名称
+	Condition  string           // 条件表达式
 }
 
 // ElementType 返回元素类型。

@@ -103,6 +103,7 @@ type subscriptionState struct {
 	ScopeExecutionID       string    `json:"scopeExecutionId"`       // 作用域执行 ID
 	Interrupting           bool      `json:"interrupting"`           // 是否中断作用域
 	StartEvent             bool      `json:"startEvent"`             // 是否启动订阅
+	Condition              string    `json:"condition,omitempty"`    // 条件表达式，仅条件事件使用
 	TenantID               string    `json:"tenantId"`               // 租户
 	CreatedAt              time.Time `json:"createdAt"`              // 创建时间
 }

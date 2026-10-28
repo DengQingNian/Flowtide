@@ -366,6 +366,10 @@ func (e *Engine) completeTask(cc *commandContext, taskID string, req api.Complet
 	e.recordActivityEnd(cc, execution.CurrentHistActivityID)
 	execution.CurrentHistActivityID = ""
 	cc.agenda.schedule(&takeOutgoingOperation{executionID: execution.ID, activityID: task.ActivityID})
+	// 完成任务的流程变量与局部变量写入后求值其他分支上的条件事件
+	if err := e.evaluateConditionalSubscriptions(cc, task.Task.ProcessInstanceID); err != nil {
+		return err
+	}
 	return cc.agenda.run(cc)
 }
 

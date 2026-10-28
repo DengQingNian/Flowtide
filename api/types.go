@@ -123,6 +123,15 @@ type CreateTaskRequest struct {
 	TenantID     string     // 租户
 }
 
+// InjectRequest 是动态活动注入请求。
+type InjectRequest struct {
+	InjectionType string `json:"injectionType,omitempty"` // 注入类型，当前仅支持 task
+	ID            string `json:"id,omitempty"`            // 动态任务 ID
+	Name          string `json:"name"`                    // 任务名称
+	Assignee      string `json:"assignee,omitempty"`      // 处理人
+	TaskID        string `json:"taskId,omitempty"`        // 并行注入的参考任务 ID
+}
+
 // TaskUpdate 是任务属性更新，nil 表示不修改。
 type TaskUpdate struct {
 	Name         *string    // 名称
