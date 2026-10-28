@@ -43,8 +43,8 @@ func TestAnalyzeRejectsSourceRisks(t *testing.T) {
 		{"未知表", func(s *SourceSnapshot) { s.Tables = append(s.Tables, TableSummary{Name: "ACT_CUSTOM", Count: 1}) }, "UNSUPPORTED_TABLE"},
 		{"空未知表", func(s *SourceSnapshot) { s.Tables = append(s.Tables, TableSummary{Name: "ACT_CUSTOM", Count: 0}) }, ""},
 		{"未分析历史", func(s *SourceSnapshot) {
-			s.Rows = append(s.Rows, analysisRow("ACT_HI_PROCINST", "h", map[string]any{"TENANT_ID_": "a"}))
-			s.Tables = append(s.Tables, TableSummary{Name: "ACT_HI_PROCINST", Count: 1})
+			s.Rows = append(s.Rows, analysisRow("ACT_HI_DETAIL", "h", map[string]any{"TENANT_ID_": "a"}))
+			s.Tables = append(s.Tables, TableSummary{Name: "ACT_HI_DETAIL", Count: 1})
 		}, "UNSUPPORTED_TABLE"},
 	}
 	for _, test := range tests {

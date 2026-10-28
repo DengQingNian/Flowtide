@@ -163,43 +163,97 @@ type TaskFilter struct {
 
 // HistoricProcessInstance 是历史流程实例。
 type HistoricProcessInstance struct {
-	ID                   string     `json:"id"`                     // 实例 ID
-	ProcessDefinitionID  string     `json:"processDefinitionId"`    // 流程定义 ID
-	ProcessDefinitionKey string     `json:"processDefinitionKey"`   // 流程定义 Key
-	BusinessKey          string     `json:"businessKey"`            // 业务键
-	Name                 string     `json:"name"`                   // 名称
-	TenantID             string     `json:"tenantId"`               // 租户
-	StartTime            time.Time  `json:"startTime"`              // 开始时间
-	EndTime              *time.Time `json:"endTime,omitempty"`      // 结束时间
-	DeleteReason         string     `json:"deleteReason,omitempty"` // 删除原因
-	Ended                bool       `json:"ended"`                  // 是否结束
+	ID                        string     `json:"id"`                                  // 实例 ID
+	Revision                  int        `json:"revision,omitempty"`                  // 乐观锁版本
+	ProcessDefinitionID       string     `json:"processDefinitionId"`                 // 流程定义 ID
+	ProcessDefinitionKey      string     `json:"processDefinitionKey"`                // 流程定义 Key
+	BusinessKey               string     `json:"businessKey"`                         // 业务键
+	Name                      string     `json:"name"`                                // 名称
+	TenantID                  string     `json:"tenantId"`                            // 租户
+	StartTime                 time.Time  `json:"startTime"`                           // 开始时间
+	EndTime                   *time.Time `json:"endTime,omitempty"`                   // 结束时间
+	DurationMillis            int64      `json:"durationMillis,omitempty"`            // 持续时间毫秒
+	StartUserID               string     `json:"startUserId,omitempty"`               // 发起人
+	StartActivityID           string     `json:"startActivityId,omitempty"`           // 开始活动
+	EndActivityID             string     `json:"endActivityId,omitempty"`             // 结束活动
+	SuperProcessInstanceID    string     `json:"superProcessInstanceId,omitempty"`    // 父流程实例
+	CallbackID                string     `json:"callbackId,omitempty"`                // 回调标识
+	CallbackType              string     `json:"callbackType,omitempty"`              // 回调类型
+	ReferenceID               string     `json:"referenceId,omitempty"`               // 外部引用
+	ReferenceType             string     `json:"referenceType,omitempty"`             // 外部引用类型
+	PropagatedStageInstanceID string     `json:"propagatedStageInstanceId,omitempty"` // 传播阶段实例
+	BusinessStatus            string     `json:"businessStatus,omitempty"`            // 业务状态
+	DueDate                   *time.Time `json:"dueDate,omitempty"`                   // 到期时间
+	ClaimTime                 *time.Time `json:"claimTime,omitempty"`                 // 签收时间
+	ClaimedBy                 string     `json:"claimedBy,omitempty"`                 // 签收人
+	EndUserID                 string     `json:"endUserId,omitempty"`                 // 结束操作人
+	State                     string     `json:"state,omitempty"`                     // 实例状态
+	DeleteReason              string     `json:"deleteReason,omitempty"`              // 删除原因
+	Ended                     bool       `json:"ended"`                               // 是否结束
 }
 
 // HistoricActivityInstance 是历史活动实例。
+// 字段与 ACT_HI_ACTINST 列一一对应，转换 Java 存量数据时不能因查询层未使用而丢失原始列。
 type HistoricActivityInstance struct {
-	ID                string     `json:"id"`                // 历史记录 ID
-	ProcessInstanceID string     `json:"processInstanceId"` // 流程实例 ID
-	ActivityID        string     `json:"activityId"`        // 活动 ID
-	ActivityName      string     `json:"activityName"`      // 活动名称
-	ActivityType      string     `json:"activityType"`      // 活动类型
-	StartTime         time.Time  `json:"startTime"`         // 开始时间
-	EndTime           *time.Time `json:"endTime,omitempty"` // 结束时间
-	DurationMillis    int64      `json:"durationMillis"`    // 持续时间毫秒
+	ID                    string     `json:"id"`                              // 历史记录 ID
+	Revision              int        `json:"revision,omitempty"`              // 乐观锁版本
+	ProcessDefinitionID   string     `json:"processDefinitionId,omitempty"`   // 流程定义 ID
+	ProcessInstanceID     string     `json:"processInstanceId"`               // 流程实例 ID
+	ExecutionID           string     `json:"executionId,omitempty"`           // 执行 ID
+	ActivityID            string     `json:"activityId"`                      // 活动 ID
+	TaskID                string     `json:"taskId,omitempty"`                // 对应用户任务 ID
+	CallProcessInstanceID string     `json:"callProcessInstanceId,omitempty"` // 调用活动实例 ID
+	ActivityName          string     `json:"activityName"`                    // 活动名称
+	ActivityType          string     `json:"activityType"`                    // 活动类型
+	Assignee              string     `json:"assignee,omitempty"`              // 处理人
+	CompletedBy           string     `json:"completedBy,omitempty"`           // 完成人
+	StartTime             time.Time  `json:"startTime"`                       // 开始时间
+	EndTime               *time.Time `json:"endTime,omitempty"`               // 结束时间
+	TransactionOrder      int        `json:"transactionOrder,omitempty"`      // 事务顺序
+	DurationMillis        int64      `json:"durationMillis"`                  // 持续时间毫秒
+	DeleteReason          string     `json:"deleteReason,omitempty"`          // 删除原因
+	TenantID              string     `json:"tenantId,omitempty"`              // 租户
 }
 
 // HistoricTaskInstance 是历史任务实例。
+// 字段与 ACT_HI_TASKINST 列一一对应，保证 Java 存量任务在离线转换后仍可无损写回。
 type HistoricTaskInstance struct {
-	ID                string     `json:"id"`                     // 任务 ID
-	Name              string     `json:"name"`                   // 名称
-	ProcessInstanceID string     `json:"processInstanceId"`      // 流程实例 ID
-	TaskDefinitionKey string     `json:"taskDefinitionKey"`      // 任务定义 Key
-	Assignee          string     `json:"assignee,omitempty"`     // 处理人
-	FormKey           string     `json:"formKey,omitempty"`      // 表单 Key
-	TenantID          string     `json:"tenantId,omitempty"`     // 租户
-	DeleteReason      string     `json:"deleteReason,omitempty"` // 删除原因
-	StartTime         time.Time  `json:"startTime"`              // 开始时间
-	EndTime           *time.Time `json:"endTime,omitempty"`      // 结束时间
-	DurationMillis    int64      `json:"durationMillis"`         // 持续时间毫秒
+	ID                        string     `json:"id"`                                  // 任务 ID
+	Revision                  int        `json:"revision,omitempty"`                  // 乐观锁版本
+	ProcessDefinitionID       string     `json:"processDefinitionId,omitempty"`       // 流程定义 ID
+	TaskDefinitionID          string     `json:"taskDefinitionId,omitempty"`          // 任务定义 ID
+	Name                      string     `json:"name"`                                // 名称
+	ProcessInstanceID         string     `json:"processInstanceId"`                   // 流程实例 ID
+	ExecutionID               string     `json:"executionId,omitempty"`               // 执行 ID
+	ScopeID                   string     `json:"scopeId,omitempty"`                   // 作用域 ID
+	SubScopeID                string     `json:"subScopeId,omitempty"`                // 子作用域 ID
+	ScopeType                 string     `json:"scopeType,omitempty"`                 // 作用域类型
+	ScopeDefinitionID         string     `json:"scopeDefinitionId,omitempty"`         // 作用域定义 ID
+	PropagatedStageInstanceID string     `json:"propagatedStageInstanceId,omitempty"` // 传播阶段实例 ID
+	State                     string     `json:"state,omitempty"`                     // 任务状态
+	TaskDefinitionKey         string     `json:"taskDefinitionKey"`                   // 任务定义 Key
+	ParentTaskID              string     `json:"parentTaskId,omitempty"`              // 父任务 ID
+	Description               string     `json:"description,omitempty"`               // 描述
+	Owner                     string     `json:"owner,omitempty"`                     // 所有者
+	Assignee                  string     `json:"assignee,omitempty"`                  // 处理人
+	FormKey                   string     `json:"formKey,omitempty"`                   // 表单 Key
+	TenantID                  string     `json:"tenantId,omitempty"`                  // 租户
+	DeleteReason              string     `json:"deleteReason,omitempty"`              // 删除原因
+	StartTime                 time.Time  `json:"startTime"`                           // 开始时间
+	InProgressTime            *time.Time `json:"inProgressTime,omitempty"`            // 开始处理时间
+	InProgressStartedBy       string     `json:"inProgressStartedBy,omitempty"`       // 开始处理人
+	ClaimTime                 *time.Time `json:"claimTime,omitempty"`                 // 签收时间
+	ClaimedBy                 string     `json:"claimedBy,omitempty"`                 // 签收人
+	SuspendedTime             *time.Time `json:"suspendedTime,omitempty"`             // 挂起时间
+	SuspendedBy               string     `json:"suspendedBy,omitempty"`               // 挂起操作人
+	EndTime                   *time.Time `json:"endTime,omitempty"`                   // 结束时间
+	CompletedBy               string     `json:"completedBy,omitempty"`               // 完成人
+	DurationMillis            int64      `json:"durationMillis"`                      // 持续时间毫秒
+	Priority                  int        `json:"priority,omitempty"`                  // 优先级
+	InProgressDueDate         *time.Time `json:"inProgressDueDate,omitempty"`         // 处理截止时间
+	DueDate                   *time.Time `json:"dueDate,omitempty"`                   // 截止时间
+	Category                  string     `json:"category,omitempty"`                  // 分类
+	LastUpdatedTime           *time.Time `json:"lastUpdatedTime,omitempty"`           // 最后更新时间
 }
 
 // TaskEvent 是任务事件。
@@ -234,7 +288,9 @@ type Comment struct {
 	TaskID            string    `json:"taskId,omitempty"`            // 任务 ID
 	ProcessInstanceID string    `json:"processInstanceId,omitempty"` // 流程实例 ID
 	Type              string    `json:"type"`                        // 评论类型
+	Action            string    `json:"action,omitempty"`            // 动作，事件型记录使用
 	Message           string    `json:"message"`                     // 内容
+	FullMessage       string    `json:"fullMessage,omitempty"`       // 完整内容
 	UserID            string    `json:"userId,omitempty"`            // 作者
 	Time              time.Time `json:"time"`                        // 创建时间
 }

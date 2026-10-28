@@ -94,7 +94,16 @@ func (s *analysisState) checkVariable(row flowable.Row) {
 	if analysisString(row, "SCOPE_TYPE_") != "" || analysisString(row, "SCOPE_ID_") != "" {
 		s.add(row, "VARIABLE_SCOPE", "变量包含尚未支持的外部作用域。")
 	}
-	kind := analysisString(row, "TYPE_")
+	s.checkVariableData(row, "TYPE_")
+}
+
+// checkVariableData 检查运行时及历史变量的显式类型和值编码。
+// @param row 变量行
+// @param typeColumn 类型列名，运行时为 TYPE_，历史为 VAR_TYPE_
+// @return 无
+func (s *analysisState) checkVariableData(row flowable.Row, typeColumn string) {
+	kind := analysisString(row, typeColumn)
+	// 类型逐项白名单校验，不允许 Java 序列化降级或将错误内容带入报告。
 	switch kind {
 	case "null", "string", "longString", "boolean", "short", "integer", "long", "double", "date", "json", "longJson", "bytes":
 	default:

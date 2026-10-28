@@ -125,6 +125,15 @@ go run ./cmd/flowable-server -storage mysql -env .env
 
 退出码 `0` 表示当前检查未发现阻断，`2` 表示报告存在阻断，`1` 表示参数、连接、扫描或输出失败。预检没有发现问题不代表 Java 实例已可由 Go 接管；转换、Java 对照续跑与回退仍须独立验收。检查范围与限制见 [053 既有 Java 数据库只读预检](docs/002-迁移实施/053-既有Java数据库只读预检.md)。
 
+预检通过后可准备离线 Go 状态文件；该模式只创建新文件，不执行源库写入，也替代不了停写协调：
+
+```bash
+./bin/flowable-migrate -convert -dialect mysql -env .env -out prepared-state.json
+./bin/flowable-server -state prepared-state.json
+```
+
+状态文件包含业务值，权限为 `0600`，不得提交。转换只覆盖简单用户任务执行树，复杂作用域、作业和事件订阅仍阻断；真实 Java H2 样本对照、范围边界与验收记录见 [054 离线状态转换与 Java 对照](docs/002-迁移实施/054-离线状态转换与Java对照.md)。
+
 当前实现范围、限制与覆盖率见 [MVP 实现说明](docs/002-迁移实施/001-MVP实现说明.md)；整体进度与剩余差距见 [实施进度与差距](docs/002-迁移实施/002-实施进度与差距.md)。
 
 ## 已实现能力
@@ -187,6 +196,7 @@ go run ./cmd/flowable-server -storage mysql -env .env
 - 链接事件：中间抛出/捕获、同名跳转与直通。
 - 附件二进制内容：multipart 上传、contentUrl 与内容下载、字节数组行持久化。
 - 迁移预检与按定义批量迁移；变量异步端点同步兼容实现。
+- 既有 Java 简单用户任务执行树的离线状态转换、Java audit 列保留与 H2 真实样本对照。
 - 流程定义模型 JSON 与决策/决策表/表单定义查询（后三者为空数组）。
 - 组更新、批量任务更新、执行变量批量更新与嵌套部署资源名。
 - 批处理批次/分片/统计查询；执行与实例级活动迁移（change-state）。

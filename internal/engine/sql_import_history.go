@@ -3,6 +3,7 @@ package engine
 import (
 	"context"
 
+	"github.com/flowable-go/flowable/api"
 	flowablerow "github.com/flowable-go/flowable/internal/persistence/flowable"
 )
 
@@ -55,7 +56,38 @@ func (e *Engine) ImportHistoricRows(ctx context.Context, rows []flowablerow.Row)
 				e.state.NextTaskLogID = log.ID
 			}
 		}
-		return nil, nil
+		return nil, e.restoreHistoricActivityReferences(rows)
 	})
 	return err
+}
+
+// restoreHistoricActivityReferences 按原始执行标识关联尚未结束的活动历史。
+// @param rows 原始历史行，包含标准执行引用
+// @return 同一执行存在多个当前活动历史时的歧义错误
+func (e *Engine) restoreHistoricActivityReferences(rows []flowablerow.Row) error {
+	matched := make(map[string]string)
+	for _, row := range rows {
+		if row.Table != "ACT_HI_ACTINST" {
+			continue
+		}
+		id, _ := row.Values["ID_"].(string)
+		historic := e.state.HistoricActivities[id]
+		if historic == nil || historic.EndTime != nil {
+			continue
+		}
+		executionID, _ := row.Values["EXECUTION_ID_"].(string)
+		execution := e.state.Executions[executionID]
+		// 控制扩展已有准确关联时保持原值；Java 行按执行、实例和活动共同匹配。
+		if execution == nil || execution.CurrentHistActivityID != "" || execution.ProcessInstanceID != historic.ProcessInstanceID || execution.ActivityID != historic.ActivityID {
+			continue
+		}
+		if previous := matched[executionID]; previous != "" && previous != id {
+			return api.NewError("ENGINE-0922", "执行存在多个未结束的活动历史，无法确定续跑关联", api.ErrBadRequest)
+		}
+		matched[executionID] = id
+	}
+	for executionID, historicID := range matched {
+		e.state.Executions[executionID].CurrentHistActivityID = historicID
+	}
+	return nil
 }

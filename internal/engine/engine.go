@@ -38,6 +38,8 @@ type Config struct {
 	RowRepository  *flowablerow.Repository // 按表行仓储，可选
 	LoadRows       bool                    // 启动时从行仓储恢复
 	LoadTenant     string                  // 启动恢复租户
+	// RecordSequenceFlowHistory 在迁移续跑时按 Java audit 语义记录顺序流历史。
+	RecordSequenceFlowHistory bool
 }
 
 // Delegate 是服务任务委托。
@@ -104,11 +106,19 @@ type Engine struct {
 
 // commandContext 是单条命令的上下文。
 type commandContext struct {
-	engine      *Engine         // 引擎
-	ctx         context.Context // 调用方上下文
-	now         time.Time       // 命令内统一时间
-	agenda      *agenda         // 议程
-	listenerErr error           // 执行监听器错误，命令结束统一回滚
+	engine           *Engine         // 引擎
+	ctx              context.Context // 调用方上下文
+	now              time.Time       // 命令内统一时间
+	agenda           *agenda         // 议程
+	listenerErr      error           // 执行监听器错误，命令结束统一回滚
+	transactionOrder int             // 命令内历史活动写入顺序
+}
+
+// nextTransactionOrder 返回当前命令内的下一个活动事务顺序，与 Java audit 记录一致。
+// @return 从一开始递增的顺序号
+func (cc *commandContext) nextTransactionOrder() int {
+	cc.transactionOrder++
+	return cc.transactionOrder
 }
 
 // New 创建流程引擎。
@@ -153,6 +163,8 @@ func New(cfg Config) (*Engine, error) {
 		executionListeners: make(map[string]ExecutionListener),
 		rowRepository:      cfg.RowRepository,
 	}
+	// 转换进程显式启用 Java 顺序流历史；从已准备状态恢复时以状态内标记为准。
+	engine.state.RecordSequenceFlowHistory = cfg.RecordSequenceFlowHistory
 	if cfg.LoadRows && cfg.RowRepository != nil {
 		engine.rowSource = true
 		rows, err := loadRowsForTenant(cfg, context.Background())

@@ -247,9 +247,17 @@ func decodeExecution(row Row) (RuntimeExecution, error) {
 	if err != nil {
 		return RuntimeExecution{}, err
 	}
-	startTime, err := timeValue(row, "START_TIME_")
+	if _, exists := row.Values["START_TIME_"]; !exists {
+		return RuntimeExecution{}, api.NewError("ROW-0013", "缺少列: START_TIME_", api.ErrBadRequest)
+	}
+	startTime, err := optionalTime(row, "START_TIME_")
 	if err != nil {
 		return RuntimeExecution{}, err
+	}
+	// Java 仅在流程根设置开始时间，子执行为空时交由实例恢复使用根元数据。
+	started := time.Time{}
+	if startTime != nil {
+		started = *startTime
 	}
 	active, err := boolValue(row, "IS_ACTIVE_")
 	if err != nil {
@@ -278,7 +286,7 @@ func decodeExecution(row Row) (RuntimeExecution, error) {
 	return RuntimeExecution{
 		ID: id, ProcessInstanceID: processInstanceID, DefinitionID: definitionID,
 		ParentID: parentID, ActivityID: activityID, BusinessKey: businessKey,
-		TenantID: tenant, StartTime: startTime, Active: active, Concurrent: concurrent,
+		TenantID: tenant, StartTime: started, Active: active, Concurrent: concurrent,
 		Scope: scope, EventScope: eventScope, MIRoot: miRoot, Suspended: suspension == 2,
 	}, nil
 }

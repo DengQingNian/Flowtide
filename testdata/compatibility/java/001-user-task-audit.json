@@ -1,0 +1,3793 @@
+{
+  "baseline" : "f6017e32a4bdd3e59a8881f58b0ee181652d1d9e",
+  "schemaVersion" : "8.1.0.3",
+  "database" : "h2",
+  "javaVersion" : "17.0.21.0.2",
+  "scenarios" : [ {
+    "name" : "approve",
+    "before" : {
+      "dialect" : "h2",
+      "schemaVersion" : "8.1.0.3",
+      "tables" : [ {
+        "name" : "ACT_EVT_LOG",
+        "count" : 0
+      }, {
+        "name" : "ACT_GE_BYTEARRAY",
+        "count" : 3
+      }, {
+        "name" : "ACT_GE_PROPERTY",
+        "count" : 6
+      }, {
+        "name" : "ACT_HI_ACTINST",
+        "count" : 3
+      }, {
+        "name" : "ACT_HI_ATTACHMENT",
+        "count" : 0
+      }, {
+        "name" : "ACT_HI_COMMENT",
+        "count" : 1
+      }, {
+        "name" : "ACT_HI_DETAIL",
+        "count" : 0
+      }, {
+        "name" : "ACT_HI_ENTITYLINK",
+        "count" : 0
+      }, {
+        "name" : "ACT_HI_IDENTITYLINK",
+        "count" : 6
+      }, {
+        "name" : "ACT_HI_PROCINST",
+        "count" : 1
+      }, {
+        "name" : "ACT_HI_TASKINST",
+        "count" : 1
+      }, {
+        "name" : "ACT_HI_TSK_LOG",
+        "count" : 0
+      }, {
+        "name" : "ACT_HI_VARINST",
+        "count" : 8
+      }, {
+        "name" : "ACT_PROCDEF_INFO",
+        "count" : 0
+      }, {
+        "name" : "ACT_RE_DEPLOYMENT",
+        "count" : 1
+      }, {
+        "name" : "ACT_RE_MODEL",
+        "count" : 0
+      }, {
+        "name" : "ACT_RE_PROCDEF",
+        "count" : 1
+      }, {
+        "name" : "ACT_RU_ACTINST",
+        "count" : 3
+      }, {
+        "name" : "ACT_RU_DEADLETTER_JOB",
+        "count" : 0
+      }, {
+        "name" : "ACT_RU_ENTITYLINK",
+        "count" : 0
+      }, {
+        "name" : "ACT_RU_EVENT_SUBSCR",
+        "count" : 0
+      }, {
+        "name" : "ACT_RU_EXECUTION",
+        "count" : 2
+      }, {
+        "name" : "ACT_RU_EXTERNAL_JOB",
+        "count" : 0
+      }, {
+        "name" : "ACT_RU_HISTORY_JOB",
+        "count" : 0
+      }, {
+        "name" : "ACT_RU_IDENTITYLINK",
+        "count" : 5
+      }, {
+        "name" : "ACT_RU_JOB",
+        "count" : 0
+      }, {
+        "name" : "ACT_RU_SUSPENDED_JOB",
+        "count" : 0
+      }, {
+        "name" : "ACT_RU_TASK",
+        "count" : 1
+      }, {
+        "name" : "ACT_RU_TIMER_JOB",
+        "count" : 0
+      }, {
+        "name" : "ACT_RU_VARIABLE",
+        "count" : 8
+      } ],
+      "rows" : [ {
+        "table" : "ACT_GE_BYTEARRAY",
+        "values" : {
+          "ID_" : "10",
+          "REV_" : 1,
+          "NAME_" : "hist.var-binary",
+          "DEPLOYMENT_ID_" : null,
+          "BYTES_" : {
+            "$bytes" : "AAEC/w=="
+          },
+          "GENERATED_" : null
+        }
+      }, {
+        "table" : "ACT_GE_BYTEARRAY",
+        "values" : {
+          "ID_" : "2",
+          "REV_" : 1,
+          "NAME_" : "java-user-audit.bpmn20.xml",
+          "DEPLOYMENT_ID_" : "1",
+          "BYTES_" : {
+            "$bytes" : "PGRlZmluaXRpb25zIHhtbG5zPSJodHRwOi8vd3d3Lm9tZy5vcmcvc3BlYy9CUE1OLzIwMTAwNTI0L01PREVMIgogICAgICAgICAgICAgeG1sbnM6Zmxvd2FibGU9Imh0dHA6Ly9mbG93YWJsZS5vcmcvYnBtbiIgdGFyZ2V0TmFtZXNwYWNlPSLlj4LogIPov4Hnp7siPgogIDxwcm9jZXNzIGlkPSJqYXZhX3VzZXJfYXVkaXQiIG5hbWU9IkphdmEg6L+B56e75a+554WnIiBpc0V4ZWN1dGFibGU9InRydWUiPgogICAgPHN0YXJ0RXZlbnQgaWQ9InN0YXJ0Ii8+CiAgICA8c2VxdWVuY2VGbG93IGlkPSJ0b19hcHByb3ZlIiBzb3VyY2VSZWY9InN0YXJ0IiB0YXJnZXRSZWY9ImFwcHJvdmUiLz4KICAgIDx1c2VyVGFzayBpZD0iYXBwcm92ZSIgbmFtZT0i5a6h5om5IiBmbG93YWJsZTpjYW5kaWRhdGVVc2Vycz0iYWxpY2UsYm9iIiBmbG93YWJsZTpjYW5kaWRhdGVHcm91cHM9InJldmlld2VycyIvPgogICAgPHNlcXVlbmNlRmxvdyBpZD0idG9fcmV2aWV3IiBzb3VyY2VSZWY9ImFwcHJvdmUiIHRhcmdldFJlZj0icmV2aWV3Ii8+CiAgICA8dXNlclRhc2sgaWQ9InJldmlldyIgbmFtZT0i5aSN5qC4IiBmbG93YWJsZTphc3NpZ25lZT0iY2Fyb2wiLz4KICAgIDxzZXF1ZW5jZUZsb3cgaWQ9InRvX2VuZCIgc291cmNlUmVmPSJyZXZpZXciIHRhcmdldFJlZj0iZW5kIi8+CiAgICA8ZW5kRXZlbnQgaWQ9ImVuZCIvPgogIDwvcHJvY2Vzcz4KPC9kZWZpbml0aW9ucz4K"
+          },
+          "GENERATED_" : false
+        }
+      }, {
+        "table" : "ACT_GE_BYTEARRAY",
+        "values" : {
+          "ID_" : "8",
+          "REV_" : 1,
+          "NAME_" : "var-binary",
+          "DEPLOYMENT_ID_" : null,
+          "BYTES_" : {
+            "$bytes" : "AAEC/w=="
+          },
+          "GENERATED_" : null
+        }
+      }, {
+        "table" : "ACT_GE_PROPERTY",
+        "values" : {
+          "NAME_" : "common.schema.version",
+          "VALUE_" : "8.1.0.3",
+          "REV_" : 1
+        }
+      }, {
+        "table" : "ACT_GE_PROPERTY",
+        "values" : {
+          "NAME_" : "next.dbid",
+          "VALUE_" : "2501",
+          "REV_" : 2
+        }
+      }, {
+        "table" : "ACT_GE_PROPERTY",
+        "values" : {
+          "NAME_" : "schema.version",
+          "VALUE_" : "8.1.0.3",
+          "REV_" : 1
+        }
+      }, {
+        "table" : "ACT_GE_PROPERTY",
+        "values" : {
+          "NAME_" : "schema.history",
+          "VALUE_" : "create(8.1.0.2)",
+          "REV_" : 1
+        }
+      }, {
+        "table" : "ACT_GE_PROPERTY",
+        "values" : {
+          "NAME_" : "cfg.execution-related-entities-count",
+          "VALUE_" : "true",
+          "REV_" : 1
+        }
+      }, {
+        "table" : "ACT_GE_PROPERTY",
+        "values" : {
+          "NAME_" : "cfg.task-related-entities-count",
+          "VALUE_" : "true",
+          "REV_" : 1
+        }
+      }, {
+        "table" : "ACT_HI_ACTINST",
+        "values" : {
+          "ID_" : "15",
+          "REV_" : 1,
+          "PROC_DEF_ID_" : "java_user_audit:1:3",
+          "PROC_INST_ID_" : "4",
+          "EXECUTION_ID_" : "14",
+          "ACT_ID_" : "start",
+          "TASK_ID_" : null,
+          "CALL_PROC_INST_ID_" : null,
+          "ACT_NAME_" : null,
+          "ACT_TYPE_" : "startEvent",
+          "ASSIGNEE_" : null,
+          "COMPLETED_BY_" : null,
+          "START_TIME_" : "2026-01-02T03:04:05Z",
+          "END_TIME_" : "2026-01-02T03:04:05Z",
+          "TRANSACTION_ORDER_" : 1,
+          "DURATION_" : 0,
+          "DELETE_REASON_" : null,
+          "TENANT_ID_" : "tenant-a"
+        }
+      }, {
+        "table" : "ACT_HI_ACTINST",
+        "values" : {
+          "ID_" : "16",
+          "REV_" : 1,
+          "PROC_DEF_ID_" : "java_user_audit:1:3",
+          "PROC_INST_ID_" : "4",
+          "EXECUTION_ID_" : "14",
+          "ACT_ID_" : "to_approve",
+          "TASK_ID_" : null,
+          "CALL_PROC_INST_ID_" : null,
+          "ACT_NAME_" : null,
+          "ACT_TYPE_" : "sequenceFlow",
+          "ASSIGNEE_" : null,
+          "COMPLETED_BY_" : null,
+          "START_TIME_" : "2026-01-02T03:04:05Z",
+          "END_TIME_" : "2026-01-02T03:04:05Z",
+          "TRANSACTION_ORDER_" : 2,
+          "DURATION_" : 0,
+          "DELETE_REASON_" : null,
+          "TENANT_ID_" : "tenant-a"
+        }
+      }, {
+        "table" : "ACT_HI_ACTINST",
+        "values" : {
+          "ID_" : "17",
+          "REV_" : 2,
+          "PROC_DEF_ID_" : "java_user_audit:1:3",
+          "PROC_INST_ID_" : "4",
+          "EXECUTION_ID_" : "14",
+          "ACT_ID_" : "approve",
+          "TASK_ID_" : "18",
+          "CALL_PROC_INST_ID_" : null,
+          "ACT_NAME_" : "审批",
+          "ACT_TYPE_" : "userTask",
+          "ASSIGNEE_" : "alice",
+          "COMPLETED_BY_" : null,
+          "START_TIME_" : "2026-01-02T03:04:05Z",
+          "END_TIME_" : null,
+          "TRANSACTION_ORDER_" : 3,
+          "DURATION_" : null,
+          "DELETE_REASON_" : null,
+          "TENANT_ID_" : "tenant-a"
+        }
+      }, {
+        "table" : "ACT_HI_COMMENT",
+        "values" : {
+          "ID_" : "26",
+          "TYPE_" : "event",
+          "TIME_" : "2026-01-02T03:04:05Z",
+          "USER_ID_" : null,
+          "TASK_ID_" : "18",
+          "PROC_INST_ID_" : null,
+          "ACTION_" : "AddUserLink",
+          "MESSAGE_" : "alice_|_assignee",
+          "FULL_MSG_" : null
+        }
+      }, {
+        "table" : "ACT_HI_IDENTITYLINK",
+        "values" : {
+          "ID_" : "19",
+          "GROUP_ID_" : "reviewers",
+          "TYPE_" : "candidate",
+          "USER_ID_" : null,
+          "TASK_ID_" : "18",
+          "CREATE_TIME_" : "2026-01-02T03:04:05Z",
+          "PROC_INST_ID_" : null,
+          "SCOPE_ID_" : null,
+          "SUB_SCOPE_ID_" : null,
+          "SCOPE_TYPE_" : null,
+          "SCOPE_DEFINITION_ID_" : null
+        }
+      }, {
+        "table" : "ACT_HI_IDENTITYLINK",
+        "values" : {
+          "ID_" : "20",
+          "GROUP_ID_" : null,
+          "TYPE_" : "candidate",
+          "USER_ID_" : "alice",
+          "TASK_ID_" : "18",
+          "CREATE_TIME_" : "2026-01-02T03:04:05Z",
+          "PROC_INST_ID_" : null,
+          "SCOPE_ID_" : null,
+          "SUB_SCOPE_ID_" : null,
+          "SCOPE_TYPE_" : null,
+          "SCOPE_DEFINITION_ID_" : null
+        }
+      }, {
+        "table" : "ACT_HI_IDENTITYLINK",
+        "values" : {
+          "ID_" : "21",
+          "GROUP_ID_" : null,
+          "TYPE_" : "participant",
+          "USER_ID_" : "alice",
+          "TASK_ID_" : null,
+          "CREATE_TIME_" : "2026-01-02T03:04:05Z",
+          "PROC_INST_ID_" : "4",
+          "SCOPE_ID_" : null,
+          "SUB_SCOPE_ID_" : null,
+          "SCOPE_TYPE_" : null,
+          "SCOPE_DEFINITION_ID_" : null
+        }
+      }, {
+        "table" : "ACT_HI_IDENTITYLINK",
+        "values" : {
+          "ID_" : "22",
+          "GROUP_ID_" : null,
+          "TYPE_" : "candidate",
+          "USER_ID_" : "bob",
+          "TASK_ID_" : "18",
+          "CREATE_TIME_" : "2026-01-02T03:04:05Z",
+          "PROC_INST_ID_" : null,
+          "SCOPE_ID_" : null,
+          "SUB_SCOPE_ID_" : null,
+          "SCOPE_TYPE_" : null,
+          "SCOPE_DEFINITION_ID_" : null
+        }
+      }, {
+        "table" : "ACT_HI_IDENTITYLINK",
+        "values" : {
+          "ID_" : "23",
+          "GROUP_ID_" : null,
+          "TYPE_" : "participant",
+          "USER_ID_" : "bob",
+          "TASK_ID_" : null,
+          "CREATE_TIME_" : "2026-01-02T03:04:05Z",
+          "PROC_INST_ID_" : "4",
+          "SCOPE_ID_" : null,
+          "SUB_SCOPE_ID_" : null,
+          "SCOPE_TYPE_" : null,
+          "SCOPE_DEFINITION_ID_" : null
+        }
+      }, {
+        "table" : "ACT_HI_IDENTITYLINK",
+        "values" : {
+          "ID_" : "25",
+          "GROUP_ID_" : null,
+          "TYPE_" : "assignee",
+          "USER_ID_" : "alice",
+          "TASK_ID_" : "18",
+          "CREATE_TIME_" : "2026-01-02T03:04:05Z",
+          "PROC_INST_ID_" : null,
+          "SCOPE_ID_" : null,
+          "SUB_SCOPE_ID_" : null,
+          "SCOPE_TYPE_" : null,
+          "SCOPE_DEFINITION_ID_" : null
+        }
+      }, {
+        "table" : "ACT_HI_PROCINST",
+        "values" : {
+          "ID_" : "4",
+          "REV_" : 1,
+          "PROC_INST_ID_" : "4",
+          "BUSINESS_KEY_" : "java-business",
+          "PROC_DEF_ID_" : "java_user_audit:1:3",
+          "START_TIME_" : "2026-01-02T03:04:05Z",
+          "END_TIME_" : null,
+          "DURATION_" : null,
+          "START_USER_ID_" : null,
+          "START_ACT_ID_" : "start",
+          "END_ACT_ID_" : null,
+          "SUPER_PROCESS_INSTANCE_ID_" : null,
+          "DELETE_REASON_" : null,
+          "TENANT_ID_" : "tenant-a",
+          "NAME_" : null,
+          "CALLBACK_ID_" : null,
+          "CALLBACK_TYPE_" : null,
+          "REFERENCE_ID_" : null,
+          "REFERENCE_TYPE_" : null,
+          "PROPAGATED_STAGE_INST_ID_" : null,
+          "BUSINESS_STATUS_" : null,
+          "DUE_DATE_" : null,
+          "CLAIM_TIME_" : null,
+          "CLAIMED_BY_" : null,
+          "END_USER_ID_" : null,
+          "STATE_" : "running"
+        }
+      }, {
+        "table" : "ACT_HI_TASKINST",
+        "values" : {
+          "ID_" : "18",
+          "REV_" : 2,
+          "PROC_DEF_ID_" : "java_user_audit:1:3",
+          "TASK_DEF_ID_" : null,
+          "TASK_DEF_KEY_" : "approve",
+          "PROC_INST_ID_" : "4",
+          "EXECUTION_ID_" : "14",
+          "SCOPE_ID_" : null,
+          "SUB_SCOPE_ID_" : null,
+          "SCOPE_TYPE_" : null,
+          "SCOPE_DEFINITION_ID_" : null,
+          "PROPAGATED_STAGE_INST_ID_" : null,
+          "STATE_" : "claimed",
+          "NAME_" : "审批",
+          "PARENT_TASK_ID_" : null,
+          "DESCRIPTION_" : null,
+          "OWNER_" : null,
+          "ASSIGNEE_" : "alice",
+          "START_TIME_" : "2026-01-02T03:04:05Z",
+          "IN_PROGRESS_TIME_" : null,
+          "IN_PROGRESS_STARTED_BY_" : null,
+          "CLAIM_TIME_" : "2026-01-02T03:04:05Z",
+          "CLAIMED_BY_" : "alice",
+          "SUSPENDED_TIME_" : null,
+          "SUSPENDED_BY_" : null,
+          "END_TIME_" : null,
+          "COMPLETED_BY_" : null,
+          "DURATION_" : null,
+          "DELETE_REASON_" : null,
+          "PRIORITY_" : 50,
+          "IN_PROGRESS_DUE_DATE_" : null,
+          "DUE_DATE_" : null,
+          "FORM_KEY_" : null,
+          "CATEGORY_" : null,
+          "TENANT_ID_" : "tenant-a",
+          "LAST_UPDATED_TIME_" : "2026-01-02T03:04:05Z"
+        }
+      }, {
+        "table" : "ACT_HI_VARINST",
+        "values" : {
+          "ID_" : "11",
+          "REV_" : 0,
+          "PROC_INST_ID_" : "4",
+          "EXECUTION_ID_" : "4",
+          "TASK_ID_" : null,
+          "NAME_" : "submittedAt",
+          "VAR_TYPE_" : "date",
+          "SCOPE_ID_" : null,
+          "SUB_SCOPE_ID_" : null,
+          "SCOPE_TYPE_" : null,
+          "BYTEARRAY_ID_" : null,
+          "DOUBLE_" : null,
+          "LONG_" : 1767319445000,
+          "TEXT_" : null,
+          "TEXT2_" : null,
+          "META_INFO_" : null,
+          "CREATE_TIME_" : "2026-01-02T03:04:05Z",
+          "LAST_UPDATED_TIME_" : "2026-01-02T03:04:05Z"
+        }
+      }, {
+        "table" : "ACT_HI_VARINST",
+        "values" : {
+          "ID_" : "12",
+          "REV_" : 0,
+          "PROC_INST_ID_" : "4",
+          "EXECUTION_ID_" : "4",
+          "TASK_ID_" : null,
+          "NAME_" : "document",
+          "VAR_TYPE_" : "json",
+          "SCOPE_ID_" : null,
+          "SUB_SCOPE_ID_" : null,
+          "SCOPE_TYPE_" : null,
+          "BYTEARRAY_ID_" : null,
+          "DOUBLE_" : null,
+          "LONG_" : null,
+          "TEXT_" : "{\"amount\":12,\"items\":[\"甲\",\"乙\"]}",
+          "TEXT2_" : null,
+          "META_INFO_" : null,
+          "CREATE_TIME_" : "2026-01-02T03:04:05Z",
+          "LAST_UPDATED_TIME_" : "2026-01-02T03:04:05Z"
+        }
+      }, {
+        "table" : "ACT_HI_VARINST",
+        "values" : {
+          "ID_" : "13",
+          "REV_" : 0,
+          "PROC_INST_ID_" : "4",
+          "EXECUTION_ID_" : "4",
+          "TASK_ID_" : null,
+          "NAME_" : "status",
+          "VAR_TYPE_" : "string",
+          "SCOPE_ID_" : null,
+          "SUB_SCOPE_ID_" : null,
+          "SCOPE_TYPE_" : null,
+          "BYTEARRAY_ID_" : null,
+          "DOUBLE_" : null,
+          "LONG_" : null,
+          "TEXT_" : "started",
+          "TEXT2_" : null,
+          "META_INFO_" : null,
+          "CREATE_TIME_" : "2026-01-02T03:04:05Z",
+          "LAST_UPDATED_TIME_" : "2026-01-02T03:04:05Z"
+        }
+      }, {
+        "table" : "ACT_HI_VARINST",
+        "values" : {
+          "ID_" : "24",
+          "REV_" : 0,
+          "PROC_INST_ID_" : "4",
+          "EXECUTION_ID_" : "14",
+          "TASK_ID_" : "18",
+          "NAME_" : "comment",
+          "VAR_TYPE_" : "string",
+          "SCOPE_ID_" : null,
+          "SUB_SCOPE_ID_" : null,
+          "SCOPE_TYPE_" : null,
+          "BYTEARRAY_ID_" : null,
+          "DOUBLE_" : null,
+          "LONG_" : null,
+          "TEXT_" : "仅审批任务本地变量",
+          "TEXT2_" : null,
+          "META_INFO_" : null,
+          "CREATE_TIME_" : "2026-01-02T03:04:05Z",
+          "LAST_UPDATED_TIME_" : "2026-01-02T03:04:05Z"
+        }
+      }, {
+        "table" : "ACT_HI_VARINST",
+        "values" : {
+          "ID_" : "5",
+          "REV_" : 0,
+          "PROC_INST_ID_" : "4",
+          "EXECUTION_ID_" : "4",
+          "TASK_ID_" : null,
+          "NAME_" : "title",
+          "VAR_TYPE_" : "string",
+          "SCOPE_ID_" : null,
+          "SUB_SCOPE_ID_" : null,
+          "SCOPE_TYPE_" : null,
+          "BYTEARRAY_ID_" : null,
+          "DOUBLE_" : null,
+          "LONG_" : null,
+          "TEXT_" : "真实 Java 样本",
+          "TEXT2_" : null,
+          "META_INFO_" : null,
+          "CREATE_TIME_" : "2026-01-02T03:04:05Z",
+          "LAST_UPDATED_TIME_" : "2026-01-02T03:04:05Z"
+        }
+      }, {
+        "table" : "ACT_HI_VARINST",
+        "values" : {
+          "ID_" : "6",
+          "REV_" : 0,
+          "PROC_INST_ID_" : "4",
+          "EXECUTION_ID_" : "4",
+          "TASK_ID_" : null,
+          "NAME_" : "large",
+          "VAR_TYPE_" : "long",
+          "SCOPE_ID_" : null,
+          "SUB_SCOPE_ID_" : null,
+          "SCOPE_TYPE_" : null,
+          "BYTEARRAY_ID_" : null,
+          "DOUBLE_" : null,
+          "LONG_" : 9007199254740993,
+          "TEXT_" : "9007199254740993",
+          "TEXT2_" : null,
+          "META_INFO_" : null,
+          "CREATE_TIME_" : "2026-01-02T03:04:05Z",
+          "LAST_UPDATED_TIME_" : "2026-01-02T03:04:05Z"
+        }
+      }, {
+        "table" : "ACT_HI_VARINST",
+        "values" : {
+          "ID_" : "7",
+          "REV_" : 0,
+          "PROC_INST_ID_" : "4",
+          "EXECUTION_ID_" : "4",
+          "TASK_ID_" : null,
+          "NAME_" : "approved",
+          "VAR_TYPE_" : "boolean",
+          "SCOPE_ID_" : null,
+          "SUB_SCOPE_ID_" : null,
+          "SCOPE_TYPE_" : null,
+          "BYTEARRAY_ID_" : null,
+          "DOUBLE_" : null,
+          "LONG_" : 0,
+          "TEXT_" : null,
+          "TEXT2_" : null,
+          "META_INFO_" : null,
+          "CREATE_TIME_" : "2026-01-02T03:04:05Z",
+          "LAST_UPDATED_TIME_" : "2026-01-02T03:04:05Z"
+        }
+      }, {
+        "table" : "ACT_HI_VARINST",
+        "values" : {
+          "ID_" : "9",
+          "REV_" : 0,
+          "PROC_INST_ID_" : "4",
+          "EXECUTION_ID_" : "4",
+          "TASK_ID_" : null,
+          "NAME_" : "binary",
+          "VAR_TYPE_" : "bytes",
+          "SCOPE_ID_" : null,
+          "SUB_SCOPE_ID_" : null,
+          "SCOPE_TYPE_" : null,
+          "BYTEARRAY_ID_" : "10",
+          "DOUBLE_" : null,
+          "LONG_" : null,
+          "TEXT_" : null,
+          "TEXT2_" : null,
+          "META_INFO_" : null,
+          "CREATE_TIME_" : "2026-01-02T03:04:05Z",
+          "LAST_UPDATED_TIME_" : "2026-01-02T03:04:05Z"
+        }
+      }, {
+        "table" : "ACT_RE_DEPLOYMENT",
+        "values" : {
+          "ID_" : "1",
+          "NAME_" : "Java 迁移样本",
+          "CATEGORY_" : null,
+          "KEY_" : null,
+          "TENANT_ID_" : "tenant-a",
+          "DEPLOY_TIME_" : "2026-01-02T03:04:05Z",
+          "DERIVED_FROM_" : null,
+          "DERIVED_FROM_ROOT_" : null,
+          "PARENT_DEPLOYMENT_ID_" : "1",
+          "ENGINE_VERSION_" : null
+        }
+      }, {
+        "table" : "ACT_RE_PROCDEF",
+        "values" : {
+          "ID_" : "java_user_audit:1:3",
+          "REV_" : 1,
+          "CATEGORY_" : "参考迁移",
+          "NAME_" : "Java 迁移对照",
+          "KEY_" : "java_user_audit",
+          "VERSION_" : 1,
+          "DEPLOYMENT_ID_" : "1",
+          "RESOURCE_NAME_" : "java-user-audit.bpmn20.xml",
+          "DGRM_RESOURCE_NAME_" : null,
+          "DESCRIPTION_" : null,
+          "HAS_START_FORM_KEY_" : false,
+          "HAS_GRAPHICAL_NOTATION_" : false,
+          "SUSPENSION_STATE_" : 1,
+          "TENANT_ID_" : "tenant-a",
+          "DERIVED_FROM_" : null,
+          "DERIVED_FROM_ROOT_" : null,
+          "DERIVED_VERSION_" : 0,
+          "ENGINE_VERSION_" : null
+        }
+      }, {
+        "table" : "ACT_RU_ACTINST",
+        "values" : {
+          "ID_" : "15",
+          "REV_" : 1,
+          "PROC_DEF_ID_" : "java_user_audit:1:3",
+          "PROC_INST_ID_" : "4",
+          "EXECUTION_ID_" : "14",
+          "ACT_ID_" : "start",
+          "TASK_ID_" : null,
+          "CALL_PROC_INST_ID_" : null,
+          "ACT_NAME_" : null,
+          "ACT_TYPE_" : "startEvent",
+          "ASSIGNEE_" : null,
+          "COMPLETED_BY_" : null,
+          "START_TIME_" : "2026-01-02T03:04:05Z",
+          "END_TIME_" : "2026-01-02T03:04:05Z",
+          "TRANSACTION_ORDER_" : 1,
+          "DURATION_" : 0,
+          "DELETE_REASON_" : null,
+          "TENANT_ID_" : "tenant-a"
+        }
+      }, {
+        "table" : "ACT_RU_ACTINST",
+        "values" : {
+          "ID_" : "16",
+          "REV_" : 1,
+          "PROC_DEF_ID_" : "java_user_audit:1:3",
+          "PROC_INST_ID_" : "4",
+          "EXECUTION_ID_" : "14",
+          "ACT_ID_" : "to_approve",
+          "TASK_ID_" : null,
+          "CALL_PROC_INST_ID_" : null,
+          "ACT_NAME_" : null,
+          "ACT_TYPE_" : "sequenceFlow",
+          "ASSIGNEE_" : null,
+          "COMPLETED_BY_" : null,
+          "START_TIME_" : "2026-01-02T03:04:05Z",
+          "END_TIME_" : "2026-01-02T03:04:05Z",
+          "TRANSACTION_ORDER_" : 2,
+          "DURATION_" : 0,
+          "DELETE_REASON_" : null,
+          "TENANT_ID_" : "tenant-a"
+        }
+      }, {
+        "table" : "ACT_RU_ACTINST",
+        "values" : {
+          "ID_" : "17",
+          "REV_" : 2,
+          "PROC_DEF_ID_" : "java_user_audit:1:3",
+          "PROC_INST_ID_" : "4",
+          "EXECUTION_ID_" : "14",
+          "ACT_ID_" : "approve",
+          "TASK_ID_" : "18",
+          "CALL_PROC_INST_ID_" : null,
+          "ACT_NAME_" : "审批",
+          "ACT_TYPE_" : "userTask",
+          "ASSIGNEE_" : "alice",
+          "COMPLETED_BY_" : null,
+          "START_TIME_" : "2026-01-02T03:04:05Z",
+          "END_TIME_" : null,
+          "TRANSACTION_ORDER_" : 3,
+          "DURATION_" : null,
+          "DELETE_REASON_" : null,
+          "TENANT_ID_" : "tenant-a"
+        }
+      }, {
+        "table" : "ACT_RU_EXECUTION",
+        "values" : {
+          "ID_" : "14",
+          "REV_" : 1,
+          "PROC_INST_ID_" : "4",
+          "BUSINESS_KEY_" : null,
+          "PARENT_ID_" : "4",
+          "PROC_DEF_ID_" : "java_user_audit:1:3",
+          "SUPER_EXEC_" : null,
+          "ROOT_PROC_INST_ID_" : "4",
+          "ACT_ID_" : "approve",
+          "IS_ACTIVE_" : true,
+          "IS_CONCURRENT_" : false,
+          "IS_SCOPE_" : false,
+          "IS_EVENT_SCOPE_" : false,
+          "IS_MI_ROOT_" : false,
+          "SUSPENSION_STATE_" : 1,
+          "CACHED_ENT_STATE_" : null,
+          "TENANT_ID_" : "tenant-a",
+          "NAME_" : null,
+          "START_ACT_ID_" : null,
+          "START_TIME_" : "2026-01-02T03:04:05Z",
+          "START_USER_ID_" : null,
+          "LOCK_TIME_" : null,
+          "LOCK_OWNER_" : null,
+          "IS_COUNT_ENABLED_" : true,
+          "EVT_SUBSCR_COUNT_" : 0,
+          "TASK_COUNT_" : 1,
+          "JOB_COUNT_" : 0,
+          "TIMER_JOB_COUNT_" : 0,
+          "SUSP_JOB_COUNT_" : 0,
+          "DEADLETTER_JOB_COUNT_" : 0,
+          "EXTERNAL_WORKER_JOB_COUNT_" : 0,
+          "VAR_COUNT_" : 0,
+          "ID_LINK_COUNT_" : 0,
+          "CALLBACK_ID_" : null,
+          "CALLBACK_TYPE_" : null,
+          "REFERENCE_ID_" : null,
+          "REFERENCE_TYPE_" : null,
+          "PROPAGATED_STAGE_INST_ID_" : null,
+          "BUSINESS_STATUS_" : null,
+          "DUE_DATE_" : null,
+          "CLAIM_TIME_" : null,
+          "CLAIMED_BY_" : null
+        }
+      }, {
+        "table" : "ACT_RU_EXECUTION",
+        "values" : {
+          "ID_" : "4",
+          "REV_" : 1,
+          "PROC_INST_ID_" : "4",
+          "BUSINESS_KEY_" : "java-business",
+          "PARENT_ID_" : null,
+          "PROC_DEF_ID_" : "java_user_audit:1:3",
+          "SUPER_EXEC_" : null,
+          "ROOT_PROC_INST_ID_" : "4",
+          "ACT_ID_" : null,
+          "IS_ACTIVE_" : true,
+          "IS_CONCURRENT_" : false,
+          "IS_SCOPE_" : true,
+          "IS_EVENT_SCOPE_" : false,
+          "IS_MI_ROOT_" : false,
+          "SUSPENSION_STATE_" : 1,
+          "CACHED_ENT_STATE_" : null,
+          "TENANT_ID_" : "tenant-a",
+          "NAME_" : null,
+          "START_ACT_ID_" : "start",
+          "START_TIME_" : "2026-01-02T03:04:05Z",
+          "START_USER_ID_" : null,
+          "LOCK_TIME_" : null,
+          "LOCK_OWNER_" : null,
+          "IS_COUNT_ENABLED_" : true,
+          "EVT_SUBSCR_COUNT_" : 0,
+          "TASK_COUNT_" : 0,
+          "JOB_COUNT_" : 0,
+          "TIMER_JOB_COUNT_" : 0,
+          "SUSP_JOB_COUNT_" : 0,
+          "DEADLETTER_JOB_COUNT_" : 0,
+          "EXTERNAL_WORKER_JOB_COUNT_" : 0,
+          "VAR_COUNT_" : 0,
+          "ID_LINK_COUNT_" : 0,
+          "CALLBACK_ID_" : null,
+          "CALLBACK_TYPE_" : null,
+          "REFERENCE_ID_" : null,
+          "REFERENCE_TYPE_" : null,
+          "PROPAGATED_STAGE_INST_ID_" : null,
+          "BUSINESS_STATUS_" : null,
+          "DUE_DATE_" : null,
+          "CLAIM_TIME_" : null,
+          "CLAIMED_BY_" : null
+        }
+      }, {
+        "table" : "ACT_RU_IDENTITYLINK",
+        "values" : {
+          "ID_" : "19",
+          "REV_" : 1,
+          "GROUP_ID_" : "reviewers",
+          "TYPE_" : "candidate",
+          "USER_ID_" : null,
+          "TASK_ID_" : "18",
+          "PROC_INST_ID_" : null,
+          "PROC_DEF_ID_" : null,
+          "SCOPE_ID_" : null,
+          "SUB_SCOPE_ID_" : null,
+          "SCOPE_TYPE_" : null,
+          "SCOPE_DEFINITION_ID_" : null
+        }
+      }, {
+        "table" : "ACT_RU_IDENTITYLINK",
+        "values" : {
+          "ID_" : "20",
+          "REV_" : 1,
+          "GROUP_ID_" : null,
+          "TYPE_" : "candidate",
+          "USER_ID_" : "alice",
+          "TASK_ID_" : "18",
+          "PROC_INST_ID_" : null,
+          "PROC_DEF_ID_" : null,
+          "SCOPE_ID_" : null,
+          "SUB_SCOPE_ID_" : null,
+          "SCOPE_TYPE_" : null,
+          "SCOPE_DEFINITION_ID_" : null
+        }
+      }, {
+        "table" : "ACT_RU_IDENTITYLINK",
+        "values" : {
+          "ID_" : "21",
+          "REV_" : 1,
+          "GROUP_ID_" : null,
+          "TYPE_" : "participant",
+          "USER_ID_" : "alice",
+          "TASK_ID_" : null,
+          "PROC_INST_ID_" : "4",
+          "PROC_DEF_ID_" : null,
+          "SCOPE_ID_" : null,
+          "SUB_SCOPE_ID_" : null,
+          "SCOPE_TYPE_" : null,
+          "SCOPE_DEFINITION_ID_" : null
+        }
+      }, {
+        "table" : "ACT_RU_IDENTITYLINK",
+        "values" : {
+          "ID_" : "22",
+          "REV_" : 1,
+          "GROUP_ID_" : null,
+          "TYPE_" : "candidate",
+          "USER_ID_" : "bob",
+          "TASK_ID_" : "18",
+          "PROC_INST_ID_" : null,
+          "PROC_DEF_ID_" : null,
+          "SCOPE_ID_" : null,
+          "SUB_SCOPE_ID_" : null,
+          "SCOPE_TYPE_" : null,
+          "SCOPE_DEFINITION_ID_" : null
+        }
+      }, {
+        "table" : "ACT_RU_IDENTITYLINK",
+        "values" : {
+          "ID_" : "23",
+          "REV_" : 1,
+          "GROUP_ID_" : null,
+          "TYPE_" : "participant",
+          "USER_ID_" : "bob",
+          "TASK_ID_" : null,
+          "PROC_INST_ID_" : "4",
+          "PROC_DEF_ID_" : null,
+          "SCOPE_ID_" : null,
+          "SUB_SCOPE_ID_" : null,
+          "SCOPE_TYPE_" : null,
+          "SCOPE_DEFINITION_ID_" : null
+        }
+      }, {
+        "table" : "ACT_RU_TASK",
+        "values" : {
+          "ID_" : "18",
+          "REV_" : 3,
+          "EXECUTION_ID_" : "14",
+          "PROC_INST_ID_" : "4",
+          "PROC_DEF_ID_" : "java_user_audit:1:3",
+          "TASK_DEF_ID_" : null,
+          "SCOPE_ID_" : null,
+          "SUB_SCOPE_ID_" : null,
+          "SCOPE_TYPE_" : null,
+          "SCOPE_DEFINITION_ID_" : null,
+          "PROPAGATED_STAGE_INST_ID_" : null,
+          "STATE_" : "claimed",
+          "NAME_" : "审批",
+          "PARENT_TASK_ID_" : null,
+          "DESCRIPTION_" : null,
+          "TASK_DEF_KEY_" : "approve",
+          "OWNER_" : null,
+          "ASSIGNEE_" : "alice",
+          "DELEGATION_" : null,
+          "PRIORITY_" : 50,
+          "CREATE_TIME_" : "2026-01-02T03:04:05Z",
+          "IN_PROGRESS_TIME_" : null,
+          "IN_PROGRESS_STARTED_BY_" : null,
+          "CLAIM_TIME_" : "2026-01-02T03:04:05Z",
+          "CLAIMED_BY_" : "alice",
+          "SUSPENDED_TIME_" : null,
+          "SUSPENDED_BY_" : null,
+          "IN_PROGRESS_DUE_DATE_" : null,
+          "DUE_DATE_" : null,
+          "CATEGORY_" : null,
+          "SUSPENSION_STATE_" : 1,
+          "TENANT_ID_" : "tenant-a",
+          "FORM_KEY_" : null,
+          "IS_COUNT_ENABLED_" : true,
+          "VAR_COUNT_" : 1,
+          "ID_LINK_COUNT_" : 3,
+          "SUB_TASK_COUNT_" : 0
+        }
+      }, {
+        "table" : "ACT_RU_VARIABLE",
+        "values" : {
+          "ID_" : "11",
+          "REV_" : 1,
+          "TYPE_" : "date",
+          "NAME_" : "submittedAt",
+          "EXECUTION_ID_" : "4",
+          "PROC_INST_ID_" : "4",
+          "TASK_ID_" : null,
+          "SCOPE_ID_" : null,
+          "SUB_SCOPE_ID_" : null,
+          "SCOPE_TYPE_" : null,
+          "BYTEARRAY_ID_" : null,
+          "DOUBLE_" : null,
+          "LONG_" : 1767319445000,
+          "TEXT_" : null,
+          "TEXT2_" : null,
+          "META_INFO_" : null
+        }
+      }, {
+        "table" : "ACT_RU_VARIABLE",
+        "values" : {
+          "ID_" : "12",
+          "REV_" : 1,
+          "TYPE_" : "json",
+          "NAME_" : "document",
+          "EXECUTION_ID_" : "4",
+          "PROC_INST_ID_" : "4",
+          "TASK_ID_" : null,
+          "SCOPE_ID_" : null,
+          "SUB_SCOPE_ID_" : null,
+          "SCOPE_TYPE_" : null,
+          "BYTEARRAY_ID_" : null,
+          "DOUBLE_" : null,
+          "LONG_" : null,
+          "TEXT_" : "{\"amount\":12,\"items\":[\"甲\",\"乙\"]}",
+          "TEXT2_" : null,
+          "META_INFO_" : null
+        }
+      }, {
+        "table" : "ACT_RU_VARIABLE",
+        "values" : {
+          "ID_" : "13",
+          "REV_" : 1,
+          "TYPE_" : "string",
+          "NAME_" : "status",
+          "EXECUTION_ID_" : "4",
+          "PROC_INST_ID_" : "4",
+          "TASK_ID_" : null,
+          "SCOPE_ID_" : null,
+          "SUB_SCOPE_ID_" : null,
+          "SCOPE_TYPE_" : null,
+          "BYTEARRAY_ID_" : null,
+          "DOUBLE_" : null,
+          "LONG_" : null,
+          "TEXT_" : "started",
+          "TEXT2_" : null,
+          "META_INFO_" : null
+        }
+      }, {
+        "table" : "ACT_RU_VARIABLE",
+        "values" : {
+          "ID_" : "24",
+          "REV_" : 1,
+          "TYPE_" : "string",
+          "NAME_" : "comment",
+          "EXECUTION_ID_" : "14",
+          "PROC_INST_ID_" : "4",
+          "TASK_ID_" : "18",
+          "SCOPE_ID_" : null,
+          "SUB_SCOPE_ID_" : null,
+          "SCOPE_TYPE_" : null,
+          "BYTEARRAY_ID_" : null,
+          "DOUBLE_" : null,
+          "LONG_" : null,
+          "TEXT_" : "仅审批任务本地变量",
+          "TEXT2_" : null,
+          "META_INFO_" : null
+        }
+      }, {
+        "table" : "ACT_RU_VARIABLE",
+        "values" : {
+          "ID_" : "5",
+          "REV_" : 1,
+          "TYPE_" : "string",
+          "NAME_" : "title",
+          "EXECUTION_ID_" : "4",
+          "PROC_INST_ID_" : "4",
+          "TASK_ID_" : null,
+          "SCOPE_ID_" : null,
+          "SUB_SCOPE_ID_" : null,
+          "SCOPE_TYPE_" : null,
+          "BYTEARRAY_ID_" : null,
+          "DOUBLE_" : null,
+          "LONG_" : null,
+          "TEXT_" : "真实 Java 样本",
+          "TEXT2_" : null,
+          "META_INFO_" : null
+        }
+      }, {
+        "table" : "ACT_RU_VARIABLE",
+        "values" : {
+          "ID_" : "6",
+          "REV_" : 1,
+          "TYPE_" : "long",
+          "NAME_" : "large",
+          "EXECUTION_ID_" : "4",
+          "PROC_INST_ID_" : "4",
+          "TASK_ID_" : null,
+          "SCOPE_ID_" : null,
+          "SUB_SCOPE_ID_" : null,
+          "SCOPE_TYPE_" : null,
+          "BYTEARRAY_ID_" : null,
+          "DOUBLE_" : null,
+          "LONG_" : 9007199254740993,
+          "TEXT_" : "9007199254740993",
+          "TEXT2_" : null,
+          "META_INFO_" : null
+        }
+      }, {
+        "table" : "ACT_RU_VARIABLE",
+        "values" : {
+          "ID_" : "7",
+          "REV_" : 1,
+          "TYPE_" : "boolean",
+          "NAME_" : "approved",
+          "EXECUTION_ID_" : "4",
+          "PROC_INST_ID_" : "4",
+          "TASK_ID_" : null,
+          "SCOPE_ID_" : null,
+          "SUB_SCOPE_ID_" : null,
+          "SCOPE_TYPE_" : null,
+          "BYTEARRAY_ID_" : null,
+          "DOUBLE_" : null,
+          "LONG_" : 0,
+          "TEXT_" : null,
+          "TEXT2_" : null,
+          "META_INFO_" : null
+        }
+      }, {
+        "table" : "ACT_RU_VARIABLE",
+        "values" : {
+          "ID_" : "9",
+          "REV_" : 1,
+          "TYPE_" : "bytes",
+          "NAME_" : "binary",
+          "EXECUTION_ID_" : "4",
+          "PROC_INST_ID_" : "4",
+          "TASK_ID_" : null,
+          "SCOPE_ID_" : null,
+          "SUB_SCOPE_ID_" : null,
+          "SCOPE_TYPE_" : null,
+          "BYTEARRAY_ID_" : "8",
+          "DOUBLE_" : null,
+          "LONG_" : null,
+          "TEXT_" : null,
+          "TEXT2_" : null,
+          "META_INFO_" : null
+        }
+      } ]
+    },
+    "beforeExpected" : {
+      "processInstanceId" : "4",
+      "businessKey" : "java-business",
+      "tenantId" : "tenant-a",
+      "ended" : false,
+      "tasks" : [ {
+        "id" : "18",
+        "key" : "approve",
+        "name" : "审批",
+        "assignee" : "alice",
+        "owner" : null,
+        "executionId" : "14",
+        "candidateUsers" : [ "alice", "bob" ],
+        "candidateGroups" : [ "reviewers" ],
+        "localVariables" : {
+          "comment" : "仅审批任务本地变量"
+        }
+      } ],
+      "variables" : {
+        "approved" : false,
+        "large" : 9007199254740993,
+        "document" : {
+          "amount" : 12,
+          "items" : [ "甲", "乙" ]
+        },
+        "binary" : {
+          "$bytes" : "AAEC/w=="
+        },
+        "submittedAt" : {
+          "$date" : "2026-01-02T02:04:05Z"
+        },
+        "title" : "真实 Java 样本",
+        "status" : "started"
+      },
+      "historicTasks" : [ {
+        "id" : "18",
+        "key" : "approve",
+        "assignee" : "alice",
+        "ended" : false
+      } ],
+      "historicActivities" : [ {
+        "id" : "15",
+        "activityId" : "start",
+        "activityType" : "startEvent",
+        "executionId" : "14",
+        "taskId" : null,
+        "ended" : true
+      }, {
+        "id" : "16",
+        "activityId" : "to_approve",
+        "activityType" : "sequenceFlow",
+        "executionId" : "14",
+        "taskId" : null,
+        "ended" : true
+      }, {
+        "id" : "17",
+        "activityId" : "approve",
+        "activityType" : "userTask",
+        "executionId" : "14",
+        "taskId" : "18",
+        "ended" : false
+      } ],
+      "historicVariables" : [ {
+        "id" : "11",
+        "name" : "submittedAt",
+        "taskId" : null,
+        "executionId" : "4",
+        "type" : "date",
+        "value" : {
+          "$date" : "2026-01-02T02:04:05Z"
+        }
+      }, {
+        "id" : "12",
+        "name" : "document",
+        "taskId" : null,
+        "executionId" : "4",
+        "type" : "json",
+        "value" : {
+          "amount" : 12,
+          "items" : [ "甲", "乙" ]
+        }
+      }, {
+        "id" : "13",
+        "name" : "status",
+        "taskId" : null,
+        "executionId" : "4",
+        "type" : "string",
+        "value" : "started"
+      }, {
+        "id" : "24",
+        "name" : "comment",
+        "taskId" : "18",
+        "executionId" : "14",
+        "type" : "string",
+        "value" : "仅审批任务本地变量"
+      }, {
+        "id" : "5",
+        "name" : "title",
+        "taskId" : null,
+        "executionId" : "4",
+        "type" : "string",
+        "value" : "真实 Java 样本"
+      }, {
+        "id" : "6",
+        "name" : "large",
+        "taskId" : null,
+        "executionId" : "4",
+        "type" : "long",
+        "value" : 9007199254740993
+      }, {
+        "id" : "7",
+        "name" : "approved",
+        "taskId" : null,
+        "executionId" : "4",
+        "type" : "boolean",
+        "value" : false
+      }, {
+        "id" : "9",
+        "name" : "binary",
+        "taskId" : null,
+        "executionId" : "4",
+        "type" : "bytes",
+        "value" : {
+          "$bytes" : "AAEC/w=="
+        }
+      } ]
+    },
+    "completionVariables" : {
+      "status" : "approved",
+      "approved" : true
+    },
+    "expected" : {
+      "processInstanceId" : "4",
+      "businessKey" : "java-business",
+      "tenantId" : "tenant-a",
+      "ended" : false,
+      "tasks" : [ {
+        "id" : "29",
+        "key" : "review",
+        "name" : "复核",
+        "assignee" : "carol",
+        "owner" : null,
+        "executionId" : "14",
+        "candidateUsers" : [ ],
+        "candidateGroups" : [ ],
+        "localVariables" : { }
+      } ],
+      "variables" : {
+        "approved" : true,
+        "large" : 9007199254740993,
+        "document" : {
+          "amount" : 12,
+          "items" : [ "甲", "乙" ]
+        },
+        "binary" : {
+          "$bytes" : "AAEC/w=="
+        },
+        "submittedAt" : {
+          "$date" : "2026-01-02T02:04:05Z"
+        },
+        "title" : "真实 Java 样本",
+        "status" : "approved"
+      },
+      "historicTasks" : [ {
+        "id" : "18",
+        "key" : "approve",
+        "assignee" : "alice",
+        "ended" : true
+      }, {
+        "id" : "29",
+        "key" : "review",
+        "assignee" : "carol",
+        "ended" : false
+      } ],
+      "historicActivities" : [ {
+        "id" : "15",
+        "activityId" : "start",
+        "activityType" : "startEvent",
+        "executionId" : "14",
+        "taskId" : null,
+        "ended" : true
+      }, {
+        "id" : "16",
+        "activityId" : "to_approve",
+        "activityType" : "sequenceFlow",
+        "executionId" : "14",
+        "taskId" : null,
+        "ended" : true
+      }, {
+        "id" : "17",
+        "activityId" : "approve",
+        "activityType" : "userTask",
+        "executionId" : "14",
+        "taskId" : "18",
+        "ended" : true
+      }, {
+        "id" : "27",
+        "activityId" : "to_review",
+        "activityType" : "sequenceFlow",
+        "executionId" : "14",
+        "taskId" : null,
+        "ended" : true
+      }, {
+        "id" : "28",
+        "activityId" : "review",
+        "activityType" : "userTask",
+        "executionId" : "14",
+        "taskId" : "29",
+        "ended" : false
+      } ],
+      "historicVariables" : [ {
+        "id" : "11",
+        "name" : "submittedAt",
+        "taskId" : null,
+        "executionId" : "4",
+        "type" : "date",
+        "value" : {
+          "$date" : "2026-01-02T02:04:05Z"
+        }
+      }, {
+        "id" : "12",
+        "name" : "document",
+        "taskId" : null,
+        "executionId" : "4",
+        "type" : "json",
+        "value" : {
+          "amount" : 12,
+          "items" : [ "甲", "乙" ]
+        }
+      }, {
+        "id" : "13",
+        "name" : "status",
+        "taskId" : null,
+        "executionId" : "4",
+        "type" : "string",
+        "value" : "approved"
+      }, {
+        "id" : "24",
+        "name" : "comment",
+        "taskId" : "18",
+        "executionId" : "14",
+        "type" : "string",
+        "value" : "仅审批任务本地变量"
+      }, {
+        "id" : "5",
+        "name" : "title",
+        "taskId" : null,
+        "executionId" : "4",
+        "type" : "string",
+        "value" : "真实 Java 样本"
+      }, {
+        "id" : "6",
+        "name" : "large",
+        "taskId" : null,
+        "executionId" : "4",
+        "type" : "long",
+        "value" : 9007199254740993
+      }, {
+        "id" : "7",
+        "name" : "approved",
+        "taskId" : null,
+        "executionId" : "4",
+        "type" : "boolean",
+        "value" : true
+      }, {
+        "id" : "9",
+        "name" : "binary",
+        "taskId" : null,
+        "executionId" : "4",
+        "type" : "bytes",
+        "value" : {
+          "$bytes" : "AAEC/w=="
+        }
+      } ]
+    }
+  }, {
+    "name" : "review",
+    "before" : {
+      "dialect" : "h2",
+      "schemaVersion" : "8.1.0.3",
+      "tables" : [ {
+        "name" : "ACT_EVT_LOG",
+        "count" : 0
+      }, {
+        "name" : "ACT_GE_BYTEARRAY",
+        "count" : 3
+      }, {
+        "name" : "ACT_GE_PROPERTY",
+        "count" : 6
+      }, {
+        "name" : "ACT_HI_ACTINST",
+        "count" : 5
+      }, {
+        "name" : "ACT_HI_ATTACHMENT",
+        "count" : 0
+      }, {
+        "name" : "ACT_HI_COMMENT",
+        "count" : 1
+      }, {
+        "name" : "ACT_HI_DETAIL",
+        "count" : 0
+      }, {
+        "name" : "ACT_HI_ENTITYLINK",
+        "count" : 0
+      }, {
+        "name" : "ACT_HI_IDENTITYLINK",
+        "count" : 8
+      }, {
+        "name" : "ACT_HI_PROCINST",
+        "count" : 1
+      }, {
+        "name" : "ACT_HI_TASKINST",
+        "count" : 2
+      }, {
+        "name" : "ACT_HI_TSK_LOG",
+        "count" : 0
+      }, {
+        "name" : "ACT_HI_VARINST",
+        "count" : 9
+      }, {
+        "name" : "ACT_PROCDEF_INFO",
+        "count" : 0
+      }, {
+        "name" : "ACT_RE_DEPLOYMENT",
+        "count" : 1
+      }, {
+        "name" : "ACT_RE_MODEL",
+        "count" : 0
+      }, {
+        "name" : "ACT_RE_PROCDEF",
+        "count" : 1
+      }, {
+        "name" : "ACT_RU_ACTINST",
+        "count" : 5
+      }, {
+        "name" : "ACT_RU_DEADLETTER_JOB",
+        "count" : 0
+      }, {
+        "name" : "ACT_RU_ENTITYLINK",
+        "count" : 0
+      }, {
+        "name" : "ACT_RU_EVENT_SUBSCR",
+        "count" : 0
+      }, {
+        "name" : "ACT_RU_EXECUTION",
+        "count" : 2
+      }, {
+        "name" : "ACT_RU_EXTERNAL_JOB",
+        "count" : 0
+      }, {
+        "name" : "ACT_RU_HISTORY_JOB",
+        "count" : 0
+      }, {
+        "name" : "ACT_RU_IDENTITYLINK",
+        "count" : 3
+      }, {
+        "name" : "ACT_RU_JOB",
+        "count" : 0
+      }, {
+        "name" : "ACT_RU_SUSPENDED_JOB",
+        "count" : 0
+      }, {
+        "name" : "ACT_RU_TASK",
+        "count" : 1
+      }, {
+        "name" : "ACT_RU_TIMER_JOB",
+        "count" : 0
+      }, {
+        "name" : "ACT_RU_VARIABLE",
+        "count" : 8
+      } ],
+      "rows" : [ {
+        "table" : "ACT_GE_BYTEARRAY",
+        "values" : {
+          "ID_" : "10",
+          "REV_" : 1,
+          "NAME_" : "hist.var-binary",
+          "DEPLOYMENT_ID_" : null,
+          "BYTES_" : {
+            "$bytes" : "AAEC/w=="
+          },
+          "GENERATED_" : null
+        }
+      }, {
+        "table" : "ACT_GE_BYTEARRAY",
+        "values" : {
+          "ID_" : "2",
+          "REV_" : 1,
+          "NAME_" : "java-user-audit.bpmn20.xml",
+          "DEPLOYMENT_ID_" : "1",
+          "BYTES_" : {
+            "$bytes" : "PGRlZmluaXRpb25zIHhtbG5zPSJodHRwOi8vd3d3Lm9tZy5vcmcvc3BlYy9CUE1OLzIwMTAwNTI0L01PREVMIgogICAgICAgICAgICAgeG1sbnM6Zmxvd2FibGU9Imh0dHA6Ly9mbG93YWJsZS5vcmcvYnBtbiIgdGFyZ2V0TmFtZXNwYWNlPSLlj4LogIPov4Hnp7siPgogIDxwcm9jZXNzIGlkPSJqYXZhX3VzZXJfYXVkaXQiIG5hbWU9IkphdmEg6L+B56e75a+554WnIiBpc0V4ZWN1dGFibGU9InRydWUiPgogICAgPHN0YXJ0RXZlbnQgaWQ9InN0YXJ0Ii8+CiAgICA8c2VxdWVuY2VGbG93IGlkPSJ0b19hcHByb3ZlIiBzb3VyY2VSZWY9InN0YXJ0IiB0YXJnZXRSZWY9ImFwcHJvdmUiLz4KICAgIDx1c2VyVGFzayBpZD0iYXBwcm92ZSIgbmFtZT0i5a6h5om5IiBmbG93YWJsZTpjYW5kaWRhdGVVc2Vycz0iYWxpY2UsYm9iIiBmbG93YWJsZTpjYW5kaWRhdGVHcm91cHM9InJldmlld2VycyIvPgogICAgPHNlcXVlbmNlRmxvdyBpZD0idG9fcmV2aWV3IiBzb3VyY2VSZWY9ImFwcHJvdmUiIHRhcmdldFJlZj0icmV2aWV3Ii8+CiAgICA8dXNlclRhc2sgaWQ9InJldmlldyIgbmFtZT0i5aSN5qC4IiBmbG93YWJsZTphc3NpZ25lZT0iY2Fyb2wiLz4KICAgIDxzZXF1ZW5jZUZsb3cgaWQ9InRvX2VuZCIgc291cmNlUmVmPSJyZXZpZXciIHRhcmdldFJlZj0iZW5kIi8+CiAgICA8ZW5kRXZlbnQgaWQ9ImVuZCIvPgogIDwvcHJvY2Vzcz4KPC9kZWZpbml0aW9ucz4K"
+          },
+          "GENERATED_" : false
+        }
+      }, {
+        "table" : "ACT_GE_BYTEARRAY",
+        "values" : {
+          "ID_" : "8",
+          "REV_" : 1,
+          "NAME_" : "var-binary",
+          "DEPLOYMENT_ID_" : null,
+          "BYTES_" : {
+            "$bytes" : "AAEC/w=="
+          },
+          "GENERATED_" : null
+        }
+      }, {
+        "table" : "ACT_GE_PROPERTY",
+        "values" : {
+          "NAME_" : "common.schema.version",
+          "VALUE_" : "8.1.0.3",
+          "REV_" : 1
+        }
+      }, {
+        "table" : "ACT_GE_PROPERTY",
+        "values" : {
+          "NAME_" : "next.dbid",
+          "VALUE_" : "2501",
+          "REV_" : 2
+        }
+      }, {
+        "table" : "ACT_GE_PROPERTY",
+        "values" : {
+          "NAME_" : "schema.version",
+          "VALUE_" : "8.1.0.3",
+          "REV_" : 1
+        }
+      }, {
+        "table" : "ACT_GE_PROPERTY",
+        "values" : {
+          "NAME_" : "schema.history",
+          "VALUE_" : "create(8.1.0.2)",
+          "REV_" : 1
+        }
+      }, {
+        "table" : "ACT_GE_PROPERTY",
+        "values" : {
+          "NAME_" : "cfg.execution-related-entities-count",
+          "VALUE_" : "true",
+          "REV_" : 1
+        }
+      }, {
+        "table" : "ACT_GE_PROPERTY",
+        "values" : {
+          "NAME_" : "cfg.task-related-entities-count",
+          "VALUE_" : "true",
+          "REV_" : 1
+        }
+      }, {
+        "table" : "ACT_HI_ACTINST",
+        "values" : {
+          "ID_" : "15",
+          "REV_" : 1,
+          "PROC_DEF_ID_" : "java_user_audit:1:3",
+          "PROC_INST_ID_" : "4",
+          "EXECUTION_ID_" : "14",
+          "ACT_ID_" : "start",
+          "TASK_ID_" : null,
+          "CALL_PROC_INST_ID_" : null,
+          "ACT_NAME_" : null,
+          "ACT_TYPE_" : "startEvent",
+          "ASSIGNEE_" : null,
+          "COMPLETED_BY_" : null,
+          "START_TIME_" : "2026-01-02T03:04:05Z",
+          "END_TIME_" : "2026-01-02T03:04:05Z",
+          "TRANSACTION_ORDER_" : 1,
+          "DURATION_" : 0,
+          "DELETE_REASON_" : null,
+          "TENANT_ID_" : "tenant-a"
+        }
+      }, {
+        "table" : "ACT_HI_ACTINST",
+        "values" : {
+          "ID_" : "16",
+          "REV_" : 1,
+          "PROC_DEF_ID_" : "java_user_audit:1:3",
+          "PROC_INST_ID_" : "4",
+          "EXECUTION_ID_" : "14",
+          "ACT_ID_" : "to_approve",
+          "TASK_ID_" : null,
+          "CALL_PROC_INST_ID_" : null,
+          "ACT_NAME_" : null,
+          "ACT_TYPE_" : "sequenceFlow",
+          "ASSIGNEE_" : null,
+          "COMPLETED_BY_" : null,
+          "START_TIME_" : "2026-01-02T03:04:05Z",
+          "END_TIME_" : "2026-01-02T03:04:05Z",
+          "TRANSACTION_ORDER_" : 2,
+          "DURATION_" : 0,
+          "DELETE_REASON_" : null,
+          "TENANT_ID_" : "tenant-a"
+        }
+      }, {
+        "table" : "ACT_HI_ACTINST",
+        "values" : {
+          "ID_" : "17",
+          "REV_" : 3,
+          "PROC_DEF_ID_" : "java_user_audit:1:3",
+          "PROC_INST_ID_" : "4",
+          "EXECUTION_ID_" : "14",
+          "ACT_ID_" : "approve",
+          "TASK_ID_" : "18",
+          "CALL_PROC_INST_ID_" : null,
+          "ACT_NAME_" : "审批",
+          "ACT_TYPE_" : "userTask",
+          "ASSIGNEE_" : "alice",
+          "COMPLETED_BY_" : "alice",
+          "START_TIME_" : "2026-01-02T03:04:05Z",
+          "END_TIME_" : "2026-01-02T03:05:05Z",
+          "TRANSACTION_ORDER_" : 3,
+          "DURATION_" : 60000,
+          "DELETE_REASON_" : null,
+          "TENANT_ID_" : "tenant-a"
+        }
+      }, {
+        "table" : "ACT_HI_ACTINST",
+        "values" : {
+          "ID_" : "27",
+          "REV_" : 1,
+          "PROC_DEF_ID_" : "java_user_audit:1:3",
+          "PROC_INST_ID_" : "4",
+          "EXECUTION_ID_" : "14",
+          "ACT_ID_" : "to_review",
+          "TASK_ID_" : null,
+          "CALL_PROC_INST_ID_" : null,
+          "ACT_NAME_" : null,
+          "ACT_TYPE_" : "sequenceFlow",
+          "ASSIGNEE_" : null,
+          "COMPLETED_BY_" : null,
+          "START_TIME_" : "2026-01-02T03:05:05Z",
+          "END_TIME_" : "2026-01-02T03:05:05Z",
+          "TRANSACTION_ORDER_" : 1,
+          "DURATION_" : 0,
+          "DELETE_REASON_" : null,
+          "TENANT_ID_" : "tenant-a"
+        }
+      }, {
+        "table" : "ACT_HI_ACTINST",
+        "values" : {
+          "ID_" : "28",
+          "REV_" : 1,
+          "PROC_DEF_ID_" : "java_user_audit:1:3",
+          "PROC_INST_ID_" : "4",
+          "EXECUTION_ID_" : "14",
+          "ACT_ID_" : "review",
+          "TASK_ID_" : "29",
+          "CALL_PROC_INST_ID_" : null,
+          "ACT_NAME_" : "复核",
+          "ACT_TYPE_" : "userTask",
+          "ASSIGNEE_" : "carol",
+          "COMPLETED_BY_" : null,
+          "START_TIME_" : "2026-01-02T03:05:05Z",
+          "END_TIME_" : null,
+          "TRANSACTION_ORDER_" : 2,
+          "DURATION_" : null,
+          "DELETE_REASON_" : null,
+          "TENANT_ID_" : "tenant-a"
+        }
+      }, {
+        "table" : "ACT_HI_COMMENT",
+        "values" : {
+          "ID_" : "26",
+          "TYPE_" : "event",
+          "TIME_" : "2026-01-02T03:04:05Z",
+          "USER_ID_" : null,
+          "TASK_ID_" : "18",
+          "PROC_INST_ID_" : null,
+          "ACTION_" : "AddUserLink",
+          "MESSAGE_" : "alice_|_assignee",
+          "FULL_MSG_" : null
+        }
+      }, {
+        "table" : "ACT_HI_IDENTITYLINK",
+        "values" : {
+          "ID_" : "19",
+          "GROUP_ID_" : "reviewers",
+          "TYPE_" : "candidate",
+          "USER_ID_" : null,
+          "TASK_ID_" : "18",
+          "CREATE_TIME_" : "2026-01-02T03:04:05Z",
+          "PROC_INST_ID_" : null,
+          "SCOPE_ID_" : null,
+          "SUB_SCOPE_ID_" : null,
+          "SCOPE_TYPE_" : null,
+          "SCOPE_DEFINITION_ID_" : null
+        }
+      }, {
+        "table" : "ACT_HI_IDENTITYLINK",
+        "values" : {
+          "ID_" : "20",
+          "GROUP_ID_" : null,
+          "TYPE_" : "candidate",
+          "USER_ID_" : "alice",
+          "TASK_ID_" : "18",
+          "CREATE_TIME_" : "2026-01-02T03:04:05Z",
+          "PROC_INST_ID_" : null,
+          "SCOPE_ID_" : null,
+          "SUB_SCOPE_ID_" : null,
+          "SCOPE_TYPE_" : null,
+          "SCOPE_DEFINITION_ID_" : null
+        }
+      }, {
+        "table" : "ACT_HI_IDENTITYLINK",
+        "values" : {
+          "ID_" : "21",
+          "GROUP_ID_" : null,
+          "TYPE_" : "participant",
+          "USER_ID_" : "alice",
+          "TASK_ID_" : null,
+          "CREATE_TIME_" : "2026-01-02T03:04:05Z",
+          "PROC_INST_ID_" : "4",
+          "SCOPE_ID_" : null,
+          "SUB_SCOPE_ID_" : null,
+          "SCOPE_TYPE_" : null,
+          "SCOPE_DEFINITION_ID_" : null
+        }
+      }, {
+        "table" : "ACT_HI_IDENTITYLINK",
+        "values" : {
+          "ID_" : "22",
+          "GROUP_ID_" : null,
+          "TYPE_" : "candidate",
+          "USER_ID_" : "bob",
+          "TASK_ID_" : "18",
+          "CREATE_TIME_" : "2026-01-02T03:04:05Z",
+          "PROC_INST_ID_" : null,
+          "SCOPE_ID_" : null,
+          "SUB_SCOPE_ID_" : null,
+          "SCOPE_TYPE_" : null,
+          "SCOPE_DEFINITION_ID_" : null
+        }
+      }, {
+        "table" : "ACT_HI_IDENTITYLINK",
+        "values" : {
+          "ID_" : "23",
+          "GROUP_ID_" : null,
+          "TYPE_" : "participant",
+          "USER_ID_" : "bob",
+          "TASK_ID_" : null,
+          "CREATE_TIME_" : "2026-01-02T03:04:05Z",
+          "PROC_INST_ID_" : "4",
+          "SCOPE_ID_" : null,
+          "SUB_SCOPE_ID_" : null,
+          "SCOPE_TYPE_" : null,
+          "SCOPE_DEFINITION_ID_" : null
+        }
+      }, {
+        "table" : "ACT_HI_IDENTITYLINK",
+        "values" : {
+          "ID_" : "25",
+          "GROUP_ID_" : null,
+          "TYPE_" : "assignee",
+          "USER_ID_" : "alice",
+          "TASK_ID_" : "18",
+          "CREATE_TIME_" : "2026-01-02T03:04:05Z",
+          "PROC_INST_ID_" : null,
+          "SCOPE_ID_" : null,
+          "SUB_SCOPE_ID_" : null,
+          "SCOPE_TYPE_" : null,
+          "SCOPE_DEFINITION_ID_" : null
+        }
+      }, {
+        "table" : "ACT_HI_IDENTITYLINK",
+        "values" : {
+          "ID_" : "30",
+          "GROUP_ID_" : null,
+          "TYPE_" : "assignee",
+          "USER_ID_" : "carol",
+          "TASK_ID_" : "29",
+          "CREATE_TIME_" : "2026-01-02T03:05:05Z",
+          "PROC_INST_ID_" : null,
+          "SCOPE_ID_" : null,
+          "SUB_SCOPE_ID_" : null,
+          "SCOPE_TYPE_" : null,
+          "SCOPE_DEFINITION_ID_" : null
+        }
+      }, {
+        "table" : "ACT_HI_IDENTITYLINK",
+        "values" : {
+          "ID_" : "31",
+          "GROUP_ID_" : null,
+          "TYPE_" : "participant",
+          "USER_ID_" : "carol",
+          "TASK_ID_" : null,
+          "CREATE_TIME_" : "2026-01-02T03:05:05Z",
+          "PROC_INST_ID_" : "4",
+          "SCOPE_ID_" : null,
+          "SUB_SCOPE_ID_" : null,
+          "SCOPE_TYPE_" : null,
+          "SCOPE_DEFINITION_ID_" : null
+        }
+      }, {
+        "table" : "ACT_HI_PROCINST",
+        "values" : {
+          "ID_" : "4",
+          "REV_" : 1,
+          "PROC_INST_ID_" : "4",
+          "BUSINESS_KEY_" : "java-business",
+          "PROC_DEF_ID_" : "java_user_audit:1:3",
+          "START_TIME_" : "2026-01-02T03:04:05Z",
+          "END_TIME_" : null,
+          "DURATION_" : null,
+          "START_USER_ID_" : null,
+          "START_ACT_ID_" : "start",
+          "END_ACT_ID_" : null,
+          "SUPER_PROCESS_INSTANCE_ID_" : null,
+          "DELETE_REASON_" : null,
+          "TENANT_ID_" : "tenant-a",
+          "NAME_" : null,
+          "CALLBACK_ID_" : null,
+          "CALLBACK_TYPE_" : null,
+          "REFERENCE_ID_" : null,
+          "REFERENCE_TYPE_" : null,
+          "PROPAGATED_STAGE_INST_ID_" : null,
+          "BUSINESS_STATUS_" : null,
+          "DUE_DATE_" : null,
+          "CLAIM_TIME_" : null,
+          "CLAIMED_BY_" : null,
+          "END_USER_ID_" : null,
+          "STATE_" : "running"
+        }
+      }, {
+        "table" : "ACT_HI_TASKINST",
+        "values" : {
+          "ID_" : "18",
+          "REV_" : 3,
+          "PROC_DEF_ID_" : "java_user_audit:1:3",
+          "TASK_DEF_ID_" : null,
+          "TASK_DEF_KEY_" : "approve",
+          "PROC_INST_ID_" : "4",
+          "EXECUTION_ID_" : "14",
+          "SCOPE_ID_" : null,
+          "SUB_SCOPE_ID_" : null,
+          "SCOPE_TYPE_" : null,
+          "SCOPE_DEFINITION_ID_" : null,
+          "PROPAGATED_STAGE_INST_ID_" : null,
+          "STATE_" : "completed",
+          "NAME_" : "审批",
+          "PARENT_TASK_ID_" : null,
+          "DESCRIPTION_" : null,
+          "OWNER_" : null,
+          "ASSIGNEE_" : "alice",
+          "START_TIME_" : "2026-01-02T03:04:05Z",
+          "IN_PROGRESS_TIME_" : null,
+          "IN_PROGRESS_STARTED_BY_" : null,
+          "CLAIM_TIME_" : "2026-01-02T03:04:05Z",
+          "CLAIMED_BY_" : "alice",
+          "SUSPENDED_TIME_" : null,
+          "SUSPENDED_BY_" : null,
+          "END_TIME_" : "2026-01-02T03:05:05Z",
+          "COMPLETED_BY_" : null,
+          "DURATION_" : 60000,
+          "DELETE_REASON_" : null,
+          "PRIORITY_" : 50,
+          "IN_PROGRESS_DUE_DATE_" : null,
+          "DUE_DATE_" : null,
+          "FORM_KEY_" : null,
+          "CATEGORY_" : null,
+          "TENANT_ID_" : "tenant-a",
+          "LAST_UPDATED_TIME_" : "2026-01-02T03:05:05Z"
+        }
+      }, {
+        "table" : "ACT_HI_TASKINST",
+        "values" : {
+          "ID_" : "29",
+          "REV_" : 1,
+          "PROC_DEF_ID_" : "java_user_audit:1:3",
+          "TASK_DEF_ID_" : null,
+          "TASK_DEF_KEY_" : "review",
+          "PROC_INST_ID_" : "4",
+          "EXECUTION_ID_" : "14",
+          "SCOPE_ID_" : null,
+          "SUB_SCOPE_ID_" : null,
+          "SCOPE_TYPE_" : null,
+          "SCOPE_DEFINITION_ID_" : null,
+          "PROPAGATED_STAGE_INST_ID_" : null,
+          "STATE_" : "created",
+          "NAME_" : "复核",
+          "PARENT_TASK_ID_" : null,
+          "DESCRIPTION_" : null,
+          "OWNER_" : null,
+          "ASSIGNEE_" : "carol",
+          "START_TIME_" : "2026-01-02T03:05:05Z",
+          "IN_PROGRESS_TIME_" : null,
+          "IN_PROGRESS_STARTED_BY_" : null,
+          "CLAIM_TIME_" : null,
+          "CLAIMED_BY_" : null,
+          "SUSPENDED_TIME_" : null,
+          "SUSPENDED_BY_" : null,
+          "END_TIME_" : null,
+          "COMPLETED_BY_" : null,
+          "DURATION_" : null,
+          "DELETE_REASON_" : null,
+          "PRIORITY_" : 50,
+          "IN_PROGRESS_DUE_DATE_" : null,
+          "DUE_DATE_" : null,
+          "FORM_KEY_" : null,
+          "CATEGORY_" : null,
+          "TENANT_ID_" : "tenant-a",
+          "LAST_UPDATED_TIME_" : "2026-01-02T03:05:05Z"
+        }
+      }, {
+        "table" : "ACT_HI_VARINST",
+        "values" : {
+          "ID_" : "11",
+          "REV_" : 0,
+          "PROC_INST_ID_" : "4",
+          "EXECUTION_ID_" : "4",
+          "TASK_ID_" : null,
+          "NAME_" : "submittedAt",
+          "VAR_TYPE_" : "date",
+          "SCOPE_ID_" : null,
+          "SUB_SCOPE_ID_" : null,
+          "SCOPE_TYPE_" : null,
+          "BYTEARRAY_ID_" : null,
+          "DOUBLE_" : null,
+          "LONG_" : 1767319445000,
+          "TEXT_" : null,
+          "TEXT2_" : null,
+          "META_INFO_" : null,
+          "CREATE_TIME_" : "2026-01-02T03:04:05Z",
+          "LAST_UPDATED_TIME_" : "2026-01-02T03:04:05Z"
+        }
+      }, {
+        "table" : "ACT_HI_VARINST",
+        "values" : {
+          "ID_" : "12",
+          "REV_" : 0,
+          "PROC_INST_ID_" : "4",
+          "EXECUTION_ID_" : "4",
+          "TASK_ID_" : null,
+          "NAME_" : "document",
+          "VAR_TYPE_" : "json",
+          "SCOPE_ID_" : null,
+          "SUB_SCOPE_ID_" : null,
+          "SCOPE_TYPE_" : null,
+          "BYTEARRAY_ID_" : null,
+          "DOUBLE_" : null,
+          "LONG_" : null,
+          "TEXT_" : "{\"amount\":12,\"items\":[\"甲\",\"乙\"]}",
+          "TEXT2_" : null,
+          "META_INFO_" : null,
+          "CREATE_TIME_" : "2026-01-02T03:04:05Z",
+          "LAST_UPDATED_TIME_" : "2026-01-02T03:04:05Z"
+        }
+      }, {
+        "table" : "ACT_HI_VARINST",
+        "values" : {
+          "ID_" : "13",
+          "REV_" : 1,
+          "PROC_INST_ID_" : "4",
+          "EXECUTION_ID_" : "4",
+          "TASK_ID_" : null,
+          "NAME_" : "status",
+          "VAR_TYPE_" : "string",
+          "SCOPE_ID_" : null,
+          "SUB_SCOPE_ID_" : null,
+          "SCOPE_TYPE_" : null,
+          "BYTEARRAY_ID_" : null,
+          "DOUBLE_" : null,
+          "LONG_" : null,
+          "TEXT_" : "approved",
+          "TEXT2_" : null,
+          "META_INFO_" : null,
+          "CREATE_TIME_" : "2026-01-02T03:04:05Z",
+          "LAST_UPDATED_TIME_" : "2026-01-02T03:05:05Z"
+        }
+      }, {
+        "table" : "ACT_HI_VARINST",
+        "values" : {
+          "ID_" : "24",
+          "REV_" : 0,
+          "PROC_INST_ID_" : "4",
+          "EXECUTION_ID_" : "14",
+          "TASK_ID_" : "18",
+          "NAME_" : "comment",
+          "VAR_TYPE_" : "string",
+          "SCOPE_ID_" : null,
+          "SUB_SCOPE_ID_" : null,
+          "SCOPE_TYPE_" : null,
+          "BYTEARRAY_ID_" : null,
+          "DOUBLE_" : null,
+          "LONG_" : null,
+          "TEXT_" : "仅审批任务本地变量",
+          "TEXT2_" : null,
+          "META_INFO_" : null,
+          "CREATE_TIME_" : "2026-01-02T03:04:05Z",
+          "LAST_UPDATED_TIME_" : "2026-01-02T03:04:05Z"
+        }
+      }, {
+        "table" : "ACT_HI_VARINST",
+        "values" : {
+          "ID_" : "32",
+          "REV_" : 0,
+          "PROC_INST_ID_" : "4",
+          "EXECUTION_ID_" : "14",
+          "TASK_ID_" : "29",
+          "NAME_" : "reviewNote",
+          "VAR_TYPE_" : "string",
+          "SCOPE_ID_" : null,
+          "SUB_SCOPE_ID_" : null,
+          "SCOPE_TYPE_" : null,
+          "BYTEARRAY_ID_" : null,
+          "DOUBLE_" : null,
+          "LONG_" : null,
+          "TEXT_" : "仅复核任务本地变量",
+          "TEXT2_" : null,
+          "META_INFO_" : null,
+          "CREATE_TIME_" : "2026-01-02T03:05:05Z",
+          "LAST_UPDATED_TIME_" : "2026-01-02T03:05:05Z"
+        }
+      }, {
+        "table" : "ACT_HI_VARINST",
+        "values" : {
+          "ID_" : "5",
+          "REV_" : 0,
+          "PROC_INST_ID_" : "4",
+          "EXECUTION_ID_" : "4",
+          "TASK_ID_" : null,
+          "NAME_" : "title",
+          "VAR_TYPE_" : "string",
+          "SCOPE_ID_" : null,
+          "SUB_SCOPE_ID_" : null,
+          "SCOPE_TYPE_" : null,
+          "BYTEARRAY_ID_" : null,
+          "DOUBLE_" : null,
+          "LONG_" : null,
+          "TEXT_" : "真实 Java 样本",
+          "TEXT2_" : null,
+          "META_INFO_" : null,
+          "CREATE_TIME_" : "2026-01-02T03:04:05Z",
+          "LAST_UPDATED_TIME_" : "2026-01-02T03:04:05Z"
+        }
+      }, {
+        "table" : "ACT_HI_VARINST",
+        "values" : {
+          "ID_" : "6",
+          "REV_" : 0,
+          "PROC_INST_ID_" : "4",
+          "EXECUTION_ID_" : "4",
+          "TASK_ID_" : null,
+          "NAME_" : "large",
+          "VAR_TYPE_" : "long",
+          "SCOPE_ID_" : null,
+          "SUB_SCOPE_ID_" : null,
+          "SCOPE_TYPE_" : null,
+          "BYTEARRAY_ID_" : null,
+          "DOUBLE_" : null,
+          "LONG_" : 9007199254740993,
+          "TEXT_" : "9007199254740993",
+          "TEXT2_" : null,
+          "META_INFO_" : null,
+          "CREATE_TIME_" : "2026-01-02T03:04:05Z",
+          "LAST_UPDATED_TIME_" : "2026-01-02T03:04:05Z"
+        }
+      }, {
+        "table" : "ACT_HI_VARINST",
+        "values" : {
+          "ID_" : "7",
+          "REV_" : 1,
+          "PROC_INST_ID_" : "4",
+          "EXECUTION_ID_" : "4",
+          "TASK_ID_" : null,
+          "NAME_" : "approved",
+          "VAR_TYPE_" : "boolean",
+          "SCOPE_ID_" : null,
+          "SUB_SCOPE_ID_" : null,
+          "SCOPE_TYPE_" : null,
+          "BYTEARRAY_ID_" : null,
+          "DOUBLE_" : null,
+          "LONG_" : 1,
+          "TEXT_" : null,
+          "TEXT2_" : null,
+          "META_INFO_" : null,
+          "CREATE_TIME_" : "2026-01-02T03:04:05Z",
+          "LAST_UPDATED_TIME_" : "2026-01-02T03:05:05Z"
+        }
+      }, {
+        "table" : "ACT_HI_VARINST",
+        "values" : {
+          "ID_" : "9",
+          "REV_" : 0,
+          "PROC_INST_ID_" : "4",
+          "EXECUTION_ID_" : "4",
+          "TASK_ID_" : null,
+          "NAME_" : "binary",
+          "VAR_TYPE_" : "bytes",
+          "SCOPE_ID_" : null,
+          "SUB_SCOPE_ID_" : null,
+          "SCOPE_TYPE_" : null,
+          "BYTEARRAY_ID_" : "10",
+          "DOUBLE_" : null,
+          "LONG_" : null,
+          "TEXT_" : null,
+          "TEXT2_" : null,
+          "META_INFO_" : null,
+          "CREATE_TIME_" : "2026-01-02T03:04:05Z",
+          "LAST_UPDATED_TIME_" : "2026-01-02T03:04:05Z"
+        }
+      }, {
+        "table" : "ACT_RE_DEPLOYMENT",
+        "values" : {
+          "ID_" : "1",
+          "NAME_" : "Java 迁移样本",
+          "CATEGORY_" : null,
+          "KEY_" : null,
+          "TENANT_ID_" : "tenant-a",
+          "DEPLOY_TIME_" : "2026-01-02T03:04:05Z",
+          "DERIVED_FROM_" : null,
+          "DERIVED_FROM_ROOT_" : null,
+          "PARENT_DEPLOYMENT_ID_" : "1",
+          "ENGINE_VERSION_" : null
+        }
+      }, {
+        "table" : "ACT_RE_PROCDEF",
+        "values" : {
+          "ID_" : "java_user_audit:1:3",
+          "REV_" : 1,
+          "CATEGORY_" : "参考迁移",
+          "NAME_" : "Java 迁移对照",
+          "KEY_" : "java_user_audit",
+          "VERSION_" : 1,
+          "DEPLOYMENT_ID_" : "1",
+          "RESOURCE_NAME_" : "java-user-audit.bpmn20.xml",
+          "DGRM_RESOURCE_NAME_" : null,
+          "DESCRIPTION_" : null,
+          "HAS_START_FORM_KEY_" : false,
+          "HAS_GRAPHICAL_NOTATION_" : false,
+          "SUSPENSION_STATE_" : 1,
+          "TENANT_ID_" : "tenant-a",
+          "DERIVED_FROM_" : null,
+          "DERIVED_FROM_ROOT_" : null,
+          "DERIVED_VERSION_" : 0,
+          "ENGINE_VERSION_" : null
+        }
+      }, {
+        "table" : "ACT_RU_ACTINST",
+        "values" : {
+          "ID_" : "15",
+          "REV_" : 1,
+          "PROC_DEF_ID_" : "java_user_audit:1:3",
+          "PROC_INST_ID_" : "4",
+          "EXECUTION_ID_" : "14",
+          "ACT_ID_" : "start",
+          "TASK_ID_" : null,
+          "CALL_PROC_INST_ID_" : null,
+          "ACT_NAME_" : null,
+          "ACT_TYPE_" : "startEvent",
+          "ASSIGNEE_" : null,
+          "COMPLETED_BY_" : null,
+          "START_TIME_" : "2026-01-02T03:04:05Z",
+          "END_TIME_" : "2026-01-02T03:04:05Z",
+          "TRANSACTION_ORDER_" : 1,
+          "DURATION_" : 0,
+          "DELETE_REASON_" : null,
+          "TENANT_ID_" : "tenant-a"
+        }
+      }, {
+        "table" : "ACT_RU_ACTINST",
+        "values" : {
+          "ID_" : "16",
+          "REV_" : 1,
+          "PROC_DEF_ID_" : "java_user_audit:1:3",
+          "PROC_INST_ID_" : "4",
+          "EXECUTION_ID_" : "14",
+          "ACT_ID_" : "to_approve",
+          "TASK_ID_" : null,
+          "CALL_PROC_INST_ID_" : null,
+          "ACT_NAME_" : null,
+          "ACT_TYPE_" : "sequenceFlow",
+          "ASSIGNEE_" : null,
+          "COMPLETED_BY_" : null,
+          "START_TIME_" : "2026-01-02T03:04:05Z",
+          "END_TIME_" : "2026-01-02T03:04:05Z",
+          "TRANSACTION_ORDER_" : 2,
+          "DURATION_" : 0,
+          "DELETE_REASON_" : null,
+          "TENANT_ID_" : "tenant-a"
+        }
+      }, {
+        "table" : "ACT_RU_ACTINST",
+        "values" : {
+          "ID_" : "17",
+          "REV_" : 3,
+          "PROC_DEF_ID_" : "java_user_audit:1:3",
+          "PROC_INST_ID_" : "4",
+          "EXECUTION_ID_" : "14",
+          "ACT_ID_" : "approve",
+          "TASK_ID_" : "18",
+          "CALL_PROC_INST_ID_" : null,
+          "ACT_NAME_" : "审批",
+          "ACT_TYPE_" : "userTask",
+          "ASSIGNEE_" : "alice",
+          "COMPLETED_BY_" : "alice",
+          "START_TIME_" : "2026-01-02T03:04:05Z",
+          "END_TIME_" : "2026-01-02T03:05:05Z",
+          "TRANSACTION_ORDER_" : 3,
+          "DURATION_" : 60000,
+          "DELETE_REASON_" : null,
+          "TENANT_ID_" : "tenant-a"
+        }
+      }, {
+        "table" : "ACT_RU_ACTINST",
+        "values" : {
+          "ID_" : "27",
+          "REV_" : 1,
+          "PROC_DEF_ID_" : "java_user_audit:1:3",
+          "PROC_INST_ID_" : "4",
+          "EXECUTION_ID_" : "14",
+          "ACT_ID_" : "to_review",
+          "TASK_ID_" : null,
+          "CALL_PROC_INST_ID_" : null,
+          "ACT_NAME_" : null,
+          "ACT_TYPE_" : "sequenceFlow",
+          "ASSIGNEE_" : null,
+          "COMPLETED_BY_" : null,
+          "START_TIME_" : "2026-01-02T03:05:05Z",
+          "END_TIME_" : "2026-01-02T03:05:05Z",
+          "TRANSACTION_ORDER_" : 1,
+          "DURATION_" : 0,
+          "DELETE_REASON_" : null,
+          "TENANT_ID_" : "tenant-a"
+        }
+      }, {
+        "table" : "ACT_RU_ACTINST",
+        "values" : {
+          "ID_" : "28",
+          "REV_" : 1,
+          "PROC_DEF_ID_" : "java_user_audit:1:3",
+          "PROC_INST_ID_" : "4",
+          "EXECUTION_ID_" : "14",
+          "ACT_ID_" : "review",
+          "TASK_ID_" : "29",
+          "CALL_PROC_INST_ID_" : null,
+          "ACT_NAME_" : "复核",
+          "ACT_TYPE_" : "userTask",
+          "ASSIGNEE_" : "carol",
+          "COMPLETED_BY_" : null,
+          "START_TIME_" : "2026-01-02T03:05:05Z",
+          "END_TIME_" : null,
+          "TRANSACTION_ORDER_" : 2,
+          "DURATION_" : null,
+          "DELETE_REASON_" : null,
+          "TENANT_ID_" : "tenant-a"
+        }
+      }, {
+        "table" : "ACT_RU_EXECUTION",
+        "values" : {
+          "ID_" : "14",
+          "REV_" : 2,
+          "PROC_INST_ID_" : "4",
+          "BUSINESS_KEY_" : null,
+          "PARENT_ID_" : "4",
+          "PROC_DEF_ID_" : "java_user_audit:1:3",
+          "SUPER_EXEC_" : null,
+          "ROOT_PROC_INST_ID_" : "4",
+          "ACT_ID_" : "review",
+          "IS_ACTIVE_" : true,
+          "IS_CONCURRENT_" : false,
+          "IS_SCOPE_" : false,
+          "IS_EVENT_SCOPE_" : false,
+          "IS_MI_ROOT_" : false,
+          "SUSPENSION_STATE_" : 1,
+          "CACHED_ENT_STATE_" : null,
+          "TENANT_ID_" : "tenant-a",
+          "NAME_" : null,
+          "START_ACT_ID_" : null,
+          "START_TIME_" : "2026-01-02T03:04:05Z",
+          "START_USER_ID_" : null,
+          "LOCK_TIME_" : null,
+          "LOCK_OWNER_" : null,
+          "IS_COUNT_ENABLED_" : true,
+          "EVT_SUBSCR_COUNT_" : 0,
+          "TASK_COUNT_" : 1,
+          "JOB_COUNT_" : 0,
+          "TIMER_JOB_COUNT_" : 0,
+          "SUSP_JOB_COUNT_" : 0,
+          "DEADLETTER_JOB_COUNT_" : 0,
+          "EXTERNAL_WORKER_JOB_COUNT_" : 0,
+          "VAR_COUNT_" : 0,
+          "ID_LINK_COUNT_" : 0,
+          "CALLBACK_ID_" : null,
+          "CALLBACK_TYPE_" : null,
+          "REFERENCE_ID_" : null,
+          "REFERENCE_TYPE_" : null,
+          "PROPAGATED_STAGE_INST_ID_" : null,
+          "BUSINESS_STATUS_" : null,
+          "DUE_DATE_" : null,
+          "CLAIM_TIME_" : null,
+          "CLAIMED_BY_" : null
+        }
+      }, {
+        "table" : "ACT_RU_EXECUTION",
+        "values" : {
+          "ID_" : "4",
+          "REV_" : 1,
+          "PROC_INST_ID_" : "4",
+          "BUSINESS_KEY_" : "java-business",
+          "PARENT_ID_" : null,
+          "PROC_DEF_ID_" : "java_user_audit:1:3",
+          "SUPER_EXEC_" : null,
+          "ROOT_PROC_INST_ID_" : "4",
+          "ACT_ID_" : null,
+          "IS_ACTIVE_" : true,
+          "IS_CONCURRENT_" : false,
+          "IS_SCOPE_" : true,
+          "IS_EVENT_SCOPE_" : false,
+          "IS_MI_ROOT_" : false,
+          "SUSPENSION_STATE_" : 1,
+          "CACHED_ENT_STATE_" : null,
+          "TENANT_ID_" : "tenant-a",
+          "NAME_" : null,
+          "START_ACT_ID_" : "start",
+          "START_TIME_" : "2026-01-02T03:04:05Z",
+          "START_USER_ID_" : null,
+          "LOCK_TIME_" : null,
+          "LOCK_OWNER_" : null,
+          "IS_COUNT_ENABLED_" : true,
+          "EVT_SUBSCR_COUNT_" : 0,
+          "TASK_COUNT_" : 0,
+          "JOB_COUNT_" : 0,
+          "TIMER_JOB_COUNT_" : 0,
+          "SUSP_JOB_COUNT_" : 0,
+          "DEADLETTER_JOB_COUNT_" : 0,
+          "EXTERNAL_WORKER_JOB_COUNT_" : 0,
+          "VAR_COUNT_" : 0,
+          "ID_LINK_COUNT_" : 0,
+          "CALLBACK_ID_" : null,
+          "CALLBACK_TYPE_" : null,
+          "REFERENCE_ID_" : null,
+          "REFERENCE_TYPE_" : null,
+          "PROPAGATED_STAGE_INST_ID_" : null,
+          "BUSINESS_STATUS_" : null,
+          "DUE_DATE_" : null,
+          "CLAIM_TIME_" : null,
+          "CLAIMED_BY_" : null
+        }
+      }, {
+        "table" : "ACT_RU_IDENTITYLINK",
+        "values" : {
+          "ID_" : "21",
+          "REV_" : 1,
+          "GROUP_ID_" : null,
+          "TYPE_" : "participant",
+          "USER_ID_" : "alice",
+          "TASK_ID_" : null,
+          "PROC_INST_ID_" : "4",
+          "PROC_DEF_ID_" : null,
+          "SCOPE_ID_" : null,
+          "SUB_SCOPE_ID_" : null,
+          "SCOPE_TYPE_" : null,
+          "SCOPE_DEFINITION_ID_" : null
+        }
+      }, {
+        "table" : "ACT_RU_IDENTITYLINK",
+        "values" : {
+          "ID_" : "23",
+          "REV_" : 1,
+          "GROUP_ID_" : null,
+          "TYPE_" : "participant",
+          "USER_ID_" : "bob",
+          "TASK_ID_" : null,
+          "PROC_INST_ID_" : "4",
+          "PROC_DEF_ID_" : null,
+          "SCOPE_ID_" : null,
+          "SUB_SCOPE_ID_" : null,
+          "SCOPE_TYPE_" : null,
+          "SCOPE_DEFINITION_ID_" : null
+        }
+      }, {
+        "table" : "ACT_RU_IDENTITYLINK",
+        "values" : {
+          "ID_" : "31",
+          "REV_" : 1,
+          "GROUP_ID_" : null,
+          "TYPE_" : "participant",
+          "USER_ID_" : "carol",
+          "TASK_ID_" : null,
+          "PROC_INST_ID_" : "4",
+          "PROC_DEF_ID_" : null,
+          "SCOPE_ID_" : null,
+          "SUB_SCOPE_ID_" : null,
+          "SCOPE_TYPE_" : null,
+          "SCOPE_DEFINITION_ID_" : null
+        }
+      }, {
+        "table" : "ACT_RU_TASK",
+        "values" : {
+          "ID_" : "29",
+          "REV_" : 2,
+          "EXECUTION_ID_" : "14",
+          "PROC_INST_ID_" : "4",
+          "PROC_DEF_ID_" : "java_user_audit:1:3",
+          "TASK_DEF_ID_" : null,
+          "SCOPE_ID_" : null,
+          "SUB_SCOPE_ID_" : null,
+          "SCOPE_TYPE_" : null,
+          "SCOPE_DEFINITION_ID_" : null,
+          "PROPAGATED_STAGE_INST_ID_" : null,
+          "STATE_" : "created",
+          "NAME_" : "复核",
+          "PARENT_TASK_ID_" : null,
+          "DESCRIPTION_" : null,
+          "TASK_DEF_KEY_" : "review",
+          "OWNER_" : null,
+          "ASSIGNEE_" : "carol",
+          "DELEGATION_" : null,
+          "PRIORITY_" : 50,
+          "CREATE_TIME_" : "2026-01-02T03:05:05Z",
+          "IN_PROGRESS_TIME_" : null,
+          "IN_PROGRESS_STARTED_BY_" : null,
+          "CLAIM_TIME_" : null,
+          "CLAIMED_BY_" : null,
+          "SUSPENDED_TIME_" : null,
+          "SUSPENDED_BY_" : null,
+          "IN_PROGRESS_DUE_DATE_" : null,
+          "DUE_DATE_" : null,
+          "CATEGORY_" : null,
+          "SUSPENSION_STATE_" : 1,
+          "TENANT_ID_" : "tenant-a",
+          "FORM_KEY_" : null,
+          "IS_COUNT_ENABLED_" : true,
+          "VAR_COUNT_" : 1,
+          "ID_LINK_COUNT_" : 0,
+          "SUB_TASK_COUNT_" : 0
+        }
+      }, {
+        "table" : "ACT_RU_VARIABLE",
+        "values" : {
+          "ID_" : "11",
+          "REV_" : 1,
+          "TYPE_" : "date",
+          "NAME_" : "submittedAt",
+          "EXECUTION_ID_" : "4",
+          "PROC_INST_ID_" : "4",
+          "TASK_ID_" : null,
+          "SCOPE_ID_" : null,
+          "SUB_SCOPE_ID_" : null,
+          "SCOPE_TYPE_" : null,
+          "BYTEARRAY_ID_" : null,
+          "DOUBLE_" : null,
+          "LONG_" : 1767319445000,
+          "TEXT_" : null,
+          "TEXT2_" : null,
+          "META_INFO_" : null
+        }
+      }, {
+        "table" : "ACT_RU_VARIABLE",
+        "values" : {
+          "ID_" : "12",
+          "REV_" : 1,
+          "TYPE_" : "json",
+          "NAME_" : "document",
+          "EXECUTION_ID_" : "4",
+          "PROC_INST_ID_" : "4",
+          "TASK_ID_" : null,
+          "SCOPE_ID_" : null,
+          "SUB_SCOPE_ID_" : null,
+          "SCOPE_TYPE_" : null,
+          "BYTEARRAY_ID_" : null,
+          "DOUBLE_" : null,
+          "LONG_" : null,
+          "TEXT_" : "{\"amount\":12,\"items\":[\"甲\",\"乙\"]}",
+          "TEXT2_" : null,
+          "META_INFO_" : null
+        }
+      }, {
+        "table" : "ACT_RU_VARIABLE",
+        "values" : {
+          "ID_" : "13",
+          "REV_" : 2,
+          "TYPE_" : "string",
+          "NAME_" : "status",
+          "EXECUTION_ID_" : "4",
+          "PROC_INST_ID_" : "4",
+          "TASK_ID_" : null,
+          "SCOPE_ID_" : null,
+          "SUB_SCOPE_ID_" : null,
+          "SCOPE_TYPE_" : null,
+          "BYTEARRAY_ID_" : null,
+          "DOUBLE_" : null,
+          "LONG_" : null,
+          "TEXT_" : "approved",
+          "TEXT2_" : null,
+          "META_INFO_" : null
+        }
+      }, {
+        "table" : "ACT_RU_VARIABLE",
+        "values" : {
+          "ID_" : "32",
+          "REV_" : 1,
+          "TYPE_" : "string",
+          "NAME_" : "reviewNote",
+          "EXECUTION_ID_" : "14",
+          "PROC_INST_ID_" : "4",
+          "TASK_ID_" : "29",
+          "SCOPE_ID_" : null,
+          "SUB_SCOPE_ID_" : null,
+          "SCOPE_TYPE_" : null,
+          "BYTEARRAY_ID_" : null,
+          "DOUBLE_" : null,
+          "LONG_" : null,
+          "TEXT_" : "仅复核任务本地变量",
+          "TEXT2_" : null,
+          "META_INFO_" : null
+        }
+      }, {
+        "table" : "ACT_RU_VARIABLE",
+        "values" : {
+          "ID_" : "5",
+          "REV_" : 1,
+          "TYPE_" : "string",
+          "NAME_" : "title",
+          "EXECUTION_ID_" : "4",
+          "PROC_INST_ID_" : "4",
+          "TASK_ID_" : null,
+          "SCOPE_ID_" : null,
+          "SUB_SCOPE_ID_" : null,
+          "SCOPE_TYPE_" : null,
+          "BYTEARRAY_ID_" : null,
+          "DOUBLE_" : null,
+          "LONG_" : null,
+          "TEXT_" : "真实 Java 样本",
+          "TEXT2_" : null,
+          "META_INFO_" : null
+        }
+      }, {
+        "table" : "ACT_RU_VARIABLE",
+        "values" : {
+          "ID_" : "6",
+          "REV_" : 1,
+          "TYPE_" : "long",
+          "NAME_" : "large",
+          "EXECUTION_ID_" : "4",
+          "PROC_INST_ID_" : "4",
+          "TASK_ID_" : null,
+          "SCOPE_ID_" : null,
+          "SUB_SCOPE_ID_" : null,
+          "SCOPE_TYPE_" : null,
+          "BYTEARRAY_ID_" : null,
+          "DOUBLE_" : null,
+          "LONG_" : 9007199254740993,
+          "TEXT_" : "9007199254740993",
+          "TEXT2_" : null,
+          "META_INFO_" : null
+        }
+      }, {
+        "table" : "ACT_RU_VARIABLE",
+        "values" : {
+          "ID_" : "7",
+          "REV_" : 2,
+          "TYPE_" : "boolean",
+          "NAME_" : "approved",
+          "EXECUTION_ID_" : "4",
+          "PROC_INST_ID_" : "4",
+          "TASK_ID_" : null,
+          "SCOPE_ID_" : null,
+          "SUB_SCOPE_ID_" : null,
+          "SCOPE_TYPE_" : null,
+          "BYTEARRAY_ID_" : null,
+          "DOUBLE_" : null,
+          "LONG_" : 1,
+          "TEXT_" : null,
+          "TEXT2_" : null,
+          "META_INFO_" : null
+        }
+      }, {
+        "table" : "ACT_RU_VARIABLE",
+        "values" : {
+          "ID_" : "9",
+          "REV_" : 1,
+          "TYPE_" : "bytes",
+          "NAME_" : "binary",
+          "EXECUTION_ID_" : "4",
+          "PROC_INST_ID_" : "4",
+          "TASK_ID_" : null,
+          "SCOPE_ID_" : null,
+          "SUB_SCOPE_ID_" : null,
+          "SCOPE_TYPE_" : null,
+          "BYTEARRAY_ID_" : "8",
+          "DOUBLE_" : null,
+          "LONG_" : null,
+          "TEXT_" : null,
+          "TEXT2_" : null,
+          "META_INFO_" : null
+        }
+      } ]
+    },
+    "beforeExpected" : {
+      "processInstanceId" : "4",
+      "businessKey" : "java-business",
+      "tenantId" : "tenant-a",
+      "ended" : false,
+      "tasks" : [ {
+        "id" : "29",
+        "key" : "review",
+        "name" : "复核",
+        "assignee" : "carol",
+        "owner" : null,
+        "executionId" : "14",
+        "candidateUsers" : [ ],
+        "candidateGroups" : [ ],
+        "localVariables" : {
+          "reviewNote" : "仅复核任务本地变量"
+        }
+      } ],
+      "variables" : {
+        "approved" : true,
+        "large" : 9007199254740993,
+        "document" : {
+          "amount" : 12,
+          "items" : [ "甲", "乙" ]
+        },
+        "binary" : {
+          "$bytes" : "AAEC/w=="
+        },
+        "submittedAt" : {
+          "$date" : "2026-01-02T02:04:05Z"
+        },
+        "title" : "真实 Java 样本",
+        "status" : "approved"
+      },
+      "historicTasks" : [ {
+        "id" : "18",
+        "key" : "approve",
+        "assignee" : "alice",
+        "ended" : true
+      }, {
+        "id" : "29",
+        "key" : "review",
+        "assignee" : "carol",
+        "ended" : false
+      } ],
+      "historicActivities" : [ {
+        "id" : "15",
+        "activityId" : "start",
+        "activityType" : "startEvent",
+        "executionId" : "14",
+        "taskId" : null,
+        "ended" : true
+      }, {
+        "id" : "16",
+        "activityId" : "to_approve",
+        "activityType" : "sequenceFlow",
+        "executionId" : "14",
+        "taskId" : null,
+        "ended" : true
+      }, {
+        "id" : "17",
+        "activityId" : "approve",
+        "activityType" : "userTask",
+        "executionId" : "14",
+        "taskId" : "18",
+        "ended" : true
+      }, {
+        "id" : "27",
+        "activityId" : "to_review",
+        "activityType" : "sequenceFlow",
+        "executionId" : "14",
+        "taskId" : null,
+        "ended" : true
+      }, {
+        "id" : "28",
+        "activityId" : "review",
+        "activityType" : "userTask",
+        "executionId" : "14",
+        "taskId" : "29",
+        "ended" : false
+      } ],
+      "historicVariables" : [ {
+        "id" : "11",
+        "name" : "submittedAt",
+        "taskId" : null,
+        "executionId" : "4",
+        "type" : "date",
+        "value" : {
+          "$date" : "2026-01-02T02:04:05Z"
+        }
+      }, {
+        "id" : "12",
+        "name" : "document",
+        "taskId" : null,
+        "executionId" : "4",
+        "type" : "json",
+        "value" : {
+          "amount" : 12,
+          "items" : [ "甲", "乙" ]
+        }
+      }, {
+        "id" : "13",
+        "name" : "status",
+        "taskId" : null,
+        "executionId" : "4",
+        "type" : "string",
+        "value" : "approved"
+      }, {
+        "id" : "24",
+        "name" : "comment",
+        "taskId" : "18",
+        "executionId" : "14",
+        "type" : "string",
+        "value" : "仅审批任务本地变量"
+      }, {
+        "id" : "32",
+        "name" : "reviewNote",
+        "taskId" : "29",
+        "executionId" : "14",
+        "type" : "string",
+        "value" : "仅复核任务本地变量"
+      }, {
+        "id" : "5",
+        "name" : "title",
+        "taskId" : null,
+        "executionId" : "4",
+        "type" : "string",
+        "value" : "真实 Java 样本"
+      }, {
+        "id" : "6",
+        "name" : "large",
+        "taskId" : null,
+        "executionId" : "4",
+        "type" : "long",
+        "value" : 9007199254740993
+      }, {
+        "id" : "7",
+        "name" : "approved",
+        "taskId" : null,
+        "executionId" : "4",
+        "type" : "boolean",
+        "value" : true
+      }, {
+        "id" : "9",
+        "name" : "binary",
+        "taskId" : null,
+        "executionId" : "4",
+        "type" : "bytes",
+        "value" : {
+          "$bytes" : "AAEC/w=="
+        }
+      } ]
+    },
+    "completionVariables" : {
+      "status" : "completed"
+    },
+    "expected" : {
+      "processInstanceId" : "4",
+      "businessKey" : "java-business",
+      "tenantId" : "tenant-a",
+      "ended" : true,
+      "tasks" : [ ],
+      "variables" : { },
+      "historicTasks" : [ {
+        "id" : "18",
+        "key" : "approve",
+        "assignee" : "alice",
+        "ended" : true
+      }, {
+        "id" : "29",
+        "key" : "review",
+        "assignee" : "carol",
+        "ended" : true
+      } ],
+      "historicActivities" : [ {
+        "id" : "15",
+        "activityId" : "start",
+        "activityType" : "startEvent",
+        "executionId" : "14",
+        "taskId" : null,
+        "ended" : true
+      }, {
+        "id" : "16",
+        "activityId" : "to_approve",
+        "activityType" : "sequenceFlow",
+        "executionId" : "14",
+        "taskId" : null,
+        "ended" : true
+      }, {
+        "id" : "17",
+        "activityId" : "approve",
+        "activityType" : "userTask",
+        "executionId" : "14",
+        "taskId" : "18",
+        "ended" : true
+      }, {
+        "id" : "27",
+        "activityId" : "to_review",
+        "activityType" : "sequenceFlow",
+        "executionId" : "14",
+        "taskId" : null,
+        "ended" : true
+      }, {
+        "id" : "28",
+        "activityId" : "review",
+        "activityType" : "userTask",
+        "executionId" : "14",
+        "taskId" : "29",
+        "ended" : true
+      }, {
+        "id" : "33",
+        "activityId" : "to_end",
+        "activityType" : "sequenceFlow",
+        "executionId" : "14",
+        "taskId" : null,
+        "ended" : true
+      }, {
+        "id" : "34",
+        "activityId" : "end",
+        "activityType" : "endEvent",
+        "executionId" : "14",
+        "taskId" : null,
+        "ended" : true
+      } ],
+      "historicVariables" : [ {
+        "id" : "11",
+        "name" : "submittedAt",
+        "taskId" : null,
+        "executionId" : "4",
+        "type" : "date",
+        "value" : {
+          "$date" : "2026-01-02T02:04:05Z"
+        }
+      }, {
+        "id" : "12",
+        "name" : "document",
+        "taskId" : null,
+        "executionId" : "4",
+        "type" : "json",
+        "value" : {
+          "amount" : 12,
+          "items" : [ "甲", "乙" ]
+        }
+      }, {
+        "id" : "13",
+        "name" : "status",
+        "taskId" : null,
+        "executionId" : "4",
+        "type" : "string",
+        "value" : "completed"
+      }, {
+        "id" : "24",
+        "name" : "comment",
+        "taskId" : "18",
+        "executionId" : "14",
+        "type" : "string",
+        "value" : "仅审批任务本地变量"
+      }, {
+        "id" : "32",
+        "name" : "reviewNote",
+        "taskId" : "29",
+        "executionId" : "14",
+        "type" : "string",
+        "value" : "仅复核任务本地变量"
+      }, {
+        "id" : "5",
+        "name" : "title",
+        "taskId" : null,
+        "executionId" : "4",
+        "type" : "string",
+        "value" : "真实 Java 样本"
+      }, {
+        "id" : "6",
+        "name" : "large",
+        "taskId" : null,
+        "executionId" : "4",
+        "type" : "long",
+        "value" : 9007199254740993
+      }, {
+        "id" : "7",
+        "name" : "approved",
+        "taskId" : null,
+        "executionId" : "4",
+        "type" : "boolean",
+        "value" : true
+      }, {
+        "id" : "9",
+        "name" : "binary",
+        "taskId" : null,
+        "executionId" : "4",
+        "type" : "bytes",
+        "value" : {
+          "$bytes" : "AAEC/w=="
+        }
+      } ]
+    }
+  } ],
+  "completed" : {
+    "dialect" : "h2",
+    "schemaVersion" : "8.1.0.3",
+    "tables" : [ {
+      "name" : "ACT_EVT_LOG",
+      "count" : 0
+    }, {
+      "name" : "ACT_GE_BYTEARRAY",
+      "count" : 2
+    }, {
+      "name" : "ACT_GE_PROPERTY",
+      "count" : 6
+    }, {
+      "name" : "ACT_HI_ACTINST",
+      "count" : 7
+    }, {
+      "name" : "ACT_HI_ATTACHMENT",
+      "count" : 0
+    }, {
+      "name" : "ACT_HI_COMMENT",
+      "count" : 1
+    }, {
+      "name" : "ACT_HI_DETAIL",
+      "count" : 0
+    }, {
+      "name" : "ACT_HI_ENTITYLINK",
+      "count" : 0
+    }, {
+      "name" : "ACT_HI_IDENTITYLINK",
+      "count" : 8
+    }, {
+      "name" : "ACT_HI_PROCINST",
+      "count" : 1
+    }, {
+      "name" : "ACT_HI_TASKINST",
+      "count" : 2
+    }, {
+      "name" : "ACT_HI_TSK_LOG",
+      "count" : 0
+    }, {
+      "name" : "ACT_HI_VARINST",
+      "count" : 9
+    }, {
+      "name" : "ACT_PROCDEF_INFO",
+      "count" : 0
+    }, {
+      "name" : "ACT_RE_DEPLOYMENT",
+      "count" : 1
+    }, {
+      "name" : "ACT_RE_MODEL",
+      "count" : 0
+    }, {
+      "name" : "ACT_RE_PROCDEF",
+      "count" : 1
+    }, {
+      "name" : "ACT_RU_ACTINST",
+      "count" : 0
+    }, {
+      "name" : "ACT_RU_DEADLETTER_JOB",
+      "count" : 0
+    }, {
+      "name" : "ACT_RU_ENTITYLINK",
+      "count" : 0
+    }, {
+      "name" : "ACT_RU_EVENT_SUBSCR",
+      "count" : 0
+    }, {
+      "name" : "ACT_RU_EXECUTION",
+      "count" : 0
+    }, {
+      "name" : "ACT_RU_EXTERNAL_JOB",
+      "count" : 0
+    }, {
+      "name" : "ACT_RU_HISTORY_JOB",
+      "count" : 0
+    }, {
+      "name" : "ACT_RU_IDENTITYLINK",
+      "count" : 0
+    }, {
+      "name" : "ACT_RU_JOB",
+      "count" : 0
+    }, {
+      "name" : "ACT_RU_SUSPENDED_JOB",
+      "count" : 0
+    }, {
+      "name" : "ACT_RU_TASK",
+      "count" : 0
+    }, {
+      "name" : "ACT_RU_TIMER_JOB",
+      "count" : 0
+    }, {
+      "name" : "ACT_RU_VARIABLE",
+      "count" : 0
+    } ],
+    "rows" : [ {
+      "table" : "ACT_GE_BYTEARRAY",
+      "values" : {
+        "ID_" : "10",
+        "REV_" : 1,
+        "NAME_" : "hist.var-binary",
+        "DEPLOYMENT_ID_" : null,
+        "BYTES_" : {
+          "$bytes" : "AAEC/w=="
+        },
+        "GENERATED_" : null
+      }
+    }, {
+      "table" : "ACT_GE_BYTEARRAY",
+      "values" : {
+        "ID_" : "2",
+        "REV_" : 1,
+        "NAME_" : "java-user-audit.bpmn20.xml",
+        "DEPLOYMENT_ID_" : "1",
+        "BYTES_" : {
+          "$bytes" : "PGRlZmluaXRpb25zIHhtbG5zPSJodHRwOi8vd3d3Lm9tZy5vcmcvc3BlYy9CUE1OLzIwMTAwNTI0L01PREVMIgogICAgICAgICAgICAgeG1sbnM6Zmxvd2FibGU9Imh0dHA6Ly9mbG93YWJsZS5vcmcvYnBtbiIgdGFyZ2V0TmFtZXNwYWNlPSLlj4LogIPov4Hnp7siPgogIDxwcm9jZXNzIGlkPSJqYXZhX3VzZXJfYXVkaXQiIG5hbWU9IkphdmEg6L+B56e75a+554WnIiBpc0V4ZWN1dGFibGU9InRydWUiPgogICAgPHN0YXJ0RXZlbnQgaWQ9InN0YXJ0Ii8+CiAgICA8c2VxdWVuY2VGbG93IGlkPSJ0b19hcHByb3ZlIiBzb3VyY2VSZWY9InN0YXJ0IiB0YXJnZXRSZWY9ImFwcHJvdmUiLz4KICAgIDx1c2VyVGFzayBpZD0iYXBwcm92ZSIgbmFtZT0i5a6h5om5IiBmbG93YWJsZTpjYW5kaWRhdGVVc2Vycz0iYWxpY2UsYm9iIiBmbG93YWJsZTpjYW5kaWRhdGVHcm91cHM9InJldmlld2VycyIvPgogICAgPHNlcXVlbmNlRmxvdyBpZD0idG9fcmV2aWV3IiBzb3VyY2VSZWY9ImFwcHJvdmUiIHRhcmdldFJlZj0icmV2aWV3Ii8+CiAgICA8dXNlclRhc2sgaWQ9InJldmlldyIgbmFtZT0i5aSN5qC4IiBmbG93YWJsZTphc3NpZ25lZT0iY2Fyb2wiLz4KICAgIDxzZXF1ZW5jZUZsb3cgaWQ9InRvX2VuZCIgc291cmNlUmVmPSJyZXZpZXciIHRhcmdldFJlZj0iZW5kIi8+CiAgICA8ZW5kRXZlbnQgaWQ9ImVuZCIvPgogIDwvcHJvY2Vzcz4KPC9kZWZpbml0aW9ucz4K"
+        },
+        "GENERATED_" : false
+      }
+    }, {
+      "table" : "ACT_GE_PROPERTY",
+      "values" : {
+        "NAME_" : "common.schema.version",
+        "VALUE_" : "8.1.0.3",
+        "REV_" : 1
+      }
+    }, {
+      "table" : "ACT_GE_PROPERTY",
+      "values" : {
+        "NAME_" : "next.dbid",
+        "VALUE_" : "2501",
+        "REV_" : 2
+      }
+    }, {
+      "table" : "ACT_GE_PROPERTY",
+      "values" : {
+        "NAME_" : "schema.version",
+        "VALUE_" : "8.1.0.3",
+        "REV_" : 1
+      }
+    }, {
+      "table" : "ACT_GE_PROPERTY",
+      "values" : {
+        "NAME_" : "schema.history",
+        "VALUE_" : "create(8.1.0.2)",
+        "REV_" : 1
+      }
+    }, {
+      "table" : "ACT_GE_PROPERTY",
+      "values" : {
+        "NAME_" : "cfg.execution-related-entities-count",
+        "VALUE_" : "true",
+        "REV_" : 1
+      }
+    }, {
+      "table" : "ACT_GE_PROPERTY",
+      "values" : {
+        "NAME_" : "cfg.task-related-entities-count",
+        "VALUE_" : "true",
+        "REV_" : 1
+      }
+    }, {
+      "table" : "ACT_HI_ACTINST",
+      "values" : {
+        "ID_" : "15",
+        "REV_" : 1,
+        "PROC_DEF_ID_" : "java_user_audit:1:3",
+        "PROC_INST_ID_" : "4",
+        "EXECUTION_ID_" : "14",
+        "ACT_ID_" : "start",
+        "TASK_ID_" : null,
+        "CALL_PROC_INST_ID_" : null,
+        "ACT_NAME_" : null,
+        "ACT_TYPE_" : "startEvent",
+        "ASSIGNEE_" : null,
+        "COMPLETED_BY_" : null,
+        "START_TIME_" : "2026-01-02T03:04:05Z",
+        "END_TIME_" : "2026-01-02T03:04:05Z",
+        "TRANSACTION_ORDER_" : 1,
+        "DURATION_" : 0,
+        "DELETE_REASON_" : null,
+        "TENANT_ID_" : "tenant-a"
+      }
+    }, {
+      "table" : "ACT_HI_ACTINST",
+      "values" : {
+        "ID_" : "16",
+        "REV_" : 1,
+        "PROC_DEF_ID_" : "java_user_audit:1:3",
+        "PROC_INST_ID_" : "4",
+        "EXECUTION_ID_" : "14",
+        "ACT_ID_" : "to_approve",
+        "TASK_ID_" : null,
+        "CALL_PROC_INST_ID_" : null,
+        "ACT_NAME_" : null,
+        "ACT_TYPE_" : "sequenceFlow",
+        "ASSIGNEE_" : null,
+        "COMPLETED_BY_" : null,
+        "START_TIME_" : "2026-01-02T03:04:05Z",
+        "END_TIME_" : "2026-01-02T03:04:05Z",
+        "TRANSACTION_ORDER_" : 2,
+        "DURATION_" : 0,
+        "DELETE_REASON_" : null,
+        "TENANT_ID_" : "tenant-a"
+      }
+    }, {
+      "table" : "ACT_HI_ACTINST",
+      "values" : {
+        "ID_" : "17",
+        "REV_" : 3,
+        "PROC_DEF_ID_" : "java_user_audit:1:3",
+        "PROC_INST_ID_" : "4",
+        "EXECUTION_ID_" : "14",
+        "ACT_ID_" : "approve",
+        "TASK_ID_" : "18",
+        "CALL_PROC_INST_ID_" : null,
+        "ACT_NAME_" : "审批",
+        "ACT_TYPE_" : "userTask",
+        "ASSIGNEE_" : "alice",
+        "COMPLETED_BY_" : "alice",
+        "START_TIME_" : "2026-01-02T03:04:05Z",
+        "END_TIME_" : "2026-01-02T03:05:05Z",
+        "TRANSACTION_ORDER_" : 3,
+        "DURATION_" : 60000,
+        "DELETE_REASON_" : null,
+        "TENANT_ID_" : "tenant-a"
+      }
+    }, {
+      "table" : "ACT_HI_ACTINST",
+      "values" : {
+        "ID_" : "27",
+        "REV_" : 1,
+        "PROC_DEF_ID_" : "java_user_audit:1:3",
+        "PROC_INST_ID_" : "4",
+        "EXECUTION_ID_" : "14",
+        "ACT_ID_" : "to_review",
+        "TASK_ID_" : null,
+        "CALL_PROC_INST_ID_" : null,
+        "ACT_NAME_" : null,
+        "ACT_TYPE_" : "sequenceFlow",
+        "ASSIGNEE_" : null,
+        "COMPLETED_BY_" : null,
+        "START_TIME_" : "2026-01-02T03:05:05Z",
+        "END_TIME_" : "2026-01-02T03:05:05Z",
+        "TRANSACTION_ORDER_" : 1,
+        "DURATION_" : 0,
+        "DELETE_REASON_" : null,
+        "TENANT_ID_" : "tenant-a"
+      }
+    }, {
+      "table" : "ACT_HI_ACTINST",
+      "values" : {
+        "ID_" : "28",
+        "REV_" : 2,
+        "PROC_DEF_ID_" : "java_user_audit:1:3",
+        "PROC_INST_ID_" : "4",
+        "EXECUTION_ID_" : "14",
+        "ACT_ID_" : "review",
+        "TASK_ID_" : "29",
+        "CALL_PROC_INST_ID_" : null,
+        "ACT_NAME_" : "复核",
+        "ACT_TYPE_" : "userTask",
+        "ASSIGNEE_" : "carol",
+        "COMPLETED_BY_" : "carol",
+        "START_TIME_" : "2026-01-02T03:05:05Z",
+        "END_TIME_" : "2026-01-02T03:06:05Z",
+        "TRANSACTION_ORDER_" : 2,
+        "DURATION_" : 60000,
+        "DELETE_REASON_" : null,
+        "TENANT_ID_" : "tenant-a"
+      }
+    }, {
+      "table" : "ACT_HI_ACTINST",
+      "values" : {
+        "ID_" : "33",
+        "REV_" : 1,
+        "PROC_DEF_ID_" : "java_user_audit:1:3",
+        "PROC_INST_ID_" : "4",
+        "EXECUTION_ID_" : "14",
+        "ACT_ID_" : "to_end",
+        "TASK_ID_" : null,
+        "CALL_PROC_INST_ID_" : null,
+        "ACT_NAME_" : null,
+        "ACT_TYPE_" : "sequenceFlow",
+        "ASSIGNEE_" : null,
+        "COMPLETED_BY_" : null,
+        "START_TIME_" : "2026-01-02T03:06:05Z",
+        "END_TIME_" : "2026-01-02T03:06:05Z",
+        "TRANSACTION_ORDER_" : 1,
+        "DURATION_" : 0,
+        "DELETE_REASON_" : null,
+        "TENANT_ID_" : "tenant-a"
+      }
+    }, {
+      "table" : "ACT_HI_ACTINST",
+      "values" : {
+        "ID_" : "34",
+        "REV_" : 1,
+        "PROC_DEF_ID_" : "java_user_audit:1:3",
+        "PROC_INST_ID_" : "4",
+        "EXECUTION_ID_" : "14",
+        "ACT_ID_" : "end",
+        "TASK_ID_" : null,
+        "CALL_PROC_INST_ID_" : null,
+        "ACT_NAME_" : null,
+        "ACT_TYPE_" : "endEvent",
+        "ASSIGNEE_" : null,
+        "COMPLETED_BY_" : null,
+        "START_TIME_" : "2026-01-02T03:06:05Z",
+        "END_TIME_" : "2026-01-02T03:06:05Z",
+        "TRANSACTION_ORDER_" : 2,
+        "DURATION_" : 0,
+        "DELETE_REASON_" : null,
+        "TENANT_ID_" : "tenant-a"
+      }
+    }, {
+      "table" : "ACT_HI_COMMENT",
+      "values" : {
+        "ID_" : "26",
+        "TYPE_" : "event",
+        "TIME_" : "2026-01-02T03:04:05Z",
+        "USER_ID_" : null,
+        "TASK_ID_" : "18",
+        "PROC_INST_ID_" : null,
+        "ACTION_" : "AddUserLink",
+        "MESSAGE_" : "alice_|_assignee",
+        "FULL_MSG_" : null
+      }
+    }, {
+      "table" : "ACT_HI_IDENTITYLINK",
+      "values" : {
+        "ID_" : "19",
+        "GROUP_ID_" : "reviewers",
+        "TYPE_" : "candidate",
+        "USER_ID_" : null,
+        "TASK_ID_" : "18",
+        "CREATE_TIME_" : "2026-01-02T03:04:05Z",
+        "PROC_INST_ID_" : null,
+        "SCOPE_ID_" : null,
+        "SUB_SCOPE_ID_" : null,
+        "SCOPE_TYPE_" : null,
+        "SCOPE_DEFINITION_ID_" : null
+      }
+    }, {
+      "table" : "ACT_HI_IDENTITYLINK",
+      "values" : {
+        "ID_" : "20",
+        "GROUP_ID_" : null,
+        "TYPE_" : "candidate",
+        "USER_ID_" : "alice",
+        "TASK_ID_" : "18",
+        "CREATE_TIME_" : "2026-01-02T03:04:05Z",
+        "PROC_INST_ID_" : null,
+        "SCOPE_ID_" : null,
+        "SUB_SCOPE_ID_" : null,
+        "SCOPE_TYPE_" : null,
+        "SCOPE_DEFINITION_ID_" : null
+      }
+    }, {
+      "table" : "ACT_HI_IDENTITYLINK",
+      "values" : {
+        "ID_" : "21",
+        "GROUP_ID_" : null,
+        "TYPE_" : "participant",
+        "USER_ID_" : "alice",
+        "TASK_ID_" : null,
+        "CREATE_TIME_" : "2026-01-02T03:04:05Z",
+        "PROC_INST_ID_" : "4",
+        "SCOPE_ID_" : null,
+        "SUB_SCOPE_ID_" : null,
+        "SCOPE_TYPE_" : null,
+        "SCOPE_DEFINITION_ID_" : null
+      }
+    }, {
+      "table" : "ACT_HI_IDENTITYLINK",
+      "values" : {
+        "ID_" : "22",
+        "GROUP_ID_" : null,
+        "TYPE_" : "candidate",
+        "USER_ID_" : "bob",
+        "TASK_ID_" : "18",
+        "CREATE_TIME_" : "2026-01-02T03:04:05Z",
+        "PROC_INST_ID_" : null,
+        "SCOPE_ID_" : null,
+        "SUB_SCOPE_ID_" : null,
+        "SCOPE_TYPE_" : null,
+        "SCOPE_DEFINITION_ID_" : null
+      }
+    }, {
+      "table" : "ACT_HI_IDENTITYLINK",
+      "values" : {
+        "ID_" : "23",
+        "GROUP_ID_" : null,
+        "TYPE_" : "participant",
+        "USER_ID_" : "bob",
+        "TASK_ID_" : null,
+        "CREATE_TIME_" : "2026-01-02T03:04:05Z",
+        "PROC_INST_ID_" : "4",
+        "SCOPE_ID_" : null,
+        "SUB_SCOPE_ID_" : null,
+        "SCOPE_TYPE_" : null,
+        "SCOPE_DEFINITION_ID_" : null
+      }
+    }, {
+      "table" : "ACT_HI_IDENTITYLINK",
+      "values" : {
+        "ID_" : "25",
+        "GROUP_ID_" : null,
+        "TYPE_" : "assignee",
+        "USER_ID_" : "alice",
+        "TASK_ID_" : "18",
+        "CREATE_TIME_" : "2026-01-02T03:04:05Z",
+        "PROC_INST_ID_" : null,
+        "SCOPE_ID_" : null,
+        "SUB_SCOPE_ID_" : null,
+        "SCOPE_TYPE_" : null,
+        "SCOPE_DEFINITION_ID_" : null
+      }
+    }, {
+      "table" : "ACT_HI_IDENTITYLINK",
+      "values" : {
+        "ID_" : "30",
+        "GROUP_ID_" : null,
+        "TYPE_" : "assignee",
+        "USER_ID_" : "carol",
+        "TASK_ID_" : "29",
+        "CREATE_TIME_" : "2026-01-02T03:05:05Z",
+        "PROC_INST_ID_" : null,
+        "SCOPE_ID_" : null,
+        "SUB_SCOPE_ID_" : null,
+        "SCOPE_TYPE_" : null,
+        "SCOPE_DEFINITION_ID_" : null
+      }
+    }, {
+      "table" : "ACT_HI_IDENTITYLINK",
+      "values" : {
+        "ID_" : "31",
+        "GROUP_ID_" : null,
+        "TYPE_" : "participant",
+        "USER_ID_" : "carol",
+        "TASK_ID_" : null,
+        "CREATE_TIME_" : "2026-01-02T03:05:05Z",
+        "PROC_INST_ID_" : "4",
+        "SCOPE_ID_" : null,
+        "SUB_SCOPE_ID_" : null,
+        "SCOPE_TYPE_" : null,
+        "SCOPE_DEFINITION_ID_" : null
+      }
+    }, {
+      "table" : "ACT_HI_PROCINST",
+      "values" : {
+        "ID_" : "4",
+        "REV_" : 2,
+        "PROC_INST_ID_" : "4",
+        "BUSINESS_KEY_" : "java-business",
+        "PROC_DEF_ID_" : "java_user_audit:1:3",
+        "START_TIME_" : "2026-01-02T03:04:05Z",
+        "END_TIME_" : "2026-01-02T03:06:05Z",
+        "DURATION_" : 120000,
+        "START_USER_ID_" : null,
+        "START_ACT_ID_" : "start",
+        "END_ACT_ID_" : "end",
+        "SUPER_PROCESS_INSTANCE_ID_" : null,
+        "DELETE_REASON_" : null,
+        "TENANT_ID_" : "tenant-a",
+        "NAME_" : null,
+        "CALLBACK_ID_" : null,
+        "CALLBACK_TYPE_" : null,
+        "REFERENCE_ID_" : null,
+        "REFERENCE_TYPE_" : null,
+        "PROPAGATED_STAGE_INST_ID_" : null,
+        "BUSINESS_STATUS_" : null,
+        "DUE_DATE_" : null,
+        "CLAIM_TIME_" : null,
+        "CLAIMED_BY_" : null,
+        "END_USER_ID_" : null,
+        "STATE_" : "completed"
+      }
+    }, {
+      "table" : "ACT_HI_TASKINST",
+      "values" : {
+        "ID_" : "18",
+        "REV_" : 3,
+        "PROC_DEF_ID_" : "java_user_audit:1:3",
+        "TASK_DEF_ID_" : null,
+        "TASK_DEF_KEY_" : "approve",
+        "PROC_INST_ID_" : "4",
+        "EXECUTION_ID_" : "14",
+        "SCOPE_ID_" : null,
+        "SUB_SCOPE_ID_" : null,
+        "SCOPE_TYPE_" : null,
+        "SCOPE_DEFINITION_ID_" : null,
+        "PROPAGATED_STAGE_INST_ID_" : null,
+        "STATE_" : "completed",
+        "NAME_" : "审批",
+        "PARENT_TASK_ID_" : null,
+        "DESCRIPTION_" : null,
+        "OWNER_" : null,
+        "ASSIGNEE_" : "alice",
+        "START_TIME_" : "2026-01-02T03:04:05Z",
+        "IN_PROGRESS_TIME_" : null,
+        "IN_PROGRESS_STARTED_BY_" : null,
+        "CLAIM_TIME_" : "2026-01-02T03:04:05Z",
+        "CLAIMED_BY_" : "alice",
+        "SUSPENDED_TIME_" : null,
+        "SUSPENDED_BY_" : null,
+        "END_TIME_" : "2026-01-02T03:05:05Z",
+        "COMPLETED_BY_" : null,
+        "DURATION_" : 60000,
+        "DELETE_REASON_" : null,
+        "PRIORITY_" : 50,
+        "IN_PROGRESS_DUE_DATE_" : null,
+        "DUE_DATE_" : null,
+        "FORM_KEY_" : null,
+        "CATEGORY_" : null,
+        "TENANT_ID_" : "tenant-a",
+        "LAST_UPDATED_TIME_" : "2026-01-02T03:05:05Z"
+      }
+    }, {
+      "table" : "ACT_HI_TASKINST",
+      "values" : {
+        "ID_" : "29",
+        "REV_" : 2,
+        "PROC_DEF_ID_" : "java_user_audit:1:3",
+        "TASK_DEF_ID_" : null,
+        "TASK_DEF_KEY_" : "review",
+        "PROC_INST_ID_" : "4",
+        "EXECUTION_ID_" : "14",
+        "SCOPE_ID_" : null,
+        "SUB_SCOPE_ID_" : null,
+        "SCOPE_TYPE_" : null,
+        "SCOPE_DEFINITION_ID_" : null,
+        "PROPAGATED_STAGE_INST_ID_" : null,
+        "STATE_" : "completed",
+        "NAME_" : "复核",
+        "PARENT_TASK_ID_" : null,
+        "DESCRIPTION_" : null,
+        "OWNER_" : null,
+        "ASSIGNEE_" : "carol",
+        "START_TIME_" : "2026-01-02T03:05:05Z",
+        "IN_PROGRESS_TIME_" : null,
+        "IN_PROGRESS_STARTED_BY_" : null,
+        "CLAIM_TIME_" : null,
+        "CLAIMED_BY_" : null,
+        "SUSPENDED_TIME_" : null,
+        "SUSPENDED_BY_" : null,
+        "END_TIME_" : "2026-01-02T03:06:05Z",
+        "COMPLETED_BY_" : null,
+        "DURATION_" : 60000,
+        "DELETE_REASON_" : null,
+        "PRIORITY_" : 50,
+        "IN_PROGRESS_DUE_DATE_" : null,
+        "DUE_DATE_" : null,
+        "FORM_KEY_" : null,
+        "CATEGORY_" : null,
+        "TENANT_ID_" : "tenant-a",
+        "LAST_UPDATED_TIME_" : "2026-01-02T03:06:05Z"
+      }
+    }, {
+      "table" : "ACT_HI_VARINST",
+      "values" : {
+        "ID_" : "11",
+        "REV_" : 0,
+        "PROC_INST_ID_" : "4",
+        "EXECUTION_ID_" : "4",
+        "TASK_ID_" : null,
+        "NAME_" : "submittedAt",
+        "VAR_TYPE_" : "date",
+        "SCOPE_ID_" : null,
+        "SUB_SCOPE_ID_" : null,
+        "SCOPE_TYPE_" : null,
+        "BYTEARRAY_ID_" : null,
+        "DOUBLE_" : null,
+        "LONG_" : 1767319445000,
+        "TEXT_" : null,
+        "TEXT2_" : null,
+        "META_INFO_" : null,
+        "CREATE_TIME_" : "2026-01-02T03:04:05Z",
+        "LAST_UPDATED_TIME_" : "2026-01-02T03:04:05Z"
+      }
+    }, {
+      "table" : "ACT_HI_VARINST",
+      "values" : {
+        "ID_" : "12",
+        "REV_" : 0,
+        "PROC_INST_ID_" : "4",
+        "EXECUTION_ID_" : "4",
+        "TASK_ID_" : null,
+        "NAME_" : "document",
+        "VAR_TYPE_" : "json",
+        "SCOPE_ID_" : null,
+        "SUB_SCOPE_ID_" : null,
+        "SCOPE_TYPE_" : null,
+        "BYTEARRAY_ID_" : null,
+        "DOUBLE_" : null,
+        "LONG_" : null,
+        "TEXT_" : "{\"amount\":12,\"items\":[\"甲\",\"乙\"]}",
+        "TEXT2_" : null,
+        "META_INFO_" : null,
+        "CREATE_TIME_" : "2026-01-02T03:04:05Z",
+        "LAST_UPDATED_TIME_" : "2026-01-02T03:04:05Z"
+      }
+    }, {
+      "table" : "ACT_HI_VARINST",
+      "values" : {
+        "ID_" : "13",
+        "REV_" : 2,
+        "PROC_INST_ID_" : "4",
+        "EXECUTION_ID_" : "4",
+        "TASK_ID_" : null,
+        "NAME_" : "status",
+        "VAR_TYPE_" : "string",
+        "SCOPE_ID_" : null,
+        "SUB_SCOPE_ID_" : null,
+        "SCOPE_TYPE_" : null,
+        "BYTEARRAY_ID_" : null,
+        "DOUBLE_" : null,
+        "LONG_" : null,
+        "TEXT_" : "completed",
+        "TEXT2_" : null,
+        "META_INFO_" : null,
+        "CREATE_TIME_" : "2026-01-02T03:04:05Z",
+        "LAST_UPDATED_TIME_" : "2026-01-02T03:06:05Z"
+      }
+    }, {
+      "table" : "ACT_HI_VARINST",
+      "values" : {
+        "ID_" : "24",
+        "REV_" : 0,
+        "PROC_INST_ID_" : "4",
+        "EXECUTION_ID_" : "14",
+        "TASK_ID_" : "18",
+        "NAME_" : "comment",
+        "VAR_TYPE_" : "string",
+        "SCOPE_ID_" : null,
+        "SUB_SCOPE_ID_" : null,
+        "SCOPE_TYPE_" : null,
+        "BYTEARRAY_ID_" : null,
+        "DOUBLE_" : null,
+        "LONG_" : null,
+        "TEXT_" : "仅审批任务本地变量",
+        "TEXT2_" : null,
+        "META_INFO_" : null,
+        "CREATE_TIME_" : "2026-01-02T03:04:05Z",
+        "LAST_UPDATED_TIME_" : "2026-01-02T03:04:05Z"
+      }
+    }, {
+      "table" : "ACT_HI_VARINST",
+      "values" : {
+        "ID_" : "32",
+        "REV_" : 0,
+        "PROC_INST_ID_" : "4",
+        "EXECUTION_ID_" : "14",
+        "TASK_ID_" : "29",
+        "NAME_" : "reviewNote",
+        "VAR_TYPE_" : "string",
+        "SCOPE_ID_" : null,
+        "SUB_SCOPE_ID_" : null,
+        "SCOPE_TYPE_" : null,
+        "BYTEARRAY_ID_" : null,
+        "DOUBLE_" : null,
+        "LONG_" : null,
+        "TEXT_" : "仅复核任务本地变量",
+        "TEXT2_" : null,
+        "META_INFO_" : null,
+        "CREATE_TIME_" : "2026-01-02T03:05:05Z",
+        "LAST_UPDATED_TIME_" : "2026-01-02T03:05:05Z"
+      }
+    }, {
+      "table" : "ACT_HI_VARINST",
+      "values" : {
+        "ID_" : "5",
+        "REV_" : 0,
+        "PROC_INST_ID_" : "4",
+        "EXECUTION_ID_" : "4",
+        "TASK_ID_" : null,
+        "NAME_" : "title",
+        "VAR_TYPE_" : "string",
+        "SCOPE_ID_" : null,
+        "SUB_SCOPE_ID_" : null,
+        "SCOPE_TYPE_" : null,
+        "BYTEARRAY_ID_" : null,
+        "DOUBLE_" : null,
+        "LONG_" : null,
+        "TEXT_" : "真实 Java 样本",
+        "TEXT2_" : null,
+        "META_INFO_" : null,
+        "CREATE_TIME_" : "2026-01-02T03:04:05Z",
+        "LAST_UPDATED_TIME_" : "2026-01-02T03:04:05Z"
+      }
+    }, {
+      "table" : "ACT_HI_VARINST",
+      "values" : {
+        "ID_" : "6",
+        "REV_" : 0,
+        "PROC_INST_ID_" : "4",
+        "EXECUTION_ID_" : "4",
+        "TASK_ID_" : null,
+        "NAME_" : "large",
+        "VAR_TYPE_" : "long",
+        "SCOPE_ID_" : null,
+        "SUB_SCOPE_ID_" : null,
+        "SCOPE_TYPE_" : null,
+        "BYTEARRAY_ID_" : null,
+        "DOUBLE_" : null,
+        "LONG_" : 9007199254740993,
+        "TEXT_" : "9007199254740993",
+        "TEXT2_" : null,
+        "META_INFO_" : null,
+        "CREATE_TIME_" : "2026-01-02T03:04:05Z",
+        "LAST_UPDATED_TIME_" : "2026-01-02T03:04:05Z"
+      }
+    }, {
+      "table" : "ACT_HI_VARINST",
+      "values" : {
+        "ID_" : "7",
+        "REV_" : 1,
+        "PROC_INST_ID_" : "4",
+        "EXECUTION_ID_" : "4",
+        "TASK_ID_" : null,
+        "NAME_" : "approved",
+        "VAR_TYPE_" : "boolean",
+        "SCOPE_ID_" : null,
+        "SUB_SCOPE_ID_" : null,
+        "SCOPE_TYPE_" : null,
+        "BYTEARRAY_ID_" : null,
+        "DOUBLE_" : null,
+        "LONG_" : 1,
+        "TEXT_" : null,
+        "TEXT2_" : null,
+        "META_INFO_" : null,
+        "CREATE_TIME_" : "2026-01-02T03:04:05Z",
+        "LAST_UPDATED_TIME_" : "2026-01-02T03:05:05Z"
+      }
+    }, {
+      "table" : "ACT_HI_VARINST",
+      "values" : {
+        "ID_" : "9",
+        "REV_" : 0,
+        "PROC_INST_ID_" : "4",
+        "EXECUTION_ID_" : "4",
+        "TASK_ID_" : null,
+        "NAME_" : "binary",
+        "VAR_TYPE_" : "bytes",
+        "SCOPE_ID_" : null,
+        "SUB_SCOPE_ID_" : null,
+        "SCOPE_TYPE_" : null,
+        "BYTEARRAY_ID_" : "10",
+        "DOUBLE_" : null,
+        "LONG_" : null,
+        "TEXT_" : null,
+        "TEXT2_" : null,
+        "META_INFO_" : null,
+        "CREATE_TIME_" : "2026-01-02T03:04:05Z",
+        "LAST_UPDATED_TIME_" : "2026-01-02T03:04:05Z"
+      }
+    }, {
+      "table" : "ACT_RE_DEPLOYMENT",
+      "values" : {
+        "ID_" : "1",
+        "NAME_" : "Java 迁移样本",
+        "CATEGORY_" : null,
+        "KEY_" : null,
+        "TENANT_ID_" : "tenant-a",
+        "DEPLOY_TIME_" : "2026-01-02T03:04:05Z",
+        "DERIVED_FROM_" : null,
+        "DERIVED_FROM_ROOT_" : null,
+        "PARENT_DEPLOYMENT_ID_" : "1",
+        "ENGINE_VERSION_" : null
+      }
+    }, {
+      "table" : "ACT_RE_PROCDEF",
+      "values" : {
+        "ID_" : "java_user_audit:1:3",
+        "REV_" : 1,
+        "CATEGORY_" : "参考迁移",
+        "NAME_" : "Java 迁移对照",
+        "KEY_" : "java_user_audit",
+        "VERSION_" : 1,
+        "DEPLOYMENT_ID_" : "1",
+        "RESOURCE_NAME_" : "java-user-audit.bpmn20.xml",
+        "DGRM_RESOURCE_NAME_" : null,
+        "DESCRIPTION_" : null,
+        "HAS_START_FORM_KEY_" : false,
+        "HAS_GRAPHICAL_NOTATION_" : false,
+        "SUSPENSION_STATE_" : 1,
+        "TENANT_ID_" : "tenant-a",
+        "DERIVED_FROM_" : null,
+        "DERIVED_FROM_ROOT_" : null,
+        "DERIVED_VERSION_" : 0,
+        "ENGINE_VERSION_" : null
+      }
+    } ]
+  },
+  "completedExpected" : {
+    "processInstanceId" : "4",
+    "businessKey" : "java-business",
+    "tenantId" : "tenant-a",
+    "ended" : true,
+    "tasks" : [ ],
+    "variables" : { },
+    "historicTasks" : [ {
+      "id" : "18",
+      "key" : "approve",
+      "assignee" : "alice",
+      "ended" : true
+    }, {
+      "id" : "29",
+      "key" : "review",
+      "assignee" : "carol",
+      "ended" : true
+    } ],
+    "historicActivities" : [ {
+      "id" : "15",
+      "activityId" : "start",
+      "activityType" : "startEvent",
+      "executionId" : "14",
+      "taskId" : null,
+      "ended" : true
+    }, {
+      "id" : "16",
+      "activityId" : "to_approve",
+      "activityType" : "sequenceFlow",
+      "executionId" : "14",
+      "taskId" : null,
+      "ended" : true
+    }, {
+      "id" : "17",
+      "activityId" : "approve",
+      "activityType" : "userTask",
+      "executionId" : "14",
+      "taskId" : "18",
+      "ended" : true
+    }, {
+      "id" : "27",
+      "activityId" : "to_review",
+      "activityType" : "sequenceFlow",
+      "executionId" : "14",
+      "taskId" : null,
+      "ended" : true
+    }, {
+      "id" : "28",
+      "activityId" : "review",
+      "activityType" : "userTask",
+      "executionId" : "14",
+      "taskId" : "29",
+      "ended" : true
+    }, {
+      "id" : "33",
+      "activityId" : "to_end",
+      "activityType" : "sequenceFlow",
+      "executionId" : "14",
+      "taskId" : null,
+      "ended" : true
+    }, {
+      "id" : "34",
+      "activityId" : "end",
+      "activityType" : "endEvent",
+      "executionId" : "14",
+      "taskId" : null,
+      "ended" : true
+    } ],
+    "historicVariables" : [ {
+      "id" : "11",
+      "name" : "submittedAt",
+      "taskId" : null,
+      "executionId" : "4",
+      "type" : "date",
+      "value" : {
+        "$date" : "2026-01-02T02:04:05Z"
+      }
+    }, {
+      "id" : "12",
+      "name" : "document",
+      "taskId" : null,
+      "executionId" : "4",
+      "type" : "json",
+      "value" : {
+        "amount" : 12,
+        "items" : [ "甲", "乙" ]
+      }
+    }, {
+      "id" : "13",
+      "name" : "status",
+      "taskId" : null,
+      "executionId" : "4",
+      "type" : "string",
+      "value" : "completed"
+    }, {
+      "id" : "24",
+      "name" : "comment",
+      "taskId" : "18",
+      "executionId" : "14",
+      "type" : "string",
+      "value" : "仅审批任务本地变量"
+    }, {
+      "id" : "32",
+      "name" : "reviewNote",
+      "taskId" : "29",
+      "executionId" : "14",
+      "type" : "string",
+      "value" : "仅复核任务本地变量"
+    }, {
+      "id" : "5",
+      "name" : "title",
+      "taskId" : null,
+      "executionId" : "4",
+      "type" : "string",
+      "value" : "真实 Java 样本"
+    }, {
+      "id" : "6",
+      "name" : "large",
+      "taskId" : null,
+      "executionId" : "4",
+      "type" : "long",
+      "value" : 9007199254740993
+    }, {
+      "id" : "7",
+      "name" : "approved",
+      "taskId" : null,
+      "executionId" : "4",
+      "type" : "boolean",
+      "value" : true
+    }, {
+      "id" : "9",
+      "name" : "binary",
+      "taskId" : null,
+      "executionId" : "4",
+      "type" : "bytes",
+      "value" : {
+        "$bytes" : "AAEC/w=="
+      }
+    } ]
+  },
+  "generatorClassSha256" : "fa0d8290918e5b37cf04361c0714216419bdc92f0661adcdad3d772e509bdde4",
+  "engineConfigurationClassSha256" : "e0746e8d8da5f741743d220a6667b90ce18cd0034130121c468940c078c05f3f"
+}

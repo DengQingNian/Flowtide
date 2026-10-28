@@ -35,16 +35,17 @@ type TenantSummary struct {
 
 // Report 描述来源基线、只读分析范围及阻断问题，不代表续跑验收通过。
 type Report struct {
-	Baseline          string          `json:"baseline"`
-	SchemaVersion     string          `json:"schemaVersion"`
-	Dialect           string          `json:"dialect"`
-	Blocked           bool            `json:"blocked"`
-	Issues            []Issue         `json:"issues"`
-	Tenants           []TenantSummary `json:"tenants"`
-	Tables            []TableSummary  `json:"tables"`
-	Scope             string          `json:"scope"`
-	RequestedTenantID *string         `json:"requestedTenantId,omitempty"`
-	Limitations       []string        `json:"limitations"`
+	Baseline          string                `json:"baseline"`
+	SchemaVersion     string                `json:"schemaVersion"`
+	Dialect           string                `json:"dialect"`
+	Blocked           bool                  `json:"blocked"`
+	Issues            []Issue               `json:"issues"`
+	Tenants           []TenantSummary       `json:"tenants"`
+	Tables            []TableSummary        `json:"tables"`
+	Scope             string                `json:"scope"`
+	RequestedTenantID *string               `json:"requestedTenantId,omitempty"`
+	Limitations       []string              `json:"limitations"`
+	PreparedState     *PreparedStateSummary `json:"preparedState,omitempty"`
 }
 
 // 核心及 Java 独立作业表必须存在，否则无法判定来源完整性。
@@ -70,7 +71,8 @@ func Analyze(snapshot SourceSnapshot, options Options) Report {
 		"只读预检不执行转换，不代表 Java 与 Go 续跑、反向转换或回退验收通过。",
 		"实例检查限定简单用户任务等待结构；复杂作用域、作业和事件订阅必须另行转换及对照验证。",
 		"表数量为全库统计；未知或未分析非空表按全库阻断，租户筛选不能证明这些表可安全迁移。",
-		"尚未覆盖的历史、身份、模型及扩展实体在非空时阻断；表达式、业务委托和外部副作用仍需人工对照。",
+		"已分析基础 audit 历史及标准身份链接的归属、类型与生命周期；历史明细、评论、附件、模型及其他扩展实体非空时仍阻断。",
+		"audit 基础检查允许完成后运行时实体已移除；不替代完整历史字段映射、表达式、业务委托和外部副作用的人工对照。",
 	}}
 	if options.TenantID != nil {
 		state.report.Scope = "指定租户"
@@ -126,6 +128,7 @@ func Analyze(snapshot SourceSnapshot, options Options) Report {
 		case "ACT_RU_EVENT_SUBSCR":
 			state.add(row, "JAVA_SUBSCRIPTION", "Java 事件订阅尚无已验收的转换映射，需要逐订阅转换及续跑对照。")
 		default:
+			state.checkAuditRow(row)
 			if analysisJobTable(row.Table) {
 				state.add(row, "JAVA_JOB", "Java 作业处理器及锁、重试、周期语义尚无已验收转换映射。")
 			}
@@ -155,6 +158,9 @@ func (s *analysisState) checkTables(snapshot SourceSnapshot) {
 	present := make(map[string]bool)
 	analyzed := make(map[string]bool)
 	for _, name := range requiredAnalysisTables {
+		analyzed[name] = true
+	}
+	for _, name := range auditAnalysisTables {
 		analyzed[name] = true
 	}
 	// 未知表即使无法读取实体，也必须按全库数量报告，不能被租户筛选隐藏。
@@ -194,6 +200,9 @@ func (s *analysisState) inScope(row flowable.Row) bool {
 	if s.options.TenantID == nil || s.selected[row.Table][analysisID(row)] {
 		return true
 	}
+	if handled, included := s.auditInScope(row); handled {
+		return included
+	}
 	// 任一关联落在目标范围都必须检查，即使实体直接租户列冲突也不能静默丢弃。
 	instance := analysisString(row, "PROC_INST_ID_")
 	if instance == "" {
@@ -227,6 +236,9 @@ func (s *analysisState) tenant(row flowable.Row) string {
 	}
 	if task := s.index["ACT_RU_TASK"][analysisString(row, "TASK_ID_")]; task.Values != nil {
 		return analysisString(task, "TENANT_ID_")
+	}
+	if auditTable(row.Table) {
+		return s.auditTenant(row)
 	}
 	return analysisString(s.index["ACT_RU_EXECUTION"][analysisString(row, "EXECUTION_ID_")], "TENANT_ID_")
 }

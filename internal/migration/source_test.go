@@ -5,6 +5,7 @@ import (
 	"errors"
 	"reflect"
 	"testing"
+	"time"
 
 	"github.com/DATA-DOG/go-sqlmock"
 )
@@ -197,5 +198,45 @@ func TestScanJavaJobs(t *testing.T) {
 	}
 	if err := mock.ExpectationsWereMet(); err != nil {
 		t.Fatal(err)
+	}
+}
+
+// TestScanJavaRuntimeActivities 验证 Java 运行时活动读取所有实际列并保留时间和空值。
+// @param t 测试上下文
+// @return 无
+func TestScanJavaRuntimeActivities(t *testing.T) {
+	started := time.Date(2026, 10, 28, 12, 30, 0, 123000000, time.UTC)
+	tests := []struct {
+		dialect, table, query string
+	}{
+		{"mysql", "ACT_RU_ACTINST", "SELECT \\* FROM `ACT_RU_ACTINST`"},
+		{"postgres", "act_ru_actinst", `SELECT \* FROM "act_ru_actinst"`},
+	}
+	// 两种方言均应加载逐活动行，不能将它退化为未知表的行数统计。
+	for _, test := range tests {
+		t.Run(test.dialect, func(t *testing.T) {
+			db, mock, err := sqlmock.New()
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer db.Close()
+			expectSourceTable(mock, test.table)
+			mock.ExpectQuery(test.query).WillReturnRows(sqlmock.NewRows([]string{"id_", "execution_id_", "proc_inst_id_", "act_id_", "act_type_", "task_id_", "start_time_", "end_time_", "duration_", "transaction_order_", "tenant_id_"}).AddRow([]byte("activity"), "execution", "instance", "wait", "userTask", "task", started, nil, nil, int64(3), "tenant"))
+			mock.ExpectRollback()
+			snapshot, err := Scan(context.Background(), db, test.dialect)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if len(snapshot.Rows) != 1 || snapshot.Tables[0] != (TableSummary{Name: "ACT_RU_ACTINST", Count: 1}) {
+				t.Fatalf("运行时活动读取不完整：%+v", snapshot)
+			}
+			row := snapshot.Rows[0]
+			if row.Table != "ACT_RU_ACTINST" || row.Values["ID_"] != "activity" || row.Values["ACT_TYPE_"] != "userTask" || row.Values["TRANSACTION_ORDER_"] != int64(3) || row.Values["END_TIME_"] != nil || row.Values["DURATION_"] != nil || !reflect.DeepEqual(row.Values["START_TIME_"], started) {
+				t.Fatalf("运行时活动字段或时间类型丢失：%#v", row)
+			}
+			if err := mock.ExpectationsWereMet(); err != nil {
+				t.Fatal(err)
+			}
+		})
 	}
 }

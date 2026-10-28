@@ -36,7 +36,7 @@ func TestEngine_MemoryStore(t *testing.T) {
 		t.Fatalf("恢复任务错误: %+v", tasks)
 	}
 	values, _ := restored.GetVariables(context.Background(), instance.ID)
-	if values["amount"] != float64(10) {
+	if values["amount"] != int(10) {
 		t.Fatalf("恢复变量错误: %+v", values)
 	}
 }

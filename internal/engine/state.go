@@ -187,6 +187,8 @@ type state struct {
 	Memberships        map[string]bool                          // 成员关系，key=user|group
 	Properties         map[string]string                        // 自定义引擎属性
 	Versions           map[string]int                           // 流程定义 Key 到最大版本
+	// RecordSequenceFlowHistory 表示此状态由 Java 迁移续跑创建，需补记顺序流历史。
+	RecordSequenceFlowHistory bool
 }
 
 // newState 创建空状态。
@@ -231,6 +233,7 @@ func newState() *state {
 // @return 拷贝后的状态
 func cloneState(source *state) *state {
 	target := newState()
+	target.RecordSequenceFlowHistory = source.RecordSequenceFlowHistory
 	for id, deployment := range source.Deployments {
 		copied := *deployment
 		copied.Resources = cloneBytesMap(deployment.Resources)

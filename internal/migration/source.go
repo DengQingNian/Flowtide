@@ -60,7 +60,7 @@ func Scan(ctx context.Context, db *sql.DB, dialect string) (snapshot SourceSnaps
 	for _, name := range flowable.Tables() {
 		known[name] = true
 	}
-	for _, name := range []string{"ACT_RU_TIMER_JOB", "ACT_RU_SUSPENDED_JOB", "ACT_RU_EXTERNAL_JOB", "ACT_RU_HISTORY_JOB", "ACT_HI_JOB_LOG"} {
+	for _, name := range []string{"ACT_RU_ACTINST", "ACT_RU_TIMER_JOB", "ACT_RU_SUSPENDED_JOB", "ACT_RU_EXTERNAL_JOB", "ACT_RU_HISTORY_JOB", "ACT_HI_JOB_LOG"} {
 		known[name] = true
 	}
 	snapshot = SourceSnapshot{Dialect: dialect, Tables: make([]TableSummary, 0, len(names)), Rows: make([]flowable.Row, 0)}

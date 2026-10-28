@@ -2,6 +2,7 @@ package flowable
 
 import (
 	"encoding/json"
+	"strconv"
 	"strings"
 	"time"
 
@@ -42,6 +43,14 @@ func VariableValue(kind string, integer *int64, number *float64, text *string, d
 		}
 		return *integer != 0, nil
 	case "short", "integer", "long":
+		// Flowable 对超出浮点安全范围的整数会在 LONG_ 中丢失精度，TEXT_ 保留精确十进制文本。
+		if text != nil && *text != "" {
+			value, err := strconv.ParseInt(*text, 10, 64)
+			if err != nil {
+				return nil, api.NewError("ROW-0034", "整数变量文本无法精确解析", err)
+			}
+			return value, nil
+		}
 		if integer == nil {
 			return int64(0), nil
 		}

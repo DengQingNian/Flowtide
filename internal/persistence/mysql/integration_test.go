@@ -179,7 +179,7 @@ func TestIntegrationMySQLSnapshot(t *testing.T) {
 		t.Fatalf("实例身份链接恢复失败: %v", err)
 	}
 	variables, err := second.GetVariables(ctx, instance.ID)
-	if err != nil || variables["备注"] != "中文与表情😀" || variables["金额"] != float64(123) {
+	if err != nil || variables["备注"] != "中文与表情😀" || variables["金额"] != int(123) {
 		t.Fatalf("变量恢复失败: %v", err)
 	}
 	tasks, err := second.ListTasks(ctx, api.TaskFilter{})

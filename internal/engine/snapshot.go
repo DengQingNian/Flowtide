@@ -30,47 +30,50 @@ type batchSnapshot struct {
 
 // snapshot 是引擎状态的持久化结构。
 // snapshotVersion 是当前快照结构版本，版本零表示兼容旧版无标记快照。
-const snapshotVersion = 1
+const snapshotVersion = 2
 
 type snapshot struct {
-	Version            int                                `json:"version"`            // 格式版本
-	Deployments        []deploymentSnapshot               `json:"deployments"`        // 部署
-	Definitions        []definitionSnapshot               `json:"definitions"`        // 流程定义
-	Models             []*modelState                      `json:"models"`             // 流程模型及编辑源
-	Instances          []*instanceState                   `json:"instances"`          // 流程实例
-	Executions         []*executionState                  `json:"executions"`         // 执行
-	Tasks              []*taskState                       `json:"tasks"`              // 任务
-	Jobs               []*jobState                        `json:"jobs"`               // 定时器作业
-	DeadLetters        []*jobState                        `json:"deadLetters"`        // 死信作业
-	Subscriptions      []*subscriptionState               `json:"subscriptions"`      // 事件订阅
-	Compensations      map[string][]*compensationState    `json:"compensations"`      // 补偿登记
-	Batches            []batchSnapshot                    `json:"batches"`            // 批处理作业
-	HistoricProcesses  []*api.HistoricProcessInstance     `json:"historicProcesses"`  // 历史流程
-	HistoricActivities []*api.HistoricActivityInstance    `json:"historicActivities"` // 历史活动
-	HistoricTasks      []*api.HistoricTaskInstance        `json:"historicTasks"`      // 历史任务
-	HistoricVariables  []*api.HistoricVariableInstance    `json:"historicVariables"`  // 历史变量
-	InstanceLinks      []*api.IdentityLink                `json:"instanceLinks"`      // 实例身份链接
-	HistoricLinks      []*api.IdentityLink                `json:"historicLinks"`      // 历史身份链接
-	HistoricDetails    []*api.HistoricDetail              `json:"historicDetails"`    // 历史变量明细
-	TaskLogs           []*api.HistoricTaskLog             `json:"taskLogs"`           // 任务日志
-	NextTaskLogID      int64                              `json:"nextTaskLogId"`      // 下一个任务日志 ID
-	Comments           []*api.Comment                     `json:"comments"`           // 评论
-	Attachments        []*api.Attachment                  `json:"attachments"`        // 附件
-	AttachmentContents map[string]*attachmentContentState `json:"attachmentContents"` // 附件内容
-	Users              []*api.User                        `json:"users"`              // 用户
-	UserInfo           map[string]map[string]string       `json:"userInfo"`           // 用户信息
-	UserPictures       map[string]*userPictureState       `json:"userPictures"`       // 用户头像
-	Groups             []*api.Group                       `json:"groups"`             // 组
-	Roles              []*api.Role                        `json:"roles"`              // 角色
-	Memberships        map[string]bool                    `json:"memberships"`        // 成员关系
-	Properties         map[string]string                  `json:"properties"`         // 自定义属性
-	Versions           map[string]int                     `json:"versions"`           // 版本号
+	Version            int                                `json:"version"`               // 格式版本
+	TypedValues        *snapshotTypedValues               `json:"typedValues,omitempty"` // 明确类型的变量侧表
+	Deployments        []deploymentSnapshot               `json:"deployments"`           // 部署
+	Definitions        []definitionSnapshot               `json:"definitions"`           // 流程定义
+	Models             []*modelState                      `json:"models"`                // 流程模型及编辑源
+	Instances          []*instanceState                   `json:"instances"`             // 流程实例
+	Executions         []*executionState                  `json:"executions"`            // 执行
+	Tasks              []*taskState                       `json:"tasks"`                 // 任务
+	Jobs               []*jobState                        `json:"jobs"`                  // 定时器作业
+	DeadLetters        []*jobState                        `json:"deadLetters"`           // 死信作业
+	Subscriptions      []*subscriptionState               `json:"subscriptions"`         // 事件订阅
+	Compensations      map[string][]*compensationState    `json:"compensations"`         // 补偿登记
+	Batches            []batchSnapshot                    `json:"batches"`               // 批处理作业
+	HistoricProcesses  []*api.HistoricProcessInstance     `json:"historicProcesses"`     // 历史流程
+	HistoricActivities []*api.HistoricActivityInstance    `json:"historicActivities"`    // 历史活动
+	HistoricTasks      []*api.HistoricTaskInstance        `json:"historicTasks"`         // 历史任务
+	HistoricVariables  []*api.HistoricVariableInstance    `json:"historicVariables"`     // 历史变量
+	InstanceLinks      []*api.IdentityLink                `json:"instanceLinks"`         // 实例身份链接
+	HistoricLinks      []*api.IdentityLink                `json:"historicLinks"`         // 历史身份链接
+	HistoricDetails    []*api.HistoricDetail              `json:"historicDetails"`       // 历史变量明细
+	TaskLogs           []*api.HistoricTaskLog             `json:"taskLogs"`              // 任务日志
+	NextTaskLogID      int64                              `json:"nextTaskLogId"`         // 下一个任务日志 ID
+	Comments           []*api.Comment                     `json:"comments"`              // 评论
+	Attachments        []*api.Attachment                  `json:"attachments"`           // 附件
+	AttachmentContents map[string]*attachmentContentState `json:"attachmentContents"`    // 附件内容
+	Users              []*api.User                        `json:"users"`                 // 用户
+	UserInfo           map[string]map[string]string       `json:"userInfo"`              // 用户信息
+	UserPictures       map[string]*userPictureState       `json:"userPictures"`          // 用户头像
+	Groups             []*api.Group                       `json:"groups"`                // 组
+	Roles              []*api.Role                        `json:"roles"`                 // 角色
+	Memberships        map[string]bool                    `json:"memberships"`           // 成员关系
+	Properties         map[string]string                  `json:"properties"`            // 自定义属性
+	Versions           map[string]int                     `json:"versions"`              // 版本号
+	// RecordSequenceFlowHistory 保留 Java 迁移续跑的审计记录模式。
+	RecordSequenceFlowHistory bool `json:"recordSequenceFlowHistory,omitempty"`
 }
 
 // toSnapshot 将运行时状态转换为持久化结构。
 // @return 快照
 func (e *Engine) toSnapshot() *snapshot {
-	out := &snapshot{Version: snapshotVersion, Versions: make(map[string]int, len(e.state.Versions))}
+	out := &snapshot{Version: snapshotVersion, Versions: make(map[string]int, len(e.state.Versions)), RecordSequenceFlowHistory: e.state.RecordSequenceFlowHistory}
 	for _, deployment := range e.state.Deployments {
 		out.Deployments = append(out.Deployments, deploymentSnapshot{Info: deployment.Info, Resources: deployment.Resources})
 	}
@@ -169,7 +172,11 @@ func (e *Engine) saveState(ctx context.Context) error {
 	if e.cfg.StateStore == nil {
 		return nil
 	}
-	data, err := json.Marshal(e.toSnapshot())
+	stored, err := snapshotWithTypedValues(e.toSnapshot())
+	if err != nil {
+		return api.NewError("ENGINE-0901", "序列化变量类型失败", err)
+	}
+	data, err := json.Marshal(stored)
 	if err != nil {
 		return api.NewError("ENGINE-0901", "序列化引擎状态失败", err)
 	}
@@ -200,7 +207,13 @@ func (e *Engine) loadState(ctx context.Context) error {
 	if stored.Version < 0 || stored.Version > snapshotVersion {
 		return api.NewError("ENGINE-0917", "不支持的快照版本", api.ErrBadRequest)
 	}
+	if stored.Version == snapshotVersion {
+		if err := restoreSnapshotTypedValues(&stored); err != nil {
+			return api.NewError("ENGINE-0911", "恢复变量类型失败", err)
+		}
+	}
 	restored := newState()
+	restored.RecordSequenceFlowHistory = stored.RecordSequenceFlowHistory
 	for _, deployment := range stored.Deployments {
 		restored.Deployments[deployment.Info.ID] = &deploymentState{Info: deployment.Info, Resources: deployment.Resources}
 	}

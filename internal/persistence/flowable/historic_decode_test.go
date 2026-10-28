@@ -206,6 +206,86 @@ func TestDecodeHistoricRows_Errors(t *testing.T) {
 	}
 }
 
+// TestDecodeHistoricJavaColumns 验证 Java 任务、活动与评论列在行解码时无损保留。
+// @param t 测试上下文
+// @return 无
+func TestDecodeHistoricJavaColumns(t *testing.T) {
+	started := time.Date(2026, 10, 28, 0, 0, 0, 0, time.UTC)
+	processRow := historicProcessRow(t, "p1")
+	for column, value := range map[string]any{
+		"REV_": int64(2), "DURATION_": int64(120000), "START_USER_ID_": "alice",
+		"START_ACT_ID_": "start", "END_ACT_ID_": "end", "BUSINESS_STATUS_": "done",
+		"CLAIMED_BY_": "bob", "END_USER_ID_": "carol", "STATE_": "completed",
+		"DUE_DATE_": started, "CLAIM_TIME_": started,
+	} {
+		processRow.Values[column] = value
+	}
+	process, err := decodeHistoricProcess(processRow)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if process.Revision != 2 || process.DurationMillis != 120000 || process.StartUserID != "alice" || process.StartActivityID != "start" || process.EndActivityID != "end" || process.BusinessStatus != "done" || process.ClaimedBy != "bob" || process.EndUserID != "carol" || process.State != "completed" || process.DueDate == nil || process.ClaimTime == nil {
+		t.Fatalf("历史流程 Java 列丢失：%+v", process)
+	}
+	activityRow := historicActivityRow(t, "a1")
+	for column, value := range map[string]any{
+		"REV_": int64(2), "PROC_DEF_ID_": "d1", "EXECUTION_ID_": "e1", "TASK_ID_": "t1",
+		"CALL_PROC_INST_ID_": "call", "ASSIGNEE_": "alice", "COMPLETED_BY_": "bob",
+		"TRANSACTION_ORDER_": int64(3), "DELETE_REASON_": "done", "TENANT_ID_": "tenant-a",
+	} {
+		activityRow.Values[column] = value
+	}
+	activity, err := decodeHistoricActivity(activityRow)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if activity.Revision != 2 || activity.ProcessDefinitionID != "d1" || activity.ExecutionID != "e1" || activity.TaskID != "t1" || activity.CallProcessInstanceID != "call" || activity.Assignee != "alice" || activity.CompletedBy != "bob" || activity.TransactionOrder != 3 || activity.DeleteReason != "done" || activity.TenantID != "tenant-a" {
+		t.Fatalf("历史活动 Java 列丢失：%+v", activity)
+	}
+	taskRow := historicTaskRow(t, "t1")
+	for column, value := range map[string]any{
+		"REV_": int64(4), "PROC_DEF_ID_": "d1", "TASK_DEF_ID_": "td1", "EXECUTION_ID_": "e1",
+		"STATE_": "claimed", "DESCRIPTION_": "说明", "OWNER_": "owner", "FORM_KEY_": "form",
+		"CATEGORY_": "audit", "TENANT_ID_": "tenant-a", "DELETE_REASON_": "approved",
+		"IN_PROGRESS_STARTED_BY_": "alice", "CLAIMED_BY_": "alice", "SUSPENDED_BY_": "bob",
+		"COMPLETED_BY_": "carol", "PRIORITY_": int64(60), "IN_PROGRESS_TIME_": started,
+		"CLAIM_TIME_": started, "SUSPENDED_TIME_": started, "IN_PROGRESS_DUE_DATE_": started,
+		"DUE_DATE_": started, "LAST_UPDATED_TIME_": started,
+	} {
+		taskRow.Values[column] = value
+	}
+	task, err := decodeHistoricTask(taskRow)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if task.Revision != 4 || task.ProcessDefinitionID != "d1" || task.TaskDefinitionID != "td1" || task.ExecutionID != "e1" || task.State != "claimed" || task.Description != "说明" || task.Owner != "owner" || task.FormKey != "form" || task.Category != "audit" || task.TenantID != "tenant-a" || task.DeleteReason != "approved" || task.InProgressStartedBy != "alice" || task.ClaimedBy != "alice" || task.SuspendedBy != "bob" || task.CompletedBy != "carol" || task.Priority != 60 || task.InProgressTime == nil || task.ClaimTime == nil || task.SuspendedTime == nil || task.InProgressDueDate == nil || task.DueDate == nil || task.LastUpdatedTime == nil {
+		t.Fatalf("历史任务 Java 列丢失：%+v", task)
+	}
+	commentRow := historicCommentRow(t, "c1")
+	commentRow.Values["TYPE_"] = "event"
+	commentRow.Values["ACTION_"] = "AddUserLink"
+	commentRow.Values["FULL_MSG_"] = "完整内容"
+	comment, err := decodeHistoricComment(commentRow)
+	if err != nil || comment.Action != "AddUserLink" || comment.FullMessage != "完整内容" {
+		t.Fatalf("历史评论 Java 列丢失：%+v %v", comment, err)
+	}
+}
+
+// TestVariableValueExactIntegerText 验证 Java 大整数使用 TEXT_ 精确文本而非失真的 LONG_。
+// @param t 测试上下文
+// @return 无
+func TestVariableValueExactIntegerText(t *testing.T) {
+	exact := "9007199254740993"
+	value, err := VariableValue("long", ptrInt(9007199254740992), nil, &exact, nil)
+	if err != nil || value != int64(9007199254740993) {
+		t.Fatalf("大整数未按文本精确恢复：%T %v %v", value, value, err)
+	}
+	invalid := "not-a-number"
+	if _, err := VariableValue("integer", ptrInt(1), nil, &invalid, nil); err == nil {
+		t.Fatal("非法整数文本未拒绝")
+	}
+}
+
 // ptrInt 返回整数指针。
 // @param value 值
 // @return 指针

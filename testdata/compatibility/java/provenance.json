@@ -1,0 +1,16 @@
+{
+  "javaRepository": "https://github.com/flowable/flowable-engine",
+  "javaCommit": "f6017e32a4bdd3e59a8881f58b0ee181652d1d9e",
+  "flowableVersion": "8.1.0-SNAPSHOT",
+  "schemaVersion": "8.1.0.3",
+  "database": "h2",
+  "h2Version": "2.4.240",
+  "javaVersion": "17.0.21.0.2",
+  "generatedAt": "2026-10-28T14:02:39Z",
+  "artifact": "001-user-task-audit.json",
+  "artifactSha256": "c7c22263b4a08d4f459eb097f0862ae50049b70fa99872f0acb2c668835c4753",
+  "generatorClassSha256": "fa0d8290918e5b37cf04361c0714216419bdc92f0661adcdad3d772e509bdde4",
+  "engineConfigurationClassSha256": "e0746e8d8da5f741743d220a6667b90ce18cd0034130121c468940c078c05f3f",
+  "generatorSourceSha256": "5b59cce3c3ec43db3df0fb84fa57b91a117495eebe186d3c6e7a90b640c3f967",
+  "generatorSourceCommitted": false
+}

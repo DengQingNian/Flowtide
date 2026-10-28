@@ -2,6 +2,7 @@ package flowable
 
 import (
 	"sort"
+	"time"
 
 	"github.com/flowable-go/flowable/api"
 )
@@ -150,14 +151,36 @@ func decodeHistoricProcess(row Row) (api.HistoricProcessInstance, error) {
 	if err != nil {
 		return api.HistoricProcessInstance{}, err
 	}
+	texts, err := historicStrings(row,
+		"START_USER_ID_", "START_ACT_ID_", "END_ACT_ID_", "SUPER_PROCESS_INSTANCE_ID_", "CALLBACK_ID_",
+		"CALLBACK_TYPE_", "REFERENCE_ID_", "REFERENCE_TYPE_", "PROPAGATED_STAGE_INST_ID_",
+		"BUSINESS_STATUS_", "CLAIMED_BY_", "END_USER_ID_", "STATE_")
+	if err != nil {
+		return api.HistoricProcessInstance{}, err
+	}
+	numbers, err := historicInts(row, "REV_", "DURATION_")
+	if err != nil {
+		return api.HistoricProcessInstance{}, err
+	}
+	times, err := historicTimes(row, "DUE_DATE_", "CLAIM_TIME_")
+	if err != nil {
+		return api.HistoricProcessInstance{}, err
+	}
 	return api.HistoricProcessInstance{
-		ID: processInstanceID, ProcessDefinitionID: definitionID, BusinessKey: businessKey,
-		Name: name, TenantID: tenant, StartTime: startTime, EndTime: endTime,
+		ID: processInstanceID, Revision: int(numbers["REV_"]), ProcessDefinitionID: definitionID,
+		BusinessKey: businessKey, Name: name, TenantID: tenant, StartTime: startTime, EndTime: endTime,
+		DurationMillis: numbers["DURATION_"], StartUserID: texts["START_USER_ID_"],
+		StartActivityID: texts["START_ACT_ID_"], EndActivityID: texts["END_ACT_ID_"],
+		SuperProcessInstanceID: texts["SUPER_PROCESS_INSTANCE_ID_"], CallbackID: texts["CALLBACK_ID_"],
+		CallbackType: texts["CALLBACK_TYPE_"], ReferenceID: texts["REFERENCE_ID_"],
+		ReferenceType: texts["REFERENCE_TYPE_"], PropagatedStageInstanceID: texts["PROPAGATED_STAGE_INST_ID_"],
+		BusinessStatus: texts["BUSINESS_STATUS_"], ClaimedBy: texts["CLAIMED_BY_"], EndUserID: texts["END_USER_ID_"],
+		State: texts["STATE_"], DueDate: times["DUE_DATE_"], ClaimTime: times["CLAIM_TIME_"],
 		DeleteReason: deleteReason, Ended: endTime != nil,
 	}, nil
 }
 
-// decodeHistoricActivity 解析历史活动行。
+// decodeHistoricActivity 解析历史活动行，并保留 Java 原始业务列。
 // @param row 行
 // @return 历史活动
 // @return 错误
@@ -190,21 +213,28 @@ func decodeHistoricActivity(row Row) (api.HistoricActivityInstance, error) {
 	if err != nil {
 		return api.HistoricActivityInstance{}, err
 	}
-	duration, err := optionalInt(row, "DURATION_")
+	texts, err := historicStrings(row, "PROC_DEF_ID_", "EXECUTION_ID_", "TASK_ID_", "CALL_PROC_INST_ID_", "ASSIGNEE_", "COMPLETED_BY_", "DELETE_REASON_", "TENANT_ID_")
+	if err != nil {
+		return api.HistoricActivityInstance{}, err
+	}
+	numbers, err := historicInts(row, "REV_", "TRANSACTION_ORDER_", "DURATION_")
 	if err != nil {
 		return api.HistoricActivityInstance{}, err
 	}
 	activity := api.HistoricActivityInstance{
 		ID: id, ProcessInstanceID: processInstanceID, ActivityID: activityID,
 		ActivityName: activityName, ActivityType: activityType, StartTime: startTime, EndTime: endTime,
-	}
-	if duration != nil {
-		activity.DurationMillis = *duration
+		ProcessDefinitionID: texts["PROC_DEF_ID_"], ExecutionID: texts["EXECUTION_ID_"],
+		TaskID: texts["TASK_ID_"], CallProcessInstanceID: texts["CALL_PROC_INST_ID_"],
+		Assignee: texts["ASSIGNEE_"], CompletedBy: texts["COMPLETED_BY_"],
+		DeleteReason: texts["DELETE_REASON_"], TenantID: texts["TENANT_ID_"],
+		Revision: int(numbers["REV_"]), TransactionOrder: int(numbers["TRANSACTION_ORDER_"]),
+		DurationMillis: numbers["DURATION_"],
 	}
 	return activity, nil
 }
 
-// decodeHistoricTask 解析历史任务行。
+// decodeHistoricTask 解析历史任务行，并保留 Java 原始业务列。
 // @param row 行
 // @return 历史任务
 // @return 错误
@@ -237,18 +267,103 @@ func decodeHistoricTask(row Row) (api.HistoricTaskInstance, error) {
 	if err != nil {
 		return api.HistoricTaskInstance{}, err
 	}
-	duration, err := optionalInt(row, "DURATION_")
+	texts, err := historicStrings(row,
+		"PROC_DEF_ID_", "TASK_DEF_ID_", "EXECUTION_ID_", "SCOPE_ID_", "SUB_SCOPE_ID_", "SCOPE_TYPE_",
+		"SCOPE_DEFINITION_ID_", "PROPAGATED_STAGE_INST_ID_", "STATE_", "PARENT_TASK_ID_", "DESCRIPTION_",
+		"OWNER_", "FORM_KEY_", "CATEGORY_", "TENANT_ID_", "DELETE_REASON_", "IN_PROGRESS_STARTED_BY_",
+		"CLAIMED_BY_", "SUSPENDED_BY_", "COMPLETED_BY_")
+	if err != nil {
+		return api.HistoricTaskInstance{}, err
+	}
+	numbers, err := historicInts(row, "REV_", "PRIORITY_", "DURATION_")
+	if err != nil {
+		return api.HistoricTaskInstance{}, err
+	}
+	times, err := historicTimes(row, "IN_PROGRESS_TIME_", "CLAIM_TIME_", "SUSPENDED_TIME_", "IN_PROGRESS_DUE_DATE_", "DUE_DATE_", "LAST_UPDATED_TIME_")
 	if err != nil {
 		return api.HistoricTaskInstance{}, err
 	}
 	task := api.HistoricTaskInstance{
 		ID: id, Name: name, ProcessInstanceID: processInstanceID,
 		TaskDefinitionKey: taskKey, Assignee: assignee, StartTime: startTime, EndTime: endTime,
+		Revision: int(numbers["REV_"]), ProcessDefinitionID: texts["PROC_DEF_ID_"], TaskDefinitionID: texts["TASK_DEF_ID_"],
+		ExecutionID: texts["EXECUTION_ID_"], ScopeID: texts["SCOPE_ID_"], SubScopeID: texts["SUB_SCOPE_ID_"],
+		ScopeType: texts["SCOPE_TYPE_"], ScopeDefinitionID: texts["SCOPE_DEFINITION_ID_"],
+		PropagatedStageInstanceID: texts["PROPAGATED_STAGE_INST_ID_"], State: texts["STATE_"],
+		ParentTaskID: texts["PARENT_TASK_ID_"], Description: texts["DESCRIPTION_"], Owner: texts["OWNER_"],
+		FormKey: texts["FORM_KEY_"], Category: texts["CATEGORY_"], TenantID: texts["TENANT_ID_"],
+		DeleteReason: texts["DELETE_REASON_"], InProgressStartedBy: texts["IN_PROGRESS_STARTED_BY_"],
+		ClaimedBy: texts["CLAIMED_BY_"], SuspendedBy: texts["SUSPENDED_BY_"], CompletedBy: texts["COMPLETED_BY_"],
+		Priority: int(numbers["PRIORITY_"]), DurationMillis: numbers["DURATION_"],
 	}
-	if duration != nil {
-		task.DurationMillis = *duration
-	}
+	setHistoricTaskTimes(&task, times)
 	return task, nil
+}
+
+// setHistoricTaskTimes 将可空时间列写入历史任务。
+// @param task 历史任务
+// @param times 按列名索引的时间值
+// @return 无
+func setHistoricTaskTimes(task *api.HistoricTaskInstance, times map[string]*time.Time) {
+	task.InProgressTime = times["IN_PROGRESS_TIME_"]
+	task.ClaimTime = times["CLAIM_TIME_"]
+	task.SuspendedTime = times["SUSPENDED_TIME_"]
+	task.InProgressDueDate = times["IN_PROGRESS_DUE_DATE_"]
+	task.DueDate = times["DUE_DATE_"]
+	task.LastUpdatedTime = times["LAST_UPDATED_TIME_"]
+}
+
+// historicStrings 读取一组可空字符串列，缺少列按空值处理。
+// @param row 行
+// @param columns 列名
+// @return 按列名索引的文本
+// @return 类型错误
+func historicStrings(row Row, columns ...string) (map[string]string, error) {
+	values := make(map[string]string, len(columns))
+	for _, column := range columns {
+		value, err := optionalStringValue(row, column)
+		if err != nil {
+			return nil, err
+		}
+		values[column] = value
+	}
+	return values, nil
+}
+
+// historicInts 读取一组可空整数列，缺少列按零值处理。
+// @param row 行
+// @param columns 列名
+// @return 按列名索引的整数
+// @return 类型错误
+func historicInts(row Row, columns ...string) (map[string]int64, error) {
+	values := make(map[string]int64, len(columns))
+	for _, column := range columns {
+		value, err := optionalInt(row, column)
+		if err != nil {
+			return nil, err
+		}
+		if value != nil {
+			values[column] = *value
+		}
+	}
+	return values, nil
+}
+
+// historicTimes 读取一组可空时间列，缺少列按空值处理。
+// @param row 行
+// @param columns 列名
+// @return 按列名索引的时间指针
+// @return 类型错误
+func historicTimes(row Row, columns ...string) (map[string]*time.Time, error) {
+	values := make(map[string]*time.Time, len(columns))
+	for _, column := range columns {
+		value, err := optionalTime(row, column)
+		if err != nil {
+			return nil, err
+		}
+		values[column] = value
+	}
+	return values, nil
 }
 
 // decodeHistoricVariable 解析历史变量行。
@@ -359,7 +474,15 @@ func decodeHistoricComment(row Row) (api.Comment, error) {
 	if err != nil {
 		return api.Comment{}, err
 	}
-	return api.Comment{ID: id, Type: commentType, Time: commentTime, UserID: userID, TaskID: taskID, ProcessInstanceID: processInstanceID, Message: message}, nil
+	action, err := optionalStringValue(row, "ACTION_")
+	if err != nil {
+		return api.Comment{}, err
+	}
+	fullMessage, err := optionalStringValue(row, "FULL_MSG_")
+	if err != nil {
+		return api.Comment{}, err
+	}
+	return api.Comment{ID: id, Type: commentType, Time: commentTime, UserID: userID, TaskID: taskID, ProcessInstanceID: processInstanceID, Action: action, Message: message, FullMessage: fullMessage}, nil
 }
 
 // decodeHistoricAttachment 解析历史附件行。

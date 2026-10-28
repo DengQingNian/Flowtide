@@ -44,6 +44,11 @@ func (e *Engine) ImportRuntimeRows(ctx context.Context, rows []flowablerow.Row) 
 			}
 			if execution.ParentID == "" {
 				instance.RootExecutionID = execution.ID
+				// Java 的子执行不保存实例元数据，不能依赖按标识排序后的首行。
+				instance.BusinessKey = execution.BusinessKey
+				instance.StartTime = execution.StartTime
+				instance.TenantID = execution.TenantID
+				instance.Suspended = execution.Suspended
 			}
 			e.state.Executions[execution.ID] = &executionState{
 				ID:                  execution.ID,
@@ -281,7 +286,10 @@ func (e *Engine) ImportRuntimeRows(ctx context.Context, rows []flowablerow.Row) 
 			}
 			e.state.InstanceLinks[identity.ID] = identity
 		}
-		return nil, e.restoreRuntimeControls(controls)
+		if err := e.restoreRuntimeControls(controls); err != nil {
+			return nil, err
+		}
+		return nil, e.restoreJavaExecutionTree(snapshot, controls)
 	})
 	return err
 }

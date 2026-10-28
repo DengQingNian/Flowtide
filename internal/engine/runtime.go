@@ -571,6 +571,7 @@ func (e *Engine) selectFlows(execution *executionState, flows []*model.SequenceF
 // @param flows 选中的出线
 // @return 执行错误
 func (e *Engine) dispatchFlows(cc *commandContext, execution *executionState, flows []*model.SequenceFlow) error {
+	e.recordSequenceFlowHistory(cc, execution, flows)
 	if len(flows) == 1 {
 		target := flows[0].TargetRef
 		execution.ActivityID = target
@@ -595,6 +596,33 @@ func (e *Engine) dispatchFlows(cc *commandContext, execution *executionState, fl
 		cc.agenda.schedule(&continueOperation{executionID: child.ID, activityID: flow.TargetRef})
 	}
 	return nil
+}
+
+// recordSequenceFlowHistory 在 Java 迁移续跑模式补记顺序流活动，普通 Go 实例保持原有历史。
+// @param cc 命令上下文
+// @param execution 经过顺序流的执行
+// @param flows 选中的顺序流
+// @return 无
+func (e *Engine) recordSequenceFlowHistory(cc *commandContext, execution *executionState, flows []*model.SequenceFlow) {
+	if !e.state.RecordSequenceFlowHistory || !e.historyAtLeast(HistoryActivity) {
+		return
+	}
+	instance, _ := e.findInstance(execution.ProcessInstanceID)
+	tenant := ""
+	if instance != nil {
+		tenant = instance.TenantID
+	}
+	for _, flow := range flows {
+		ended := cc.now
+		historic := &api.HistoricActivityInstance{
+			ID: e.newID(), ProcessDefinitionID: execution.DefinitionID,
+			ProcessInstanceID: execution.ProcessInstanceID, ExecutionID: execution.ID,
+			ActivityID: flow.ID, ActivityName: flow.Name, ActivityType: "sequenceFlow",
+			StartTime: cc.now, EndTime: &ended, TransactionOrder: cc.nextTransactionOrder(),
+			TenantID: tenant,
+		}
+		e.state.HistoricActivities[historic.ID] = historic
+	}
 }
 
 // handleParallelGateway 处理并行网关分叉与汇聚。

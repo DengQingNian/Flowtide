@@ -87,10 +87,9 @@ func (e *Engine) SetTaskVariable(ctx context.Context, taskID, name string, value
 			return nil, api.NewError("ENGINE-1103", "变量名不能为空", api.ErrBadRequest)
 		}
 		task.LocalVariables[name] = copyValue(value)
-		if task.ExecutionID == "" {
-			e.recordTaskHistoricVariable(task, name, value, cc.now)
-		} else {
-			e.recordHistoricDetail(task.Task.ProcessInstanceID, task.ExecutionID, task.Task.ID, task.ActivityID, name, value, cc.now)
+		// 流程任务与独立任务均保存局部变量历史，不能只追加明细而遗漏当前历史值。
+		e.recordTaskHistoricVariable(task, name, value, cc.now)
+		if task.ExecutionID != "" {
 			// 任务局部变量参与条件求值，变化后立即触发
 			if err := e.evaluateConditionalSubscriptions(cc, task.Task.ProcessInstanceID); err != nil {
 				return nil, err

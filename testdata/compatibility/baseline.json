@@ -9,7 +9,7 @@
     "postgres": "16.3"
   },
   "implementation_base": "6823a1f",
-  "migration_status": "新建库原型；未通过 Java 存量续跑和回退验收",
+  "migration_status": "新建库原型；Java H2 用户任务离线转换通过，未通过停写切换和回退验收",
   "variables_supported": [
     "null",
     "string",
@@ -30,7 +30,7 @@
     "缺失的外置字节数据",
     "超出有符号 64 位范围的整数"
   ],
-  "fixture_status": "Go 回归语料；尚未 Java 对照回放",
+  "fixture_status": "Go 回归语料与 Java H2 黄金样本；未完成 MySQL/PG 接管对照",
   "artifacts": [
     {
       "path": "testdata/compatibility/flowable-swagger-process.yaml",
@@ -63,6 +63,14 @@
     {
       "path": "testdata/compatibility/LICENSE",
       "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+    },
+    {
+      "path": "testdata/compatibility/java/001-user-task-audit.json",
+      "sha256": "c7c22263b4a08d4f459eb097f0862ae50049b70fa99872f0acb2c668835c4753"
+    },
+    {
+      "path": "testdata/compatibility/java/provenance.json",
+      "sha256": "78047a518ab0dacd91b345b9acfa487e56d0d9921dc7a65fa4f81689fd626197"
     }
   ]
 }
