@@ -364,6 +364,18 @@ type RuntimeService interface {
 	// @return 订阅列表
 	// @return 查询错误
 	ListEventSubscriptions(ctx context.Context, processInstanceID string) ([]EventSubscription, error)
+	// ListActivityInstances 返回运行中活动实例。
+	// @param ctx 上下文
+	// @param processInstanceID 流程实例 ID，空串表示全部
+	// @return 活动实例列表
+	// @return 查询错误
+	ListActivityInstances(ctx context.Context, processInstanceID string) ([]ActivityInstance, error)
+	// GetActiveActivityIDs 返回执行及子执行的活动 ID。
+	// @param ctx 上下文
+	// @param executionID 执行 ID
+	// @return 活动 ID 列表
+	// @return 查询错误
+	GetActiveActivityIDs(ctx context.Context, executionID string) ([]string, error)
 	// GetEventSubscription 查询事件订阅。
 	// @param ctx 上下文
 	// @param subscriptionID 订阅 ID

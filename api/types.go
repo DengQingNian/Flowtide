@@ -240,6 +240,23 @@ type Attachment struct {
 	Time              time.Time `json:"time"`                        // 创建时间
 }
 
+// ActivityInstance 是运行中活动实例。
+type ActivityInstance struct {
+	ID                  string     `json:"id"`                            // 活动实例 ID
+	ActivityID          string     `json:"activityId"`                    // 活动 ID
+	ActivityName        string     `json:"activityName,omitempty"`        // 活动名称
+	ActivityType        string     `json:"activityType,omitempty"`        // 活动类型
+	ProcessDefinitionID string     `json:"processDefinitionId,omitempty"` // 流程定义 ID
+	ProcessInstanceID   string     `json:"processInstanceId,omitempty"`   // 流程实例 ID
+	ExecutionID         string     `json:"executionId,omitempty"`         // 执行 ID
+	TaskID              string     `json:"taskId,omitempty"`              // 任务 ID
+	Assignee            string     `json:"assignee,omitempty"`            // 处理人
+	TenantID            string     `json:"tenantId,omitempty"`            // 租户
+	StartTime           *time.Time `json:"startTime,omitempty"`           // 开始时间
+	EndTime             *time.Time `json:"endTime,omitempty"`             // 结束时间
+	DurationInMillis    *int64     `json:"durationInMillis,omitempty"`    // 持续时间
+}
+
 // EventSubscription 是消息/信号事件订阅。
 type EventSubscription struct {
 	ID                  string    `json:"id"`                            // 订阅 ID
