@@ -1,0 +1,77 @@
+---
+title: REST 与安全进度
+description: 242 个方法端点的覆盖情况、认证方式、mTLS 身份映射与尚未完成的权限审计。
+order: 40
+section: progress
+status: prototype
+since: v0.1.0
+tags: [REST, 认证, mTLS, 租户]
+---
+
+## 路由覆盖
+
+| 指标 | 数值 | 含义 |
+| --- | ---: | --- |
+| 官方方法端点 | 184 | 以官方流程 OpenAPI 为基线 |
+| 实现方法端点 | 242 | 含扩展端点 |
+| 官方缺失 | 0 | 路径与方法均已注册 |
+| 扩展端点 | 58 | 不计入官方覆盖 |
+| variables-async | 6 | 同步替代实现，不是异步兼容 |
+
+路径存在只说明路由已编码。请求体字段、响应模式、分页、错误码、副作用和并发行为仍需要逐项 Java 对照。对照表与可筛选清单见 [REST 浏览器](/rest-explorer)。
+
+## 分域规模
+
+| 业务域 | 端点 | 官方 | 扩展 |
+| --- | ---: | ---: | ---: |
+| runtime | 96 | 71 | 25 |
+| management | 41 | 32 | 9 |
+| repository | 34 | 31 | 3 |
+| identity | 30 | 19 | 11 |
+| history | 29 | 21 | 8 |
+| query | 10 | 8 | 2 |
+| form | 2 | 2 | 0 |
+
+## 认证能力
+
+| 方式 | 实现 | 当前接入 |
+| --- | --- | --- |
+| Basic Auth | 静态用户或身份库 PBKDF2 | 服务端 <code>-basic-auth user:pass</code> |
+| 静态 Bearer | 固定 Token | 服务端 <code>-bearer-token</code> |
+| JWT / JWKS | RS256/HS256、<code>iss/aud/exp</code>、JWKS 缓存 | 通过 <code>rest.WithJWT</code> 嵌入 |
+| mTLS | 客户端证书校验、CN/O/OU 身份映射 | 服务端 TLS 参数 |
+| RBAC | read/write/admin 端点权限 | 通过 <code>rest.WithRBAC</code> 嵌入 |
+| 租户绑定 | 用户/证书到租户、越权拒绝 | 通过选项嵌入 |
+| 限流 | 令牌桶 | 服务端 <code>-rate-limit</code> |
+
+::: warning CLI 接入不完整
+JWT、RBAC、身份库认证、审计日志与 HTTP 指标目前主要通过 <code>rest.New</code> 选项接入；标准 <code>flowable-server</code> 命令行没有对应 flag。使用这些能力需要自行嵌入服务端，或等待后续 CLI 补齐。
+:::
+
+## mTLS 与证书身份
+
+<code>-tls-client-ca</code> 设置客户端 CA，<code>-tls-client-auth</code> 支持 <code>none/request/require-any/require-verify</code>。<code>-tls-client-identity</code> 只在 <code>require-verify</code> 下开启，且仅对 <code>/service/</code> 路径、未携带 <code>Authorization</code> 头的请求生效。
+
+主体映射规则：CN 作为用户，O 作为租户，O 为空时回退 OU。证书身份不映射 RBAC 角色；CRL/OCSP 未实现。
+
+## 已实现的安全边界
+
+- 未认证请求返回 401，越权租户返回 403。
+- 认证优先级：Basic/Bearer 失败不会回退到证书身份。
+- 租户头 <code>X-Tenant-Id</code> 与查询参数 <code>tenantId</code> 受绑定租户约束。
+- 审计日志、HTTP/引擎指标、健康检查与限流已实现。
+- 部署资源支持 ETag/Last-Modified 与条件请求 304。
+
+## 未完成项
+
+- 全量权限矩阵与负向回放审计。
+- RBAC 与证书身份的完整映射。
+- CRL/OCSP、密钥轮换与令牌吊销。
+- 逐字段 OpenAPI 契约测试与 Java 行为回放。
+- 标准二进制对 JWT/RBAC/审计/指标 flag 的接入。
+
+## 相关阅读
+
+- [REST 约定](/docs/rest/conventions)
+- [认证与租户](/docs/rest/auth)
+- [REST 覆盖与差异](/docs/compatibility/rest)

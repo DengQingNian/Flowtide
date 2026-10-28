@@ -3,7 +3,7 @@ GO ?= go
 BIN_DIR ?= bin
 BENCHTIME ?= 1s
 
-.PHONY: all build test test-mysql test-postgres test-sdk race cover bench lint fmt-check doccheck contract contract-update check run clean
+.PHONY: all build test test-mysql test-postgres test-sdk race cover bench lint fmt-check doccheck contract contract-update check run clean docs-gen docs-test docs-build docs-check
 
 all: build
 
@@ -67,6 +67,23 @@ check: lint cover contract test-sdk build
 ## run 启动本地服务。
 run:
 	$(GO) run ./cmd/flowable-server -addr :8080
+
+## docs-gen 生成文档站事实、页面 HTML 与搜索索引。
+docs-gen:
+	cd docs-site && npm run gen
+
+## docs-test 运行文档站单元测试（包含生成与链接校验）。
+docs-test:
+	cd docs-site && npm test
+
+## docs-build 构建静态文档站。
+docs-build:
+	cd docs-site && npm run build
+
+## docs-check 执行文档站测试与生产构建。
+docs-check:
+	cd docs-site && npm test
+	cd docs-site && npm run build
 
 ## clean 清理产物。
 clean:

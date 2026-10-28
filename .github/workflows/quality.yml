@@ -22,6 +22,25 @@ jobs:
         with:
           go-version-file: go.mod
       - run: make race
+  docs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: docs-site/package-lock.json
+      - run: npm ci
+        working-directory: docs-site
+      - run: npm test
+        working-directory: docs-site
+      - run: npm run build
+        working-directory: docs-site
+      - uses: actions/upload-artifact@v4
+        with:
+          name: docs-site
+          path: docs-site/dist
   databases:
     runs-on: ubuntu-latest
     services:
