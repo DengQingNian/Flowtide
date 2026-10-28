@@ -38,6 +38,10 @@ func (e *Engine) createUserTask(cc *commandContext, execution *executionState, n
 	if err != nil {
 		return api.NewError("ENGINE-0804", "候选组表达式错误", err)
 	}
+	tenantID := ""
+	if instance, exists := e.findInstance(execution.ProcessInstanceID); exists {
+		tenantID = instance.TenantID
+	}
 	task := &taskState{
 		ExecutionID:     execution.ID,
 		ActivityID:      node.ID,
@@ -48,6 +52,7 @@ func (e *Engine) createUserTask(cc *commandContext, execution *executionState, n
 		Task: api.Task{
 			ID:                  e.newID(),
 			Name:                node.Name,
+			TenantID:            tenantID,
 			Description:         node.Documentation,
 			ProcessInstanceID:   execution.ProcessInstanceID,
 			ProcessDefinitionID: execution.DefinitionID,

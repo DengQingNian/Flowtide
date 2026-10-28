@@ -7,7 +7,9 @@ import (
 	"time"
 
 	"github.com/flowable-go/flowable/api"
+	flowablerow "github.com/flowable-go/flowable/internal/persistence/flowable"
 	"github.com/flowable-go/flowable/internal/persistence/schema"
+	"github.com/flowable-go/flowable/internal/tenant"
 )
 
 // 管理端点使用的默认 Schema 方言，两种方言表结构一致
@@ -58,7 +60,7 @@ func (e *Engine) TableCount(ctx context.Context) (map[string]int64, error) {
 	for _, table := range tables {
 		counts[table] = 0
 	}
-	rows, err := e.SnapshotRows(ctx)
+	rows, err := e.scopedSnapshotRows(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -109,7 +111,7 @@ func (e *Engine) QueryTableData(ctx context.Context, tableName string, start, si
 	if order != "asc" && order != "desc" {
 		return api.Page[map[string]any]{}, api.NewError("ENGINE-0917", "排序方向非法: "+order, api.ErrBadRequest)
 	}
-	rows, err := e.SnapshotRows(ctx)
+	rows, err := e.scopedSnapshotRows(ctx)
 	if err != nil {
 		return api.Page[map[string]any]{}, err
 	}
@@ -255,4 +257,16 @@ func stringValue(value any) string {
 	default:
 		return ""
 	}
+}
+
+// scopedSnapshotRows 仅为管理查询导出当前租户可见的行。
+// @param ctx 请求上下文
+// @return 过滤后的快照行
+// @return 导出错误
+func (e *Engine) scopedSnapshotRows(ctx context.Context) ([]flowablerow.Row, error) {
+	rows, err := e.SnapshotRows(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return flowablerow.FilterRowsByTenant(rows, e.tenantOf(tenant.From(ctx))), nil
 }

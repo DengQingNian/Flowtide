@@ -182,6 +182,7 @@ func (e *Engine) enterEventGateway(cc *commandContext, execution *executionState
 // @param cc 命令上下文
 // @param subscription 订阅
 // @return 触发错误
+// @param variables 变量映射
 func (e *Engine) triggerGatewaySubscription(cc *commandContext, subscription *subscriptionState, variables map[string]any) error {
 	// 取消同组其他竞争订阅
 	for id, other := range e.state.Subscriptions {

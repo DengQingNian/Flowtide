@@ -396,3 +396,11 @@ func TestEngine_LoadRowsTenant(t *testing.T) {
 		t.Fatalf("t2 应恢复定义: %v", err)
 	}
 }
+
+// BeginTx 为恢复测试替身提供命令级事务能力。
+// @param ctx 上下文
+// @return 事务
+// @return 创建错误
+func (d *snapshotQueryDB) BeginTx(ctx context.Context) (flowablerow.Transaction, error) {
+	return &persistTx{}, nil
+}

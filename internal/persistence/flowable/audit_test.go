@@ -120,3 +120,42 @@ func TestAuditCommittedRevision(t *testing.T) {
 		t.Fatalf("系统属性不应删除: %+v", preserved)
 	}
 }
+
+// TestAuditTenantRelatedRows 验证模型源码、变量字节、身份链接及历史关联不跨租户。
+// @param t 测试上下文
+// @return 无
+func TestAuditTenantRelatedRows(t *testing.T) {
+	rows := []Row{
+		{Table: "ACT_RE_DEPLOYMENT", Values: map[string]any{"ID_": "d", "TENANT_ID_": "a"}},
+		{Table: "ACT_RE_MODEL", Values: map[string]any{"ID_": "m", "TENANT_ID_": "a", "EDITOR_SOURCE_VALUE_ID_": "source"}},
+		{Table: "ACT_RU_EXECUTION", Values: map[string]any{"ID_": "i", "PROC_INST_ID_": "i", "TENANT_ID_": "a"}},
+		{Table: "ACT_RU_TASK", Values: map[string]any{"ID_": "t", "TENANT_ID_": "a"}},
+		{Table: "ACT_HI_TASKINST", Values: map[string]any{"ID_": "ht", "TENANT_ID_": "a"}},
+		{Table: "ACT_RU_VARIABLE", Values: map[string]any{"ID_": "v", "EXECUTION_ID_": "i", "BYTEARRAY_ID_": "data"}},
+		{Table: "ACT_RU_IDENTITYLINK", Values: map[string]any{"ID_": "l", "TASK_ID_": "t"}},
+		{Table: "ACT_HI_IDENTITYLINK", Values: map[string]any{"ID_": "hl", "TASK_ID_": "ht"}},
+		{Table: "ACT_GE_BYTEARRAY", Values: map[string]any{"ID_": "source"}},
+		{Table: "ACT_GE_BYTEARRAY", Values: map[string]any{"ID_": "data"}},
+		{Table: "ACT_GE_BYTEARRAY", Values: map[string]any{"ID_": "resource", "DEPLOYMENT_ID_": "d"}},
+		{Table: "ACT_GE_BYTEARRAY", Values: map[string]any{"ID_": "control", "NAME_": "flowable-go-control/i"}},
+		{Table: "ACT_GE_PROPERTY", Values: map[string]any{"NAME_": "global"}},
+	}
+	foreign := Row{Table: "ACT_RE_MODEL", Values: map[string]any{"ID_": "foreign", "TENANT_ID_": "b"}}
+	rows = append(rows, foreign)
+	if got := FilterRowsByTenant(rows, "a"); len(got) != len(rows)-1 {
+		t.Fatalf("关联行过滤错误: %+v", got)
+	}
+	if got := FilterRowsByTenant(rows, ""); len(got) != 1 || got[0].Table != "ACT_GE_PROPERTY" {
+		t.Fatalf("默认租户越权: %+v", got)
+	}
+}
+
+// TestTransactionCapability 验证普通单条仓储不会被误认作命令事务仓储。
+// @param t 测试上下文
+// @return 无
+func TestTransactionCapability(t *testing.T) {
+	repository, _ := NewRepository(&fakeDB{}, "mysql")
+	if repository.SupportsTransactions() {
+		t.Fatal("无事务数据库不得标记支持事务")
+	}
+}

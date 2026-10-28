@@ -8,6 +8,7 @@ import (
 // deploymentRow 构造部署行。
 // @param id 部署 ID
 // @return 行
+// @param t 测试上下文
 func deploymentRow(t *testing.T, id string) Row {
 	t.Helper()
 	row, _ := NewRow("ACT_RE_DEPLOYMENT")
@@ -23,6 +24,7 @@ func deploymentRow(t *testing.T, id string) Row {
 // @param name 资源名
 // @param data 内容
 // @return 行
+// @param t 测试上下文
 func byteRow(t *testing.T, deploymentID, name string, data []byte) Row {
 	t.Helper()
 	row, _ := NewRow("ACT_GE_BYTEARRAY")
@@ -40,6 +42,7 @@ func byteRow(t *testing.T, deploymentID, name string, data []byte) Row {
 // @param deploymentID 部署 ID
 // @param resource 资源名
 // @return 行
+// @param t 测试上下文
 func procRow(t *testing.T, id, deploymentID, resource string) Row {
 	t.Helper()
 	row, _ := NewRow("ACT_RE_PROCDEF")
@@ -99,6 +102,7 @@ func modelRow(t *testing.T, id string) Row {
 // @param name 名称
 // @param value 值
 // @return 行
+// @param t 测试上下文
 func propertyRow(t *testing.T, name, value string) Row {
 	t.Helper()
 	row, _ := NewRow("ACT_GE_PROPERTY")

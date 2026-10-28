@@ -1,23 +1,23 @@
 # Flowable Engine Go
 
-用**纯 Go** 重构 [Flowable](https://www.flowable.org/) 工作流引擎。目标是提供一个不依赖 JVM、不依赖 CGO、可直接读写 Flowable 8.x 数据库、并对流程 REST API 保持兼容的 BPMN 2.0 引擎。
+用**纯 Go** 重构 [Flowable](https://www.flowable.org/) 工作流引擎。目标是提供一个不依赖 JVM、不依赖 CGO 的 BPMN 2.0 引擎，逐步验证 Flowable 8.x 数据与流程 REST 兼容。当前仅完成新建库原型与双库行仓储本地验收，尚未通过 Java 存量迁移、回退或集群验收。
 
 > 当前状态：**BPMN 内核扩展实现阶段**。已完成纯 Go 的 BPMN 解析、部署、执行树、任务、网关、子流程、多实例、调用活动、消息/信号、定时器、错误、补偿、事件子流程、迁移、身份、历史、JSON 状态持久化与 REST 核心端点。  
-> 参考基线：Flowable 8.1.0-SNAPSHOT（Apache-2.0），位于 `/root/src/public/flowable-engine`。
+> 参考基线：Java 提交 `f6017e32a4bdd3e59a8881f58b0ee181652d1d9e`，规范与 DDL 摘要见 `testdata/compatibility/baseline.json`。当前能力与发布边界见 [能力矩阵](docs/003-迁移审计/003-能力矩阵与迁移退出条件.md)。
 
 ## 为什么做
 
 - **部署更轻**：单二进制、无 JVM、无 CGO，适合容器与边缘环境。
 - **资源更省**：Go 的运行时与内存占用显著低于 JVM。
 - **可嵌入**：既能作为独立服务，也能作为 Go library 集成进业务系统。
-- **数据兼容**：复用 Flowable 的 `ACT_*` Schema，存量数据、报表与运维脚本可继续使用。
+- **数据兼容**：复用 Flowable 的 `ACT_*` Schema；Java 存量运行状态、变量和回退仍需专项转换与对照验收。
 - **接口兼容**：流程 REST 以官方 OpenAPI 为契约，降低客户端改造成本。
 
 ## 目标与边界
 
 | 层级 | 范围 | 状态 |
 | --- | --- | --- |
-| T0 内核 | BPMN 模型/解析、PVM、命令、持久化、变量、任务、历史、作业、身份、流程 REST | 计划中 |
+| T0 内核 | BPMN 模型/解析、PVM、命令、持久化、变量、任务、历史、作业、身份、流程 REST | 按能力矩阵分项验收 |
 | T1 BPMN 增强 | 事件注册、外部工作项、迁移、批处理、DMN 调用、HTTP/Mail | 计划中 |
 | T2 多引擎 | CMMN、DMN、Form、App、Content | 计划中 |
 | T3 生态 | LDAP、Kafka/Rabbit、多数据库、Helm | 计划中 |
@@ -195,4 +195,9 @@ go run ./cmd/flowable-server -storage mysql -env .env
 - 任务/实例身份链接单条读取与按类型删除。
 - 流程定义列表支持 `startableByUser` 候选人（用户/组）过滤。
 - BPMN 任务监听器：create/complete 事件的 class/delegateExpression 注册与执行。
-- 纯标准库实现，`CGO_ENABLED=0` 可构建。
+- 核心采用 Go 实现，使用 MySQL 驱动、环境配置加载及数据库测试依赖，版本以 go.mod 为准；`CGO_ENABLED=0` 可构建。
+## 整改后的验证入口
+
+执行 `make check` 验证格式、中文函数注释、vet、测试、覆盖率、固定基线、方法级端点表、独立 SDK 及构建；`make race` 单独运行竞争检测。真实数据库使用 `make test-mysql` 与 `make test-postgres`，连接配置分别来自开发环境与 `FLOWABLE_POSTGRES_DSN`。显式启用后任何连接或执行错误都必须失败。
+
+公共嵌入入口为 `flowable.New(flowable.Config{})`，服务接口位于 `api`；独立 module 验收位于 `testdata/sdk`。MySQL 服务快照模式强制独占连接，禁止多执行者共享快照。

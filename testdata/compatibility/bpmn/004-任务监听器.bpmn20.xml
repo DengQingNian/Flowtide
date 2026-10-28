@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:flowable="http://flowable.org/bpmn">
+  <process id="listenerProcess" isExecutable="true">
+    <startEvent id="s"/>
+    <sequenceFlow id="f1" sourceRef="s" targetRef="task"/>
+    <userTask id="task" name="Task" flowable:assignee="alice">
+      <extensionElements>
+        <flowable:taskListener event="create" class="onCreate"/>
+        <flowable:taskListener event="complete" delegateExpression="onComplete"/>
+      </extensionElements>
+    </userTask>
+    <sequenceFlow id="f2" sourceRef="task" targetRef="e"/>
+    <endEvent id="e"/>
+  </process>
+</definitions>

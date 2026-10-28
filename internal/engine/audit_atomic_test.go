@@ -128,3 +128,40 @@ func TestAuditCopyContainers(t *testing.T) {
 		t.Fatal("循环映射关系丢失")
 	}
 }
+
+// nonTransactionalRows 仅支持单条写入，不能用于自动命令持久化。
+type nonTransactionalRows struct{}
+
+// ExecContext 模拟没有事务能力的数据库。
+// @param ctx 上下文
+// @param query SQL
+// @param args 参数
+// @return 执行结果
+// @return 执行错误
+func (nonTransactionalRows) ExecContext(ctx context.Context, query string, args ...any) (flowablerow.Result, error) {
+	return persistResult{}, nil
+}
+
+// TestAuditRejectNonTransactionalRows 验证引擎拒绝没有事务能力的权威行仓储。
+// @param t 测试上下文
+// @return 无
+func TestAuditRejectNonTransactionalRows(t *testing.T) {
+	repository, _ := flowablerow.NewRepository(nonTransactionalRows{}, "mysql")
+	if _, err := New(Config{RowRepository: repository}); err == nil {
+		t.Fatal("命令持久化必须具备事务能力")
+	}
+}
+
+// TestAuditSnapshotFieldInventory 验证全部业务状态字段都有显式快照映射。
+// @param t 测试上下文
+// @return 无
+func TestAuditSnapshotFieldInventory(t *testing.T) {
+	stateType := reflect.TypeOf(state{})
+	snapshotType := reflect.TypeOf(snapshot{})
+	for index := 0; index < stateType.NumField(); index++ {
+		field := stateType.Field(index)
+		if _, exists := snapshotType.FieldByName(field.Name); !exists {
+			t.Errorf("状态字段缺少快照映射: %s", field.Name)
+		}
+	}
+}

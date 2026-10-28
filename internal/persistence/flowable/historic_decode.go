@@ -442,6 +442,7 @@ func decodeHistoricIdentityLink(row Row) (api.IdentityLink, error) {
 // @param row 行
 // @return 明细
 // @return 错误
+// @param arrays 同批次字节数据
 func decodeHistoricDetail(row Row, arrays ...map[string][]byte) (api.HistoricDetail, error) {
 	id, err := stringValue(row, "ID_")
 	if err != nil {

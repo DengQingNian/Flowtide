@@ -424,6 +424,7 @@ func variableRow(executionID, processInstanceID, taskID, name string, value any)
 // @return DOUBLE_
 // @return TEXT_
 func variableColumns(value any) (string, any, any, any) {
+	// 仅使用明确支持的列编码；无法表示的类型交给导出边界阻断。
 	switch typed := value.(type) {
 	case []byte:
 		return "bytes", nil, nil, typed

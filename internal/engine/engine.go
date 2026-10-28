@@ -120,6 +120,9 @@ func New(cfg Config) (*Engine, error) {
 	if cfg.RowRepository != nil && (cfg.StateStore != nil || cfg.StatePath != "") {
 		return nil, api.NewError("ENGINE-0916", "快照存储与行仓储不能同时配置", api.ErrBadRequest)
 	}
+	if cfg.RowRepository != nil && !cfg.RowRepository.SupportsTransactions() {
+		return nil, api.NewError("ENGINE-0923", "权威行仓储必须支持事务", api.ErrBadRequest)
+	}
 	if cfg.LoadRows && cfg.RowRepository == nil {
 		return nil, api.NewError("ENGINE-0916", "加载行状态必须配置行仓储", api.ErrBadRequest)
 	}

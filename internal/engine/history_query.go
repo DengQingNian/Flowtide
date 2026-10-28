@@ -74,7 +74,7 @@ func (e *Engine) ListHistoricTaskInstances(ctx context.Context, processInstanceI
 	result, err := e.read(func() (any, error) {
 		out := make([]api.HistoricTaskInstance, 0)
 		for _, historic := range e.state.HistoricTasks {
-			if e.allowTenant(ctx, historic.TenantID) != nil {
+			if e.allowHistoricResource(ctx, historic.ProcessInstanceID, historic.ID) != nil {
 				continue
 			}
 			if processInstanceID != "" && historic.ProcessInstanceID != processInstanceID {

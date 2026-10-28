@@ -88,7 +88,7 @@ func (e *Engine) GetHistoricTaskInstance(ctx context.Context, taskID string) (ap
 		if !ok {
 			return nil, api.NewError("ENGINE-0404", "历史任务不存在", api.ErrNotFound)
 		}
-		if err := e.allowTenant(ctx, historic.TenantID); err != nil {
+		if err := e.allowHistoricResource(ctx, historic.ProcessInstanceID, historic.ID); err != nil {
 			return nil, err
 		}
 		return *historic, nil

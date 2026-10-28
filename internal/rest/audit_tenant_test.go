@@ -69,3 +69,22 @@ func TestAuditDefaultTenantIsolation(t *testing.T) {
 		}
 	}
 }
+
+// TestAuditManagementTenant 验证管理表分页不会绕过 JWT 的租户边界。
+// @param t 测试上下文
+// @return 无
+func TestAuditManagementTenant(t *testing.T) {
+	app, _ := engine.New(engine.Config{})
+	model, err := app.CreateModel(tenant.With(context.Background(), "b"), api.CreateModelRequest{Name: "其他租户", Key: "foreign", TenantID: "b"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	server := New(app, WithJWT(JWTConfig{HS256Secret: "secret"})).Handler()
+	request := httptest.NewRequest(http.MethodGet, "/service/management/tables/ACT_RE_MODEL/data", nil)
+	request.Header.Set("Authorization", "Bearer "+testSignHS256(t, "secret", map[string]any{"sub": "alice", "tenant_id": "a"}))
+	response := httptest.NewRecorder()
+	server.ServeHTTP(response, request)
+	if response.Code != http.StatusOK || strings.Contains(response.Body.String(), model.ID) {
+		t.Fatalf("管理表数据泄露租户: %d %s", response.Code, response.Body.String())
+	}
+}

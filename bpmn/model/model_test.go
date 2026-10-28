@@ -109,3 +109,14 @@ func TestAsyncFlags(t *testing.T) {
 		t.Fatalf("异步标记读取错误")
 	}
 }
+
+// TestExecutionListenerDefinitions 验证模型对执行监听器声明的公开读取契约。
+// @param t 测试上下文
+// @return 无
+func TestExecutionListenerDefinitions(t *testing.T) {
+	node := &FlowNodeBase{ExecutionListeners: []ExecutionListenerDefinition{{Event: "start", ClassName: "audit"}}}
+	declarations := node.GetExecutionListeners()
+	if len(declarations) != 1 || declarations[0].Event != "start" || declarations[0].ClassName != "audit" {
+		t.Fatalf("执行监听器声明读取错误: %+v", declarations)
+	}
+}

@@ -8,6 +8,7 @@ import (
 // runtimeExecution 构造执行行。
 // @param id 执行 ID
 // @return 行
+// @param t 测试上下文
 func runtimeExecution(t *testing.T, id string) Row {
 	t.Helper()
 	row, _ := NewRow("ACT_RU_EXECUTION")
@@ -31,6 +32,7 @@ func runtimeExecution(t *testing.T, id string) Row {
 // runtimeLink 构造身份链接行。
 // @param id 链接 ID
 // @return 行
+// @param t 测试上下文
 func runtimeLink(t *testing.T, id string) Row {
 	t.Helper()
 	row, _ := NewRow("ACT_RU_IDENTITYLINK")
@@ -47,6 +49,7 @@ func runtimeLink(t *testing.T, id string) Row {
 // runtimeTask 构造任务行。
 // @param id 任务 ID
 // @return 行
+// @param t 测试上下文
 func runtimeTask(t *testing.T, id string) Row {
 	t.Helper()
 	row, _ := NewRow("ACT_RU_TASK")
@@ -73,6 +76,7 @@ func runtimeTask(t *testing.T, id string) Row {
 // @param name 变量名
 // @param kind 类型
 // @return 行
+// @param t 测试上下文
 func runtimeVariable(t *testing.T, name, kind string) Row {
 	t.Helper()
 	row, _ := NewRow("ACT_RU_VARIABLE")
@@ -216,6 +220,7 @@ func TestRuntimeDecodeMissingColumns(t *testing.T) {
 // runtimeJobRow 构造作业行。
 // @param id 作业 ID
 // @return 行
+// @param t 测试上下文
 func runtimeJobRow(t *testing.T, id string) Row {
 	t.Helper()
 	row, _ := NewRow("ACT_RU_JOB")
@@ -238,6 +243,7 @@ func runtimeJobRow(t *testing.T, id string) Row {
 // runtimeSubscriptionRow 构造订阅行。
 // @param id 订阅 ID
 // @return 行
+// @param t 测试上下文
 func runtimeSubscriptionRow(t *testing.T, id string) Row {
 	t.Helper()
 	row, _ := NewRow("ACT_RU_EVENT_SUBSCR")

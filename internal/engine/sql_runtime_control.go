@@ -24,6 +24,7 @@ type runtimeControl struct {
 // @return 编码错误
 func (e *Engine) runtimeControlRows() ([]flowablerow.Row, error) {
 	rows := make([]flowablerow.Row, 0)
+	// 只保存活跃实例的内部控制，变量值仍由标准变量行单独存储。
 	for _, instance := range e.state.Instances {
 		if instance.Ended {
 			continue
@@ -79,6 +80,7 @@ func (e *Engine) runtimeControlRows() ([]flowablerow.Row, error) {
 // @return 扩展控制集合
 // @return 解析错误
 func decodeRuntimeControls(rows []flowablerow.Row) ([]runtimeControl, error) {
+	// 只解析本实现的保留命名空间，未知版本不能作为正常状态续跑。
 	controls := make([]runtimeControl, 0)
 	for _, row := range rows {
 		if row.Table != "ACT_GE_BYTEARRAY" {
@@ -109,6 +111,9 @@ func (e *Engine) restoreRuntimeControls(controls []runtimeControl) error {
 		}
 		e.state.Instances[control.Instance.ID] = control.Instance
 		for _, execution := range control.Executions {
+			if execution == nil {
+				return api.NewError("ENGINE-0920", "执行扩展不能为空", api.ErrBadRequest)
+			}
 			current, exists := e.state.Executions[execution.ID]
 			// 扩展只补充内部控制，不能替换标准行中的身份和当前活动。
 			if !exists || current.ProcessInstanceID != control.Instance.ID || current.DefinitionID != execution.DefinitionID || current.ActivityID != execution.ActivityID || current.ParentID != execution.ParentID {
@@ -120,11 +125,17 @@ func (e *Engine) restoreRuntimeControls(controls []runtimeControl) error {
 			restored[execution.ID] = true
 		}
 		for _, job := range control.Jobs {
+			if job == nil {
+				return api.NewError("ENGINE-0920", "作业扩展不能为空", api.ErrBadRequest)
+			}
 			if _, exists := e.state.Jobs[job.ID]; exists {
 				e.state.Jobs[job.ID] = job
 			}
 		}
 		for _, subscription := range control.Subscriptions {
+			if subscription == nil {
+				return api.NewError("ENGINE-0920", "订阅扩展不能为空", api.ErrBadRequest)
+			}
 			if _, exists := e.state.Subscriptions[subscription.ID]; exists {
 				e.state.Subscriptions[subscription.ID] = subscription
 			}

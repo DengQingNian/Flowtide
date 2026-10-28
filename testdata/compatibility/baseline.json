@@ -1,0 +1,68 @@
+{
+  "version": 1,
+  "java_repository": "https://github.com/flowable/flowable-engine",
+  "java_commit": "f6017e32a4bdd3e59a8881f58b0ee181652d1d9e",
+  "java_openapi_path": "docs/public-api/references/swagger/process/flowable-swagger-process.yaml",
+  "schema_version": "8.1.0.3",
+  "database_acceptance": {
+    "mysql": "8.0.35",
+    "postgres": "16.3"
+  },
+  "implementation_base": "6823a1f",
+  "migration_status": "新建库原型；未通过 Java 存量续跑和回退验收",
+  "variables_supported": [
+    "null",
+    "string",
+    "longString",
+    "boolean",
+    "short",
+    "integer",
+    "long",
+    "double",
+    "date",
+    "json",
+    "longJson",
+    "bytes"
+  ],
+  "variables_rejected": [
+    "serializable",
+    "未知类型",
+    "缺失的外置字节数据",
+    "超出有符号 64 位范围的整数"
+  ],
+  "fixture_status": "Go 回归语料；尚未 Java 对照回放",
+  "artifacts": [
+    {
+      "path": "testdata/compatibility/flowable-swagger-process.yaml",
+      "sha256": "6ac5492cdc2c9e9c3ebe460dd7b963a96949fbf55bbbd867dfbdbaf9689b8f51"
+    },
+    {
+      "path": "internal/persistence/schema/sql/mysql/001-flowable-8.1.sql",
+      "sha256": "f8a484fcd6d3fb466d310ef501fa28d29527d5e8b8cfc67f8baa4b45404c7660"
+    },
+    {
+      "path": "internal/persistence/schema/sql/postgres/001-flowable-8.1.sql",
+      "sha256": "f57f3ce6daab1a9fdce9a6a9c43ba36be6238ddb3eeade24a0e30c7751f9ff41"
+    },
+    {
+      "path": "testdata/compatibility/bpmn/001-用户任务.bpmn20.xml",
+      "sha256": "5029cce74f25f11da4b1709b345832091122d5f23dd0d158dc93d43665dd28f2"
+    },
+    {
+      "path": "testdata/compatibility/bpmn/002-并行多实例.bpmn20.xml",
+      "sha256": "c3141e6bdc9a20de3e8e4ae421c3c5410f548598cddbb325965537e0b32ba916"
+    },
+    {
+      "path": "testdata/compatibility/bpmn/003-串行多实例.bpmn20.xml",
+      "sha256": "da810ddfb01a34bcb7e97d2632b752aa8b0a9c18e5cbdf4276592a0a0a9aaebc"
+    },
+    {
+      "path": "testdata/compatibility/bpmn/004-任务监听器.bpmn20.xml",
+      "sha256": "546cd93ca4e80058f8444068c898d6db30cdc47978a879c321bd8e6f1d24544f"
+    },
+    {
+      "path": "testdata/compatibility/LICENSE",
+      "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+    }
+  ]
+}

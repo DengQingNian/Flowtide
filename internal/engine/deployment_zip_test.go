@@ -12,6 +12,7 @@ import (
 // makeZip 构造 ZIP 部署包。
 // @param entries 条目名到内容
 // @return ZIP 字节
+// @param t 测试上下文
 func makeZip(t *testing.T, entries map[string][]byte) []byte {
 	t.Helper()
 	buffer := &bytes.Buffer{}

@@ -97,16 +97,17 @@ func (e *Engine) findTenantDefinition(ctx context.Context, key string) (*definit
 // @param taskID 任务 ID，可为空
 // @return 校验错误
 func (e *Engine) allowHistoricResource(ctx context.Context, instanceID, taskID string) error {
-	// 运行时实体可能已清理，按历史任务、历史实例、运行时实体依次解析归属。
-	if task, ok := e.state.HistoricTasks[taskID]; ok {
-		return e.allowTenant(ctx, task.TenantID)
-	}
+	// 流程归属优先于旧快照可能缺失的任务租户，防止历史降为默认租户。
 	if instance, ok := e.state.HistoricProcesses[instanceID]; ok {
 		return e.allowTenant(ctx, instance.TenantID)
 	}
 	if instanceID != "" {
 		return e.allowInstance(ctx, instanceID)
 	}
+	if task, ok := e.state.HistoricTasks[taskID]; ok {
+		return e.allowTenant(ctx, task.TenantID)
+	}
+
 	if taskID != "" {
 		return e.allowTask(ctx, taskID)
 	}

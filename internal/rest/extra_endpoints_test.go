@@ -20,6 +20,7 @@ const restMessageCatchXML = `<definitions xmlns="http://www.omg.org/spec/BPMN/20
 // @param body 请求体
 // @param tenant 租户
 // @return 任务
+// @param serverURL HTTP 服务地址
 func createRESTTask(t *testing.T, serverURL string, body map[string]any, tenant string) map[string]any {
 	t.Helper()
 	response := postQuery(t, serverURL, "/service/runtime/tasks", body, tenant)

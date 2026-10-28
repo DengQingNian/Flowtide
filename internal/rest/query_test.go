@@ -55,6 +55,7 @@ type queryPageResult[T any] struct {
 // @param body 查询体
 // @param tenant 请求租户
 // @return 响应
+// @param serverURL HTTP 服务地址
 func postQuery(t *testing.T, serverURL, path string, body any, tenant string) *http.Response {
 	t.Helper()
 	data, err := json.Marshal(body)
@@ -97,6 +98,7 @@ func decodeQueryPage[T any](t *testing.T, response *http.Response) queryPageResu
 // @param businessKey 业务键
 // @param name 实例名称
 // @return 实例 ID
+// @param serverURL HTTP 服务地址
 func startQueryInstance(t *testing.T, serverURL, key, businessKey, name string) string {
 	t.Helper()
 	response := postJSON(t, serverURL+"/service/runtime/process-instances", map[string]any{
@@ -122,6 +124,7 @@ func startQueryInstance(t *testing.T, serverURL, key, businessKey, name string) 
 // @param t 测试上下文
 // @param server 测试服务器
 // @param instanceID 实例 ID
+// @param serverURL HTTP 服务地址
 func completeQueryTask(t *testing.T, serverURL, instanceID string) {
 	t.Helper()
 	response, err := http.Get(serverURL + "/service/runtime/tasks?processInstanceId=" + instanceID)

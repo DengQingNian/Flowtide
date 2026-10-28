@@ -411,7 +411,7 @@ func (r *Repository) loadRows(ctx context.Context, tenantID string) ([]Row, erro
 		_ = result.Close()
 	}
 	if tenantID != "" {
-		rows = filterTenantRows(rows)
+		rows = FilterRowsByTenant(rows, tenantID)
 	}
 	return rows, nil
 }
@@ -429,42 +429,6 @@ func hasColumn(table Table, column string) bool {
 	return false
 }
 
-// filterTenantRows 过滤无租户列但可从关联推断的表。
-// @param rows 行
-// @return 过滤结果
-func filterTenantRows(rows []Row) []Row {
-	deployments := make(map[string]bool)
-	instances := make(map[string]bool)
-	for _, row := range rows {
-		if row.Table == "ACT_RE_DEPLOYMENT" {
-			if id, ok := row.Values["ID_"].(string); ok {
-				deployments[id] = true
-			}
-		}
-		if row.Table == "ACT_RU_EXECUTION" || row.Table == "ACT_HI_PROCINST" {
-			if id, ok := row.Values["PROC_INST_ID_"].(string); ok {
-				instances[id] = true
-			}
-		}
-	}
-	out := make([]Row, 0, len(rows))
-	for _, row := range rows {
-		switch row.Table {
-		case "ACT_GE_BYTEARRAY":
-			if id, ok := row.Values["DEPLOYMENT_ID_"].(string); ok && deployments[id] {
-				out = append(out, row)
-			}
-		case "ACT_HI_COMMENT", "ACT_HI_ATTACHMENT", "ACT_HI_DETAIL":
-			if id, ok := row.Values["PROC_INST_ID_"].(string); ok && instances[id] {
-				out = append(out, row)
-			}
-		default:
-			out = append(out, row)
-		}
-	}
-	return out
-}
-
 // normalizeValue 将驱动返回值统一为通用类型。
 // @param column 列名
 // @param value 驱动值
@@ -479,4 +443,11 @@ func normalizeValue(column string, value any) any {
 	default:
 		return value
 	}
+}
+
+// SupportsTransactions 判断仓储是否能原子提交一条引擎命令。
+// @return 是否支持事务
+func (r *Repository) SupportsTransactions() bool {
+	_, ok := r.db.(TransactionalDB)
+	return ok
 }

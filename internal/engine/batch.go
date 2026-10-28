@@ -34,6 +34,9 @@ func (e *Engine) ListBatches(ctx context.Context) ([]api.Batch, error) {
 	result, err := e.read(func() (any, error) {
 		out := make([]api.Batch, 0, len(e.state.Batches))
 		for _, batch := range e.state.Batches {
+			if e.allowTenant(ctx, batch.Info.TenantID) != nil {
+				continue
+			}
 			out = append(out, cloneBatchInfo(batch.Info))
 		}
 		sort.SliceStable(out, func(i, j int) bool {
@@ -61,6 +64,9 @@ func (e *Engine) GetBatch(ctx context.Context, batchID string) (api.Batch, error
 		if !ok {
 			return nil, api.NewError("ENGINE-0700", "批处理作业不存在", api.ErrNotFound)
 		}
+		if err := e.allowTenant(ctx, batch.Info.TenantID); err != nil {
+			return nil, err
+		}
 		return cloneBatchInfo(batch.Info), nil
 	})
 	if err != nil {
@@ -80,6 +86,9 @@ func (e *Engine) ListBatchParts(ctx context.Context, batchID string) ([]api.Batc
 		batch, ok := e.state.Batches[batchID]
 		if !ok {
 			return nil, api.NewError("ENGINE-0700", "批处理作业不存在", api.ErrNotFound)
+		}
+		if err := e.allowTenant(ctx, batch.Info.TenantID); err != nil {
+			return nil, err
 		}
 		out := make([]api.BatchPart, 0, len(batch.Parts))
 		for _, part := range batch.Parts {
@@ -107,6 +116,9 @@ func (e *Engine) ListBatchParts(ctx context.Context, batchID string) ([]api.Batc
 func (e *Engine) GetBatchPart(ctx context.Context, partID string) (api.BatchPart, error) {
 	result, err := e.read(func() (any, error) {
 		for _, batch := range e.state.Batches {
+			if e.allowTenant(ctx, batch.Info.TenantID) != nil {
+				continue
+			}
 			if part, ok := batch.Parts[partID]; ok {
 				return cloneBatchPart(part), nil
 			}
@@ -252,6 +264,9 @@ func (e *Engine) finishBatch(ctx context.Context, batchID string, completed int)
 			batch.Info.Status = BatchStatusFailed
 		}
 		batch.Info.EndTime = cloneTime(&cc.now)
+		if err := e.allowTenant(ctx, batch.Info.TenantID); err != nil {
+			return nil, err
+		}
 		return cloneBatchInfo(batch.Info), nil
 	})
 	if err != nil {

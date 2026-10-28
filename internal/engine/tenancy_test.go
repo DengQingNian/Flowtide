@@ -112,3 +112,31 @@ func TestTenantHelpers(t *testing.T) {
 		t.Fatalf("缺失定义应失败")
 	}
 }
+
+// TestTenantHistoricTaskOwnership 验证任务结束后的历史仍继承实例租户且默认租户不可见。
+// @param t 测试上下文
+// @return 无
+func TestTenantHistoricTaskOwnership(t *testing.T) {
+	app := newTestEngine(t)
+	app.cfg.TenantID = "t1"
+	deployXML(t, app, simpleProcess)
+	instance, err := app.StartProcessInstance(context.Background(), api.StartRequest{ProcessDefinitionKey: "simple"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	tasks := listTasks(t, app)
+	if err := app.Complete(context.Background(), tasks[0].ID, api.CompleteTaskRequest{}); err != nil {
+		t.Fatal(err)
+	}
+	historic, err := app.GetHistoricTaskInstance(context.Background(), tasks[0].ID)
+	if err != nil || historic.TenantID != "t1" {
+		t.Fatalf("历史任务缺少租户: %+v %v", historic, err)
+	}
+	app.cfg.TenantID = ""
+	if tasks, err := app.ListHistoricTaskInstances(context.Background(), instance.ID); err != nil || len(tasks) != 0 {
+		t.Fatalf("默认租户可见其他租户历史: %+v %v", tasks, err)
+	}
+	if _, err := app.GetHistoricTaskInstance(context.Background(), historic.ID); err == nil {
+		t.Fatal("默认租户可读其他租户历史")
+	}
+}

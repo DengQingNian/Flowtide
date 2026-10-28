@@ -430,7 +430,7 @@ func TestFilterTenantRows(t *testing.T) {
 		row("ACT_HI_DETAIL", map[string]any{"PROC_INST_ID_": "i1"}),
 		row("ACT_HI_DETAIL", map[string]any{"PROC_INST_ID_": "i2"}),
 	}
-	filtered := filterTenantRows(rows)
+	filtered := FilterRowsByTenant(rows, "")
 	if len(filtered) != 4 {
 		t.Fatalf("过滤结果错误: %+v", filtered)
 	}

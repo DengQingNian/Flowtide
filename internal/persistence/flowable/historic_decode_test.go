@@ -8,6 +8,7 @@ import (
 // historicProcessRow 构造历史流程行。
 // @param id 实例 ID
 // @return 行
+// @param t 测试上下文
 func historicProcessRow(t *testing.T, id string) Row {
 	t.Helper()
 	row, _ := NewRow("ACT_HI_PROCINST")
@@ -26,6 +27,7 @@ func historicProcessRow(t *testing.T, id string) Row {
 // historicActivityRow 构造历史活动行。
 // @param id 记录 ID
 // @return 行
+// @param t 测试上下文
 func historicActivityRow(t *testing.T, id string) Row {
 	t.Helper()
 	row, _ := NewRow("ACT_HI_ACTINST")
@@ -43,6 +45,7 @@ func historicActivityRow(t *testing.T, id string) Row {
 // historicTaskRow 构造历史任务行。
 // @param id 任务 ID
 // @return 行
+// @param t 测试上下文
 func historicTaskRow(t *testing.T, id string) Row {
 	t.Helper()
 	row, _ := NewRow("ACT_HI_TASKINST")
@@ -61,6 +64,7 @@ func historicTaskRow(t *testing.T, id string) Row {
 // @param id 变量 ID
 // @param kind 类型
 // @return 行
+// @param t 测试上下文
 func historicVariableRow(t *testing.T, id, kind string) Row {
 	t.Helper()
 	row, _ := NewRow("ACT_HI_VARINST")
@@ -215,6 +219,7 @@ func ptrFloat(value float64) *float64 { return &value }
 // historicCommentRow 构造历史评论行。
 // @param id 评论 ID
 // @return 行
+// @param t 测试上下文
 func historicCommentRow(t *testing.T, id string) Row {
 	t.Helper()
 	row, _ := NewRow("ACT_HI_COMMENT")
@@ -231,6 +236,7 @@ func historicCommentRow(t *testing.T, id string) Row {
 // historicAttachmentRow 构造历史附件行。
 // @param id 附件 ID
 // @return 行
+// @param t 测试上下文
 func historicAttachmentRow(t *testing.T, id string) Row {
 	t.Helper()
 	row, _ := NewRow("ACT_HI_ATTACHMENT")
@@ -284,6 +290,7 @@ func TestDecodeHistoricCommentAttachmentErrors(t *testing.T) {
 // historicLinkRow 构造历史身份链接行。
 // @param id 链接 ID
 // @return 行
+// @param t 测试上下文
 func historicLinkRow(t *testing.T, id string) Row {
 	t.Helper()
 	row, _ := NewRow("ACT_HI_IDENTITYLINK")
@@ -320,6 +327,7 @@ func TestDecodeHistoricIdentityLink(t *testing.T) {
 // historicDetailRow 构造历史明细行。
 // @param id 明细 ID
 // @return 行
+// @param t 测试上下文
 func historicDetailRow(t *testing.T, id string) Row {
 	t.Helper()
 	row, _ := NewRow("ACT_HI_DETAIL")
@@ -359,6 +367,7 @@ func TestDecodeHistoricDetail(t *testing.T) {
 // historicTaskLogRow 构造任务日志行。
 // @param id 日志 ID
 // @return 行
+// @param t 测试上下文
 func historicTaskLogRow(t *testing.T, id int64) Row {
 	t.Helper()
 	row, _ := NewRow("ACT_HI_TSK_LOG")
