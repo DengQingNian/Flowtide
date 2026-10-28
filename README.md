@@ -162,4 +162,5 @@ curl -X POST 'http://localhost:8080/service/runtime/process-instances' \
 - 历史变量/明细组合查询；自定义引擎属性 CRUD 与 `ACT_GE_PROPERTY` 行映射。
 - 流程图图片：BPMN DI 解析、SVG/PNG 渲染、运行态活动高亮。
 - 链接事件：中间抛出/捕获、同名跳转与直通。
+- 附件二进制内容：multipart 上传、contentUrl 与内容下载、字节数组行持久化。
 - 纯标准库实现，`CGO_ENABLED=0` 可构建。

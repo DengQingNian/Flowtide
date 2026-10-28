@@ -23,33 +23,34 @@ type definitionSnapshot struct {
 
 // snapshot 是引擎状态的持久化结构。
 type snapshot struct {
-	Deployments        []deploymentSnapshot            `json:"deployments"`        // 部署
-	Definitions        []definitionSnapshot            `json:"definitions"`        // 流程定义
-	Instances          []*instanceState                `json:"instances"`          // 流程实例
-	Executions         []*executionState               `json:"executions"`         // 执行
-	Tasks              []*taskState                    `json:"tasks"`              // 任务
-	Jobs               []*jobState                     `json:"jobs"`               // 定时器作业
-	DeadLetters        []*jobState                     `json:"deadLetters"`        // 死信作业
-	Subscriptions      []*subscriptionState            `json:"subscriptions"`      // 事件订阅
-	Compensations      map[string][]*compensationState `json:"compensations"`      // 补偿登记
-	HistoricProcesses  []*api.HistoricProcessInstance  `json:"historicProcesses"`  // 历史流程
-	HistoricActivities []*api.HistoricActivityInstance `json:"historicActivities"` // 历史活动
-	HistoricTasks      []*api.HistoricTaskInstance     `json:"historicTasks"`      // 历史任务
-	HistoricVariables  []*api.HistoricVariableInstance `json:"historicVariables"`  // 历史变量
-	HistoricLinks      []*api.IdentityLink             `json:"historicLinks"`      // 历史身份链接
-	HistoricDetails    []*api.HistoricDetail           `json:"historicDetails"`    // 历史变量明细
-	TaskLogs           []*api.HistoricTaskLog          `json:"taskLogs"`           // 任务日志
-	NextTaskLogID      int64                           `json:"nextTaskLogId"`      // 下一个任务日志 ID
-	Comments           []*api.Comment                  `json:"comments"`           // 评论
-	Attachments        []*api.Attachment               `json:"attachments"`        // 附件
-	Users              []*api.User                     `json:"users"`              // 用户
-	UserInfo           map[string]map[string]string    `json:"userInfo"`           // 用户信息
-	UserPictures       map[string]*userPictureState    `json:"userPictures"`       // 用户头像
-	Groups             []*api.Group                    `json:"groups"`             // 组
-	Roles              []*api.Role                     `json:"roles"`              // 角色
-	Memberships        map[string]bool                 `json:"memberships"`        // 成员关系
-	Properties         map[string]string               `json:"properties"`         // 自定义属性
-	Versions           map[string]int                  `json:"versions"`           // 版本号
+	Deployments        []deploymentSnapshot               `json:"deployments"`        // 部署
+	Definitions        []definitionSnapshot               `json:"definitions"`        // 流程定义
+	Instances          []*instanceState                   `json:"instances"`          // 流程实例
+	Executions         []*executionState                  `json:"executions"`         // 执行
+	Tasks              []*taskState                       `json:"tasks"`              // 任务
+	Jobs               []*jobState                        `json:"jobs"`               // 定时器作业
+	DeadLetters        []*jobState                        `json:"deadLetters"`        // 死信作业
+	Subscriptions      []*subscriptionState               `json:"subscriptions"`      // 事件订阅
+	Compensations      map[string][]*compensationState    `json:"compensations"`      // 补偿登记
+	HistoricProcesses  []*api.HistoricProcessInstance     `json:"historicProcesses"`  // 历史流程
+	HistoricActivities []*api.HistoricActivityInstance    `json:"historicActivities"` // 历史活动
+	HistoricTasks      []*api.HistoricTaskInstance        `json:"historicTasks"`      // 历史任务
+	HistoricVariables  []*api.HistoricVariableInstance    `json:"historicVariables"`  // 历史变量
+	HistoricLinks      []*api.IdentityLink                `json:"historicLinks"`      // 历史身份链接
+	HistoricDetails    []*api.HistoricDetail              `json:"historicDetails"`    // 历史变量明细
+	TaskLogs           []*api.HistoricTaskLog             `json:"taskLogs"`           // 任务日志
+	NextTaskLogID      int64                              `json:"nextTaskLogId"`      // 下一个任务日志 ID
+	Comments           []*api.Comment                     `json:"comments"`           // 评论
+	Attachments        []*api.Attachment                  `json:"attachments"`        // 附件
+	AttachmentContents map[string]*attachmentContentState `json:"attachmentContents"` // 附件内容
+	Users              []*api.User                        `json:"users"`              // 用户
+	UserInfo           map[string]map[string]string       `json:"userInfo"`           // 用户信息
+	UserPictures       map[string]*userPictureState       `json:"userPictures"`       // 用户头像
+	Groups             []*api.Group                       `json:"groups"`             // 组
+	Roles              []*api.Role                        `json:"roles"`              // 角色
+	Memberships        map[string]bool                    `json:"memberships"`        // 成员关系
+	Properties         map[string]string                  `json:"properties"`         // 自定义属性
+	Versions           map[string]int                     `json:"versions"`           // 版本号
 }
 
 // toSnapshot 将运行时状态转换为持久化结构。
@@ -109,6 +110,7 @@ func (e *Engine) toSnapshot() *snapshot {
 	for _, attachment := range e.state.Attachments {
 		out.Attachments = append(out.Attachments, attachment)
 	}
+	out.AttachmentContents = e.state.AttachmentContents
 	for _, user := range e.state.Users {
 		out.Users = append(out.Users, user)
 	}
@@ -225,6 +227,9 @@ func (e *Engine) loadState(ctx context.Context) error {
 	}
 	for _, attachment := range stored.Attachments {
 		restored.Attachments[attachment.ID] = attachment
+	}
+	if stored.AttachmentContents != nil {
+		restored.AttachmentContents = stored.AttachmentContents
 	}
 	for _, user := range stored.Users {
 		restored.Users[user.ID] = user

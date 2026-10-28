@@ -402,6 +402,7 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("GET /service/runtime/tasks/{id}/attachments", s.handleListAttachments)
 	s.mux.HandleFunc("POST /service/runtime/tasks/{id}/attachments", s.handleAddAttachment)
 	s.mux.HandleFunc("GET /service/runtime/tasks/{id}/attachments/{attachmentId}", s.handleGetAttachment)
+	s.mux.HandleFunc("GET /service/runtime/tasks/{id}/attachments/{attachmentId}/content", s.handleGetAttachmentContent)
 	s.mux.HandleFunc("DELETE /service/runtime/tasks/{id}/attachments/{attachmentId}", s.handleDeleteAttachment)
 	s.mux.HandleFunc("GET /service/runtime/tasks/{id}/identitylinks/{family}", s.handleListIdentityLinksFamily)
 	s.mux.HandleFunc("POST /service/runtime/tasks/{id}", s.handleTaskAction)
@@ -2041,6 +2042,47 @@ func (s *Server) handleListAttachments(w http.ResponseWriter, r *http.Request) {
 // @param w 响应
 // @param r 请求
 func (s *Server) handleAddAttachment(w http.ResponseWriter, r *http.Request) {
+	// multipart 上传文件附件，JSON 上传外部链接附件
+	if strings.HasPrefix(r.Header.Get("Content-Type"), "multipart/form-data") {
+		data, ok, err := readMultipartSource(r)
+		if err != nil {
+			writeError(w, err)
+			return
+		}
+		if !ok {
+			writeError(w, api.NewError("REST-0129", "缺少上传文件", api.ErrBadRequest))
+			return
+		}
+		values := map[string]string{}
+		if r.MultipartForm != nil {
+			for key, entries := range r.MultipartForm.Value {
+				if len(entries) > 0 {
+					values[key] = entries[0]
+				}
+			}
+		}
+		attachment := api.Attachment{
+			Name:        values["name"],
+			Description: values["description"],
+			Type:        values["type"],
+		}
+		created, err := s.engine.TaskService().AddAttachment(r.Context(), r.PathValue("id"), attachment)
+		if err != nil {
+			writeError(w, err)
+			return
+		}
+		if err := s.engine.TaskService().SetAttachmentContent(r.Context(), created.ID, data); err != nil {
+			writeError(w, err)
+			return
+		}
+		created, err = s.engine.TaskService().GetAttachment(r.Context(), created.ID)
+		if err != nil {
+			writeError(w, err)
+			return
+		}
+		writeJSON(w, http.StatusCreated, created)
+		return
+	}
 	var attachment api.Attachment
 	if err := decodeJSON(r, &attachment); err != nil {
 		writeError(w, err)
@@ -2052,6 +2094,34 @@ func (s *Server) handleAddAttachment(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusCreated, created)
+}
+
+// handleGetAttachmentContent 返回附件二进制内容。
+// @param w 响应
+// @param r 请求
+func (s *Server) handleGetAttachmentContent(w http.ResponseWriter, r *http.Request) {
+	attachment, err := s.engine.TaskService().GetAttachment(r.Context(), r.PathValue("attachmentId"))
+	if err != nil {
+		writeError(w, err)
+		return
+	}
+	if attachment.TaskID != r.PathValue("id") {
+		writeError(w, api.NewError("ENGINE-0404", "附件不存在", api.ErrNotFound))
+		return
+	}
+	data, err := s.engine.TaskService().GetAttachmentContent(r.Context(), attachment.ID)
+	if err != nil {
+		writeError(w, err)
+		return
+	}
+	contentType := attachment.Type
+	if !strings.Contains(contentType, "/") {
+		contentType = "application/octet-stream"
+	}
+	w.Header().Set("Content-Type", contentType)
+	w.Header().Set("Content-Disposition", "attachment; filename="+strconv.Quote(attachment.Name))
+	w.WriteHeader(http.StatusOK)
+	_, _ = w.Write(data)
 }
 
 // handleTaskAction 处理任务动作。

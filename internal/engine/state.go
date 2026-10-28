@@ -134,6 +134,11 @@ type modelState struct {
 	SourceExtra []byte    // 扩展源码
 }
 
+// attachmentContentState 是附件二进制内容。
+type attachmentContentState struct {
+	Data []byte `json:"data"` // 内容
+}
+
 // userPictureState 是用户头像。
 type userPictureState struct {
 	Data     []byte `json:"data"`     // 图片数据
@@ -163,6 +168,7 @@ type state struct {
 	NextTaskLogID      int64                                    // 下一个任务日志 ID
 	Comments           map[string]*api.Comment                  // 评论
 	Attachments        map[string]*api.Attachment               // 附件
+	AttachmentContents map[string]*attachmentContentState       // 附件内容
 	Users              map[string]*api.User                     // 用户
 	UserInfo           map[string]map[string]string             // 用户信息
 	UserPictures       map[string]*userPictureState             // 用户头像
@@ -197,6 +203,7 @@ func newState() *state {
 		TaskLogs:           make(map[int64]*api.HistoricTaskLog),
 		Comments:           make(map[string]*api.Comment),
 		Attachments:        make(map[string]*api.Attachment),
+		AttachmentContents: make(map[string]*attachmentContentState),
 		Users:              make(map[string]*api.User),
 		UserInfo:           make(map[string]map[string]string),
 		UserPictures:       make(map[string]*userPictureState),
@@ -328,6 +335,9 @@ func cloneState(source *state) *state {
 	for id, attachment := range source.Attachments {
 		copied := *attachment
 		target.Attachments[id] = &copied
+	}
+	for id, content := range source.AttachmentContents {
+		target.AttachmentContents[id] = &attachmentContentState{Data: append([]byte(nil), content.Data...)}
 	}
 	for id, group := range source.Groups {
 		copied := *group

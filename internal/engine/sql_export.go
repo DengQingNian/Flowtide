@@ -169,6 +169,25 @@ func (e *Engine) repositoryRowsLocked() ([]flowablerow.Row, error) {
 		_ = propertyRow.Set("REV_", 1)
 		rows = append(rows, *propertyRow)
 	}
+	attachmentIDs := make([]string, 0, len(e.state.AttachmentContents))
+	for id := range e.state.AttachmentContents {
+		attachmentIDs = append(attachmentIDs, id)
+	}
+	sort.Strings(attachmentIDs)
+	for _, id := range attachmentIDs {
+		name := "attachment/" + id
+		byteRow, byteErr := flowablerow.NewRow("ACT_GE_BYTEARRAY")
+		if byteErr != nil {
+			return nil, byteErr
+		}
+		_ = byteRow.Set("ID_", byteArrayID("", name))
+		_ = byteRow.Set("REV_", 1)
+		_ = byteRow.Set("NAME_", name)
+		_ = byteRow.Set("DEPLOYMENT_ID_", "")
+		_ = byteRow.Set("BYTES_", e.state.AttachmentContents[id].Data)
+		_ = byteRow.Set("GENERATED_", false)
+		rows = append(rows, *byteRow)
+	}
 	sort.Slice(rows, func(i, j int) bool {
 		if rows[i].Table == rows[j].Table {
 			return rowID(rows[i]) < rowID(rows[j])

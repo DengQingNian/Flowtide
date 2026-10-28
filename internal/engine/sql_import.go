@@ -44,6 +44,9 @@ func (e *Engine) ImportRows(ctx context.Context, rows []flowablerow.Row) error {
 		for name, value := range snapshot.Properties {
 			e.state.Properties[name] = value
 		}
+		for attachmentID, data := range snapshot.AttachmentContents {
+			e.state.AttachmentContents[attachmentID] = &attachmentContentState{Data: data}
+		}
 		for _, model := range snapshot.Models {
 			e.state.Models[model.Info.ID] = &modelState{
 				Info:        model.Info,

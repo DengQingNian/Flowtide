@@ -247,7 +247,7 @@ func (e *Engine) ListProcessAttachments(ctx context.Context, processInstanceID s
 		out := make([]api.Attachment, 0)
 		for _, attachment := range e.state.Attachments {
 			if attachment.ProcessInstanceID == processInstanceID && attachment.TaskID == "" {
-				out = append(out, *attachment)
+				out = append(out, e.attachmentDTO(*attachment))
 			}
 		}
 		sort.Slice(out, func(i, j int) bool {
@@ -288,7 +288,7 @@ func (e *Engine) AddAttachment(ctx context.Context, taskID string, attachment ap
 		attachment.Time = cc.now
 		copied := attachment
 		e.state.Attachments[copied.ID] = &copied
-		return copied, nil
+		return e.attachmentDTO(copied), nil
 	})
 	if err != nil {
 		return api.Attachment{}, err
@@ -308,7 +308,7 @@ func (e *Engine) ListAttachments(ctx context.Context, taskID string) ([]api.Atta
 			if taskID != "" && attachment.TaskID != taskID {
 				continue
 			}
-			out = append(out, *attachment)
+			out = append(out, e.attachmentDTO(*attachment))
 		}
 		sort.Slice(out, func(i, j int) bool {
 			if out[i].Time.Equal(out[j].Time) {
@@ -344,12 +344,89 @@ func (e *Engine) GetAttachment(ctx context.Context, attachmentID string) (api.At
 				return nil, err
 			}
 		}
-		return *attachment, nil
+		return e.attachmentDTO(*attachment), nil
 	})
 	if err != nil {
 		return api.Attachment{}, err
 	}
 	return result.(api.Attachment), nil
+}
+
+// SetAttachmentContent 设置附件二进制内容。
+// @param ctx 上下文
+// @param attachmentID 附件 ID
+// @param data 内容
+// @return 设置错误
+func (e *Engine) SetAttachmentContent(ctx context.Context, attachmentID string, data []byte) error {
+	_, err := e.execute(ctx, func(cc *commandContext) (any, error) {
+		attachment, ok := e.state.Attachments[attachmentID]
+		if !ok {
+			return nil, api.NewError("ENGINE-0404", "附件不存在", api.ErrNotFound)
+		}
+		if attachment.TaskID != "" {
+			if err := e.allowTask(cc.ctx, attachment.TaskID); err != nil {
+				return nil, err
+			}
+		} else if attachment.ProcessInstanceID != "" {
+			if err := e.allowInstance(cc.ctx, attachment.ProcessInstanceID); err != nil {
+				return nil, err
+			}
+		}
+		if len(data) == 0 {
+			return nil, api.NewError("ENGINE-1105", "附件内容不能为空", api.ErrBadRequest)
+		}
+		e.state.AttachmentContents[attachmentID] = &attachmentContentState{Data: append([]byte(nil), data...)}
+		return nil, nil
+	})
+	return err
+}
+
+// GetAttachmentContent 返回附件二进制内容。
+// @param ctx 上下文
+// @param attachmentID 附件 ID
+// @return 内容
+// @return 查询错误
+func (e *Engine) GetAttachmentContent(ctx context.Context, attachmentID string) ([]byte, error) {
+	result, err := e.read(func() (any, error) {
+		attachment, ok := e.state.Attachments[attachmentID]
+		if !ok {
+			return nil, api.NewError("ENGINE-0404", "附件不存在", api.ErrNotFound)
+		}
+		if attachment.TaskID != "" {
+			if err := e.allowTask(ctx, attachment.TaskID); err != nil {
+				return nil, err
+			}
+		} else if attachment.ProcessInstanceID != "" {
+			if err := e.allowInstance(ctx, attachment.ProcessInstanceID); err != nil {
+				return nil, err
+			}
+		}
+		content, ok := e.state.AttachmentContents[attachmentID]
+		if !ok {
+			return nil, api.NewError("ENGINE-1106", "附件内容不存在", api.ErrNotFound)
+		}
+		return append([]byte(nil), content.Data...), nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.([]byte), nil
+}
+
+// attachmentDTO 补全附件内容地址。
+// @param attachment 附件
+// @return 附件 DTO
+func (e *Engine) attachmentDTO(attachment api.Attachment) api.Attachment {
+	if _, ok := e.state.AttachmentContents[attachment.ID]; !ok {
+		attachment.ContentURL = ""
+		return attachment
+	}
+	if attachment.TaskID != "" {
+		attachment.ContentURL = "/service/runtime/tasks/" + attachment.TaskID + "/attachments/" + attachment.ID + "/content"
+	} else if attachment.ProcessInstanceID != "" {
+		attachment.ContentURL = "/service/runtime/process-instances/" + attachment.ProcessInstanceID + "/attachments/" + attachment.ID + "/content"
+	}
+	return attachment
 }
 
 // DeleteAttachment 删除附件。

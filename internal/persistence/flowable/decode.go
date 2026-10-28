@@ -29,11 +29,12 @@ func ModelSourceName(modelID string, extra bool) string {
 
 // Snapshot 是从 ACT 行恢复的仓库数据。
 type Snapshot struct {
-	Deployments []api.Deployment             // 部署
-	Resources   map[string]map[string][]byte // 部署 ID 到资源
-	Definitions []api.ProcessDefinition      // 流程定义
-	Models      []ModelRecord                // 流程模型
-	Properties  map[string]string            // 自定义属性
+	Deployments        []api.Deployment             // 部署
+	Resources          map[string]map[string][]byte // 部署 ID 到资源
+	Definitions        []api.ProcessDefinition      // 流程定义
+	Models             []ModelRecord                // 流程模型
+	Properties         map[string]string            // 自定义属性
+	AttachmentContents map[string][]byte            // 附件内容
 }
 
 // DecodeRows 将 ACT 行恢复为部署、资源与流程定义。
@@ -42,11 +43,12 @@ type Snapshot struct {
 // @return 解析错误
 func DecodeRows(rows []Row) (Snapshot, error) {
 	snapshot := Snapshot{
-		Deployments: make([]api.Deployment, 0),
-		Resources:   make(map[string]map[string][]byte),
-		Definitions: make([]api.ProcessDefinition, 0),
-		Models:      make([]ModelRecord, 0),
-		Properties:  make(map[string]string),
+		Deployments:        make([]api.Deployment, 0),
+		Resources:          make(map[string]map[string][]byte),
+		Definitions:        make([]api.ProcessDefinition, 0),
+		Models:             make([]ModelRecord, 0),
+		Properties:         make(map[string]string),
+		AttachmentContents: make(map[string][]byte),
 	}
 	modelSources := make(map[string][]byte)
 	for _, row := range rows {
@@ -73,6 +75,11 @@ func DecodeRows(rows []Row) (Snapshot, error) {
 			// 模型源使用 model/{id}/source 命名，与部署资源区分
 			if strings.HasPrefix(name, "model/") {
 				modelSources[name] = data
+				continue
+			}
+			// 附件内容使用 attachment/{id} 命名
+			if strings.HasPrefix(name, "attachment/") {
+				snapshot.AttachmentContents[strings.TrimPrefix(name, "attachment/")] = data
 				continue
 			}
 			if snapshot.Resources[deploymentID] == nil {

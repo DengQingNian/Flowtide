@@ -172,7 +172,7 @@ func (e *Engine) historicRowsLocked() ([]flowablerow.Row, error) {
 	}
 	sort.Slice(attachments, func(i, j int) bool { return attachments[i].ID < attachments[j].ID })
 	for _, attachment := range attachments {
-		row, rowErr := historyRow("ACT_HI_ATTACHMENT", []string{"ID_", "REV_", "NAME_", "DESCRIPTION_", "TYPE_", "TASK_ID_", "PROC_INST_ID_", "URL_", "TIME_"})
+		row, rowErr := historyRow("ACT_HI_ATTACHMENT", []string{"ID_", "REV_", "NAME_", "DESCRIPTION_", "TYPE_", "TASK_ID_", "PROC_INST_ID_", "URL_", "CONTENT_ID_", "TIME_"})
 		if rowErr != nil {
 			return nil, rowErr
 		}
@@ -184,6 +184,11 @@ func (e *Engine) historicRowsLocked() ([]flowablerow.Row, error) {
 		_ = row.Set("TASK_ID_", attachment.TaskID)
 		_ = row.Set("PROC_INST_ID_", attachment.ProcessInstanceID)
 		_ = row.Set("URL_", attachment.URL)
+		contentID := ""
+		if _, ok := e.state.AttachmentContents[attachment.ID]; ok {
+			contentID = byteArrayID("", "attachment/"+attachment.ID)
+		}
+		_ = row.Set("CONTENT_ID_", contentID)
 		_ = row.Set("TIME_", attachment.Time)
 		rows = append(rows, *row)
 	}

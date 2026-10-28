@@ -630,6 +630,18 @@ type TaskService interface {
 	// @return 附件
 	// @return 查询错误
 	GetAttachment(ctx context.Context, attachmentID string) (Attachment, error)
+	// SetAttachmentContent 设置附件二进制内容。
+	// @param ctx 上下文
+	// @param attachmentID 附件 ID
+	// @param data 内容
+	// @return 设置错误
+	SetAttachmentContent(ctx context.Context, attachmentID string, data []byte) error
+	// GetAttachmentContent 返回附件二进制内容。
+	// @param ctx 上下文
+	// @param attachmentID 附件 ID
+	// @return 内容
+	// @return 查询错误
+	GetAttachmentContent(ctx context.Context, attachmentID string) ([]byte, error)
 }
 
 // HistoryService 提供历史查询。

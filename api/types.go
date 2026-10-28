@@ -237,6 +237,7 @@ type Attachment struct {
 	Description       string    `json:"description,omitempty"`       // 描述
 	Type              string    `json:"type,omitempty"`              // 类型
 	URL               string    `json:"url,omitempty"`               // URL
+	ContentURL        string    `json:"contentUrl,omitempty"`        // 内容下载地址
 	Time              time.Time `json:"time"`                        // 创建时间
 }
 
