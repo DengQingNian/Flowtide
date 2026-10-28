@@ -106,6 +106,10 @@ func (e *Engine) startProcess(cc *commandContext, req api.StartRequest) (api.Pro
 		e.recordInstanceHistoricLink(cc, link)
 	}
 	e.recordProcessStart(cc, instance)
+	// 流程开始监听器在实例创建后、进入开始事件前执行
+	if err := e.invokeProcessExecutionListeners(cc, instance, "start"); err != nil {
+		return api.ProcessInstance{}, err
+	}
 	e.scheduleEventSubProcesses(cc, execution, process.Elements, process.Order, definition)
 
 	cc.agenda.schedule(&continueOperation{executionID: executionID, activityID: startEvent.ID})
@@ -151,11 +155,25 @@ func (op *continueOperation) run(cc *commandContext) error {
 }
 
 // continueAt 让执行进入指定活动。
+// 节点逻辑结束后统一上报执行监听器错误。
 // @param cc 命令上下文
 // @param executionID 执行 ID
 // @param activityID 活动 ID
 // @return 执行错误
 func (e *Engine) continueAt(cc *commandContext, executionID, activityID string) error {
+	if err := e.continueAtNode(cc, executionID, activityID); err != nil {
+		return err
+	}
+	// 结束监听器在节点逻辑末尾触发，此处统一返回使命令回滚
+	return cc.listenerErr
+}
+
+// continueAtNode 执行进入节点的核心逻辑。
+// @param cc 命令上下文
+// @param executionID 执行 ID
+// @param activityID 活动 ID
+// @return 执行错误
+func (e *Engine) continueAtNode(cc *commandContext, executionID, activityID string) error {
 	execution, ok := e.findExecution(executionID)
 	if !ok || execution.Ended || execution.Waiting {
 		return nil
@@ -185,6 +203,10 @@ func (e *Engine) continueAt(cc *commandContext, executionID, activityID string) 
 	execution.SkipAsyncBefore = false
 	execution.ActivityID = activityID
 	execution.CurrentHistActivityID = e.recordActivityStart(cc, execution, element)
+	// 开始监听器失败时不再执行节点逻辑
+	if cc.listenerErr != nil {
+		return cc.listenerErr
+	}
 	if err := e.scheduleBoundaryEvents(cc, execution, element); err != nil {
 		return err
 	}
@@ -666,6 +688,11 @@ func (e *Engine) endExecution(cc *commandContext, execution *executionState, ter
 // @param instance 实例
 func (e *Engine) endProcessInstance(cc *commandContext, instance *instanceState) {
 	if instance.Ended {
+		return
+	}
+	// 流程结束监听器在实例标记结束前执行，失败时由命令边界回滚
+	if err := e.invokeProcessExecutionListeners(cc, instance, "end"); err != nil {
+		cc.setListenerError(err)
 		return
 	}
 	instance.Ended = true

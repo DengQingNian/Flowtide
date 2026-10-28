@@ -43,11 +43,12 @@ type Config struct {
 // Delegate 是服务任务委托。
 type Delegate func(ctx context.Context, execution *Execution) error
 
-// Execution 是暴露给委托的执行上下文。
+// Execution 是暴露给委托与执行监听器的执行上下文。
 type Execution struct {
-	engine   *Engine         // 引擎
-	state    *executionState // 执行状态
-	instance *instanceState  // 流程实例
+	engine     *Engine         // 引擎
+	state      *executionState // 执行状态
+	instance   *instanceState  // 流程实例
+	activityID string          // 活动 ID 覆盖值，用于活动结束监听器
 }
 
 // GetVariable 按作用域链读取变量。
@@ -78,28 +79,36 @@ func (e *Execution) ProcessInstanceID() string { return e.state.ProcessInstanceI
 
 // ActivityID 返回当前活动 ID。
 // @return 活动 ID
-func (e *Execution) ActivityID() string { return e.state.ActivityID }
+func (e *Execution) ActivityID() string {
+	// 活动结束监听器的执行可能已离开当前节点，优先使用显式覆盖值
+	if e.activityID != "" {
+		return e.activityID
+	}
+	return e.state.ActivityID
+}
 
 // Engine 是流程引擎实现。
 type Engine struct {
-	mu              sync.RWMutex                // 保护全部状态
-	cfg             Config                      // 配置
-	state           *state                      // 可变状态
-	delegates       map[string]Delegate         // 服务任务委托
-	taskListeners   map[string]api.TaskListener // 任务监听器
-	closed          bool                        // 是否关闭
-	rowRepository   *flowablerow.Repository     // 行仓储
-	lastRows        []flowablerow.Row           // 上次持久化行
-	suppressPersist bool                        // 导入期间暂停持久化
-	rowSource       bool                        // 行仓储是否为唯一状态源
+	mu                 sync.RWMutex                 // 保护全部状态
+	cfg                Config                       // 配置
+	state              *state                       // 可变状态
+	delegates          map[string]Delegate          // 服务任务委托
+	taskListeners      map[string]api.TaskListener  // 任务监听器
+	executionListeners map[string]ExecutionListener // 执行监听器
+	closed             bool                         // 是否关闭
+	rowRepository      *flowablerow.Repository      // 行仓储
+	lastRows           []flowablerow.Row            // 上次持久化行
+	suppressPersist    bool                         // 导入期间暂停持久化
+	rowSource          bool                         // 行仓储是否为唯一状态源
 }
 
 // commandContext 是单条命令的上下文。
 type commandContext struct {
-	engine *Engine         // 引擎
-	ctx    context.Context // 调用方上下文
-	now    time.Time       // 命令内统一时间
-	agenda *agenda         // 议程
+	engine      *Engine         // 引擎
+	ctx         context.Context // 调用方上下文
+	now         time.Time       // 命令内统一时间
+	agenda      *agenda         // 议程
+	listenerErr error           // 执行监听器错误，命令结束统一回滚
 }
 
 // New 创建流程引擎。
@@ -126,11 +135,12 @@ func New(cfg Config) (*Engine, error) {
 		cfg.StateStore = statestore.NewFile(cfg.StatePath)
 	}
 	engine := &Engine{
-		cfg:           cfg,
-		state:         newState(),
-		delegates:     make(map[string]Delegate),
-		taskListeners: make(map[string]api.TaskListener),
-		rowRepository: cfg.RowRepository,
+		cfg:                cfg,
+		state:              newState(),
+		delegates:          make(map[string]Delegate),
+		taskListeners:      make(map[string]api.TaskListener),
+		executionListeners: make(map[string]ExecutionListener),
+		rowRepository:      cfg.RowRepository,
 	}
 	if cfg.LoadRows && cfg.RowRepository != nil {
 		engine.rowSource = true
@@ -165,6 +175,15 @@ func (e *Engine) RegisterTaskListener(name string, listener api.TaskListener) {
 	e.mu.Lock()
 	defer e.mu.Unlock()
 	e.taskListeners[name] = listener
+}
+
+// RegisterExecutionListener 注册 BPMN 执行监听器。
+// @param name 监听器名（class/delegateExpression）
+// @param listener 监听器
+func (e *Engine) RegisterExecutionListener(name string, listener ExecutionListener) {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+	e.executionListeners[name] = listener
 }
 
 // RepositoryService 返回仓库服务。
@@ -237,6 +256,10 @@ func (e *Engine) execute(ctx context.Context, fn func(*commandContext) (any, err
 		agenda: newAgenda(e.cfg.MaxAgendaSteps),
 	}
 	result, err := fn(cc)
+	// 执行监听器失败可能发生在无法直接返回错误的钩子中，统一在命令边界上报
+	if err == nil {
+		err = cc.listenerErr
+	}
 	if err != nil {
 		// 任一操作失败，回滚到命令开始前的状态
 		e.state = backup

@@ -41,13 +41,16 @@ func (e *Engine) recordProcessEnd(cc *commandContext, instance *instanceState) {
 	historic.DeleteReason = instance.DeleteReason
 }
 
-// recordActivityStart 写入历史活动实例。
+// recordActivityStart 写入历史活动实例并触发活动开始监听器。
+// 历史级别不足时仍触发开始监听器，但返回空历史 ID。
 // @param cc 命令上下文
 // @param execution 执行
 // @param element 活动元素
 // @return 历史记录 ID
 func (e *Engine) recordActivityStart(cc *commandContext, execution *executionState, element model.FlowElement) string {
 	if !e.historyAtLeast(HistoryActivity) {
+		// 历史关闭时仍触发开始监听器，但没有可返回的历史记录 ID
+		e.invokeActivityStartExecutionListeners(cc, execution, element)
 		return ""
 	}
 	id := e.newID()
@@ -60,10 +63,12 @@ func (e *Engine) recordActivityStart(cc *commandContext, execution *executionSta
 		StartTime:         cc.now,
 	}
 	e.state.HistoricActivities[id] = historic
+	e.invokeActivityStartExecutionListeners(cc, execution, element)
 	return id
 }
 
-// recordActivityEnd 更新历史活动结束信息。
+// recordActivityEnd 更新历史活动结束信息并触发活动结束监听器。
+// 通过历史记录反查活动与执行；记录不存在时直接返回。
 // @param cc 命令上下文
 // @param historicID 历史记录 ID
 func (e *Engine) recordActivityEnd(cc *commandContext, historicID string) {
@@ -76,6 +81,7 @@ func (e *Engine) recordActivityEnd(cc *commandContext, historicID string) {
 	}
 	historic.EndTime = cloneTime(&cc.now)
 	historic.DurationMillis = cc.now.Sub(historic.StartTime).Milliseconds()
+	e.invokeActivityEndExecutionListeners(cc, historic)
 }
 
 // recordTaskStart 写入历史任务实例。

@@ -30,14 +30,23 @@ type Signal struct {
 
 // Process 表示一个可执行流程。
 type Process struct {
-	ID                     string                 // 流程 ID
-	Name                   string                 // 流程名称
-	Documentation          string                 // 文档说明
-	Executable             bool                   // 是否可执行
-	CandidateStarterUsers  []string               // 候选发起人用户
-	CandidateStarterGroups []string               // 候选发起人组
-	Elements               map[string]FlowElement // 按 ID 索引的元素
-	Order                  []string               // 元素在文档中的顺序
+	ID                     string                        // 流程 ID
+	Name                   string                        // 流程名称
+	Documentation          string                        // 文档说明
+	Executable             bool                          // 是否可执行
+	CandidateStarterUsers  []string                      // 候选发起人用户
+	CandidateStarterGroups []string                      // 候选发起人组
+	ExecutionListeners     []ExecutionListenerDefinition // 流程级执行监听器
+	Elements               map[string]FlowElement        // 按 ID 索引的元素
+	Order                  []string                      // 元素在文档中的顺序
+}
+
+// ExecutionListenerDefinition 是 BPMN 执行监听器定义。
+type ExecutionListenerDefinition struct {
+	Event              string // 事件：start/end
+	ClassName          string // 类名（仅作为注册名兼容标记）
+	DelegateExpression string // 委托表达式，作为注册名
+	Expression         string // 表达式，暂不支持
 }
 
 // FlowElement 是所有 BPMN 元素的公共接口。
@@ -71,13 +80,14 @@ func (b *BaseElement) GetName() string { return b.Name }
 // FlowNodeBase 提供流程节点的公共字段与方法。
 type FlowNodeBase struct {
 	BaseElement
-	incoming        []*SequenceFlow  // 入线
-	outgoing        []*SequenceFlow  // 出线
-	BoundaryEvents  []*BoundaryEvent // 依附的边界事件
-	AsyncBefore     bool             // 进入前异步
-	AsyncAfter      bool             // 完成后异步
-	Exclusive       bool             // 是否独占作业
-	ForCompensation bool             // 是否补偿处理器
+	incoming           []*SequenceFlow               // 入线
+	outgoing           []*SequenceFlow               // 出线
+	BoundaryEvents     []*BoundaryEvent              // 依附的边界事件
+	AsyncBefore        bool                          // 进入前异步
+	AsyncAfter         bool                          // 完成后异步
+	Exclusive          bool                          // 是否独占作业
+	ForCompensation    bool                          // 是否补偿处理器
+	ExecutionListeners []ExecutionListenerDefinition // 节点级执行监听器
 }
 
 // GetIncoming 返回入线。
@@ -117,6 +127,12 @@ func (n *FlowNodeBase) AddBoundaryEvent(event *BoundaryEvent) {
 // GetBoundaryEvents 返回边界事件。
 // @return 边界事件列表
 func (n *FlowNodeBase) GetBoundaryEvents() []*BoundaryEvent { return n.BoundaryEvents }
+
+// GetExecutionListeners 返回节点级执行监听器定义。
+// @return 执行监听器列表
+func (n *FlowNodeBase) GetExecutionListeners() []ExecutionListenerDefinition {
+	return n.ExecutionListeners
+}
 
 // FlowNode 是可被令牌经过的节点。
 type FlowNode interface {

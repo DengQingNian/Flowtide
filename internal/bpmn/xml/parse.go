@@ -74,6 +74,7 @@ func parseProcess(node *Node) (*model.Process, error) {
 		Executable:             strings.EqualFold(node.Attr("isExecutable"), "true"),
 		CandidateStarterUsers:  splitList(node.Attr("candidateStarterUsers")),
 		CandidateStarterGroups: splitList(node.Attr("candidateStarterGroups")),
+		ExecutionListeners:     parseExecutionListeners(node),
 		Elements:               make(map[string]model.FlowElement),
 	}
 	if doc, ok := node.Child("documentation"); ok {
@@ -292,6 +293,7 @@ func parseFlowNodeBase(node *Node, base *model.FlowNodeBase) {
 	base.AsyncAfter = strings.EqualFold(attrAny(node, "asyncAfter"), "true")
 	base.Exclusive = !strings.EqualFold(attrAny(node, "exclusive"), "false")
 	base.ForCompensation = strings.EqualFold(attrAny(node, "isForCompensation"), "true")
+	base.ExecutionListeners = parseExecutionListeners(node)
 	if doc, ok := node.Child("documentation"); ok {
 		base.Documentation = doc.TextContent()
 	}
@@ -353,6 +355,34 @@ func parseTaskListeners(node *Node) []model.TaskListenerDefinition {
 			listener.Event = "create"
 		}
 		listeners = append(listeners, listener)
+	}
+	return listeners
+}
+
+// parseExecutionListeners 解析执行监听器扩展。
+// 兼容 flowable/activiti/无前缀元素与属性；event 缺省为 start。
+// @param node 流程或流程节点
+// @return 监听器列表
+func parseExecutionListeners(node *Node) []model.ExecutionListenerDefinition {
+	var listeners []model.ExecutionListenerDefinition
+	// 遍历全部 extensionElements，避免遗漏重复扩展块
+	for _, extension := range node.ChildrenNamed("extensionElements") {
+		for _, child := range extension.Children {
+			if child.Name.Local != "executionListener" {
+				continue
+			}
+			listener := model.ExecutionListenerDefinition{
+				Event:              strings.ToLower(strings.TrimSpace(attrAny(child, "event"))),
+				ClassName:          attrAny(child, "class"),
+				DelegateExpression: attrAny(child, "delegateExpression"),
+				Expression:         attrAny(child, "expression"),
+			}
+			// 事件缺省按开始事件处理
+			if listener.Event == "" {
+				listener.Event = "start"
+			}
+			listeners = append(listeners, listener)
+		}
 	}
 	return listeners
 }
