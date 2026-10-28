@@ -265,6 +265,31 @@ func (e *Engine) CreateGroup(ctx context.Context, group api.Group) (api.Group, e
 	return result.(api.Group), nil
 }
 
+// UpdateGroup 更新组。
+// @param ctx 上下文
+// @param group 组
+// @return 组
+// @return 更新错误
+func (e *Engine) UpdateGroup(ctx context.Context, group api.Group) (api.Group, error) {
+	result, err := e.execute(ctx, func(cc *commandContext) (any, error) {
+		if strings.TrimSpace(group.ID) == "" {
+			return nil, api.NewError("ENGINE-1003", "组 ID 不能为空", api.ErrBadRequest)
+		}
+		existing, ok := e.state.Groups[group.ID]
+		if !ok {
+			return nil, api.NewError("ENGINE-0404", "组不存在", api.ErrNotFound)
+		}
+		existing.Name = group.Name
+		existing.Type = group.Type
+		existing.TenantID = group.TenantID
+		return *existing, nil
+	})
+	if err != nil {
+		return api.Group{}, err
+	}
+	return result.(api.Group), nil
+}
+
 // GetGroup 查询组。
 // @param ctx 上下文
 // @param groupID 组 ID

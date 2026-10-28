@@ -147,6 +147,12 @@ type IdentityService interface {
 	// @return 组
 	// @return 创建错误
 	CreateGroup(ctx context.Context, group Group) (Group, error)
+	// UpdateGroup 更新组。
+	// @param ctx 上下文
+	// @param group 组
+	// @return 组
+	// @return 更新错误
+	UpdateGroup(ctx context.Context, group Group) (Group, error)
 	// GetGroup 查询组。
 	// @param ctx 上下文
 	// @param groupID 组 ID

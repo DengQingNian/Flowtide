@@ -96,54 +96,10 @@ func (s *Server) handleUpdateTask(w http.ResponseWriter, r *http.Request) {
 		writeError(w, err)
 		return
 	}
-	update := api.TaskUpdate{UserID: requestUserID(r)}
-	for key, target := range map[string]**string{
-		"name":        &update.Name,
-		"description": &update.Description,
-		"assignee":    &update.Assignee,
-		"owner":       &update.Owner,
-		"category":    &update.Category,
-		"formKey":     &update.FormKey,
-	} {
-		raw, ok := payload[key]
-		if !ok {
-			continue
-		}
-		value, err := decodeNullableString(raw)
-		if err != nil {
-			writeError(w, err)
-			return
-		}
-		*target = &value
-	}
-	if raw, ok := payload["priority"]; ok && string(raw) != "null" {
-		var value int
-		if err := json.Unmarshal(raw, &value); err != nil {
-			writeError(w, api.NewError("REST-0121", "priority 必须为整数", api.ErrBadRequest))
-			return
-		}
-		update.Priority = &value
-	}
-	if raw, ok := payload["dueDate"]; ok {
-		if string(raw) == "null" {
-			update.ClearDueDate = true
-		} else {
-			var value string
-			if err := json.Unmarshal(raw, &value); err != nil {
-				writeError(w, api.NewError("REST-0122", "dueDate 格式非法", api.ErrBadRequest))
-				return
-			}
-			if strings.TrimSpace(value) == "" {
-				update.ClearDueDate = true
-			} else {
-				parsed, err := parseTaskTime(value)
-				if err != nil {
-					writeError(w, err)
-					return
-				}
-				update.DueDate = &parsed
-			}
-		}
+	update, err := parseTaskUpdate(payload, requestUserID(r))
+	if err != nil {
+		writeError(w, err)
+		return
 	}
 	task, err := s.engine.TaskService().UpdateTask(r.Context(), r.PathValue("id"), update)
 	if err != nil {
@@ -179,6 +135,60 @@ func (s *Server) handleDeleteTask(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
+}
+
+// parseTaskUpdate 解析任务部分更新请求。
+// @param payload 原始 JSON 字段
+// @param userID 操作人
+// @return 更新请求
+// @return 解析错误
+func parseTaskUpdate(payload map[string]json.RawMessage, userID string) (api.TaskUpdate, error) {
+	update := api.TaskUpdate{UserID: userID}
+	for key, target := range map[string]**string{
+		"name":        &update.Name,
+		"description": &update.Description,
+		"assignee":    &update.Assignee,
+		"owner":       &update.Owner,
+		"category":    &update.Category,
+		"formKey":     &update.FormKey,
+	} {
+		raw, ok := payload[key]
+		if !ok {
+			continue
+		}
+		value, err := decodeNullableString(raw)
+		if err != nil {
+			return api.TaskUpdate{}, err
+		}
+		*target = &value
+	}
+	if raw, ok := payload["priority"]; ok && string(raw) != "null" {
+		var value int
+		if err := json.Unmarshal(raw, &value); err != nil {
+			return api.TaskUpdate{}, api.NewError("REST-0121", "priority 必须为整数", api.ErrBadRequest)
+		}
+		update.Priority = &value
+	}
+	if raw, ok := payload["dueDate"]; ok {
+		if string(raw) == "null" {
+			update.ClearDueDate = true
+		} else {
+			var value string
+			if err := json.Unmarshal(raw, &value); err != nil {
+				return api.TaskUpdate{}, api.NewError("REST-0122", "dueDate 格式非法", api.ErrBadRequest)
+			}
+			if strings.TrimSpace(value) == "" {
+				update.ClearDueDate = true
+			} else {
+				parsed, err := parseTaskTime(value)
+				if err != nil {
+					return api.TaskUpdate{}, err
+				}
+				update.DueDate = &parsed
+			}
+		}
+	}
+	return update, nil
 }
 
 // handleListSubTasks 返回子任务。

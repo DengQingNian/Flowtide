@@ -271,11 +271,15 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("GET /service/repository/deployments/{id}", s.handleGetDeployment)
 	s.mux.HandleFunc("DELETE /service/repository/deployments/{id}", s.handleDeleteDeployment)
 	s.mux.HandleFunc("GET /service/repository/deployments/{id}/resources", s.handleListDeploymentResources)
-	s.mux.HandleFunc("GET /service/repository/deployments/{id}/resources/{name}", s.handleGetDeploymentResource)
+	s.mux.HandleFunc("GET /service/repository/deployments/{id}/resources/{name...}", s.handleGetDeploymentResource)
 	s.mux.HandleFunc("GET /service/repository/process-definitions", s.handleListDefinitions)
 	s.mux.HandleFunc("GET /service/repository/process-definitions/{id}", s.handleGetDefinition)
 	s.mux.HandleFunc("GET /service/repository/process-definitions/{id}/xml", s.handleGetDefinitionXML)
 	s.mux.HandleFunc("GET /service/repository/process-definitions/{id}/image", s.handleDefinitionImage)
+	s.mux.HandleFunc("GET /service/repository/process-definitions/{id}/model", s.handleDefinitionModel)
+	s.mux.HandleFunc("GET /service/repository/process-definitions/{id}/decisions", s.handleDefinitionDecisions)
+	s.mux.HandleFunc("GET /service/repository/process-definitions/{id}/decision-tables", s.handleDefinitionDecisionTables)
+	s.mux.HandleFunc("GET /service/repository/process-definitions/{id}/form-definitions", s.handleDefinitionFormDefinitions)
 	s.mux.HandleFunc("GET /service/repository/process-definitions/{id}/resourcedata", s.handleDefinitionResourceData)
 	s.mux.HandleFunc("GET /service/repository/process-definitions/{id}/identitylinks", s.handleListDefinitionIdentityLinks)
 	s.mux.HandleFunc("POST /service/repository/process-definitions/{id}/identitylinks", s.handleAddDefinitionIdentityLink)
@@ -299,6 +303,7 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("GET /service/runtime/executions/{id}/activities", s.handleGetExecutionActivities)
 	s.mux.HandleFunc("GET /service/runtime/executions/{id}/variables", s.handleGetExecutionVariables)
 	s.mux.HandleFunc("DELETE /service/runtime/executions/{id}/variables", s.handleDeleteAllExecutionVariables)
+	s.mux.HandleFunc("PUT /service/runtime/executions/{id}/variables", s.handleUpdateExecutionVariables)
 	s.mux.HandleFunc("GET /service/runtime/executions/{id}/variables/{name}", s.handleGetExecutionVariable)
 	s.mux.HandleFunc("PUT /service/runtime/executions/{id}/variables/{name}", s.handleSetExecutionVariable)
 	s.mux.HandleFunc("DELETE /service/runtime/executions/{id}/variables/{name}", s.handleDeleteExecutionVariable)
@@ -364,6 +369,7 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("GET /service/identity/groups", s.handleListGroups)
 	s.mux.HandleFunc("POST /service/identity/groups", s.handleCreateGroup)
 	s.mux.HandleFunc("GET /service/identity/groups/{id}", s.handleGetGroup)
+	s.mux.HandleFunc("PUT /service/identity/groups/{id}", s.handleUpdateGroup)
 	s.mux.HandleFunc("DELETE /service/identity/groups/{id}", s.handleDeleteGroup)
 	s.mux.HandleFunc("GET /service/identity/groups/{id}/members", s.handleListMembers)
 	s.mux.HandleFunc("POST /service/identity/groups/{id}/members", s.handleAddMember)
@@ -386,6 +392,7 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("POST /service/query/historic-task-instances", s.handleQueryHistoricTasks)
 	s.mux.HandleFunc("POST /service/query/historic-activity-instances", s.handleQueryHistoricActivities)
 	s.mux.HandleFunc("GET /service/runtime/tasks", s.handleListTasks)
+	s.mux.HandleFunc("PUT /service/runtime/tasks", s.handleBulkUpdateTasks)
 	s.mux.HandleFunc("POST /service/runtime/tasks", s.handleCreateTask)
 	s.mux.HandleFunc("GET /service/runtime/tasks/{id}", s.handleGetTask)
 	s.mux.HandleFunc("PUT /service/runtime/tasks/{id}", s.handleUpdateTask)
@@ -2650,6 +2657,12 @@ func reflectSlice(items any) []any {
 		}
 		return out
 	case []api.HistoricTaskInstance:
+		out := make([]any, len(typed))
+		for i, item := range typed {
+			out[i] = item
+		}
+		return out
+	case []api.Task:
 		out := make([]any, len(typed))
 		for i, item := range typed {
 			out[i] = item
