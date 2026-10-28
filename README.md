@@ -84,7 +84,7 @@ docs/{三位流水号}-{描述}/
 ## 快速开始
 
 ```bash
-# 构建（无 CGO、无第三方依赖）
+# 构建（无 CGO）
 make build
 
 # 运行
@@ -103,6 +103,15 @@ curl -X POST 'http://localhost:8080/service/runtime/process-instances' \
   -H 'Content-Type: application/json' \
   -d '{"processDefinitionKey":"demo","variables":[{"name":"initiator","value":"alice"}]}'
 ```
+
+MySQL 开发库接入和分阶段计划见 [052 MySQL 集成计划与首阶段实现](docs/002-迁移实施/052-MySQL集成计划与首阶段实现.md)：
+
+```bash
+go run ./cmd/flowable-migrate -dialect mysql -apply -env .env
+go run ./cmd/flowable-server -storage mysql -env .env
+```
+
+第一阶段使用 SQL 快照保存完整状态；按表持久化和多实例协调仍待实施。
 
 当前实现范围、限制与覆盖率见 [MVP 实现说明](docs/002-迁移实施/001-MVP实现说明.md)；整体进度与剩余差距见 [实施进度与差距](docs/002-迁移实施/002-实施进度与差距.md)。
 
@@ -137,7 +146,7 @@ curl -X POST 'http://localhost:8080/service/runtime/process-instances' \
 - Flowable 8.1 的 41 张 ACT_* 表 DDL（MySQL/PostgreSQL）与 `flowable-migrate` CLI。
 - 可插拔状态存储（文件/内存/SQL），SQL 桥接写入 `ACT_GE_BYTEARRAY`。
 - ACT_* 行映射、导出与导入（仓库、运行时、作业/订阅/死信、历史/评论/附件/身份链接/变量明细/任务日志）。
-- 可选真实数据库集成测试入口（需驱动/DSN，默认跳过）。
+- MySQL 开发配置、连接池、Schema 初始化校验、原子 SQL 快照与真实数据库集成测试（默认跳过）。
 - 行级 SQL 仓储、`REV_` 乐观锁、事务工作单元、全量/增量/自动写入、启动恢复与单一状态源。
 - REST 认证/身份库、PBKDF2、用户/角色 CRUD、RBAC、租户隔离、限流、TLS、审计与 HTTP/引擎 Prometheus 指标。
 - 部署管理（列表、详情、资源下载、级联删除、ZIP/BAR 部署包）。

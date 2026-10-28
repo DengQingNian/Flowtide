@@ -32,6 +32,7 @@ type batchSnapshot struct {
 type snapshot struct {
 	Deployments        []deploymentSnapshot               `json:"deployments"`        // 部署
 	Definitions        []definitionSnapshot               `json:"definitions"`        // 流程定义
+	Models             []*modelState                      `json:"models"`             // 流程模型及编辑源
 	Instances          []*instanceState                   `json:"instances"`          // 流程实例
 	Executions         []*executionState                  `json:"executions"`         // 执行
 	Tasks              []*taskState                       `json:"tasks"`              // 任务
@@ -44,6 +45,7 @@ type snapshot struct {
 	HistoricActivities []*api.HistoricActivityInstance    `json:"historicActivities"` // 历史活动
 	HistoricTasks      []*api.HistoricTaskInstance        `json:"historicTasks"`      // 历史任务
 	HistoricVariables  []*api.HistoricVariableInstance    `json:"historicVariables"`  // 历史变量
+	InstanceLinks      []*api.IdentityLink                `json:"instanceLinks"`      // 实例身份链接
 	HistoricLinks      []*api.IdentityLink                `json:"historicLinks"`      // 历史身份链接
 	HistoricDetails    []*api.HistoricDetail              `json:"historicDetails"`    // 历史变量明细
 	TaskLogs           []*api.HistoricTaskLog             `json:"taskLogs"`           // 任务日志
@@ -70,6 +72,9 @@ func (e *Engine) toSnapshot() *snapshot {
 	}
 	for _, definition := range e.state.Definitions {
 		out.Definitions = append(out.Definitions, definitionSnapshot{Info: definition.Info, XML: definition.XML, StarterLinks: definition.StarterLinks})
+	}
+	for _, model := range e.state.Models {
+		out.Models = append(out.Models, model)
 	}
 	for _, instance := range e.state.Instances {
 		out.Instances = append(out.Instances, instance)
@@ -110,6 +115,9 @@ func (e *Engine) toSnapshot() *snapshot {
 	}
 	for _, historic := range e.state.HistoricVariables {
 		out.HistoricVariables = append(out.HistoricVariables, historic)
+	}
+	for _, link := range e.state.InstanceLinks {
+		out.InstanceLinks = append(out.InstanceLinks, link)
 	}
 	for _, link := range e.state.HistoricLinks {
 		out.HistoricLinks = append(out.HistoricLinks, link)
@@ -196,6 +204,10 @@ func (e *Engine) loadState(ctx context.Context) error {
 		}
 		restored.Definitions[definition.Info.ID] = &definitionState{Info: definition.Info, Model: parsed, XML: definition.XML, StarterLinks: definition.StarterLinks}
 	}
+	// 旧快照缺少新增字段时得到空列表，保留已有文件和数据库快照的兼容性。
+	for _, model := range stored.Models {
+		restored.Models[model.Info.ID] = model
+	}
 	for _, instance := range stored.Instances {
 		restored.Instances[instance.ID] = instance
 	}
@@ -235,6 +247,9 @@ func (e *Engine) loadState(ctx context.Context) error {
 	}
 	for _, historic := range stored.HistoricVariables {
 		restored.HistoricVariables[historic.ID] = historic
+	}
+	for _, link := range stored.InstanceLinks {
+		restored.InstanceLinks[link.ID] = link
 	}
 	for _, link := range stored.HistoricLinks {
 		restored.HistoricLinks[link.ID] = link

@@ -24,6 +24,8 @@ func main() {
 	historyLevel := flag.String("history", engine.HistoryAudit, "历史级别")
 	tenantID := flag.String("tenant", "", "默认租户")
 	statePath := flag.String("state", "", "状态文件路径，为空时仅使用内存")
+	storage := flag.String("storage", "", "状态存储：mysql；为空时使用原有内存或文件模式")
+	envPath := flag.String("env", ".env", "MySQL 开发配置文件路径")
 	jobsInterval := flag.Duration("jobs-interval", time.Second, "定时器扫描间隔，0 表示关闭后台扫描")
 	basicAuth := flag.String("basic-auth", "", "Basic Auth 用户，格式 user:pass")
 	tlsCert := flag.String("tls-cert", "", "TLS 证书路径")
@@ -33,14 +35,26 @@ func main() {
 	bearerToken := flag.String("bearer-token", "", "Bearer Token")
 	flag.Parse()
 
-	app, err := engine.New(engine.Config{HistoryLevel: *historyLevel, TenantID: *tenantID, StatePath: *statePath})
+	initCtx, cancelInit := context.WithTimeout(context.Background(), 30*time.Second)
+	store, closeDB, err := newStateStore(initCtx, *storage, *statePath, *envPath)
+	cancelInit()
+	if err != nil {
+		slog.Error("初始化状态存储失败", "error", err)
+		os.Exit(1)
+	}
+	defer func() { _ = closeDB() }()
+	app, err := engine.New(engine.Config{HistoryLevel: *historyLevel, TenantID: *tenantID, StatePath: *statePath, StateStore: store})
 	if err != nil {
 		slog.Error("创建引擎失败", "error", err)
 		os.Exit(1)
 	}
 	defer func() {
-		// 关闭引擎，释放内部状态
-		_ = app.Close(context.Background())
+		// 先保存引擎状态，再由外层清理函数释放数据库连接池。
+		closeCtx, cancelClose := context.WithTimeout(context.Background(), 30*time.Second)
+		defer cancelClose()
+		if err := app.Close(closeCtx); err != nil {
+			slog.Error("关闭引擎时保存状态失败", "error", err)
+		}
 	}()
 
 	jobCtx, stopJobs := context.WithCancel(context.Background())

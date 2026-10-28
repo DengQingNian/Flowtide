@@ -139,17 +139,18 @@ func TestNew(t *testing.T) {
 
 // TestSaveLoadMySQL 验证 MySQL 保存读取。
 // @param t 测试上下文
+// @return 无
 func TestSaveLoadMySQL(t *testing.T) {
 	db := &fakeDB{}
 	store, _ := New(db, "mysql")
 	if err := store.Save(context.Background(), []byte("state")); err != nil {
 		t.Fatalf("保存失败: %v", err)
 	}
-	if len(db.execs) != 2 || !strings.Contains(db.execs[0], "DELETE") || !strings.Contains(db.execs[1], "INSERT") {
+	if len(db.execs) != 1 || !strings.Contains(db.execs[0], "ON DUPLICATE KEY UPDATE") {
 		t.Fatalf("执行语句错误: %+v", db.execs)
 	}
-	if !strings.Contains(db.execs[1], "?, ?, ?, ?, ?") {
-		t.Fatalf("MySQL 占位符错误: %s", db.execs[1])
+	if !strings.Contains(db.execs[0], "?, ?, ?, ?, ?") {
+		t.Fatalf("MySQL 占位符错误: %s", db.execs[0])
 	}
 	data, err := store.Load(context.Background())
 	if err != nil || string(data) != "state" {

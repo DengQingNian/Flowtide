@@ -135,6 +135,15 @@ func (s *Store) Load(ctx context.Context) ([]byte, error) {
 // @param data 状态字节
 // @return 错误
 func (s *Store) Save(ctx context.Context, data []byte) error {
+	// MySQL 使用单条原子更新，避免删除成功后写入失败导致旧快照丢失。
+	if s.dialect == "mysql" {
+		query := "INSERT INTO ACT_GE_BYTEARRAY (ID_, REV_, NAME_, BYTES_, GENERATED_) VALUES (?, ?, ?, ?, ?) " +
+			"ON DUPLICATE KEY UPDATE BYTES_ = ?, REV_ = REV_ + 1"
+		if _, err := s.db.ExecContext(ctx, query, stateID, 1, stateID, data, false, data); err != nil {
+			return api.NewError("STATE-0006", "写入状态失败", err)
+		}
+		return nil
+	}
 	if err := s.delete(ctx); err != nil {
 		return err
 	}
