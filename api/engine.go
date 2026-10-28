@@ -207,6 +207,7 @@ type StartRequest struct {
 	TenantID             string     // 租户
 	UserID               string     // 发起人，用于参与者身份链接
 	Variables            []Variable // 启动变量
+	TransientVariables   []Variable // 瞬态变量，仅启动命令内可见
 }
 
 // RuntimeService 提供流程实例与变量操作。
@@ -342,6 +343,13 @@ type RuntimeService interface {
 	// @param variables 写入变量
 	// @return 触发错误
 	TriggerExecution(ctx context.Context, executionID string, variables []Variable) error
+	// TriggerExecutionWithTransient 触发等待中的执行并写入瞬态变量。
+	// @param ctx 上下文
+	// @param executionID 执行 ID
+	// @param variables 持久变量
+	// @param transientVariables 瞬态变量
+	// @return 触发错误
+	TriggerExecutionWithTransient(ctx context.Context, executionID string, variables, transientVariables []Variable) error
 	// SuspendProcessInstance 挂起流程实例。
 	// @param ctx 上下文
 	// @param processInstanceID 实例 ID
@@ -455,9 +463,10 @@ type MigrationRequest struct {
 
 // CompleteTaskRequest 是完成任务请求。
 type CompleteTaskRequest struct {
-	UserID         string     // 操作人
-	Variables      []Variable // 流程变量
-	LocalVariables []Variable // 任务局部变量
+	UserID             string     // 操作人
+	Variables          []Variable // 流程变量
+	LocalVariables     []Variable // 任务局部变量
+	TransientVariables []Variable // 瞬态变量，仅完成命令内可见
 }
 
 // TaskService 提供用户任务操作。

@@ -272,7 +272,8 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("GET /service/management/deadletter-jobs/{id}/exception-stacktrace", s.handleDeadLetterJobStacktrace)
 	s.mux.HandleFunc("POST /service/management/jobs/{id}", s.handleJobAction)
 	s.mux.HandleFunc("GET /service/repository/deployments", s.handleListDeployments)
-	s.mux.HandleFunc("POST /service/repository/deployments", s.handleDeploy)
+	s.mux.HandleFunc("POST /service/repository/deployments", s.handleCreateDeployment)
+	s.mux.HandleFunc("POST /service/repository/models/{id}/deployment", s.handleDeployModel)
 	s.mux.HandleFunc("GET /service/repository/deployments/{id}", s.handleGetDeployment)
 	s.mux.HandleFunc("DELETE /service/repository/deployments/{id}", s.handleDeleteDeployment)
 	s.mux.HandleFunc("GET /service/repository/deployments/{id}/resources", s.handleListDeploymentResources)
@@ -1038,6 +1039,7 @@ type startPayload struct {
 	Name                 string          `json:"name"`                 // 名称
 	TenantID             string          `json:"tenantId"`             // 租户
 	Variables            json.RawMessage `json:"variables"`            // 变量
+	TransientVariables   json.RawMessage `json:"transientVariables"`   // 瞬态变量
 }
 
 // handleListExecutions 返回执行列表。
@@ -1091,6 +1093,11 @@ func (s *Server) handleStartInstance(w http.ResponseWriter, r *http.Request) {
 		writeError(w, err)
 		return
 	}
+	transientVariables, err := parseVariables(payload.TransientVariables)
+	if err != nil {
+		writeError(w, err)
+		return
+	}
 	instance, err := s.engine.RuntimeService().StartProcessInstance(r.Context(), api.StartRequest{
 		ProcessDefinitionKey: payload.ProcessDefinitionKey,
 		ProcessDefinitionID:  payload.ProcessDefinitionID,
@@ -1099,6 +1106,7 @@ func (s *Server) handleStartInstance(w http.ResponseWriter, r *http.Request) {
 		TenantID:             firstNonEmpty(payload.TenantID, requestTenant(r)),
 		UserID:               requestUserID(r),
 		Variables:            variables,
+		TransientVariables:   transientVariables,
 	})
 	if err != nil {
 		writeError(w, err)
@@ -1837,10 +1845,11 @@ func (s *Server) handleGetTask(w http.ResponseWriter, r *http.Request) {
 
 // taskActionPayload 是任务动作请求体。
 type taskActionPayload struct {
-	Action         string          `json:"action"`         // 动作
-	UserID         string          `json:"userId"`         // 操作人
-	Variables      json.RawMessage `json:"variables"`      // 流程变量
-	LocalVariables json.RawMessage `json:"localVariables"` // 任务变量
+	Action             string          `json:"action"`             // 动作
+	UserID             string          `json:"userId"`             // 操作人
+	Variables          json.RawMessage `json:"variables"`          // 流程变量
+	LocalVariables     json.RawMessage `json:"localVariables"`     // 任务变量
+	TransientVariables json.RawMessage `json:"transientVariables"` // 瞬态变量
 }
 
 // handleListIdentityLinks 返回任务参与者。
@@ -2188,10 +2197,16 @@ func (s *Server) handleTaskAction(w http.ResponseWriter, r *http.Request) {
 			writeError(w, err)
 			return
 		}
+		transientVariables, err := parseVariables(payload.TransientVariables)
+		if err != nil {
+			writeError(w, err)
+			return
+		}
 		if err := s.engine.TaskService().Complete(r.Context(), taskID, api.CompleteTaskRequest{
-			UserID:         userID,
-			Variables:      variables,
-			LocalVariables: localVariables,
+			UserID:             userID,
+			Variables:          variables,
+			LocalVariables:     localVariables,
+			TransientVariables: transientVariables,
 		}); err != nil {
 			writeError(w, err)
 			return

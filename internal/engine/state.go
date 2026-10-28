@@ -66,6 +66,7 @@ type executionState struct {
 	PendingBranches             int            // 等待的并行分支数
 	CurrentHistActivityID       string         // 当前活动历史记录 ID
 	Variables                   map[string]any // 局部变量
+	Transient                   map[string]any `json:"-"` // 瞬态变量，仅命令内可见
 }
 
 // jobState 是定时器作业。
@@ -257,6 +258,7 @@ func cloneState(source *state) *state {
 	for id, execution := range source.Executions {
 		copied := *execution
 		copied.Variables = cloneAnyMap(execution.Variables)
+		copied.Transient = cloneAnyMap(execution.Transient)
 		target.Executions[id] = &copied
 	}
 	for id, task := range source.Tasks {

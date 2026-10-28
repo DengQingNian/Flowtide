@@ -67,6 +67,7 @@ func (e *Engine) startProcess(cc *commandContext, req api.StartRequest) (api.Pro
 	instanceID := e.newID()
 	executionID := e.newID()
 	variables := variablesToMap(req.Variables)
+	transient := variablesToMap(req.TransientVariables)
 	instance := &instanceState{
 		ID:                   instanceID,
 		ProcessDefinitionID:  definition.Info.ID,
@@ -85,6 +86,7 @@ func (e *Engine) startProcess(cc *commandContext, req api.StartRequest) (api.Pro
 		Active:            true,
 		Scope:             true,
 		Variables:         variables,
+		Transient:         transient,
 	}
 	e.state.Instances[instanceID] = instance
 	e.state.Executions[executionID] = execution

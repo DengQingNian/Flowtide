@@ -1094,6 +1094,11 @@ func (s *Server) handleQueryProcessInstances(w http.ResponseWriter, r *http.Requ
 		writeError(w, err)
 		return
 	}
+	items, err = applyQueryVariableFilter(r.Context(), items, body, s.processInstanceVariables)
+	if err != nil {
+		writeError(w, err)
+		return
+	}
 	start, size, sortField, order, err := body.pagination()
 	if err != nil {
 		writeError(w, err)
@@ -1161,6 +1166,11 @@ func (s *Server) handleQueryTasks(w http.ResponseWriter, r *http.Request) {
 		writeError(w, err)
 		return
 	}
+	items.Data, err = applyQueryVariableFilter(r.Context(), items.Data, body, s.taskVariables)
+	if err != nil {
+		writeError(w, err)
+		return
+	}
 	start, size, sortField, order, err := body.pagination()
 	if err != nil {
 		writeError(w, err)
@@ -1188,6 +1198,11 @@ func (s *Server) handleQueryHistoricProcesses(w http.ResponseWriter, r *http.Req
 		return
 	}
 	items, err = filterQueryHistoricProcesses(items, body, requestTenant(r))
+	if err != nil {
+		writeError(w, err)
+		return
+	}
+	items, err = applyQueryVariableFilter(r.Context(), items, body, s.historicProcessVariables)
 	if err != nil {
 		writeError(w, err)
 		return
@@ -1224,6 +1239,11 @@ func (s *Server) handleQueryHistoricTasks(w http.ResponseWriter, r *http.Request
 		return
 	}
 	items, err = filterQueryHistoricTasks(items, body, requestTenant(r), lookup)
+	if err != nil {
+		writeError(w, err)
+		return
+	}
+	items, err = applyQueryVariableFilter(r.Context(), items, body, s.historicTaskVariables)
 	if err != nil {
 		writeError(w, err)
 		return

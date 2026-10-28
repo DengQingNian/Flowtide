@@ -9,10 +9,11 @@ import (
 
 // executionActionPayload 是执行动作请求。
 type executionActionPayload struct {
-	Action      string         `json:"action"`                // 动作
-	SignalName  string         `json:"signalName,omitempty"`  // 信号名
-	MessageName string         `json:"messageName,omitempty"` // 消息名
-	Variables   []api.Variable `json:"variables,omitempty"`   // 变量
+	Action             string         `json:"action"`                       // 动作
+	SignalName         string         `json:"signalName,omitempty"`         // 信号名
+	MessageName        string         `json:"messageName,omitempty"`        // 消息名
+	Variables          []api.Variable `json:"variables,omitempty"`          // 变量
+	TransientVariables []api.Variable `json:"transientVariables,omitempty"` // 瞬态变量
 }
 
 // handleExecutionAction 对单个执行执行动作。
@@ -27,7 +28,7 @@ func (s *Server) handleExecutionAction(w http.ResponseWriter, r *http.Request) {
 	action := strings.ToLower(payload.Action)
 	switch action {
 	case "trigger", "signal":
-		if err := s.engine.RuntimeService().TriggerExecution(r.Context(), r.PathValue("id"), payload.Variables); err != nil {
+		if err := s.engine.RuntimeService().TriggerExecutionWithTransient(r.Context(), r.PathValue("id"), payload.Variables, payload.TransientVariables); err != nil {
 			writeError(w, err)
 			return
 		}

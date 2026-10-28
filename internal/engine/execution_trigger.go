@@ -13,6 +13,16 @@ import (
 // @param variables 写入变量
 // @return 触发错误
 func (e *Engine) TriggerExecution(ctx context.Context, executionID string, variables []api.Variable) error {
+	return e.TriggerExecutionWithTransient(ctx, executionID, variables, nil)
+}
+
+// TriggerExecutionWithTransient 触发等待中的执行并写入瞬态变量。
+// @param ctx 上下文
+// @param executionID 执行 ID
+// @param variables 持久变量
+// @param transientVariables 瞬态变量
+// @return 触发错误
+func (e *Engine) TriggerExecutionWithTransient(ctx context.Context, executionID string, variables, transientVariables []api.Variable) error {
 	_, err := e.execute(ctx, func(cc *commandContext) (any, error) {
 		execution, ok := e.findExecution(executionID)
 		if !ok {
@@ -60,6 +70,12 @@ func (e *Engine) TriggerExecution(ctx context.Context, executionID string, varia
 		}
 		for _, variable := range variables {
 			e.setVariable(execution, variable.Name, variable.Value)
+		}
+		for _, variable := range transientVariables {
+			if execution.Transient == nil {
+				execution.Transient = make(map[string]any)
+			}
+			execution.Transient[variable.Name] = variable.Value
 		}
 		e.recordActivityEnd(cc, execution.CurrentHistActivityID)
 		execution.CurrentHistActivityID = ""

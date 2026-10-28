@@ -356,6 +356,12 @@ func (e *Engine) completeTask(cc *commandContext, taskID string, req api.Complet
 		task.LocalVariables[variable.Name] = variable.Value
 		e.recordHistoricDetail(task.Task.ProcessInstanceID, task.ExecutionID, task.Task.ID, task.ActivityID, variable.Name, variable.Value, cc.now)
 	}
+	for _, variable := range req.TransientVariables {
+		if execution.Transient == nil {
+			execution.Transient = make(map[string]any)
+		}
+		execution.Transient[variable.Name] = variable.Value
+	}
 	e.recordTaskLog(cc, task, "complete", req.UserID, "")
 	e.recordTaskEnd(cc, task)
 	delete(e.state.Tasks, taskID)

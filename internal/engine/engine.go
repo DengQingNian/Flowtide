@@ -231,6 +231,10 @@ func (e *Engine) execute(ctx context.Context, fn func(*commandContext) (any, err
 		e.state = backup
 		return nil, err
 	}
+	// 瞬态变量仅在命令内可见，落盘前统一清理
+	for _, execution := range e.state.Executions {
+		execution.Transient = nil
+	}
 	// 命令成功后落盘；落盘失败同样回滚，保证内存与磁盘一致
 	if err := e.saveState(ctx); err != nil {
 		e.state = backup
@@ -405,9 +409,12 @@ func (e *Engine) variablesOf(execution *executionState) map[string]any {
 		}
 		current = parent
 	}
-	// 从根向叶子覆盖，叶子优先
+	// 从根向叶子覆盖，叶子优先；瞬态变量在命令内覆盖持久变量
 	for i := len(chain) - 1; i >= 0; i-- {
 		for key, value := range chain[i].Variables {
+			out[key] = value
+		}
+		for key, value := range chain[i].Transient {
 			out[key] = value
 		}
 	}
