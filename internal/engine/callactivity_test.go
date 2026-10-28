@@ -46,9 +46,8 @@ func TestCallActivity_StartsChild(t *testing.T) {
 	if !got.Ended {
 		t.Fatalf("子流程结束后父流程应结束")
 	}
-	instances, _ := engine.ListProcessInstances(context.Background())
-	if len(instances) != 2 {
-		t.Fatalf("期望父子 2 个实例，实际 %d", len(instances))
+	if instances, _ := engine.ListProcessInstances(context.Background()); len(instances) != 0 {
+		t.Fatalf("结束后不应有运行中实例，实际 %d", len(instances))
 	}
 }
 

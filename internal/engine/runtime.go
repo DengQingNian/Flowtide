@@ -720,6 +720,10 @@ func (e *Engine) ListProcessInstances(ctx context.Context) ([]api.ProcessInstanc
 	result, err := e.read(func() (any, error) {
 		out := make([]api.ProcessInstance, 0)
 		for _, instance := range e.state.Instances {
+			// 运行中列表不包含已结束实例
+			if instance.Ended {
+				continue
+			}
 			out = append(out, e.toProcessInstance(instance))
 		}
 		sortInstances(out)

@@ -189,6 +189,20 @@ type Attachment struct {
 	Time              time.Time `json:"time"`                        // 创建时间
 }
 
+// EventSubscription 是消息/信号事件订阅。
+type EventSubscription struct {
+	ID                  string    `json:"id"`                            // 订阅 ID
+	URL                 string    `json:"url,omitempty"`                 // 资源地址
+	EventType           string    `json:"eventType"`                     // 事件类型
+	EventName           string    `json:"eventName"`                     // 事件名
+	ExecutionID         string    `json:"executionId,omitempty"`         // 执行 ID
+	ProcessInstanceID   string    `json:"processInstanceId,omitempty"`   // 流程实例 ID
+	ActivityID          string    `json:"activityId,omitempty"`          // 活动 ID
+	ProcessDefinitionID string    `json:"processDefinitionId,omitempty"` // 流程定义 ID
+	TenantID            string    `json:"tenantId,omitempty"`            // 租户
+	Created             time.Time `json:"created"`                       // 创建时间
+}
+
 // ExecutionInfo 是执行实例信息。
 type ExecutionInfo struct {
 	ID                  string `json:"id"`                   // 执行 ID

@@ -225,6 +225,18 @@ type RuntimeService interface {
 	// @param req 迁移请求
 	// @return 迁移错误
 	MigrateProcessInstance(ctx context.Context, req MigrationRequest) error
+	// ListEventSubscriptions 返回事件订阅。
+	// @param ctx 上下文
+	// @param processInstanceID 流程实例 ID，空串表示全部
+	// @return 订阅列表
+	// @return 查询错误
+	ListEventSubscriptions(ctx context.Context, processInstanceID string) ([]EventSubscription, error)
+	// GetEventSubscription 查询事件订阅。
+	// @param ctx 上下文
+	// @param subscriptionID 订阅 ID
+	// @return 订阅
+	// @return 查询错误
+	GetEventSubscription(ctx context.Context, subscriptionID string) (EventSubscription, error)
 }
 
 // MigrationRequest 是流程实例迁移请求。
@@ -389,6 +401,12 @@ type TaskService interface {
 	// @return 评论列表
 	// @return 查询错误
 	ListComments(ctx context.Context, taskID string) ([]Comment, error)
+	// GetComment 查询单条评论。
+	// @param ctx 上下文
+	// @param commentID 评论 ID
+	// @return 评论
+	// @return 查询错误
+	GetComment(ctx context.Context, commentID string) (Comment, error)
 	// DeleteComment 删除评论。
 	// @param ctx 上下文
 	// @param commentID 评论 ID
@@ -425,6 +443,12 @@ type TaskService interface {
 	// @return 附件列表
 	// @return 查询错误
 	ListAttachments(ctx context.Context, taskID string) ([]Attachment, error)
+	// GetAttachment 查询单个附件。
+	// @param ctx 上下文
+	// @param attachmentID 附件 ID
+	// @return 附件
+	// @return 查询错误
+	GetAttachment(ctx context.Context, attachmentID string) (Attachment, error)
 }
 
 // HistoryService 提供历史查询。

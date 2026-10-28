@@ -163,6 +163,34 @@ func (e *Engine) ListComments(ctx context.Context, taskID string) ([]api.Comment
 	return result.([]api.Comment), nil
 }
 
+// GetComment 查询单条评论。
+// @param ctx 上下文
+// @param commentID 评论 ID
+// @return 评论
+// @return 查询错误
+func (e *Engine) GetComment(ctx context.Context, commentID string) (api.Comment, error) {
+	result, err := e.read(func() (any, error) {
+		comment, ok := e.state.Comments[commentID]
+		if !ok {
+			return nil, api.NewError("ENGINE-0404", "评论不存在", api.ErrNotFound)
+		}
+		if comment.TaskID != "" {
+			if err := e.allowTask(ctx, comment.TaskID); err != nil {
+				return nil, err
+			}
+		} else if comment.ProcessInstanceID != "" {
+			if err := e.allowInstance(ctx, comment.ProcessInstanceID); err != nil {
+				return nil, err
+			}
+		}
+		return *comment, nil
+	})
+	if err != nil {
+		return api.Comment{}, err
+	}
+	return result.(api.Comment), nil
+}
+
 // DeleteComment 删除评论。
 // @param ctx 上下文
 // @param commentID 评论 ID
@@ -294,6 +322,34 @@ func (e *Engine) ListAttachments(ctx context.Context, taskID string) ([]api.Atta
 		return nil, err
 	}
 	return result.([]api.Attachment), nil
+}
+
+// GetAttachment 查询单个附件。
+// @param ctx 上下文
+// @param attachmentID 附件 ID
+// @return 附件
+// @return 查询错误
+func (e *Engine) GetAttachment(ctx context.Context, attachmentID string) (api.Attachment, error) {
+	result, err := e.read(func() (any, error) {
+		attachment, ok := e.state.Attachments[attachmentID]
+		if !ok {
+			return nil, api.NewError("ENGINE-0404", "附件不存在", api.ErrNotFound)
+		}
+		if attachment.TaskID != "" {
+			if err := e.allowTask(ctx, attachment.TaskID); err != nil {
+				return nil, err
+			}
+		} else if attachment.ProcessInstanceID != "" {
+			if err := e.allowInstance(ctx, attachment.ProcessInstanceID); err != nil {
+				return nil, err
+			}
+		}
+		return *attachment, nil
+	})
+	if err != nil {
+		return api.Attachment{}, err
+	}
+	return result.(api.Attachment), nil
 }
 
 // DeleteAttachment 删除附件。
