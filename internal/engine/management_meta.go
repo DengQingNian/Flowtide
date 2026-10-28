@@ -24,6 +24,16 @@ func (e *Engine) Properties(ctx context.Context) (map[string]string, error) {
 	if e.closed {
 		return nil, api.NewError("ENGINE-0002", "引擎已关闭", api.ErrEngineClosed)
 	}
+	out := e.builtinPropertiesLocked()
+	for name, value := range e.state.Properties {
+		out[name] = value
+	}
+	return out, nil
+}
+
+// builtinPropertiesLocked 返回内置引擎属性。
+// @return 属性映射
+func (e *Engine) builtinPropertiesLocked() map[string]string {
 	return map[string]string{
 		"common.schema.version": schema.Version,
 		"schema.version":        schema.Version,
@@ -32,7 +42,7 @@ func (e *Engine) Properties(ctx context.Context) (map[string]string, error) {
 		"engine.version":        Version,
 		"historyLevel":          e.cfg.HistoryLevel,
 		"tenantId":              e.cfg.TenantID,
-	}, nil
+	}
 }
 
 // TableCount 返回各 ACT_* 表的行数。

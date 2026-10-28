@@ -154,6 +154,21 @@ func (e *Engine) repositoryRowsLocked() ([]flowablerow.Row, error) {
 		_ = modelRow.Set("TENANT_ID_", model.Info.TenantID)
 		rows = append(rows, *modelRow)
 	}
+	propertyNames := make([]string, 0, len(e.state.Properties))
+	for name := range e.state.Properties {
+		propertyNames = append(propertyNames, name)
+	}
+	sort.Strings(propertyNames)
+	for _, name := range propertyNames {
+		propertyRow, rowErr := flowablerow.NewRow("ACT_GE_PROPERTY")
+		if rowErr != nil {
+			return nil, rowErr
+		}
+		_ = propertyRow.Set("NAME_", name)
+		_ = propertyRow.Set("VALUE_", e.state.Properties[name])
+		_ = propertyRow.Set("REV_", 1)
+		rows = append(rows, *propertyRow)
+	}
 	sort.Slice(rows, func(i, j int) bool {
 		if rows[i].Table == rows[j].Table {
 			return rowID(rows[i]) < rowID(rows[j])

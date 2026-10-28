@@ -821,6 +821,23 @@ type ManagementService interface {
 	// @param jobID 作业 ID
 	// @return 删除错误
 	DeleteJob(ctx context.Context, jobID string) error
+	// CreateProperty 创建自定义引擎属性。
+	// @param ctx 上下文
+	// @param name 名称
+	// @param value 值
+	// @return 创建错误
+	CreateProperty(ctx context.Context, name, value string) error
+	// UpdateProperty 更新自定义引擎属性。
+	// @param ctx 上下文
+	// @param name 名称
+	// @param value 值
+	// @return 更新错误
+	UpdateProperty(ctx context.Context, name, value string) error
+	// DeleteProperty 删除自定义引擎属性。
+	// @param ctx 上下文
+	// @param name 名称
+	// @return 删除错误
+	DeleteProperty(ctx context.Context, name string) error
 	// Properties 返回引擎属性键值。
 	// @param ctx 上下文
 	// @return 属性映射

@@ -95,6 +95,38 @@ func modelRow(t *testing.T, id string) Row {
 	return *row
 }
 
+// propertyRow 构造属性行。
+// @param name 名称
+// @param value 值
+// @return 行
+func propertyRow(t *testing.T, name, value string) Row {
+	t.Helper()
+	row, _ := NewRow("ACT_GE_PROPERTY")
+	_ = row.Set("NAME_", name)
+	_ = row.Set("VALUE_", value)
+	_ = row.Set("REV_", 1)
+	return *row
+}
+
+// TestDecodePropertyRows 验证自定义属性恢复。
+// @param t 测试上下文
+func TestDecodePropertyRows(t *testing.T) {
+	rows := []Row{
+		propertyRow(t, "feature.x", "1"),
+		propertyRow(t, "schema.version", "8.1.0.3"),
+	}
+	snapshot, err := DecodeRows(rows)
+	if err != nil {
+		t.Fatalf("恢复属性失败: %v", err)
+	}
+	if snapshot.Properties["feature.x"] != "1" {
+		t.Fatalf("自定义属性恢复错误: %+v", snapshot.Properties)
+	}
+	if _, ok := snapshot.Properties["schema.version"]; ok {
+		t.Fatalf("内置属性不应导入: %+v", snapshot.Properties)
+	}
+}
+
 // TestDecodeModelRows 验证模型与源码恢复。
 // @param t 测试上下文
 func TestDecodeModelRows(t *testing.T) {
@@ -157,6 +189,8 @@ func TestDecodeRows_Errors(t *testing.T) {
 		{procRow(t, "p1", "d1", "missing")},
 		{func() Row { row := modelRow(t, "m1"); delete(row.Values, "NAME_"); return row }()},
 		{func() Row { row := modelRow(t, "m1"); row.Values["VERSION_"] = "bad"; return row }()},
+		{func() Row { row := propertyRow(t, "x", "1"); delete(row.Values, "NAME_"); return row }()},
+		{func() Row { row := propertyRow(t, "x", "1"); delete(row.Values, "VALUE_"); return row }()},
 	}
 	for _, rows := range cases {
 		if _, err := DecodeRows(rows); err == nil {

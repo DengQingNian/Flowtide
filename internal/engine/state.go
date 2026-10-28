@@ -169,6 +169,7 @@ type state struct {
 	Groups             map[string]*api.Group                    // 组
 	Roles              map[string]*api.Role                     // 角色
 	Memberships        map[string]bool                          // 成员关系，key=user|group
+	Properties         map[string]string                        // 自定义引擎属性
 	Versions           map[string]int                           // 流程定义 Key 到最大版本
 }
 
@@ -202,6 +203,7 @@ func newState() *state {
 		Groups:             make(map[string]*api.Group),
 		Roles:              make(map[string]*api.Role),
 		Memberships:        make(map[string]bool),
+		Properties:         make(map[string]string),
 		Versions:           make(map[string]int),
 	}
 }
@@ -338,6 +340,9 @@ func cloneState(source *state) *state {
 	}
 	for key, value := range source.Memberships {
 		target.Memberships[key] = value
+	}
+	for name, value := range source.Properties {
+		target.Properties[name] = value
 	}
 	for key, version := range source.Versions {
 		target.Versions[key] = version

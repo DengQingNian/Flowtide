@@ -33,6 +33,7 @@ type Snapshot struct {
 	Resources   map[string]map[string][]byte // 部署 ID 到资源
 	Definitions []api.ProcessDefinition      // 流程定义
 	Models      []ModelRecord                // 流程模型
+	Properties  map[string]string            // 自定义属性
 }
 
 // DecodeRows 将 ACT 行恢复为部署、资源与流程定义。
@@ -45,6 +46,7 @@ func DecodeRows(rows []Row) (Snapshot, error) {
 		Resources:   make(map[string]map[string][]byte),
 		Definitions: make([]api.ProcessDefinition, 0),
 		Models:      make([]ModelRecord, 0),
+		Properties:  make(map[string]string),
 	}
 	modelSources := make(map[string][]byte)
 	for _, row := range rows {
@@ -77,6 +79,18 @@ func DecodeRows(rows []Row) (Snapshot, error) {
 				snapshot.Resources[deploymentID] = make(map[string][]byte)
 			}
 			snapshot.Resources[deploymentID][name] = data
+		case "ACT_GE_PROPERTY":
+			name, err := stringValue(row, "NAME_")
+			if err != nil {
+				return Snapshot{}, err
+			}
+			value, err := stringValue(row, "VALUE_")
+			if err != nil {
+				return Snapshot{}, err
+			}
+			if !isSchemaProperty(name) {
+				snapshot.Properties[name] = value
+			}
 		case "ACT_RE_MODEL":
 			model, err := decodeModel(row)
 			if err != nil {
@@ -138,6 +152,17 @@ func decodeDeployment(row Row) (api.Deployment, error) {
 		return api.Deployment{}, err
 	}
 	return api.Deployment{ID: id, Name: name, TenantID: tenant, DeployTime: deployTime}, nil
+}
+
+// isSchemaProperty 判断是否为 Schema 内置属性。
+// @param name 属性名
+// @return 是否内置
+func isSchemaProperty(name string) bool {
+	switch name {
+	case "common.schema.version", "schema.version", "schema.history", "next.dbid":
+		return true
+	}
+	return false
 }
 
 // decodeModel 解析流程模型行。
