@@ -85,6 +85,64 @@ func (e *Engine) GetTaskFormData(ctx context.Context, taskID string) (api.FormDa
 	return result.(api.FormData), nil
 }
 
+// GetHistoricTaskFormData 返回历史任务表单。
+// @param ctx 上下文
+// @param taskID 任务 ID
+// @return 表单数据
+// @return 查询错误
+func (e *Engine) GetHistoricTaskFormData(ctx context.Context, taskID string) (api.FormData, error) {
+	result, err := e.read(func() (any, error) {
+		historic, ok := e.state.HistoricTasks[taskID]
+		if !ok {
+			return nil, api.NewError("ENGINE-0805", "历史任务不存在", api.ErrNotFound)
+		}
+		if historic.FormKey == "" {
+			return nil, api.NewError("ENGINE-1402", "任务未定义表单", api.ErrBadRequest)
+		}
+		instance, hasInstance := e.findInstance(historic.ProcessInstanceID)
+		if hasInstance {
+			if err := e.allowInstance(ctx, historic.ProcessInstanceID); err != nil {
+				return nil, err
+			}
+		} else if err := e.allowTenant(ctx, historic.TenantID); err != nil {
+			return nil, err
+		}
+		values := make(map[string]any)
+		for _, variable := range e.state.HistoricVariables {
+			if variable.ProcessInstanceID == historic.ProcessInstanceID && historic.ProcessInstanceID != "" {
+				values[variable.Name] = variable.Value
+			}
+			if variable.TaskID == taskID {
+				values[variable.Name] = variable.Value
+			}
+		}
+		if !hasInstance {
+			return api.FormData{FormKey: historic.FormKey}, nil
+		}
+		definition, exists := e.findDefinition(instance.ProcessDefinitionID)
+		if !exists {
+			return api.FormData{FormKey: historic.FormKey}, nil
+		}
+		process := processOfDefinition(definition)
+		if process == nil {
+			return api.FormData{FormKey: historic.FormKey}, nil
+		}
+		element, exists := findElement(process, historic.TaskDefinitionKey)
+		if !exists {
+			return api.FormData{FormKey: historic.FormKey}, nil
+		}
+		userTask, isUserTask := element.(*model.UserTask)
+		if !isUserTask {
+			return api.FormData{FormKey: historic.FormKey}, nil
+		}
+		return api.FormData{FormKey: userTask.FormKey, Properties: toFormProperties(userTask.FormProperties, values)}, nil
+	})
+	if err != nil {
+		return api.FormData{}, err
+	}
+	return result.(api.FormData), nil
+}
+
 // SubmitTaskFormData 提交任务表单并完成任务。
 // @param ctx 上下文
 // @param taskID 任务 ID

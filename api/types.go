@@ -183,11 +183,26 @@ type HistoricTaskInstance struct {
 	ProcessInstanceID string     `json:"processInstanceId"`      // 流程实例 ID
 	TaskDefinitionKey string     `json:"taskDefinitionKey"`      // 任务定义 Key
 	Assignee          string     `json:"assignee,omitempty"`     // 处理人
+	FormKey           string     `json:"formKey,omitempty"`      // 表单 Key
 	TenantID          string     `json:"tenantId,omitempty"`     // 租户
 	DeleteReason      string     `json:"deleteReason,omitempty"` // 删除原因
 	StartTime         time.Time  `json:"startTime"`              // 开始时间
 	EndTime           *time.Time `json:"endTime,omitempty"`      // 结束时间
 	DurationMillis    int64      `json:"durationMillis"`         // 持续时间毫秒
+}
+
+// TaskEvent 是任务事件。
+type TaskEvent struct {
+	ID                  int64     `json:"id"`                            // 事件 ID
+	Action              string    `json:"action"`                        // 动作
+	Timestamp           time.Time `json:"timestamp"`                     // 发生时间
+	UserID              string    `json:"userId,omitempty"`              // 操作人
+	TaskID              string    `json:"taskId,omitempty"`              // 任务 ID
+	ExecutionID         string    `json:"executionId,omitempty"`         // 执行 ID
+	ProcessInstanceID   string    `json:"processInstanceId,omitempty"`   // 流程实例 ID
+	ProcessDefinitionID string    `json:"processDefinitionId,omitempty"` // 流程定义 ID
+	TenantID            string    `json:"tenantId,omitempty"`            // 租户
+	Data                string    `json:"data,omitempty"`                // 附加数据
 }
 
 // IdentityLink 是任务/流程参与者关联。

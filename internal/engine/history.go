@@ -93,6 +93,7 @@ func (e *Engine) recordTaskStart(cc *commandContext, task *taskState) string {
 		ProcessInstanceID: task.Task.ProcessInstanceID,
 		TaskDefinitionKey: task.Task.TaskDefinitionKey,
 		Assignee:          task.Task.Assignee,
+		FormKey:           task.Task.FormKey,
 		TenantID:          task.Task.TenantID,
 		StartTime:         task.Task.CreateTime,
 	}

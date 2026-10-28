@@ -469,6 +469,25 @@ type TaskService interface {
 	// @param taskID 任务 ID
 	// @return 删除错误
 	DeleteAllTaskVariables(ctx context.Context, taskID string) error
+	// ListTaskEvents 返回任务事件。
+	// @param ctx 上下文
+	// @param taskID 任务 ID
+	// @return 事件列表
+	// @return 查询错误
+	ListTaskEvents(ctx context.Context, taskID string) ([]TaskEvent, error)
+	// GetTaskEvent 查询单个任务事件。
+	// @param ctx 上下文
+	// @param taskID 任务 ID
+	// @param eventID 事件 ID
+	// @return 事件
+	// @return 查询错误
+	GetTaskEvent(ctx context.Context, taskID string, eventID int64) (TaskEvent, error)
+	// DeleteTaskEvent 删除任务事件。
+	// @param ctx 上下文
+	// @param taskID 任务 ID
+	// @param eventID 事件 ID
+	// @return 删除错误
+	DeleteTaskEvent(ctx context.Context, taskID string, eventID int64) error
 	// ListIdentityLinks 返回任务参与者关联。
 	// @param ctx 上下文
 	// @param taskID 任务 ID
@@ -689,6 +708,12 @@ type HistoryService interface {
 	// @return 历史变量
 	// @return 查询错误
 	GetHistoricTaskVariableByName(ctx context.Context, taskID, name string) (HistoricVariableInstance, error)
+	// GetHistoricTaskFormData 返回历史任务表单。
+	// @param ctx 上下文
+	// @param taskID 任务 ID
+	// @return 表单数据
+	// @return 查询错误
+	GetHistoricTaskFormData(ctx context.Context, taskID string) (FormData, error)
 	// ListHistoricIdentityLinks 返回历史身份链接。
 	// @param ctx 上下文
 	// @param taskID 任务 ID，空串表示全部

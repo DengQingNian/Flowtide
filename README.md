@@ -154,4 +154,5 @@ curl -X POST 'http://localhost:8080/service/runtime/process-instances' \
 - 变量完整操作：执行/实例/任务变量批量更新与清空、变量原始值、历史变量与明细数据下载。
 - 流程实例身份链接：发起人自动登记、增删查、历史链接与 `ACT_RU_IDENTITYLINK` 行映射。
 - 流程定义候选发起人：BPMN 属性解析、增删查、幂等添加与行持久化。
+- 任务事件、历史任务表单、单条历史评论读取。
 - 纯标准库实现，`CGO_ENABLED=0` 可构建。
