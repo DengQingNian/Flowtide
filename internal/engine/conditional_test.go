@@ -94,6 +94,52 @@ const conditionalParallelXML = `<?xml version="1.0" encoding="UTF-8"?>
   </process>
 </definitions>`
 
+const conditionalNonInterruptingXML = `<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"
+             xmlns:flowable="http://flowable.org/bpmn">
+  <process id="conditionalNonInterrupting" name="Conditional Non Interrupting" isExecutable="true">
+    <startEvent id="start"/>
+    <sequenceFlow id="f1" sourceRef="start" targetRef="review"/>
+    <userTask id="review" name="Review" flowable:assignee="alice"/>
+    <boundaryEvent id="amountBoundary" attachedToRef="review" cancelActivity="false">
+      <conditionalEventDefinition>
+        <condition>${amount > 100}</condition>
+      </conditionalEventDefinition>
+    </boundaryEvent>
+    <sequenceFlow id="f2" sourceRef="review" targetRef="normalEnd"/>
+    <sequenceFlow id="f3" sourceRef="amountBoundary" targetRef="notify"/>
+    <userTask id="notify" name="Notify" flowable:assignee="bob"/>
+    <sequenceFlow id="f4" sourceRef="notify" targetRef="boundaryEnd"/>
+    <endEvent id="normalEnd"/>
+    <endEvent id="boundaryEnd"/>
+  </process>
+</definitions>`
+
+const conditionalNonInterruptingCatchXML = `<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"
+             xmlns:flowable="http://flowable.org/bpmn">
+  <process id="conditionalNonInterruptingCatch" name="Conditional Non Interrupting Catch" isExecutable="true">
+    <startEvent id="start"/>
+    <sequenceFlow id="f1" sourceRef="start" targetRef="review"/>
+    <userTask id="review" name="Review" flowable:assignee="alice"/>
+    <boundaryEvent id="amountBoundary" attachedToRef="review" cancelActivity="false">
+      <conditionalEventDefinition>
+        <condition>${amount > 100}</condition>
+      </conditionalEventDefinition>
+    </boundaryEvent>
+    <sequenceFlow id="f2" sourceRef="review" targetRef="normalEnd"/>
+    <sequenceFlow id="f3" sourceRef="amountBoundary" targetRef="waitReady"/>
+    <intermediateCatchEvent id="waitReady" name="Wait Ready">
+      <conditionalEventDefinition>
+        <condition>${amount > 100}</condition>
+      </conditionalEventDefinition>
+    </intermediateCatchEvent>
+    <sequenceFlow id="f4" sourceRef="waitReady" targetRef="boundaryEnd"/>
+    <endEvent id="normalEnd"/>
+    <endEvent id="boundaryEnd"/>
+  </process>
+</definitions>`
+
 const conditionalInvalidXML = `<?xml version="1.0" encoding="UTF-8"?>
 <definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL">
   <process id="conditionalInvalid" isExecutable="true">
@@ -140,6 +186,46 @@ func findTaskByKey(t *testing.T, engine *Engine, activityID string) api.Task {
 	}
 	t.Fatalf("未找到活动 %s 的任务", activityID)
 	return api.Task{}
+}
+
+// countTasksByKey 统计指定活动的运行中任务数量。
+// @param engine 引擎
+// @param activityID 活动 ID
+// @return 任务数量
+func countTasksByKey(engine *Engine, activityID string) int {
+	count := 0
+	for _, task := range engine.state.Tasks {
+		if task.ActivityID == activityID {
+			count++
+		}
+	}
+	return count
+}
+
+// latestHistoricActivity 返回指定活动最近一次历史记录。
+// @param t 测试上下文
+// @param engine 引擎
+// @param processInstanceID 流程实例 ID
+// @param activityID 活动 ID
+// @return 历史活动记录
+func latestHistoricActivity(t *testing.T, engine *Engine, processInstanceID, activityID string) api.HistoricActivityInstance {
+	t.Helper()
+	activities, err := engine.ListHistoricActivityInstances(context.Background(), processInstanceID)
+	if err != nil {
+		t.Fatalf("查询历史活动失败: %v", err)
+	}
+	var latest api.HistoricActivityInstance
+	found := false
+	for _, activity := range activities {
+		if activity.ActivityID == activityID {
+			latest = activity
+			found = true
+		}
+	}
+	if !found {
+		t.Fatalf("未找到活动 %s 的历史记录", activityID)
+	}
+	return latest
 }
 
 // TestConditionalBoundary_WaitsUntilVariableChanges 验证边界条件先不触发、变量变化后触发。
@@ -205,14 +291,160 @@ func TestConditionalBoundary_ImmediateTrigger(t *testing.T) {
 	}
 }
 
-// TestConditionalBoundary_NonInterruptingTreatedAsInterrupting 验证非中断边界按中断语义处理。
+// TestConditionalBoundary_NonInterruptingKeepsTaskAndSubscription 验证非中断条件命中后原任务与订阅保留。
 // @param t 测试上下文
-func TestConditionalBoundary_NonInterruptingTreatedAsInterrupting(t *testing.T) {
+func TestConditionalBoundary_NonInterruptingKeepsTaskAndSubscription(t *testing.T) {
 	engine := newTestEngine(t)
-	xml := strings.Replace(conditionalBoundaryXML,
-		`attachedToRef="review">`,
-		`attachedToRef="review" cancelActivity="false">`, 1)
-	deployXML(t, engine, xml)
+	deployXML(t, engine, conditionalNonInterruptingXML)
+	instance, err := engine.StartProcessInstance(context.Background(), api.StartRequest{
+		ProcessDefinitionKey: "conditionalNonInterrupting",
+		Variables:            []api.Variable{{Name: "amount", Value: 50}},
+	})
+	if err != nil {
+		t.Fatalf("启动失败: %v", err)
+	}
+	if countTasksByKey(engine, "review") != 1 || countTasksByKey(engine, "notify") != 0 {
+		t.Fatalf("条件未满足时只应保留原任务")
+	}
+	if countConditionSubscriptions(engine, instance.ID) != 1 {
+		t.Fatalf("应注册一个条件边界订阅")
+	}
+	review := findTaskByKey(t, engine, "review")
+	if err := engine.SetVariable(context.Background(), instance.ID, "amount", 200); err != nil {
+		t.Fatalf("设置变量失败: %v", err)
+	}
+	if countTasksByKey(engine, "review") != 1 {
+		t.Fatalf("非中断条件命中后原任务应保留")
+	}
+	if countTasksByKey(engine, "notify") != 1 {
+		t.Fatalf("非中断边界路径应产生新任务")
+	}
+	if countConditionSubscriptions(engine, instance.ID) != 1 {
+		t.Fatalf("非中断条件命中后应保留订阅")
+	}
+	got, _ := engine.GetProcessInstance(context.Background(), instance.ID)
+	if got.Ended {
+		t.Fatalf("原任务未完成，实例不应结束")
+	}
+	// 父执行继续等待原任务，对应历史活动保持未结束
+	reviewState, ok := engine.state.Tasks[review.ID]
+	if !ok {
+		t.Fatalf("原任务状态不存在")
+	}
+	execution, ok := engine.findExecution(reviewState.ExecutionID)
+	if !ok || !execution.Waiting {
+		t.Fatalf("非中断触发后父执行应继续等待")
+	}
+	if activity := latestHistoricActivity(t, engine, instance.ID, "review"); activity.EndTime != nil {
+		t.Fatalf("非中断触发不应结束原任务历史活动")
+	}
+	if activity := latestHistoricActivity(t, engine, instance.ID, "amountBoundary"); activity.ActivityID != "amountBoundary" {
+		t.Fatalf("边界事件应记录历史活动: %+v", activity)
+	}
+}
+
+// TestConditionalBoundary_NonInterruptingRetriggers 验证非中断条件在后续求值时仍可再次触发。
+// @param t 测试上下文
+func TestConditionalBoundary_NonInterruptingRetriggers(t *testing.T) {
+	engine := newTestEngine(t)
+	deployXML(t, engine, conditionalNonInterruptingXML)
+	instance, err := engine.StartProcessInstance(context.Background(), api.StartRequest{
+		ProcessDefinitionKey: "conditionalNonInterrupting",
+		Variables:            []api.Variable{{Name: "amount", Value: 50}},
+	})
+	if err != nil {
+		t.Fatalf("启动失败: %v", err)
+	}
+	if err := engine.SetVariable(context.Background(), instance.ID, "amount", 200); err != nil {
+		t.Fatalf("设置变量失败: %v", err)
+	}
+	if countTasksByKey(engine, "notify") != 1 {
+		t.Fatalf("首次命中应触发一次边界路径")
+	}
+	// 条件保持为真，下一次变量变化应再次触发且每轮只触发一次
+	if err := engine.SetVariable(context.Background(), instance.ID, "amount", 250); err != nil {
+		t.Fatalf("设置变量失败: %v", err)
+	}
+	if countTasksByKey(engine, "notify") != 2 {
+		t.Fatalf("变量变化应再次触发非中断边界: %d", countTasksByKey(engine, "notify"))
+	}
+	if err := engine.EvaluateConditions(context.Background(), instance.ID); err != nil {
+		t.Fatalf("显式求值失败: %v", err)
+	}
+	if countTasksByKey(engine, "notify") != 3 {
+		t.Fatalf("显式求值应再次触发非中断边界: %d", countTasksByKey(engine, "notify"))
+	}
+	if countTasksByKey(engine, "review") != 1 {
+		t.Fatalf("多次触发后原任务仍应保留")
+	}
+	if countConditionSubscriptions(engine, instance.ID) != 1 {
+		t.Fatalf("多次触发后订阅仍应保留")
+	}
+	got, _ := engine.GetProcessInstance(context.Background(), instance.ID)
+	if got.Ended {
+		t.Fatalf("原任务未完成，多次触发不应结束实例")
+	}
+}
+
+// TestConditionalBoundary_NonInterruptingCatchPathNoLoop 验证非中断边界路径上的捕获条件不会反向触发依附任务。
+// @param t 测试上下文
+func TestConditionalBoundary_NonInterruptingCatchPathNoLoop(t *testing.T) {
+	engine := newTestEngine(t)
+	deployXML(t, engine, conditionalNonInterruptingCatchXML)
+	instance, err := engine.StartProcessInstance(context.Background(), api.StartRequest{
+		ProcessDefinitionKey: "conditionalNonInterruptingCatch",
+		Variables:            []api.Variable{{Name: "amount", Value: 50}},
+	})
+	if err != nil {
+		t.Fatalf("启动失败: %v", err)
+	}
+	// 若边界路径上的捕获事件按实例整体求值，会反向触发依附任务形成自激循环
+	if err := engine.SetVariable(context.Background(), instance.ID, "amount", 200); err != nil {
+		t.Fatalf("设置变量失败: %v", err)
+	}
+	if countTasksByKey(engine, "review") != 1 {
+		t.Fatalf("非中断边界路径不应取消原任务")
+	}
+	if countConditionSubscriptions(engine, instance.ID) != 1 {
+		t.Fatalf("应只保留依附任务的条件订阅")
+	}
+	got, _ := engine.GetProcessInstance(context.Background(), instance.ID)
+	if got.Ended {
+		t.Fatalf("原任务未完成，实例不应结束")
+	}
+	if activity := latestHistoricActivity(t, engine, instance.ID, "waitReady"); activity.EndTime == nil {
+		t.Fatalf("边界路径上的捕获事件应立即满足并结束")
+	}
+}
+
+// TestConditionalBoundary_NonInterruptingNotTriggeredWhenFalse 验证条件不满足时非中断边界不触发。
+// @param t 测试上下文
+func TestConditionalBoundary_NonInterruptingNotTriggeredWhenFalse(t *testing.T) {
+	engine := newTestEngine(t)
+	deployXML(t, engine, conditionalNonInterruptingXML)
+	instance, err := engine.StartProcessInstance(context.Background(), api.StartRequest{
+		ProcessDefinitionKey: "conditionalNonInterrupting",
+		Variables:            []api.Variable{{Name: "amount", Value: 50}},
+	})
+	if err != nil {
+		t.Fatalf("启动失败: %v", err)
+	}
+	if err := engine.SetVariable(context.Background(), instance.ID, "amount", 80); err != nil {
+		t.Fatalf("设置变量失败: %v", err)
+	}
+	if countTasksByKey(engine, "review") != 1 || countTasksByKey(engine, "notify") != 0 {
+		t.Fatalf("条件不满足时不应触发边界路径")
+	}
+	if countConditionSubscriptions(engine, instance.ID) != 1 {
+		t.Fatalf("条件不满足时应保留订阅")
+	}
+}
+
+// TestConditionalBoundary_InterruptingCancelsTask 验证中断条件命中后取消任务并结束历史活动。
+// @param t 测试上下文
+func TestConditionalBoundary_InterruptingCancelsTask(t *testing.T) {
+	engine := newTestEngine(t)
+	deployXML(t, engine, conditionalBoundaryXML)
 	instance, err := engine.StartProcessInstance(context.Background(), api.StartRequest{
 		ProcessDefinitionKey: "conditionalBoundary",
 		Variables:            []api.Variable{{Name: "amount", Value: 50}},
@@ -223,8 +455,61 @@ func TestConditionalBoundary_NonInterruptingTreatedAsInterrupting(t *testing.T) 
 	if err := engine.SetVariable(context.Background(), instance.ID, "amount", 200); err != nil {
 		t.Fatalf("设置变量失败: %v", err)
 	}
-	if len(listTasks(t, engine)) != 0 {
-		t.Fatalf("非中断条件边界应被安全地按中断处理")
+	if countTasksByKey(engine, "review") != 0 {
+		t.Fatalf("中断条件命中应取消依附任务")
+	}
+	if countConditionSubscriptions(engine, instance.ID) != 0 {
+		t.Fatalf("中断条件命中应删除订阅")
+	}
+	got, _ := engine.GetProcessInstance(context.Background(), instance.ID)
+	if !got.Ended {
+		t.Fatalf("中断边界路径应结束实例")
+	}
+	if activity := latestHistoricActivity(t, engine, instance.ID, "review"); activity.EndTime == nil {
+		t.Fatalf("中断条件命中应结束原任务历史活动")
+	}
+}
+
+// TestConditionalBoundary_NonInterruptingExpressionError 验证非中断条件表达式错误仍返回 ENGINE-0631。
+// @param t 测试上下文
+func TestConditionalBoundary_NonInterruptingExpressionError(t *testing.T) {
+	engine := newTestEngine(t)
+	xml := strings.Replace(conditionalInvalidXML,
+		`attachedToRef="review">`,
+		`attachedToRef="review" cancelActivity="false">`, 1)
+	deployXML(t, engine, xml)
+	_, err := engine.StartProcessInstance(context.Background(), api.StartRequest{ProcessDefinitionKey: "conditionalInvalid"})
+	var engineErr *api.Error
+	if !errors.As(err, &engineErr) || engineErr.Code != "ENGINE-0631" {
+		t.Fatalf("非中断条件表达式错误应返回 ENGINE-0631: %v", err)
+	}
+}
+
+// TestConditionalBoundary_MissingBoundaryCleansSubscription 验证边界定义无法解析时清理陈旧订阅。
+// @param t 测试上下文
+func TestConditionalBoundary_MissingBoundaryCleansSubscription(t *testing.T) {
+	engine := newTestEngine(t)
+	deployXML(t, engine, conditionalNonInterruptingXML)
+	instance, err := engine.StartProcessInstance(context.Background(), api.StartRequest{
+		ProcessDefinitionKey: "conditionalNonInterrupting",
+		Variables:            []api.Variable{{Name: "amount", Value: 50}},
+	})
+	if err != nil {
+		t.Fatalf("启动失败: %v", err)
+	}
+	for _, subscription := range engine.state.Subscriptions {
+		if subscription.ProcessInstanceID == instance.ID && subscription.EventType == conditionEventType {
+			subscription.BoundaryEventID = "missingBoundary"
+		}
+	}
+	if err := engine.SetVariable(context.Background(), instance.ID, "amount", 200); err != nil {
+		t.Fatalf("设置变量失败: %v", err)
+	}
+	if countConditionSubscriptions(engine, instance.ID) != 0 {
+		t.Fatalf("边界定义缺失时应清理陈旧订阅")
+	}
+	if countTasksByKey(engine, "review") != 1 || countTasksByKey(engine, "notify") != 0 {
+		t.Fatalf("边界定义缺失时不应影响原任务")
 	}
 }
 
@@ -466,8 +751,9 @@ func TestConditionalExpressionError(t *testing.T) {
 	engine := newTestEngine(t)
 	deployXML(t, engine, conditionalInvalidXML)
 	_, err := engine.StartProcessInstance(context.Background(), api.StartRequest{ProcessDefinitionKey: "conditionalInvalid"})
-	if err == nil || !strings.Contains(err.Error(), "条件表达式求值失败") {
-		t.Fatalf("非法条件表达式应在启动时返回错误: %v", err)
+	var expressionErr *api.Error
+	if !errors.As(err, &expressionErr) || expressionErr.Code != "ENGINE-0631" {
+		t.Fatalf("非法条件表达式应在启动时返回 ENGINE-0631: %v", err)
 	}
 
 	deployXML(t, engine, conditionalBoundaryXML)
@@ -483,8 +769,10 @@ func TestConditionalExpressionError(t *testing.T) {
 			subscription.Condition = "${amount > }"
 		}
 	}
-	if evalErr := engine.EvaluateConditions(context.Background(), instance.ID); evalErr == nil || !strings.Contains(evalErr.Error(), "条件表达式求值失败") {
-		t.Fatalf("显式求值应返回表达式错误: %v", evalErr)
+	evalErr := engine.EvaluateConditions(context.Background(), instance.ID)
+	var conditionErr *api.Error
+	if !errors.As(evalErr, &conditionErr) || conditionErr.Code != "ENGINE-0631" {
+		t.Fatalf("显式求值应返回 ENGINE-0631: %v", evalErr)
 	}
 }
 

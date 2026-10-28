@@ -50,10 +50,34 @@ func (e *Engine) EvaluateConditions(ctx context.Context, processInstanceID strin
 // @param processInstanceID 流程实例 ID
 // @return 求值错误
 func (e *Engine) evaluateConditionalSubscriptions(cc *commandContext, processInstanceID string) error {
+	return e.evaluateConditionalSubscriptionList(cc, processInstanceID, "")
+}
+
+// evaluateConditionalSubscriptionsOnExecution 只求值指定执行上的条件订阅。
+// 进入等待节点时使用该变体，避免非中断边界子执行反向求值依附任务的订阅，
+// 造成同一轮命令内的自激循环；变量变化等显式入口仍按实例整体求值。
+// @param cc 命令上下文
+// @param execution 执行
+// @return 求值错误
+func (e *Engine) evaluateConditionalSubscriptionsOnExecution(cc *commandContext, execution *executionState) error {
+	return e.evaluateConditionalSubscriptionList(cc, execution.ProcessInstanceID, execution.ID)
+}
+
+// evaluateConditionalSubscriptionList 求值条件订阅，可按执行过滤。
+// executionID 为空表示求值实例全部订阅，否则只求值该执行上的订阅。
+// @param cc 命令上下文
+// @param processInstanceID 流程实例 ID
+// @param executionID 可选的执行 ID 过滤条件
+// @return 求值错误
+func (e *Engine) evaluateConditionalSubscriptionList(cc *commandContext, processInstanceID, executionID string) error {
 	if strings.TrimSpace(processInstanceID) == "" {
 		return nil
 	}
 	for _, subscription := range e.conditionalSubscriptionsFor(processInstanceID) {
+		// 仅求值当前执行时跳过其他执行的订阅，防止非中断边界路径再次触发依附任务
+		if executionID != "" && subscription.ExecutionID != executionID {
+			continue
+		}
 		// 前序订阅触发时可能已经清理当前订阅，需要重新检查
 		if _, exists := e.state.Subscriptions[subscription.ID]; !exists {
 			continue
@@ -124,7 +148,7 @@ func (e *Engine) conditionalVariables(execution *executionState) map[string]any 
 }
 
 // registerConditionalBoundarySubscriptions 为用户任务注册边界条件订阅。
-// 仅处理配置了条件表达式的边界事件；非中断边界按中断语义处理。
+// 仅处理配置了条件表达式的边界事件；Interrupting 记录 cancelActivity 语义。
 // @param cc 命令上下文
 // @param execution 用户任务执行
 // @param task 用户任务节点
@@ -147,7 +171,7 @@ func (e *Engine) registerConditionalBoundarySubscriptions(cc *commandContext, ex
 			EventType:           conditionEventType,
 			ActivityID:          task.ID,
 			BoundaryEventID:     boundary.ID,
-			Interrupting:        true,
+			Interrupting:        boundary.CancelActivity,
 			Condition:           condition,
 			TenantID:            definition.Info.TenantID,
 			CreatedAt:           cc.now,
@@ -184,15 +208,43 @@ func (e *Engine) registerConditionalCatchSubscription(cc *commandContext, execut
 }
 
 // triggerConditionalSubscription 触发单个条件订阅。
+// 边界条件按 cancelActivity 决定中断或非中断，非中断时保留订阅以便再次触发。
 // @param cc 命令上下文
 // @param subscription 条件订阅
 // @return 触发错误
 func (e *Engine) triggerConditionalSubscription(cc *commandContext, subscription *subscriptionState) error {
-	if subscription.BoundaryEventID != "" {
-		// 安全子集只支持中断边界条件，统一强制中断依附活动
-		return e.triggerBoundaryEvent(cc, subscription, true)
+	if subscription.BoundaryEventID == "" {
+		return e.triggerCatchConditionalSubscription(cc, subscription)
 	}
-	return e.triggerCatchConditionalSubscription(cc, subscription)
+	boundary, ok := e.conditionalBoundaryEvent(subscription)
+	if !ok {
+		// 边界事件无法解析时清理陈旧订阅，避免持续参与求值
+		delete(e.state.Subscriptions, subscription.ID)
+		return nil
+	}
+	// cancelActivity 决定 forceInterrupt，从而复用边界事件的中断/非中断分支
+	return e.triggerBoundaryEvent(cc, subscription, boundary.CancelActivity)
+}
+
+// conditionalBoundaryEvent 解析条件订阅对应的边界事件定义。
+// 任一层定义缺失时返回不存在，由调用方清理陈旧订阅。
+// @param subscription 条件订阅
+// @return 边界事件
+// @return 是否存在
+func (e *Engine) conditionalBoundaryEvent(subscription *subscriptionState) (*model.BoundaryEvent, bool) {
+	execution, executionOK := e.findExecution(subscription.ExecutionID)
+	if executionOK {
+		if definition, definitionOK := e.findDefinition(execution.DefinitionID); definitionOK {
+			if process := processOfDefinition(definition); process != nil {
+				if element, elementOK := findElement(process, subscription.BoundaryEventID); elementOK {
+					if boundary, boundaryOK := element.(*model.BoundaryEvent); boundaryOK {
+						return boundary, true
+					}
+				}
+			}
+		}
+	}
+	return nil, false
 }
 
 // triggerCatchConditionalSubscription 触发中间捕获条件事件并沿出线继续。

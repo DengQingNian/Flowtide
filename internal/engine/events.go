@@ -238,14 +238,21 @@ func (e *Engine) triggerBoundarySubscription(cc *commandContext, subscription *s
 }
 
 // triggerBoundaryEvent 触发边界事件。
-// forceInterrupt 为 true 时忽略 cancelActivity 配置强制中断依附活动，
-// 条件边界事件使用该模式，仅支持中断语义。
+// forceInterrupt 为 true 时忽略 cancelActivity 配置强制中断依附活动。
+// 中断边界以及消息/信号边界触发后消费订阅；非中断条件边界保留订阅，
+// 以便后续变量变化或显式求值再次触发。
 // @param cc 命令上下文
 // @param subscription 订阅
 // @param forceInterrupt 是否强制中断
 // @return 触发错误
 func (e *Engine) triggerBoundaryEvent(cc *commandContext, subscription *subscriptionState, forceInterrupt bool) error {
-	delete(e.state.Subscriptions, subscription.ID)
+	// 非中断条件订阅在触发后需要保留，其余订阅（含提前返回）一律消费
+	keepSubscription := false
+	defer func() {
+		if !keepSubscription {
+			delete(e.state.Subscriptions, subscription.ID)
+		}
+	}()
 	execution, ok := e.findExecution(subscription.ExecutionID)
 	if !ok || execution.Ended {
 		return nil
@@ -287,6 +294,8 @@ func (e *Engine) triggerBoundaryEvent(cc *commandContext, subscription *subscrip
 		cc.agenda.schedule(&continueOperation{executionID: execution.ID, activityID: boundary.ID})
 		return nil
 	}
+	// 非中断条件边界保留订阅，下次变量变化仍可触发；父执行继续等待原任务
+	keepSubscription = subscription.EventType == conditionEventType
 	child := &executionState{
 		ID:                e.newID(),
 		ProcessInstanceID: execution.ProcessInstanceID,

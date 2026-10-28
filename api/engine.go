@@ -336,6 +336,12 @@ type RuntimeService interface {
 	// @param variables 变量
 	// @return 投递错误
 	SignalEventReceivedForExecution(ctx context.Context, executionID, signalName string, variables []Variable) error
+	// TriggerExecution 触发等待中的执行。
+	// @param ctx 上下文
+	// @param executionID 执行 ID
+	// @param variables 写入变量
+	// @return 触发错误
+	TriggerExecution(ctx context.Context, executionID string, variables []Variable) error
 	// SuspendProcessInstance 挂起流程实例。
 	// @param ctx 上下文
 	// @param processInstanceID 实例 ID

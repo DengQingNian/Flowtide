@@ -26,7 +26,12 @@ func (s *Server) handleExecutionAction(w http.ResponseWriter, r *http.Request) {
 	}
 	action := strings.ToLower(payload.Action)
 	switch action {
-	case "signal_event_received", "signal":
+	case "trigger", "signal":
+		if err := s.engine.RuntimeService().TriggerExecution(r.Context(), r.PathValue("id"), payload.Variables); err != nil {
+			writeError(w, err)
+			return
+		}
+	case "signal_event_received":
 		if payload.SignalName == "" {
 			writeError(w, api.NewError("REST-0138", "缺少 signalName", api.ErrBadRequest))
 			return

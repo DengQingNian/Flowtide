@@ -203,8 +203,10 @@ func (e *Engine) continueAt(cc *commandContext, executionID, activityID string) 
 		e.endExecution(cc, execution, node.Terminate)
 		return nil
 	case *model.ReceiveTask:
+		// 无消息/信号定义的接收任务等待外部 trigger
 		if node.MessageRef == "" && node.SignalRef == "" {
-			return api.NewError("ENGINE-0623", "接收任务缺少消息或信号定义", nil)
+			execution.Waiting = true
+			return nil
 		}
 		if err := e.createExecutionSubscription(cc, execution, definition, node.MessageRef, node.SignalRef); err != nil {
 			return err
@@ -230,8 +232,8 @@ func (e *Engine) continueAt(cc *commandContext, executionID, activityID string) 
 				return err
 			}
 			execution.Waiting = true
-			// 进入后立即求值一次，条件已满足则不等待
-			return e.evaluateConditionalSubscriptions(cc, execution.ProcessInstanceID)
+			// 进入后只求值当前执行的条件订阅，避免非中断边界路径自激循环
+			return e.evaluateConditionalSubscriptionsOnExecution(cc, execution)
 		}
 		if node.Timer != nil {
 			if err := e.scheduleTimerCatch(cc, execution, node.ID, node.Timer); err != nil {
@@ -240,8 +242,10 @@ func (e *Engine) continueAt(cc *commandContext, executionID, activityID string) 
 			execution.Waiting = true
 			return nil
 		}
+		// 无事件定义的中间捕获事件等待外部 trigger
 		if node.MessageRef == "" && node.SignalRef == "" {
-			return api.NewError("ENGINE-0622", "中间捕获事件缺少消息或信号定义", nil)
+			execution.Waiting = true
+			return nil
 		}
 		if err := e.createExecutionSubscription(cc, execution, definition, node.MessageRef, node.SignalRef); err != nil {
 			return err
@@ -292,8 +296,8 @@ func (e *Engine) continueAt(cc *commandContext, executionID, activityID string) 
 		if err := e.registerConditionalBoundarySubscriptions(cc, execution, node); err != nil {
 			return err
 		}
-		// 进入任务后立即求值边界条件，避免条件已满足时继续等待
-		return e.evaluateConditionalSubscriptions(cc, execution.ProcessInstanceID)
+		// 进入任务后只求值当前任务的边界条件，避免非中断边界路径自激循环
+		return e.evaluateConditionalSubscriptionsOnExecution(cc, execution)
 	case *model.ServiceTask:
 		if node.LoopCharacteristics != nil && !execution.MIChild {
 			return e.enterMultiInstance(cc, execution, node, node.LoopCharacteristics)

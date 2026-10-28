@@ -100,18 +100,25 @@ func TestSendTask_Signal(t *testing.T) {
 // TestSendReceive_Errors 验证发送接收任务错误。
 // @param t 测试上下文
 func TestSendReceive_Errors(t *testing.T) {
-	cases := []struct {
-		key string
-		xml string
-	}{
-		{"badReceive", `<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"><process id="badReceive" isExecutable="true"><startEvent id="s"/><sequenceFlow id="f1" sourceRef="s" targetRef="r"/><receiveTask id="r"/><sequenceFlow id="f2" sourceRef="r" targetRef="e"/><endEvent id="e"/></process></definitions>`},
-		{"badSend", `<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"><process id="badSend" isExecutable="true"><startEvent id="s"/><sequenceFlow id="f1" sourceRef="s" targetRef="send"/><sendTask id="send"/><sequenceFlow id="f2" sourceRef="send" targetRef="e"/><endEvent id="e"/></process></definitions>`},
+	receiveEngine := newTestEngine(t)
+	receiveXML := `<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"><process id="badReceive" isExecutable="true"><startEvent id="s"/><sequenceFlow id="f1" sourceRef="s" targetRef="r"/><receiveTask id="r"/><sequenceFlow id="f2" sourceRef="r" targetRef="e"/><endEvent id="e"/></process></definitions>`
+	deployXML(t, receiveEngine, receiveXML)
+	instance, err := receiveEngine.StartProcessInstance(context.Background(), api.StartRequest{ProcessDefinitionKey: "badReceive"})
+	if err != nil {
+		t.Fatalf("无事件接收任务应等待而非报错: %v", err)
 	}
-	for _, tc := range cases {
-		engine := newTestEngine(t)
-		deployXML(t, engine, tc.xml)
-		if _, err := engine.StartProcessInstance(context.Background(), api.StartRequest{ProcessDefinitionKey: tc.key}); err == nil {
-			t.Fatalf("流程 %s 缺少事件定义应报错", tc.key)
-		}
+	executions, _ := receiveEngine.ListExecutions(context.Background(), instance.ID)
+	if err := receiveEngine.TriggerExecution(context.Background(), executions[0].ID, nil); err != nil {
+		t.Fatalf("触发无事件接收任务失败: %v", err)
+	}
+	if got, _ := receiveEngine.GetProcessInstance(context.Background(), instance.ID); !got.Ended {
+		t.Fatalf("触发后应结束")
+	}
+
+	sendEngine := newTestEngine(t)
+	sendXML := `<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"><process id="badSend" isExecutable="true"><startEvent id="s"/><sequenceFlow id="f1" sourceRef="s" targetRef="send"/><sendTask id="send"/><sequenceFlow id="f2" sourceRef="send" targetRef="e"/><endEvent id="e"/></process></definitions>`
+	deployXML(t, sendEngine, sendXML)
+	if _, err := sendEngine.StartProcessInstance(context.Background(), api.StartRequest{ProcessDefinitionKey: "badSend"}); err == nil {
+		t.Fatalf("发送任务缺少事件定义应报错")
 	}
 }
