@@ -152,4 +152,5 @@ curl -X POST 'http://localhost:8080/service/runtime/process-instances' \
 - 事件订阅查询、单条评论/附件、参与者分组、批量删除与原始资源下载。
 - 流程模型仓库：CRUD、过滤排序、编辑源/扩展源码上传与 `ACT_RE_MODEL` 行映射。
 - 变量完整操作：执行/实例/任务变量批量更新与清空、变量原始值、历史变量与明细数据下载。
+- 流程实例身份链接：发起人自动登记、增删查、历史链接与 `ACT_RU_IDENTITYLINK` 行映射。
 - 纯标准库实现，`CGO_ENABLED=0` 可构建。

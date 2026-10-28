@@ -9,7 +9,7 @@ import (
 // @param t 测试上下文
 func TestTables(t *testing.T) {
 	tables := Tables()
-	if len(tables) != 19 || tables[0] != "ACT_GE_BYTEARRAY" {
+	if len(tables) != 20 || tables[0] != "ACT_GE_BYTEARRAY" {
 		t.Fatalf("表列表错误: %+v", tables)
 	}
 }

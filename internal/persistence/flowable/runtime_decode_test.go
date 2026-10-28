@@ -28,6 +28,22 @@ func runtimeExecution(t *testing.T, id string) Row {
 	return *row
 }
 
+// runtimeLink 构造身份链接行。
+// @param id 链接 ID
+// @return 行
+func runtimeLink(t *testing.T, id string) Row {
+	t.Helper()
+	row, _ := NewRow("ACT_RU_IDENTITYLINK")
+	_ = row.Set("ID_", id)
+	_ = row.Set("GROUP_ID_", "")
+	_ = row.Set("TYPE_", "participant")
+	_ = row.Set("USER_ID_", "alice")
+	_ = row.Set("TASK_ID_", "")
+	_ = row.Set("PROC_INST_ID_", "i1")
+	_ = row.Set("PROC_DEF_ID_", "")
+	return *row
+}
+
 // runtimeTask 构造任务行。
 // @param id 任务 ID
 // @return 行
@@ -75,7 +91,7 @@ func runtimeVariable(t *testing.T, name, kind string) Row {
 // TestDecodeRuntimeRows 验证运行时行恢复。
 // @param t 测试上下文
 func TestDecodeRuntimeRows(t *testing.T) {
-	rows := []Row{runtimeExecution(t, "e1"), runtimeTask(t, "t1"), runtimeVariable(t, "v1", "string")}
+	rows := []Row{runtimeExecution(t, "e1"), runtimeTask(t, "t1"), runtimeVariable(t, "v1", "string"), runtimeLink(t, "l1")}
 	snapshot, err := DecodeRuntimeRows(rows)
 	if err != nil {
 		t.Fatalf("恢复失败: %v", err)
@@ -89,6 +105,9 @@ func TestDecodeRuntimeRows(t *testing.T) {
 	if len(snapshot.Variables) != 1 || snapshot.Variables[0].Text == nil || *snapshot.Variables[0].Text != "text" {
 		t.Fatalf("变量恢复错误: %+v", snapshot.Variables)
 	}
+	if len(snapshot.Links) != 1 || snapshot.Links[0].UserID != "alice" || snapshot.Links[0].Type != "participant" {
+		t.Fatalf("身份链接恢复错误: %+v", snapshot.Links)
+	}
 }
 
 // TestDecodeRuntimeRows_Errors 验证运行时行错误。
@@ -96,6 +115,13 @@ func TestDecodeRuntimeRows(t *testing.T) {
 func TestDecodeRuntimeRows_Errors(t *testing.T) {
 	mutations := []func() Row{
 		func() Row { return Row{Table: "BAD"} },
+		func() Row { row := runtimeLink(t, "l1"); row.Values["GROUP_ID_"] = 1; return row },
+		func() Row { row := runtimeLink(t, "l1"); delete(row.Values, "ID_"); return row },
+		func() Row { row := runtimeLink(t, "l1"); delete(row.Values, "TYPE_"); return row },
+		func() Row { row := runtimeLink(t, "l1"); row.Values["USER_ID_"] = 1; return row },
+		func() Row { row := runtimeLink(t, "l1"); row.Values["TASK_ID_"] = 1; return row },
+		func() Row { row := runtimeLink(t, "l1"); row.Values["PROC_INST_ID_"] = 1; return row },
+		func() Row { row := runtimeLink(t, "l1"); row.Values["PROC_DEF_ID_"] = 1; return row },
 		func() Row { row := runtimeExecution(t, "e1"); delete(row.Values, "ID_"); return row },
 		func() Row { row := runtimeExecution(t, "e1"); row.Values["IS_ACTIVE_"] = "x"; return row },
 		func() Row { row := runtimeExecution(t, "e1"); row.Values["SUSPENSION_STATE_"] = "x"; return row },

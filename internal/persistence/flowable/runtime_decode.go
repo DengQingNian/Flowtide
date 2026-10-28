@@ -97,6 +97,17 @@ type RuntimeVariable struct {
 	Text              *string  // 文本
 }
 
+// RuntimeIdentityLink 是运行时身份链接行。
+type RuntimeIdentityLink struct {
+	ID                  string // 链接 ID
+	GroupID             string // 组 ID
+	Type                string // 类型
+	UserID              string // 用户 ID
+	TaskID              string // 任务 ID
+	ProcessInstanceID   string // 实例 ID
+	ProcessDefinitionID string // 定义 ID
+}
+
 // RuntimeSnapshot 是运行时行恢复结果。
 type RuntimeSnapshot struct {
 	Executions    []RuntimeExecution    // 执行
@@ -105,6 +116,7 @@ type RuntimeSnapshot struct {
 	Jobs          []RuntimeJob          // 作业
 	DeadLetters   []RuntimeJob          // 死信作业
 	Subscriptions []RuntimeSubscription // 订阅
+	Links         []RuntimeIdentityLink // 身份链接
 }
 
 // DecodeRuntimeRows 将运行时行恢复为快照。
@@ -119,6 +131,7 @@ func DecodeRuntimeRows(rows []Row) (RuntimeSnapshot, error) {
 		Jobs:          make([]RuntimeJob, 0),
 		DeadLetters:   make([]RuntimeJob, 0),
 		Subscriptions: make([]RuntimeSubscription, 0),
+		Links:         make([]RuntimeIdentityLink, 0),
 	}
 	for _, row := range rows {
 		switch row.Table {
@@ -153,6 +166,12 @@ func DecodeRuntimeRows(rows []Row) (RuntimeSnapshot, error) {
 			}
 			job.DeadLetter = true
 			snapshot.DeadLetters = append(snapshot.DeadLetters, job)
+		case "ACT_RU_IDENTITYLINK":
+			link, err := decodeRuntimeLink(row)
+			if err != nil {
+				return RuntimeSnapshot{}, err
+			}
+			snapshot.Links = append(snapshot.Links, link)
 		case "ACT_RU_EVENT_SUBSCR":
 			subscription, err := decodeSubscription(row)
 			if err != nil {
@@ -169,6 +188,7 @@ func DecodeRuntimeRows(rows []Row) (RuntimeSnapshot, error) {
 	sort.Slice(snapshot.Jobs, func(i, j int) bool { return snapshot.Jobs[i].ID < snapshot.Jobs[j].ID })
 	sort.Slice(snapshot.DeadLetters, func(i, j int) bool { return snapshot.DeadLetters[i].ID < snapshot.DeadLetters[j].ID })
 	sort.Slice(snapshot.Subscriptions, func(i, j int) bool { return snapshot.Subscriptions[i].ID < snapshot.Subscriptions[j].ID })
+	sort.Slice(snapshot.Links, func(i, j int) bool { return snapshot.Links[i].ID < snapshot.Links[j].ID })
 	return snapshot, nil
 }
 
@@ -238,6 +258,52 @@ func decodeExecution(row Row) (RuntimeExecution, error) {
 		ParentID: parentID, ActivityID: activityID, BusinessKey: businessKey,
 		TenantID: tenant, StartTime: startTime, Active: active, Concurrent: concurrent,
 		Scope: scope, EventScope: eventScope, MIRoot: miRoot, Suspended: suspension == 2,
+	}, nil
+}
+
+// decodeRuntimeLink 解析运行时身份链接行。
+// @param row 行
+// @return 链接
+// @return 错误
+func decodeRuntimeLink(row Row) (RuntimeIdentityLink, error) {
+	text := func(column string) (string, error) {
+		value, err := optionalString(row, column)
+		if err != nil || value == nil {
+			return "", err
+		}
+		return *value, nil
+	}
+	id, err := stringValue(row, "ID_")
+	if err != nil {
+		return RuntimeIdentityLink{}, err
+	}
+	groupID, err := text("GROUP_ID_")
+	if err != nil {
+		return RuntimeIdentityLink{}, err
+	}
+	linkType, err := stringValue(row, "TYPE_")
+	if err != nil {
+		return RuntimeIdentityLink{}, err
+	}
+	userID, err := text("USER_ID_")
+	if err != nil {
+		return RuntimeIdentityLink{}, err
+	}
+	taskID, err := text("TASK_ID_")
+	if err != nil {
+		return RuntimeIdentityLink{}, err
+	}
+	processInstanceID, err := text("PROC_INST_ID_")
+	if err != nil {
+		return RuntimeIdentityLink{}, err
+	}
+	processDefinitionID, err := text("PROC_DEF_ID_")
+	if err != nil {
+		return RuntimeIdentityLink{}, err
+	}
+	return RuntimeIdentityLink{
+		ID: id, GroupID: groupID, Type: linkType, UserID: userID, TaskID: taskID,
+		ProcessInstanceID: processInstanceID, ProcessDefinitionID: processDefinitionID,
 	}, nil
 }
 

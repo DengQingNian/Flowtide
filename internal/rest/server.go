@@ -294,6 +294,9 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("DELETE /service/runtime/process-instances/{id}/comments/{commentId}", s.handleDeleteProcessComment)
 	s.mux.HandleFunc("GET /service/runtime/process-instances/{id}/comments", s.handleListProcessComments)
 	s.mux.HandleFunc("POST /service/runtime/process-instances/{id}/comments", s.handleAddProcessComment)
+	s.mux.HandleFunc("GET /service/runtime/process-instances/{id}/identitylinks", s.handleListInstanceIdentityLinks)
+	s.mux.HandleFunc("POST /service/runtime/process-instances/{id}/identitylinks", s.handleAddInstanceIdentityLink)
+	s.mux.HandleFunc("DELETE /service/runtime/process-instances/{id}/identitylinks/{family}/{identityId}/{type}", s.handleDeleteInstanceIdentityLink)
 	s.mux.HandleFunc("GET /service/runtime/process-instances/{id}/tasks", s.handleGetInstanceTasks)
 	s.mux.HandleFunc("GET /service/runtime/process-instances/{id}/variables", s.handleGetVariables)
 	s.mux.HandleFunc("PUT /service/runtime/process-instances/{id}/variables", s.handleUpdateInstanceVariables)
@@ -1025,6 +1028,7 @@ func (s *Server) handleStartInstance(w http.ResponseWriter, r *http.Request) {
 		BusinessKey:          payload.BusinessKey,
 		Name:                 payload.Name,
 		TenantID:             firstNonEmpty(payload.TenantID, requestTenant(r)),
+		UserID:               requestUserID(r),
 		Variables:            variables,
 	})
 	if err != nil {

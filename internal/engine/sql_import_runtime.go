@@ -196,6 +196,26 @@ func (e *Engine) ImportRuntimeRows(ctx context.Context, rows []flowablerow.Row) 
 			}
 			e.state.Subscriptions[state.ID] = state
 		}
+		for _, link := range snapshot.Links {
+			// 任务身份链接按任务动态计算，不单独恢复
+			if link.ProcessInstanceID == "" || link.TaskID != "" {
+				continue
+			}
+			instance, ok := e.findInstance(link.ProcessInstanceID)
+			if !ok {
+				return nil, api.NewError("ENGINE-0404", "导入身份链接缺少实例: "+link.ProcessInstanceID, api.ErrBadRequest)
+			}
+			identity := &api.IdentityLink{
+				ID:                link.ID,
+				Type:              link.Type,
+				UserID:            link.UserID,
+				GroupID:           link.GroupID,
+				TaskID:            link.TaskID,
+				ProcessInstanceID: link.ProcessInstanceID,
+				CreateTime:        instance.StartTime,
+			}
+			e.state.InstanceLinks[identity.ID] = identity
+		}
 		return nil, nil
 	})
 	return err

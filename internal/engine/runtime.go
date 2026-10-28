@@ -91,6 +91,18 @@ func (e *Engine) startProcess(cc *commandContext, req api.StartRequest) (api.Pro
 	for name, value := range variables {
 		e.recordHistoricVariable(execution, name, value)
 	}
+	// 记录发起人参与者链接
+	if req.UserID != "" {
+		link := &api.IdentityLink{
+			ID:                e.newID(),
+			Type:              "participant",
+			UserID:            req.UserID,
+			ProcessInstanceID: instanceID,
+			CreateTime:        cc.now,
+		}
+		e.state.InstanceLinks[link.ID] = link
+		e.recordInstanceHistoricLink(cc, link)
+	}
 	e.recordProcessStart(cc, instance)
 	e.scheduleEventSubProcesses(cc, execution, process.Elements, process.Order, definition)
 

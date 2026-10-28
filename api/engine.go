@@ -177,6 +177,7 @@ type StartRequest struct {
 	BusinessKey          string     // 业务键
 	Name                 string     // 实例名称
 	TenantID             string     // 租户
+	UserID               string     // 发起人，用于参与者身份链接
 	Variables            []Variable // 启动变量
 }
 
@@ -308,6 +309,27 @@ type RuntimeService interface {
 	// @param req 迁移请求
 	// @return 迁移错误
 	MigrateProcessInstance(ctx context.Context, req MigrationRequest) error
+	// ListInstanceIdentityLinks 返回流程实例身份链接。
+	// @param ctx 上下文
+	// @param processInstanceID 实例 ID
+	// @return 链接列表
+	// @return 查询错误
+	ListInstanceIdentityLinks(ctx context.Context, processInstanceID string) ([]IdentityLink, error)
+	// AddInstanceIdentityLink 添加流程实例身份链接。
+	// @param ctx 上下文
+	// @param processInstanceID 实例 ID
+	// @param link 链接
+	// @return 创建后的链接
+	// @return 创建错误
+	AddInstanceIdentityLink(ctx context.Context, processInstanceID string, link IdentityLink) (IdentityLink, error)
+	// DeleteInstanceIdentityLink 删除流程实例身份链接。
+	// @param ctx 上下文
+	// @param processInstanceID 实例 ID
+	// @param family users 或 groups
+	// @param identityID 用户或组 ID
+	// @param linkType 链接类型
+	// @return 删除错误
+	DeleteInstanceIdentityLink(ctx context.Context, processInstanceID, family, identityID, linkType string) error
 	// ListEventSubscriptions 返回事件订阅。
 	// @param ctx 上下文
 	// @param processInstanceID 流程实例 ID，空串表示全部

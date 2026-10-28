@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/flowable-go/flowable/api"
 	flowablerow "github.com/flowable-go/flowable/internal/persistence/flowable"
 )
 
@@ -272,6 +273,30 @@ func (e *Engine) runtimeRowsLocked() ([]flowablerow.Row, error) {
 		_ = row.Set("SCOPE_DEFINITION_KEY_", scopeDefinitionKey)
 		_ = row.Set("SCOPE_TYPE_", scopeType)
 		_ = row.Set("TENANT_ID_", subscription.TenantID)
+		rows = append(rows, *row)
+	}
+	links := make([]*api.IdentityLink, 0, len(e.state.InstanceLinks))
+	for _, link := range e.state.InstanceLinks {
+		links = append(links, link)
+	}
+	sort.Slice(links, func(i, j int) bool { return links[i].ID < links[j].ID })
+	for _, link := range links {
+		row, rowErr := runtimeRow("ACT_RU_IDENTITYLINK", []string{"ID_", "REV_", "GROUP_ID_", "TYPE_", "USER_ID_", "TASK_ID_", "PROC_INST_ID_", "PROC_DEF_ID_", "SCOPE_ID_", "SUB_SCOPE_ID_", "SCOPE_TYPE_", "SCOPE_DEFINITION_ID_"})
+		if rowErr != nil {
+			return nil, rowErr
+		}
+		_ = row.Set("ID_", link.ID)
+		_ = row.Set("REV_", 1)
+		_ = row.Set("GROUP_ID_", link.GroupID)
+		_ = row.Set("TYPE_", link.Type)
+		_ = row.Set("USER_ID_", link.UserID)
+		_ = row.Set("TASK_ID_", link.TaskID)
+		_ = row.Set("PROC_INST_ID_", link.ProcessInstanceID)
+		_ = row.Set("PROC_DEF_ID_", "")
+		_ = row.Set("SCOPE_ID_", "")
+		_ = row.Set("SUB_SCOPE_ID_", "")
+		_ = row.Set("SCOPE_TYPE_", "")
+		_ = row.Set("SCOPE_DEFINITION_ID_", "")
 		rows = append(rows, *row)
 	}
 	sort.Slice(rows, func(i, j int) bool {
