@@ -126,6 +126,25 @@ func TestParse_Errors(t *testing.T) {
 	}
 }
 
+// TestParse_LinkEvents 验证链接事件解析。
+// @param t 测试上下文
+func TestParse_LinkEvents(t *testing.T) {
+	xml := `<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"><process id="p" isExecutable="true"><startEvent id="s"/><intermediateThrowEvent id="throw"><linkEventDefinition name="toTask"/></intermediateThrowEvent><intermediateCatchEvent id="catch"><linkEventDefinition name="toTask"/></intermediateCatchEvent><endEvent id="e"/></process></definitions>`
+	parsed, err := Parse([]byte(xml))
+	if err != nil {
+		t.Fatalf("解析失败: %v", err)
+	}
+	process := parsed.Processes[0]
+	throw, ok := process.Elements["throw"].(*model.IntermediateThrowEvent)
+	if !ok || throw.LinkName != "toTask" {
+		t.Fatalf("抛出链接解析错误: %+v", throw)
+	}
+	catch, ok := process.Elements["catch"].(*model.IntermediateCatchEvent)
+	if !ok || catch.LinkName != "toTask" {
+		t.Fatalf("捕获链接解析错误: %+v", catch)
+	}
+}
+
 // TestParse_CandidateStarters 验证候选发起人解析。
 // @param t 测试上下文
 func TestParse_CandidateStarters(t *testing.T) {

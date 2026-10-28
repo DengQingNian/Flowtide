@@ -219,6 +219,12 @@ func (e *Engine) continueAt(cc *commandContext, executionID, activityID string) 
 		execution.CurrentHistActivityID = ""
 		return e.scheduleTakeOutgoing(cc, execution, node)
 	case *model.IntermediateCatchEvent:
+		// 链接捕获事件只做流程跳转，不等待
+		if node.LinkName != "" {
+			e.recordActivityEnd(cc, execution.CurrentHistActivityID)
+			execution.CurrentHistActivityID = ""
+			return e.scheduleTakeOutgoing(cc, execution, node)
+		}
 		if node.Timer != nil {
 			if err := e.scheduleTimerCatch(cc, execution, node.ID, node.Timer); err != nil {
 				return err
@@ -237,6 +243,19 @@ func (e *Engine) continueAt(cc *commandContext, executionID, activityID string) 
 	case *model.CallActivity:
 		return e.startCallActivity(cc, execution, node)
 	case *model.IntermediateThrowEvent:
+		if node.LinkName != "" {
+			catch := findLinkCatchEvent(process, node.LinkName)
+			if catch == nil {
+				return api.NewError("ENGINE-0630", "未找到链接捕获事件: "+node.LinkName, api.ErrBadRequest)
+			}
+			e.recordActivityEnd(cc, execution.CurrentHistActivityID)
+			execution.CurrentHistActivityID = ""
+			execution.ActivityID = catch.ID
+			historicID := e.recordActivityStart(cc, execution, catch)
+			e.recordActivityEnd(cc, historicID)
+			execution.CurrentHistActivityID = ""
+			return e.scheduleTakeOutgoing(cc, execution, catch)
+		}
 		e.recordActivityEnd(cc, execution.CurrentHistActivityID)
 		execution.CurrentHistActivityID = ""
 		if node.Compensate {
@@ -1255,6 +1274,24 @@ func (e *Engine) cancelRemainingMultiInstanceChildren(cc *commandContext, parent
 		execution.Ended = true
 		execution.Active = false
 	}
+}
+
+// findLinkCatchEvent 按链接名称查找捕获事件。
+// @param process 流程
+// @param name 链接名称
+// @return 捕获事件，不存在时为 nil
+func findLinkCatchEvent(process *model.Process, name string) *model.IntermediateCatchEvent {
+	for _, id := range process.Order {
+		element, ok := process.Elements[id]
+		if !ok {
+			continue
+		}
+		catch, isCatch := element.(*model.IntermediateCatchEvent)
+		if isCatch && catch.LinkName == name {
+			return catch
+		}
+	}
+	return nil
 }
 
 // counter 读取执行上的整数计数变量。

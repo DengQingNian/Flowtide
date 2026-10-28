@@ -283,7 +283,8 @@ func (a *Association) ElementType() string { return "association" }
 // IntermediateThrowEvent 表示中间抛出事件。
 type IntermediateThrowEvent struct {
 	FlowNodeBase
-	Compensate bool // 是否抛出补偿
+	Compensate bool   // 是否抛出补偿
+	LinkName   string // 链接事件名称
 }
 
 // ElementType 返回元素类型。
@@ -386,6 +387,7 @@ type IntermediateCatchEvent struct {
 	MessageRef string           // 消息引用
 	SignalRef  string           // 信号引用
 	Timer      *TimerDefinition // 定时器定义
+	LinkName   string           // 链接事件名称
 }
 
 // ElementType 返回元素类型。

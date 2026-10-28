@@ -196,11 +196,14 @@ func parseElement(node *Node) (model.FlowElement, error) {
 		parseFlowNodeBase(node, &task.FlowNodeBase)
 		return task, nil
 	case "intermediateThrowEvent":
-		event := &model.IntermediateThrowEvent{Compensate: hasChild(node, "compensateEventDefinition")}
+		event := &model.IntermediateThrowEvent{
+			Compensate: hasChild(node, "compensateEventDefinition"),
+			LinkName:   parseLinkName(node),
+		}
 		parseFlowNodeBase(node, &event.FlowNodeBase)
 		return event, nil
 	case "intermediateCatchEvent":
-		event := &model.IntermediateCatchEvent{}
+		event := &model.IntermediateCatchEvent{LinkName: parseLinkName(node)}
 		parseFlowNodeBase(node, &event.FlowNodeBase)
 		event.MessageRef, event.SignalRef, event.Timer = parseEventDefinition(node)
 		return event, nil
@@ -430,6 +433,16 @@ func parseEventDefinition(node *Node) (string, string, *model.TimerDefinition) {
 		}
 	}
 	return messageRef, signalRef, timer
+}
+
+// parseLinkName 解析链接事件名称。
+// @param node 事件节点
+// @return 链接名称
+func parseLinkName(node *Node) string {
+	if child, ok := node.Child("linkEventDefinition"); ok {
+		return child.Attr("name")
+	}
+	return ""
 }
 
 // parseIOParameters 解析调用活动入参与出参。
