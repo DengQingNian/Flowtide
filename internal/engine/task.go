@@ -195,6 +195,9 @@ func (e *Engine) matchesTask(task *taskState, filter api.TaskFilter) bool {
 	if filter.Owner != "" && task.Task.Owner != filter.Owner {
 		return false
 	}
+	if filter.DelegationState != "" && task.Task.DelegationState != filter.DelegationState {
+		return false
+	}
 	if filter.ProcessInstanceID != "" && task.Task.ProcessInstanceID != filter.ProcessInstanceID {
 		return false
 	}
@@ -405,7 +408,44 @@ func (e *Engine) Delegate(ctx context.Context, taskID, userID string) error {
 		}
 		task.Task.Owner = task.Task.Assignee
 		task.Task.Assignee = userID
+		task.Task.DelegationState = "PENDING"
 		e.recordTaskLog(cc, task, "delegate", userID, "")
+		return nil, nil
+	})
+	return err
+}
+
+// Resolve 处理委派任务，将处理人恢复为所有者。
+// @param ctx 上下文
+// @param taskID 任务 ID
+// @param userID 操作人，非空时必须为所有者
+// @return 处理错误
+func (e *Engine) Resolve(ctx context.Context, taskID, userID string) error {
+	_, err := e.execute(ctx, func(cc *commandContext) (any, error) {
+		task, ok := e.findTask(taskID)
+		if !ok {
+			return nil, api.NewError("ENGINE-0805", "任务不存在", api.ErrNotFound)
+		}
+		if err := e.allowTask(cc.ctx, taskID); err != nil {
+			return nil, err
+		}
+		instance, _ := e.findInstance(task.Task.ProcessInstanceID)
+		if instance != nil && instance.Suspended {
+			return nil, api.NewError("ENGINE-0810", "流程实例已挂起", api.ErrConflict)
+		}
+		if task.Task.DelegationState != "PENDING" {
+			return nil, api.NewError("ENGINE-0811", "任务未处于委派状态", api.ErrConflict)
+		}
+		if task.Task.Owner == "" {
+			return nil, api.NewError("ENGINE-0812", "委派任务缺少所有者", api.ErrConflict)
+		}
+		if strings.TrimSpace(userID) != "" && userID != task.Task.Owner {
+			return nil, api.NewError("ENGINE-0813", "只有任务所有者可以处理委派", api.ErrForbidden)
+		}
+		task.Task.Assignee = task.Task.Owner
+		task.Task.Owner = ""
+		task.Task.DelegationState = "RESOLVED"
+		e.recordTaskLog(cc, task, "resolve", userID, "")
 		return nil, nil
 	})
 	return err

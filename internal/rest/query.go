@@ -1130,6 +1130,11 @@ func (s *Server) handleQueryExecutions(w http.ResponseWriter, r *http.Request) {
 		writeError(w, err)
 		return
 	}
+	items, err = applyQueryVariableFilter(r.Context(), items, body, s.executionVariables)
+	if err != nil {
+		writeError(w, err)
+		return
+	}
 	start, size, sortField, order, err := body.pagination()
 	if err != nil {
 		writeError(w, err)
@@ -1280,6 +1285,11 @@ func (s *Server) handleQueryHistoricActivities(w http.ResponseWriter, r *http.Re
 		return
 	}
 	items, err = filterQueryHistoricActivities(items, body, requestTenant(r), lookup)
+	if err != nil {
+		writeError(w, err)
+		return
+	}
+	items, err = applyQueryVariableFilter(r.Context(), items, body, s.historicActivityVariablesLookup())
 	if err != nil {
 		writeError(w, err)
 		return

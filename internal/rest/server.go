@@ -1820,6 +1820,7 @@ func (s *Server) handleListTasks(w http.ResponseWriter, r *http.Request) {
 		ProcessInstanceID:    r.URL.Query().Get("processInstanceId"),
 		ProcessDefinitionKey: r.URL.Query().Get("processDefinitionKey"),
 		CandidateUser:        r.URL.Query().Get("candidateUser"),
+		DelegationState:      r.URL.Query().Get("delegationState"),
 		TenantID:             requestTenant(r),
 		Start:                start,
 		Size:                 size,
@@ -2183,6 +2184,11 @@ func (s *Server) handleTaskAction(w http.ResponseWriter, r *http.Request) {
 		}
 	case "delegate":
 		if err := s.engine.TaskService().Delegate(r.Context(), taskID, userID); err != nil {
+			writeError(w, err)
+			return
+		}
+	case "resolve":
+		if err := s.engine.TaskService().Resolve(r.Context(), taskID, userID); err != nil {
 			writeError(w, err)
 			return
 		}

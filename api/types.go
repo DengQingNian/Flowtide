@@ -97,6 +97,7 @@ type Task struct {
 	TaskDefinitionKey   string         `json:"taskDefinitionKey"`         // BPMN 任务 ID
 	Assignee            string         `json:"assignee,omitempty"`        // 处理人
 	Owner               string         `json:"owner,omitempty"`           // 所有者
+	DelegationState     string         `json:"delegationState,omitempty"` // 委派状态：PENDING/RESOLVED
 	Priority            int            `json:"priority"`                  // 优先级
 	FormKey             string         `json:"formKey,omitempty"`         // 表单 Key
 	Category            string         `json:"category,omitempty"`        // 分类
@@ -154,6 +155,7 @@ type TaskFilter struct {
 	ProcessDefinitionKey string // 流程定义 Key
 	CandidateUser        string // 候选人
 	ParentTaskID         string // 父任务 ID
+	DelegationState      string // 委派状态
 	TenantID             string // 租户
 	Start                int    // 偏移量
 	Size                 int    // 每页数量

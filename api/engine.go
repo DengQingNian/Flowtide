@@ -607,6 +607,12 @@ type TaskService interface {
 	// @param userID 被委托人
 	// @return 委派错误
 	Delegate(ctx context.Context, taskID, userID string) error
+	// Resolve 处理委派任务，将处理人恢复为所有者。
+	// @param ctx 上下文
+	// @param taskID 任务 ID
+	// @param userID 操作人，非空时必须为所有者
+	// @return 处理错误
+	Resolve(ctx context.Context, taskID, userID string) error
 	// AddComment 添加任务评论。
 	// @param ctx 上下文
 	// @param taskID 任务 ID

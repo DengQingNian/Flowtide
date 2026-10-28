@@ -174,6 +174,7 @@ curl -X POST 'http://localhost:8080/service/runtime/process-instances' \
 - Ad-hoc 子流程：并行/串行激活、完成条件与提前取消。
 - 执行动作：定向消息/信号投递、信号广播、无事件等待触发；条件订阅 `CONFIGURATION_` 行映射。
 - 瞬态变量：启动/完成/触发命令内可见，不持久化、不写历史。
-- 查询变量过滤：实例/任务/历史查询支持 equals/notEquals/like/数值比较。
+- 查询变量过滤：实例/执行/任务/历史实例/任务/活动查询支持 equals/notEquals/like/数值比较。
 - 模型部署与部署去重（`enableDuplicateFiltering`）。
+- 任务委派状态与 resolve 处理，列表支持 `delegationState` 过滤。
 - 纯标准库实现，`CGO_ENABLED=0` 可构建。

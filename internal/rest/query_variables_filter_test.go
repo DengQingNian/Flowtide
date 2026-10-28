@@ -1,6 +1,7 @@
 package rest
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -39,13 +40,25 @@ func withVariables(conditions ...map[string]any) map[string]any {
 // @return 流程实例 ID
 func startVariableQueryInstance(t *testing.T, serverURL, businessKey string, values map[string]any) string {
 	t.Helper()
+	return startKeyedVariableQueryInstance(t, serverURL, "rest", businessKey, values)
+}
+
+// startKeyedVariableQueryInstance 启动指定流程定义的带变量测试实例。
+// @param t 测试上下文
+// @param serverURL 测试服务地址
+// @param key 流程定义 Key
+// @param businessKey 业务键
+// @param values 变量集合
+// @return 流程实例 ID
+func startKeyedVariableQueryInstance(t *testing.T, serverURL, key, businessKey string, values map[string]any) string {
+	t.Helper()
 	variables := make([]map[string]any, 0, len(values)+1)
 	variables = append(variables, map[string]any{"name": "initiator", "value": "alice"})
 	for name, value := range values {
 		variables = append(variables, map[string]any{"name": name, "value": value})
 	}
 	response := postJSON(t, serverURL+"/service/runtime/process-instances", map[string]any{
-		"processDefinitionKey": "rest",
+		"processDefinitionKey": key,
 		"businessKey":          businessKey,
 		"variables":            variables,
 	})
@@ -684,4 +697,290 @@ func TestREST_QueryHistoricTasksVariables(t *testing.T) {
 	}
 
 	assertVariableQueryBadRequest(t, server.URL, path, withVariables(variableFilter("amount", 1, "between")))
+}
+
+// variablesParallelProcess 是执行局部变量过滤测试使用的并行流程。
+const variablesParallelProcess = `<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"
+             xmlns:flowable="http://flowable.org/bpmn">
+  <process id="parallelVars" name="ParallelVars" isExecutable="true">
+    <startEvent id="start"/>
+    <sequenceFlow id="f1" sourceRef="start" targetRef="fork"/>
+    <parallelGateway id="fork"/>
+    <sequenceFlow id="f2" sourceRef="fork" targetRef="taskA"/>
+    <sequenceFlow id="f3" sourceRef="fork" targetRef="taskB"/>
+    <userTask id="taskA" name="Branch A"/>
+    <userTask id="taskB" name="Branch B"/>
+    <sequenceFlow id="f4" sourceRef="taskA" targetRef="join"/>
+    <sequenceFlow id="f5" sourceRef="taskB" targetRef="join"/>
+    <parallelGateway id="join"/>
+    <sequenceFlow id="f6" sourceRef="join" targetRef="end"/>
+    <endEvent id="end"/>
+  </process>
+</definitions>`
+
+// deployVariableQueryProcess 部署变量查询测试流程。
+// @param t 测试上下文
+// @param serverURL 测试服务地址
+// @param xml BPMN 内容
+func deployVariableQueryProcess(t *testing.T, serverURL, xml string) {
+	t.Helper()
+	response, err := http.Post(serverURL+"/service/repository/deployments?deploymentName=variables", "application/xml", bytes.NewBufferString(xml))
+	if err != nil {
+		t.Fatalf("部署变量查询流程失败: %v", err)
+	}
+	defer response.Body.Close()
+	if response.StatusCode != http.StatusCreated {
+		t.Fatalf("部署变量查询流程状态错误: %d", response.StatusCode)
+	}
+}
+
+// queryVariableTotal 返回查询命中总数。
+// @param t 测试上下文
+// @param serverURL 测试服务地址
+// @param path 查询路径
+// @param body 查询体
+// @return 命中总数
+func queryVariableTotal(t *testing.T, serverURL, path string, body map[string]any) int {
+	t.Helper()
+	response := postQuery(t, serverURL, path, body, "")
+	if response.StatusCode != http.StatusOK {
+		t.Fatalf("查询应成功: %d %+v", response.StatusCode, body)
+	}
+	return decodeQueryPage[map[string]any](t, response).Total
+}
+
+// executionIDByActivity 返回实例中指定活动对应的执行 ID。
+// @param t 测试上下文
+// @param serverURL 测试服务地址
+// @param instanceID 流程实例 ID
+// @param activityID 活动 ID
+// @return 执行 ID
+func executionIDByActivity(t *testing.T, serverURL, instanceID, activityID string) string {
+	t.Helper()
+	response := postQuery(t, serverURL, "/service/query/executions", map[string]any{"processInstanceId": instanceID}, "")
+	if response.StatusCode != http.StatusOK {
+		t.Fatalf("查询实例执行失败: %d", response.StatusCode)
+	}
+	page := decodeQueryPage[map[string]any](t, response)
+	for _, item := range page.Data {
+		if item["activityId"] != activityID {
+			continue
+		}
+		if id, _ := item["id"].(string); id != "" {
+			return id
+		}
+	}
+	t.Fatalf("实例 %s 不存在活动 %s 的执行", instanceID, activityID)
+	return ""
+}
+
+// TestCachedQueryVariableLookup 验证查询内缓存复用、错误透传与错误不缓存。
+// @param t 测试上下文
+func TestCachedQueryVariableLookup(t *testing.T) {
+	loads := make(map[string]int)
+	lookup := cachedQueryVariableLookup(
+		func(item string) string { return item },
+		func(_ context.Context, item string) (map[string]any, error) {
+			loads[item]++
+			return map[string]any{"key": item}, nil
+		},
+	)
+	for _, item := range []string{"p1", "p1", "p2", "p1"} {
+		values, err := lookup(context.Background(), item)
+		if err != nil || values["key"] != item {
+			t.Fatalf("缓存变量查询错误 %s: %v %+v", item, err, values)
+		}
+	}
+	if loads["p1"] != 1 || loads["p2"] != 1 {
+		t.Fatalf("同一缓存键应只加载一次: %+v", loads)
+	}
+
+	sentinel := errors.New("变量加载失败")
+	failures := 0
+	retry := cachedQueryVariableLookup(
+		func(item string) string { return item },
+		func(context.Context, string) (map[string]any, error) {
+			failures++
+			if failures == 1 {
+				return nil, sentinel
+			}
+			return map[string]any{"ok": true}, nil
+		},
+	)
+	if _, err := retry(context.Background(), "p1"); !errors.Is(err, sentinel) {
+		t.Fatalf("变量加载错误应透传: %v", err)
+	}
+	// 首次加载失败不写缓存，重试应重新加载
+	if values, err := retry(context.Background(), "p1"); err != nil || values["ok"] != true || failures != 2 {
+		t.Fatalf("失败结果不应缓存: %v %+v %d", err, values, failures)
+	}
+}
+
+// TestHistoricActivityVariablesLookup 验证历史活动变量访问器按实例返回快照。
+// @param t 测试上下文
+func TestHistoricActivityVariablesLookup(t *testing.T) {
+	server := &Server{}
+	lookup := server.historicActivityVariablesLookup()
+	values, err := lookup(context.Background(), api.HistoricActivityInstance{ActivityID: "task"})
+	if err != nil || len(values) != 0 {
+		t.Fatalf("空实例历史活动变量应为空: %v %+v", err, values)
+	}
+}
+
+// TestREST_QueryExecutionsVariables 验证执行查询按执行可见变量过滤。
+// @param t 测试上下文
+func TestREST_QueryExecutionsVariables(t *testing.T) {
+	server, _ := newTestServer(t)
+	deployVariableQueryProcess(t, server.URL, variablesParallelProcess)
+	instanceA := startKeyedVariableQueryInstance(t, server.URL, "parallelVars", "var-a", map[string]any{
+		"amount": 100, "status": "open", "title": "Urgent order", "score": 10,
+	})
+	instanceB := startKeyedVariableQueryInstance(t, server.URL, "parallelVars", "var-b", map[string]any{
+		"amount": 5, "status": "closed", "title": "normal order", "score": 2,
+	})
+	taskA := executionIDByActivity(t, server.URL, instanceA, "taskA")
+	taskB := executionIDByActivity(t, server.URL, instanceA, "taskB")
+	if taskA == taskB {
+		t.Fatalf("并行分支执行应相互独立: %s", taskA)
+	}
+	// 在 taskA 分支执行上写入局部变量，仅该执行可见
+	response := postJSONMethod(t, http.MethodPut, server.URL+"/service/runtime/executions/"+taskA+"/variables/localTag", map[string]any{"value": "vip"})
+	if response.StatusCode != http.StatusOK {
+		t.Fatalf("设置执行局部变量失败: %d", response.StatusCode)
+	}
+	_ = response.Body.Close()
+
+	const path = "/service/query/executions"
+	totalA := queryVariableTotal(t, server.URL, path, map[string]any{"processInstanceId": instanceA})
+	totalB := queryVariableTotal(t, server.URL, path, map[string]any{"processInstanceId": instanceB})
+	if totalA == 0 || totalB == 0 {
+		t.Fatalf("执行基线查询为空: %d %d", totalA, totalB)
+	}
+
+	cases := []struct {
+		name string
+		body map[string]any
+		want int
+	}{
+		{"执行变量等于", withVariables(variableFilter("status", "open")), totalA},
+		{"不等于", withVariables(variableFilter("status", "open", "notEquals")), totalB},
+		{"模糊匹配", withVariables(variableFilter("title", "%URGENT%", "like")), totalA},
+		{"大于", withVariables(variableFilter("amount", 50, "greaterThan")), totalA},
+		{"小于", withVariables(variableFilter("score", 5, "lessThan")), totalA},
+		{"缺失变量", withVariables(variableFilter("missing", "x")), 0},
+		{"缺失变量不等于", withVariables(variableFilter("missing", "x", "notEquals")), 0},
+		{"空数组", map[string]any{"variables": []any{}}, totalA + totalB},
+		{"操作符大小写", withVariables(variableFilter("amount", 50, "GREATERTHAN")), totalA},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			assertVariableQueryTotal(t, server.URL, path, tc.body, tc.want)
+		})
+	}
+
+	// 执行局部变量只命中所写入的分支执行
+	local := withVariables(variableFilter("localTag", "vip"))
+	assertVariableQueryTotal(t, server.URL, path, local, 1)
+	scopedLocal := withVariables(variableFilter("localTag", "vip"))
+	scopedLocal["processInstanceId"] = instanceA
+	assertVariableQueryTotal(t, server.URL, path, scopedLocal, 1)
+	otherInstanceLocal := withVariables(variableFilter("localTag", "vip"))
+	otherInstanceLocal["processInstanceId"] = instanceB
+	assertVariableQueryTotal(t, server.URL, path, otherInstanceLocal, 0)
+	// 局部变量不会提升为实例变量
+	assertVariableQueryTotal(t, server.URL, "/service/query/process-instances", withVariables(variableFilter("localTag", "vip")), 0)
+
+	page := assertVariableQueryTotal(t, server.URL, path, map[string]any{
+		"variables": []map[string]any{variableFilter("amount", 0, "greaterThan")},
+		"sort":      "id",
+		"size":      1,
+	}, totalA+totalB)
+	if len(page.Data) != 1 {
+		t.Fatalf("执行变量过滤应先于分页排序: %+v", page)
+	}
+
+	invalid := []any{
+		map[string]any{"processInstanceId": "missing", "variables": []map[string]any{variableFilter("amount", 1, "between")}},
+		withVariables(variableFilter("amount", 100, "between")),
+		map[string]any{"variables": "bad"},
+		map[string]any{"variables": []map[string]any{{"value": 1}}},
+	}
+	for _, body := range invalid {
+		assertVariableQueryBadRequest(t, server.URL, path, body)
+	}
+}
+
+// TestREST_QueryHistoricActivitiesVariables 验证历史活动查询按历史变量过滤。
+// @param t 测试上下文
+func TestREST_QueryHistoricActivitiesVariables(t *testing.T) {
+	server, _ := newTestServer(t)
+	deployREST(t, server)
+	instanceA := startVariableQueryInstance(t, server.URL, "var-a", map[string]any{
+		"amount": 100, "status": "open", "title": "Urgent order",
+	})
+	instanceB := startVariableQueryInstance(t, server.URL, "var-b", map[string]any{
+		"amount": 5, "status": "closed", "title": "normal order",
+	})
+
+	const path = "/service/query/historic-activity-instances"
+	totalA := queryVariableTotal(t, server.URL, path, map[string]any{"processInstanceId": instanceA})
+	totalB := queryVariableTotal(t, server.URL, path, map[string]any{"processInstanceId": instanceB})
+	if totalA == 0 || totalB == 0 {
+		t.Fatalf("历史活动基线查询为空: %d %d", totalA, totalB)
+	}
+	if totalA < 2 {
+		t.Fatalf("同一实例应包含多个历史活动以验证缓存: %d", totalA)
+	}
+
+	cases := []struct {
+		name string
+		body map[string]any
+		want int
+	}{
+		{"历史变量等于", withVariables(variableFilter("status", "open")), totalA},
+		{"历史变量不等于", withVariables(variableFilter("status", "open", "notEquals")), totalB},
+		{"历史变量模糊", withVariables(variableFilter("title", "%URGENT%", "like")), totalA},
+		{"历史变量大于", withVariables(variableFilter("amount", 50, "greaterThan")), totalA},
+		{"历史变量小于", withVariables(variableFilter("amount", 50, "lessThan")), totalB},
+		{"缺失变量", withVariables(variableFilter("missing", "x")), 0},
+		{"缺失变量不等于", withVariables(variableFilter("missing", "x", "notEquals")), 0},
+		{"空数组", map[string]any{"variables": []any{}}, totalA + totalB},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			assertVariableQueryTotal(t, server.URL, path, tc.body, tc.want)
+		})
+	}
+
+	// 同一实例的多个活动共享变量快照，缓存前后结果一致
+	scoped := withVariables(variableFilter("status", "open"))
+	scoped["processInstanceId"] = instanceA
+	assertVariableQueryTotal(t, server.URL, path, scoped, totalA)
+	if second := queryVariableTotal(t, server.URL, path, scoped); second != totalA {
+		t.Fatalf("缓存复用不应改变结果: %d != %d", second, totalA)
+	}
+	repeated := withVariables(variableFilter("status", "open"))
+	if first, second := queryVariableTotal(t, server.URL, path, repeated), queryVariableTotal(t, server.URL, path, repeated); first != second || first != totalA {
+		t.Fatalf("重复查询结果应稳定: %d %d %d", first, second, totalA)
+	}
+
+	page := assertVariableQueryTotal(t, server.URL, path, map[string]any{
+		"variables": []map[string]any{variableFilter("amount", 0, "greaterThan")},
+		"sort":      "startTime",
+		"order":     "desc",
+		"size":      1,
+	}, totalA+totalB)
+	if len(page.Data) != 1 {
+		t.Fatalf("历史活动变量过滤应先于分页排序: %+v", page)
+	}
+
+	invalid := []any{
+		withVariables(variableFilter("amount", 1, "between")),
+		map[string]any{"variables": "bad"},
+		map[string]any{"variables": []map[string]any{{"value": 1}}},
+	}
+	for _, body := range invalid {
+		assertVariableQueryBadRequest(t, server.URL, path, body)
+	}
 }

@@ -358,6 +358,49 @@ func (s *Server) taskVariables(ctx context.Context, item api.Task) (map[string]a
 	return s.engine.TaskService().GetTaskVariables(ctx, item.ID)
 }
 
+// executionVariables 返回执行可见变量（含执行局部变量）。
+// @param ctx 上下文
+// @param item 执行信息
+// @return 变量快照
+// @return 查询错误
+func (s *Server) executionVariables(ctx context.Context, item api.ExecutionInfo) (map[string]any, error) {
+	return s.engine.RuntimeService().GetExecutionVariables(ctx, item.ID)
+}
+
+// cachedQueryVariableLookup 为变量访问器增加按缓存键复用的查询内缓存。
+// 缓存仅在单次查询内生效，变量加载失败不写入缓存。
+// @param keyOf 查询项到缓存键的映射
+// @param load 变量加载函数
+// @return 带缓存的变量访问器
+func cachedQueryVariableLookup[T any](keyOf func(T) string, load queryVariableLookup[T]) queryVariableLookup[T] {
+	cache := make(map[string]map[string]any)
+	return func(ctx context.Context, item T) (map[string]any, error) {
+		key := keyOf(item)
+		// 同一批查询内命中缓存，避免重复访问同一实例的历史变量
+		if values, ok := cache[key]; ok {
+			return values, nil
+		}
+		values, err := load(ctx, item)
+		if err != nil {
+			return nil, err
+		}
+		cache[key] = values
+		return values, nil
+	}
+}
+
+// historicActivityVariablesLookup 构造历史活动的变量访问器。
+// 历史活动只有流程实例 ID，按实例缓存变量快照，同一实例的多个活动复用一次查询。
+// @return 变量访问器
+func (s *Server) historicActivityVariablesLookup() queryVariableLookup[api.HistoricActivityInstance] {
+	return cachedQueryVariableLookup(
+		func(item api.HistoricActivityInstance) string { return item.ProcessInstanceID },
+		func(ctx context.Context, item api.HistoricActivityInstance) (map[string]any, error) {
+			return s.historicVariables(ctx, item.ProcessInstanceID, "")
+		},
+	)
+}
+
 // historicProcessVariables 返回历史流程实例的历史变量。
 // @param ctx 上下文
 // @param item 历史流程实例
