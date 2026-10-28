@@ -113,6 +113,18 @@ go run ./cmd/flowable-server -storage mysql -env .env
 
 第一阶段使用 SQL 快照保存完整状态；按表持久化和多实例协调仍待实施。
 
+既有 Java 数据库可先运行只读迁移预检，连接配置沿用 `.env`；该模式不初始化或修改源库：
+
+```bash
+./bin/flowable-migrate -preflight -dialect mysql -env .env -out preflight.json
+# 不提供 tenant 检查全部租户，显式空值只检查默认租户。
+./bin/flowable-migrate -preflight -dialect mysql -tenant="" -out default-tenant.json
+# PostgreSQL 连接从 FLOWABLE_POSTGRES_DSN 环境变量读取。
+./bin/flowable-migrate -preflight -dialect postgres -timeout 5m -out preflight-postgres.json
+```
+
+退出码 `0` 表示当前检查未发现阻断，`2` 表示报告存在阻断，`1` 表示参数、连接、扫描或输出失败。预检没有发现问题不代表 Java 实例已可由 Go 接管；转换、Java 对照续跑与回退仍须独立验收。检查范围与限制见 [053 既有 Java 数据库只读预检](docs/002-迁移实施/053-既有Java数据库只读预检.md)。
+
 当前实现范围、限制与覆盖率见 [MVP 实现说明](docs/002-迁移实施/001-MVP实现说明.md)；整体进度与剩余差距见 [实施进度与差距](docs/002-迁移实施/002-实施进度与差距.md)。
 
 ## 已实现能力

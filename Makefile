@@ -17,11 +17,11 @@ test:
 
 ## test-mysql 在隔离临时库运行真实 MySQL 测试。
 test-mysql:
-	FLOWABLE_MYSQL_INTEGRATION=1 $(GO) test -p 2 -count=1 -v ./internal/persistence/mysql
+	FLOWABLE_MYSQL_INTEGRATION=1 $(GO) test -p 2 -count=1 -v ./internal/persistence/mysql ./internal/migration
 
 ## test-postgres 在隔离临时库运行 PostgreSQL 测试，连接由环境注入。
 test-postgres:
-	FLOWABLE_POSTGRES_INTEGRATION=1 $(GO) test -p 2 -count=1 -v ./internal/persistence/postgres
+	FLOWABLE_POSTGRES_INTEGRATION=1 $(GO) test -p 2 -count=1 -v ./internal/persistence/postgres ./internal/migration
 
 ## test-sdk 从独立 Go 模块验证公共构造入口。
 test-sdk:
