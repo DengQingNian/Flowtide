@@ -240,6 +240,27 @@ type Attachment struct {
 	Time              time.Time `json:"time"`                        // 创建时间
 }
 
+// VariableInstance 是运行时变量实例。
+type VariableInstance struct {
+	ID                string `json:"id"`                          // 变量实例 ID
+	Name              string `json:"name"`                        // 变量名
+	Type              string `json:"type,omitempty"`              // 变量类型
+	Value             any    `json:"value,omitempty"`             // 变量值
+	ProcessInstanceID string `json:"processInstanceId,omitempty"` // 流程实例 ID
+	ExecutionID       string `json:"executionId,omitempty"`       // 执行 ID
+	TaskID            string `json:"taskId,omitempty"`            // 任务 ID
+	Scope             string `json:"scope,omitempty"`             // 作用域
+}
+
+// VariableInstanceFilter 是变量实例查询条件。
+type VariableInstanceFilter struct {
+	ProcessInstanceID string // 流程实例 ID
+	ExecutionID       string // 执行 ID
+	TaskID            string // 任务 ID
+	Name              string // 变量名
+	NameLike          string // 变量名模糊匹配
+}
+
 // ActivityInstance 是运行中活动实例。
 type ActivityInstance struct {
 	ID                  string     `json:"id"`                            // 活动实例 ID

@@ -376,6 +376,18 @@ type RuntimeService interface {
 	// @return 活动 ID 列表
 	// @return 查询错误
 	GetActiveActivityIDs(ctx context.Context, executionID string) ([]string, error)
+	// ListVariableInstances 返回运行时变量实例。
+	// @param ctx 上下文
+	// @param filter 查询条件
+	// @return 变量实例列表
+	// @return 查询错误
+	ListVariableInstances(ctx context.Context, filter VariableInstanceFilter) ([]VariableInstance, error)
+	// GetVariableInstance 查询运行时变量实例。
+	// @param ctx 上下文
+	// @param variableID 变量实例 ID
+	// @return 变量实例
+	// @return 查询错误
+	GetVariableInstance(ctx context.Context, variableID string) (VariableInstance, error)
 	// GetEventSubscription 查询事件订阅。
 	// @param ctx 上下文
 	// @param subscriptionID 订阅 ID
