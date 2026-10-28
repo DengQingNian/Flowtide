@@ -38,6 +38,21 @@ func TestREST_TimerJobs(t *testing.T) {
 		t.Fatalf("无异常栈定时作业应 404: %d", response.StatusCode)
 	}
 	_ = response.Body.Close()
+	response, _ = http.Get(server.URL + "/service/management/jobs/" + jobID + "/exception-stacktrace")
+	if response.StatusCode != http.StatusNotFound {
+		t.Fatalf("无异常栈作业应 404: %d", response.StatusCode)
+	}
+	_ = response.Body.Close()
+	response, _ = http.Get(server.URL + "/service/management/suspended-jobs/" + jobID)
+	if response.StatusCode != http.StatusNotFound {
+		t.Fatalf("未挂起作业详情应 404: %d", response.StatusCode)
+	}
+	_ = response.Body.Close()
+	response, _ = http.Get(server.URL + "/service/management/suspended-jobs/" + jobID + "/exception-stacktrace")
+	if response.StatusCode != http.StatusNotFound {
+		t.Fatalf("未挂起作业异常栈应 404: %d", response.StatusCode)
+	}
+	_ = response.Body.Close()
 
 	request, _ := http.NewRequest(http.MethodDelete, server.URL+"/service/management/jobs/"+jobID, nil)
 	response, _ = http.DefaultClient.Do(request)

@@ -160,4 +160,5 @@ curl -X POST 'http://localhost:8080/service/runtime/process-instances' \
 - 变量实例查询：运行中变量列表、组合查询、稳定变量 ID 与原始值下载。
 - 用户信息键值与头像：增删改查、multipart 上传与状态快照持久化。
 - 历史变量/明细组合查询；自定义引擎属性 CRUD 与 `ACT_GE_PROPERTY` 行映射。
+- 流程图图片：BPMN DI 解析、SVG/PNG 渲染、运行态活动高亮。
 - 纯标准库实现，`CGO_ENABLED=0` 可构建。
