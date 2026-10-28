@@ -16,6 +16,21 @@ func (s *Server) handleListTaskEvents(w http.ResponseWriter, r *http.Request) {
 		writeError(w, err)
 		return
 	}
+	action := firstNonEmpty(r.URL.Query().Get("action"), r.URL.Query().Get("eventType"))
+	userID := r.URL.Query().Get("userId")
+	if action != "" || userID != "" {
+		filtered := make([]api.TaskEvent, 0, len(events))
+		for _, event := range events {
+			if action != "" && event.Action != action {
+				continue
+			}
+			if userID != "" && event.UserID != userID {
+				continue
+			}
+			filtered = append(filtered, event)
+		}
+		events = filtered
+	}
 	writeJSON(w, http.StatusOK, events)
 }
 

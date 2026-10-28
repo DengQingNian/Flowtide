@@ -11,6 +11,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/flowable-go/flowable/api"
 	"github.com/flowable-go/flowable/internal/tenant"
@@ -2458,8 +2459,46 @@ func (s *Server) handleHistoricTaskLogs(w http.ResponseWriter, r *http.Request) 
 		writeError(w, err)
 		return
 	}
+	query := r.URL.Query()
+	processInstanceID := query.Get("processInstanceId")
+	userID := query.Get("userId")
+	eventType := firstNonEmpty(query.Get("type"), query.Get("action"))
+	var after, before time.Time
+	if raw := query.Get("from"); raw != "" {
+		after, err = parseTaskTime(raw)
+		if err != nil {
+			writeError(w, api.NewError("REST-0146", "from 时间格式非法", err))
+			return
+		}
+	}
+	if raw := query.Get("to"); raw != "" {
+		before, err = parseTaskTime(raw)
+		if err != nil {
+			writeError(w, api.NewError("REST-0147", "to 时间格式非法", err))
+			return
+		}
+	}
+	filtered := make([]api.HistoricTaskLog, 0, len(logs))
+	for _, log := range logs {
+		if processInstanceID != "" && log.ProcessInstanceID != processInstanceID {
+			continue
+		}
+		if userID != "" && log.UserID != userID {
+			continue
+		}
+		if eventType != "" && log.Type != eventType {
+			continue
+		}
+		if !after.IsZero() && log.Time.Before(after) {
+			continue
+		}
+		if !before.IsZero() && log.Time.After(before) {
+			continue
+		}
+		filtered = append(filtered, log)
+	}
 	start, size := pageParams(r)
-	writePage(w, logs, start, size)
+	writePage(w, filtered, start, size)
 }
 
 // handleHistoricDetails 返回历史变量明细。
