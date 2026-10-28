@@ -9,14 +9,19 @@ import (
 
 // 内部标记类型常量。
 const (
-	markerUser    = "user"    // 用户任务
-	markerService = "service" // 服务任务
-	markerScript  = "script"  // 脚本任务
-	markerSend    = "send"    // 发送任务
-	markerReceive = "receive" // 接收任务
-	markerTimer   = "timer"   // 定时器事件
-	markerMessage = "message" // 消息事件
-	markerSignal  = "signal"  // 信号事件
+	markerUser       = "user"       // 用户任务
+	markerService    = "service"    // 服务任务
+	markerScript     = "script"     // 脚本任务
+	markerSend       = "send"       // 发送任务
+	markerReceive    = "receive"    // 接收任务
+	markerTimer      = "timer"      // 定时器事件
+	markerMessage    = "message"    // 消息事件
+	markerSignal     = "signal"     // 信号事件
+	markerTerminate  = "terminate"  // 终止结束事件
+	markerCancel     = "cancel"     // 取消事件
+	markerError      = "error"      // 错误事件
+	markerCompensate = "compensate" // 补偿事件
+	markerLink       = "link"       // 链接事件
 )
 
 // findElement 在 BPMN 模型中按 ID 查找元素。
@@ -64,12 +69,35 @@ func markerOf(element model.FlowElement) string {
 		return markerReceive
 	case *model.StartEvent:
 		return eventMarker(typed.Timer, typed.MessageRef, typed.SignalRef)
+	case *model.EndEvent:
+		return endEventMarker(typed)
 	case *model.BoundaryEvent:
-		return eventMarker(typed.Timer, typed.MessageRef, typed.SignalRef)
+		// 保留原有定时器/消息/信号优先级，其次才是补偿、取消与错误
+		if marker := eventMarker(typed.Timer, typed.MessageRef, typed.SignalRef); marker != "" {
+			return marker
+		}
+		return eventExtraMarker(typed.ErrorRef, "", typed.Compensate, typed.Cancel)
 	case *model.IntermediateCatchEvent:
-		return eventMarker(typed.Timer, typed.MessageRef, typed.SignalRef)
+		// 保留原有定时器/消息/信号优先级，链接事件作为兜底
+		if marker := eventMarker(typed.Timer, typed.MessageRef, typed.SignalRef); marker != "" {
+			return marker
+		}
+		return eventExtraMarker("", typed.LinkName, false, false)
+	case *model.IntermediateThrowEvent:
+		return eventExtraMarker("", typed.LinkName, typed.Compensate, false)
 	}
 	return ""
+}
+
+// endEventMarker 返回结束事件的标记类型。
+// @param event 结束事件
+// @return 标记类型
+func endEventMarker(event *model.EndEvent) string {
+	// 终止语义最强，优先于取消与错误
+	if event.Terminate {
+		return markerTerminate
+	}
+	return eventExtraMarker(event.ErrorRef, "", false, event.Cancel)
 }
 
 // eventMarker 根据事件定义返回标记类型。
@@ -86,6 +114,28 @@ func eventMarker(timer *model.TimerDefinition, messageRef, signalRef string) str
 		return markerMessage
 	case signalRef != "":
 		return markerSignal
+	default:
+		return ""
+	}
+}
+
+// eventExtraMarker 根据扩展事件定义返回标记类型。
+// @param errorRef 错误引用
+// @param linkName 链接事件名称
+// @param compensate 是否补偿事件
+// @param cancel 是否取消事件
+// @return 标记类型
+func eventExtraMarker(errorRef, linkName string, compensate, cancel bool) string {
+	switch {
+	// 错误、取消、补偿、链接依次判断，保证同一事件只显示一个图标
+	case errorRef != "":
+		return markerError
+	case cancel:
+		return markerCancel
+	case compensate:
+		return markerCompensate
+	case linkName != "":
+		return markerLink
 	default:
 		return ""
 	}

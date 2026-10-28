@@ -209,6 +209,29 @@ func renderSVGMarker(shape Shape, stroke string) string {
 		fmt.Fprintf(&builder, "<path d=\"M %.1f %.1f L %.1f %.1f L %.1f %.1f\" stroke=\"#ffffff\"/>\n", ex, ey, ex+ew/2, ey+eh*0.6, ex+ew, ey)
 	case markerSignal:
 		fmt.Fprintf(&builder, "<polygon points=\"%.1f,%.1f %.1f,%.1f %.1f,%.1f\"/>\n", cx, y, x+w, y+h, x, y+h)
+	case markerTerminate:
+		// 终止事件使用实心圆，覆盖分组默认的空心填充
+		radius := math.Min(w, h) / 2
+		fmt.Fprintf(&builder, "<circle cx=\"%.1f\" cy=\"%.1f\" r=\"%.1f\" fill=\"%s\"/>\n", cx, cy, radius, stroke)
+	case markerCancel:
+		// 取消事件使用加粗叉号
+		fmt.Fprintf(&builder, "<path d=\"M %.1f %.1f L %.1f %.1f M %.1f %.1f L %.1f %.1f\" stroke-width=\"2.5\"/>\n",
+			x+w*0.15, y+h*0.15, x+w*0.85, y+h*0.85,
+			x+w*0.85, y+h*0.15, x+w*0.15, y+h*0.85)
+	case markerError:
+		// 错误事件使用闪电多边形
+		fmt.Fprintf(&builder, "<polygon points=\"%.1f,%.1f %.1f,%.1f %.1f,%.1f %.1f,%.1f %.1f,%.1f %.1f,%.1f\"/>\n",
+			x+w*0.6, y, x+w*0.15, y+h*0.55, x+w*0.42, y+h*0.55,
+			x+w*0.3, y+h, x+w*0.85, y+h*0.42, x+w*0.55, y+h*0.42)
+	case markerCompensate:
+		// 补偿事件使用两个指向左侧的三角形
+		fmt.Fprintf(&builder, "<polygon points=\"%.1f,%.1f %.1f,%.1f %.1f,%.1f\"/>\n", x+w*0.45, y, x+w*0.05, cy, x+w*0.45, y+h)
+		fmt.Fprintf(&builder, "<polygon points=\"%.1f,%.1f %.1f,%.1f %.1f,%.1f\"/>\n", x+w*0.95, y, x+w*0.55, cy, x+w*0.95, y+h)
+	case markerLink:
+		// 链接事件使用指向右侧的箭头
+		fmt.Fprintf(&builder, "<path d=\"M %.1f %.1f L %.1f %.1f M %.1f %.1f L %.1f %.1f L %.1f %.1f\"/>\n",
+			x, cy, x+w, cy,
+			x+w*0.65, cy-h*0.3, x+w, cy, x+w*0.65, cy+h*0.3)
 	case markerUser:
 		fmt.Fprintf(&builder, "<circle cx=\"%.1f\" cy=\"%.1f\" r=\"%.1f\"/>\n", cx, y+h*0.28, h*0.18)
 		fmt.Fprintf(&builder, "<path d=\"M %.1f %.1f Q %.1f %.1f %.1f %.1f\"/>\n", x+w*0.15, y+h, cx, y+h*0.42, x+w*0.85, y+h)

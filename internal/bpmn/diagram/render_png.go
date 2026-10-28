@@ -377,6 +377,41 @@ func (r *pngRenderer) drawMarker(shape Shape, c color.RGBA) {
 			{X: x + w, Y: y + h},
 			{X: x, Y: y + h},
 		}, white, c)
+	case markerTerminate:
+		// 终止事件使用实心圆
+		radius := math.Min(w, h) / 2
+		r.circle(cx, cy, radius, c, c, 1)
+	case markerCancel:
+		// 取消事件使用加粗叉号
+		r.line(x+w*0.15, y+h*0.15, x+w*0.85, y+h*0.85, 2.5, c)
+		r.line(x+w*0.85, y+h*0.15, x+w*0.15, y+h*0.85, 2.5, c)
+	case markerError:
+		// 错误事件使用闪电多边形
+		r.polygon([]Point{
+			{X: x + w*0.6, Y: y},
+			{X: x + w*0.15, Y: y + h*0.55},
+			{X: x + w*0.42, Y: y + h*0.55},
+			{X: x + w*0.3, Y: y + h},
+			{X: x + w*0.85, Y: y + h*0.42},
+			{X: x + w*0.55, Y: y + h*0.42},
+		}, white, c)
+	case markerCompensate:
+		// 补偿事件使用两个指向左侧的三角形
+		r.polygon([]Point{
+			{X: x + w*0.45, Y: y},
+			{X: x + w*0.05, Y: cy},
+			{X: x + w*0.45, Y: y + h},
+		}, white, c)
+		r.polygon([]Point{
+			{X: x + w*0.95, Y: y},
+			{X: x + w*0.55, Y: cy},
+			{X: x + w*0.95, Y: y + h},
+		}, white, c)
+	case markerLink:
+		// 链接事件使用指向右侧的箭头
+		r.line(x, cy, x+w, cy, 1, c)
+		r.line(x+w*0.65, cy-h*0.3, x+w, cy, 1, c)
+		r.line(x+w*0.65, cy+h*0.3, x+w, cy, 1, c)
 	case markerUser:
 		r.circle(cx, y+h*0.28, h*0.18, white, c, 1)
 		r.line(x+w*0.15, y+h, cx, y+h*0.5, 1, c)

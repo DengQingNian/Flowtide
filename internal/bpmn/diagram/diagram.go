@@ -30,7 +30,7 @@ type Shape struct {
 	ElementID string  // 元素 ID
 	Type      string  // 元素类型
 	Name      string  // 元素名称
-	Marker    string  // 内部标记类型：user/service/script/send/receive/timer/message/signal
+	Marker    string  // 内部标记类型：user/service/script/send/receive/timer/message/signal/terminate/cancel/error/compensate/link
 	Bounds    Bounds  // 图形区域
 	Label     *Bounds // 标签区域
 }
