@@ -33,7 +33,11 @@ func (e *Engine) GetStartFormData(ctx context.Context, processDefinitionID strin
 		if start == nil {
 			return nil, api.NewError("ENGINE-0104", "流程缺少开始事件", nil)
 		}
-		return api.FormData{FormKey: start.FormKey, Properties: toFormProperties(start.FormProperties, nil)}, nil
+		properties, err := e.resolveFormProperties(definition.Info.DeploymentID, definition.Info.TenantID, start.FormKey, start.FormProperties, nil)
+		if err != nil {
+			return nil, err
+		}
+		return api.FormData{FormKey: start.FormKey, Properties: properties}, nil
 	})
 	if err != nil {
 		return api.FormData{}, err
@@ -77,7 +81,11 @@ func (e *Engine) GetTaskFormData(ctx context.Context, taskID string) (api.FormDa
 		for name, value := range task.LocalVariables {
 			values[name] = value
 		}
-		return api.FormData{FormKey: userTask.FormKey, Properties: toFormProperties(userTask.FormProperties, values)}, nil
+		properties, err := e.resolveFormProperties(definition.Info.DeploymentID, definition.Info.TenantID, userTask.FormKey, userTask.FormProperties, values)
+		if err != nil {
+			return nil, err
+		}
+		return api.FormData{FormKey: userTask.FormKey, Properties: properties}, nil
 	})
 	if err != nil {
 		return api.FormData{}, err
@@ -135,7 +143,11 @@ func (e *Engine) GetHistoricTaskFormData(ctx context.Context, taskID string) (ap
 		if !isUserTask {
 			return api.FormData{FormKey: historic.FormKey}, nil
 		}
-		return api.FormData{FormKey: userTask.FormKey, Properties: toFormProperties(userTask.FormProperties, values)}, nil
+		properties, err := e.resolveFormProperties(definition.Info.DeploymentID, definition.Info.TenantID, userTask.FormKey, userTask.FormProperties, values)
+		if err != nil {
+			return nil, err
+		}
+		return api.FormData{FormKey: userTask.FormKey, Properties: properties}, nil
 	})
 	if err != nil {
 		return api.FormData{}, err
@@ -167,8 +179,19 @@ func (e *Engine) SubmitTaskFormData(ctx context.Context, taskID string, values m
 		if !isUserTask {
 			return nil, api.NewError("ENGINE-1201", "任务活动不是用户任务", nil)
 		}
+		properties := toFormProperties(userTask.FormProperties, nil)
+		// 同部署存在同 Key 的 .form 时，用表单定义字段校验并提交
+		if userTask.FormKey != "" {
+			form, found, formErr := e.findFormDefinition(definition.Info.DeploymentID, definition.Info.TenantID, userTask.FormKey)
+			if formErr != nil {
+				return nil, formErr
+			}
+			if found {
+				properties = formDefinitionProperties(form.Fields, nil)
+			}
+		}
 		variables := make([]api.Variable, 0, len(values))
-		for _, property := range userTask.FormProperties {
+		for _, property := range properties {
 			raw, provided := values[property.ID]
 			if !property.Writable {
 				if provided {

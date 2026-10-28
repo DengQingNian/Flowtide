@@ -351,3 +351,119 @@ func TestREST_DefinitionModelBpmnError(t *testing.T) {
 		t.Fatalf("错误响应 exception 字段错误: %s", recorder.Body.String())
 	}
 }
+
+// definitionFormJSON 是 REST 表单定义端点使用的 .form 内容。
+const definitionFormJSON = `{
+  "key": "approveForm",
+  "name": "Approval",
+  "fields": [
+    {"id": "approved", "name": "通过", "type": "boolean", "required": true, "readable": true, "writable": true,
+     "enumValues": [{"id": "yes", "name": "Yes"}]}
+  ]
+}`
+
+// newDefinitionFormFixture 构建带 .form 资源的 REST 服务。
+// @param t 测试上下文
+// @return REST 服务
+// @return 流程定义
+func newDefinitionFormFixture(t *testing.T) (*Server, api.ProcessDefinition) {
+	t.Helper()
+	app, err := engine.New(engine.Config{HistoryLevel: engine.HistoryAudit})
+	if err != nil {
+		t.Fatalf("创建引擎失败: %v", err)
+	}
+	t.Cleanup(func() { _ = app.Close(context.Background()) })
+	if _, err := app.RepositoryService().Deploy(context.Background(), api.DeploymentRequest{
+		Name: "forms",
+		Resources: map[string][]byte{
+			"forms/process.bpmn": []byte(definitionArtifactsXML),
+			"forms/approve.form": []byte(definitionFormJSON),
+		},
+	}); err != nil {
+		t.Fatalf("部署失败: %v", err)
+	}
+	definitions, err := app.RepositoryService().ListProcessDefinitions(context.Background())
+	if err != nil || len(definitions) != 1 {
+		t.Fatalf("查询流程定义失败: %v %+v", err, definitions)
+	}
+	return New(app), definitions[0]
+}
+
+// TestREST_DefinitionFormDefinitions 验证表单定义端点返回真实列表与 camelCase 字段。
+// @param t 测试上下文
+func TestREST_DefinitionFormDefinitions(t *testing.T) {
+	server, definition := newDefinitionFormFixture(t)
+	recorder := callDefinitionArtifactHandler(server.handleDefinitionFormDefinitions, definition.ID)
+	if recorder.Code != http.StatusOK {
+		t.Fatalf("表单定义端点状态码错误: %d %s", recorder.Code, recorder.Body.String())
+	}
+	if contentType := recorder.Header().Get("Content-Type"); !strings.Contains(contentType, "application/json") {
+		t.Fatalf("表单定义端点 Content-Type 错误: %s", contentType)
+	}
+	var forms []map[string]json.RawMessage
+	if err := json.Unmarshal(recorder.Body.Bytes(), &forms); err != nil {
+		t.Fatalf("解析表单定义响应失败: %v", err)
+	}
+	if len(forms) != 1 {
+		t.Fatalf("表单定义数量错误: %s", recorder.Body.String())
+	}
+	for _, key := range []string{"key", "name", "deploymentId", "resourceName", "tenantId", "fields"} {
+		if _, ok := forms[0][key]; !ok {
+			t.Fatalf("缺少表单定义字段 %s: %s", key, recorder.Body.String())
+		}
+	}
+	var resourceName, deploymentID string
+	if err := json.Unmarshal(forms[0]["resourceName"], &resourceName); err != nil || resourceName != "forms/approve.form" {
+		t.Fatalf("resourceName 错误: %s", forms[0]["resourceName"])
+	}
+	if err := json.Unmarshal(forms[0]["deploymentId"], &deploymentID); err != nil || deploymentID != definition.DeploymentID {
+		t.Fatalf("deploymentId 错误: %s", forms[0]["deploymentId"])
+	}
+	var fields []map[string]json.RawMessage
+	if err := json.Unmarshal(forms[0]["fields"], &fields); err != nil || len(fields) != 1 {
+		t.Fatalf("fields 错误: %v %s", err, forms[0]["fields"])
+	}
+	for _, key := range []string{"id", "name", "type", "required", "readable", "writable", "enumValues"} {
+		if _, ok := fields[0][key]; !ok {
+			t.Fatalf("缺少表单字段 %s: %s", key, forms[0]["fields"])
+		}
+	}
+	if _, ok := fields[0]["value"]; ok {
+		t.Fatalf("空值不应输出 value: %s", forms[0]["fields"])
+	}
+}
+
+// TestREST_DefinitionFormDefinitionsInvalid 验证非法 .form 返回 400。
+// @param t 测试上下文
+func TestREST_DefinitionFormDefinitionsInvalid(t *testing.T) {
+	app, err := engine.New(engine.Config{HistoryLevel: engine.HistoryAudit})
+	if err != nil {
+		t.Fatalf("创建引擎失败: %v", err)
+	}
+	t.Cleanup(func() { _ = app.Close(context.Background()) })
+	if _, err := app.RepositoryService().Deploy(context.Background(), api.DeploymentRequest{
+		Name: "bad-forms",
+		Resources: map[string][]byte{
+			"forms/process.bpmn": []byte(definitionArtifactsXML),
+			"forms/bad.form":     []byte("{not-json"),
+		},
+	}); err != nil {
+		t.Fatalf("部署失败: %v", err)
+	}
+	definitions, err := app.RepositoryService().ListProcessDefinitions(context.Background())
+	if err != nil || len(definitions) != 1 {
+		t.Fatalf("查询流程定义失败: %v %+v", err, definitions)
+	}
+	server := New(app)
+	recorder := callDefinitionArtifactHandler(server.handleDefinitionFormDefinitions, definitions[0].ID)
+	if recorder.Code != http.StatusBadRequest {
+		t.Fatalf("非法表单应 400: %d %s", recorder.Code, recorder.Body.String())
+	}
+	var body map[string]any
+	if err := json.Unmarshal(recorder.Body.Bytes(), &body); err != nil {
+		t.Fatalf("解析错误响应失败: %v", err)
+	}
+	if code, _ := body["code"].(string); code != "ENGINE-1205" {
+		t.Fatalf("错误码错误: %s", recorder.Body.String())
+	}
+}

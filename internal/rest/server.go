@@ -856,14 +856,38 @@ func (s *Server) handleListDeploymentResources(w http.ResponseWriter, r *http.Re
 // @param w 响应
 // @param r 请求
 func (s *Server) handleGetDeploymentResource(w http.ResponseWriter, r *http.Request) {
-	data, err := s.engine.RepositoryService().GetDeploymentResource(r.Context(), r.PathValue("id"), r.PathValue("name"))
+	name := r.PathValue("name")
+	data, err := s.engine.RepositoryService().GetDeploymentResource(r.Context(), r.PathValue("id"), name)
 	if err != nil {
 		writeError(w, err)
 		return
 	}
-	w.Header().Set("Content-Type", "application/octet-stream")
+	w.Header().Set("Content-Type", deploymentResourceContentType(name))
 	w.WriteHeader(http.StatusOK)
 	_, _ = w.Write(data)
+}
+
+// deploymentResourceContentType 返回部署资源的 Content-Type。
+// @param name 资源名
+// @return Content-Type
+func deploymentResourceContentType(name string) string {
+	lower := strings.ToLower(name)
+	switch {
+	case strings.HasSuffix(lower, ".png"):
+		return "image/png"
+	case strings.HasSuffix(lower, ".svg"):
+		return "image/svg+xml"
+	case strings.HasSuffix(lower, ".json") || strings.HasSuffix(lower, ".form"):
+		return "application/json"
+	case strings.HasSuffix(lower, ".xml") || strings.HasSuffix(lower, ".bpmn") || strings.HasSuffix(lower, ".bpmn20.xml"):
+		return "application/xml"
+	case strings.HasSuffix(lower, ".zip"):
+		return "application/zip"
+	case strings.HasSuffix(lower, ".txt"):
+		return "text/plain; charset=utf-8"
+	default:
+		return "application/octet-stream"
+	}
 }
 
 // parseDeploymentRequest 解析部署请求。

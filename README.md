@@ -179,4 +179,5 @@ curl -X POST 'http://localhost:8080/service/runtime/process-instances' \
 - 任务委派状态与 resolve 处理，列表支持 `delegationState` 过滤。
 - 二进制变量：multipart 上传、`binary` 类型与原始字节下载。
 - 任务事件与历史任务日志支持动作/用户/实例/时间范围过滤。
+- 部署内 `.form` 表单定义读取，启动/任务/历史表单按 formKey 渲染；部署资源按扩展名返回 Content-Type。
 - 纯标准库实现，`CGO_ENABLED=0` 可构建。

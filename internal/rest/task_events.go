@@ -31,6 +31,18 @@ func (s *Server) handleListTaskEvents(w http.ResponseWriter, r *http.Request) {
 		}
 		events = filtered
 	}
+	if r.URL.Query().Has("start") || r.URL.Query().Has("size") {
+		start, size := pageParams(r)
+		if start >= len(events) {
+			events = []api.TaskEvent{}
+		} else {
+			end := start + size
+			if end > len(events) {
+				end = len(events)
+			}
+			events = events[start:end]
+		}
+	}
 	writeJSON(w, http.StatusOK, events)
 }
 

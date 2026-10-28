@@ -30,6 +30,12 @@ func TestREST_TaskEventAndLogFilters(t *testing.T) {
 	if len(events) != 1 || events[0]["action"] != "complete" {
 		t.Fatalf("任务事件过滤错误: %+v", events)
 	}
+	response, _ = http.Get(server.URL + "/service/runtime/tasks/" + taskID + "/events?size=1")
+	_ = json.NewDecoder(response.Body).Decode(&events)
+	_ = response.Body.Close()
+	if len(events) != 1 {
+		t.Fatalf("任务事件分页错误: %+v", events)
+	}
 
 	for _, query := range []string{
 		"taskId=" + taskID + "&type=complete&userId=alice",

@@ -98,16 +98,20 @@ func (s *Server) handleDefinitionDecisionTables(w http.ResponseWriter, r *http.R
 	writeJSON(w, http.StatusOK, []any{})
 }
 
-// handleDefinitionFormDefinitions 返回流程定义关联的表单定义。
+// handleDefinitionFormDefinitions 返回流程定义所在部署的表单定义。
 // @param w 响应
 // @param r 请求
-// 说明：当前引擎尚未集成表单引擎，校验流程定义后返回空数组。
 func (s *Server) handleDefinitionFormDefinitions(w http.ResponseWriter, r *http.Request) {
-	if _, err := s.engine.RepositoryService().GetProcessDefinition(r.Context(), r.PathValue("id")); err != nil {
+	forms, err := s.engine.FormService().ListFormDefinitions(r.Context(), r.PathValue("id"))
+	if err != nil {
 		writeError(w, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, []any{})
+	// 空结果统一输出 []，避免 JSON null
+	if forms == nil {
+		forms = []api.FormDefinition{}
+	}
+	writeJSON(w, http.StatusOK, forms)
 }
 
 // buildDefinitionModelDTO 将 BPMN 模型转换为 REST DTO。
