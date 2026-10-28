@@ -337,6 +337,12 @@ type RuntimeService interface {
 	// @param req 迁移请求
 	// @return 迁移错误
 	MigrateProcessInstance(ctx context.Context, req MigrationRequest) error
+	// ValidateMigration 校验实例迁移，不修改状态。
+	// @param ctx 上下文
+	// @param req 迁移请求
+	// @return 校验消息
+	// @return 查询错误
+	ValidateMigration(ctx context.Context, req MigrationRequest) ([]string, error)
 	// ListInstanceIdentityLinks 返回流程实例身份链接。
 	// @param ctx 上下文
 	// @param processInstanceID 实例 ID
