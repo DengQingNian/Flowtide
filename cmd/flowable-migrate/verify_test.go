@@ -7,6 +7,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 
@@ -191,7 +192,8 @@ func TestRunVerifyStateOutput(t *testing.T) {
 		t.Fatalf("报告输出失败: 退出码=%d 调用=%v 错误=%s", code, called, stderr.String())
 	}
 	info, err := os.Stat(newPath)
-	if err != nil || info.Mode().Perm() != 0600 {
+	// Windows 不表达 Unix 权限位，仅要求文件创建成功。
+	if err != nil || (runtime.GOOS != "windows" && info.Mode().Perm() != 0600) {
 		t.Fatalf("报告权限错误: %v %v", info, err)
 	}
 	content, err := os.ReadFile(newPath)

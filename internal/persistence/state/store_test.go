@@ -5,6 +5,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"runtime"
 	"testing"
 )
 
@@ -72,8 +73,11 @@ func TestFileStoreErrors(t *testing.T) {
 	if err := os.WriteFile(file, []byte("x"), 0o644); err != nil {
 		t.Fatalf("创建文件失败: %v", err)
 	}
-	if _, err := NewFile(file + "/child").Load(context.Background()); err == nil {
-		t.Fatalf("非法路径读取应失败")
+	// Windows 将文件子路径的打开按不存在处理，无法表达 Unix 的 ENOTDIR 语义。
+	if runtime.GOOS != "windows" {
+		if _, err := NewFile(file + "/child").Load(context.Background()); err == nil {
+			t.Fatalf("非法路径读取应失败")
+		}
 	}
 	if err := NewFile(file+"/child").Save(context.Background(), []byte("x")); err == nil {
 		t.Fatalf("父路径为文件时保存应失败")
@@ -81,8 +85,12 @@ func TestFileStoreErrors(t *testing.T) {
 	if _, err := NewFile(directory).Load(context.Background()); err == nil {
 		t.Fatalf("目录读取应失败")
 	}
-	if err := NewFile("/proc/flowable-go-state-test.json").Save(context.Background(), []byte("x")); err == nil {
-		t.Fatalf("不可写目录保存应失败")
+	// Unix 依赖只读的 /proc 目录触发临时文件创建失败；Windows 会把根路径解析为
+	// 当前盘符并真实创建目录，父路径为文件的断言已覆盖同一错误分支。
+	if runtime.GOOS != "windows" {
+		if err := NewFile("/proc/flowable-go-state-test.json").Save(context.Background(), []byte("x")); err == nil {
+			t.Fatalf("不可写目录保存应失败")
+		}
 	}
 }
 

@@ -6,6 +6,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 	"time"
@@ -108,7 +109,8 @@ func TestRunPreflightAtomicReport(t *testing.T) {
 		t.Fatalf("退出码=%d 输出=%s 错误=%s", got, stdout.String(), stderr.String())
 	}
 	info, err := os.Stat(path)
-	if err != nil || info.Mode().Perm() != 0600 {
+	// Windows 不表达 Unix 权限位，仅要求文件创建成功。
+	if err != nil || (runtime.GOOS != "windows" && info.Mode().Perm() != 0600) {
 		t.Fatalf("报告权限=%v 错误=%v", info, err)
 	}
 	content, _ = os.ReadFile(path)
@@ -292,7 +294,8 @@ func TestRunCutoverOutput(t *testing.T) {
 		t.Fatalf("变化报告输出失败: 退出码=%d 调用=%v 错误=%s", got, called, stderr.String())
 	}
 	info, err := os.Stat(newPath)
-	if err != nil || info.Mode().Perm() != 0600 {
+	// Windows 不表达 Unix 权限位，仅要求文件创建成功。
+	if err != nil || (runtime.GOOS != "windows" && info.Mode().Perm() != 0600) {
 		t.Fatalf("报告权限错误: %v %v", info, err)
 	}
 	content, err := os.ReadFile(newPath)

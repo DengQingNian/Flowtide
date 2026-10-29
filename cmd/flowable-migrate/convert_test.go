@@ -7,6 +7,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 
@@ -50,7 +51,8 @@ func TestRunConvertCreatesPrivateState(t *testing.T) {
 		t.Fatal("状态文件内容错误")
 	}
 	info, err := os.Stat(path)
-	if err != nil || info.Mode().Perm() != 0600 {
+	// Windows 不表达 Unix 权限位，仅要求文件创建成功。
+	if err != nil || (runtime.GOOS != "windows" && info.Mode().Perm() != 0600) {
 		t.Fatal("状态文件权限错误")
 	}
 	entries, _ := os.ReadDir(filepath.Dir(path))
