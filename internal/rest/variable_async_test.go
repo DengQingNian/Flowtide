@@ -2,6 +2,7 @@ package rest
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"net/http"
 	"testing"
@@ -10,7 +11,7 @@ import (
 // TestREST_VariableAsyncEndpoints 验证变量异步兼容端点。
 // @param t 测试上下文
 func TestREST_VariableAsyncEndpoints(t *testing.T) {
-	server, _ := newTestServer(t)
+	server, app := newTestServer(t)
 	deployREST(t, server)
 	instanceID := startQueryInstance(t, server.URL, "rest", "bk1", "Order")
 	response, _ := http.Get(server.URL + "/service/runtime/executions?processInstanceId=" + instanceID)
@@ -25,6 +26,12 @@ func TestREST_VariableAsyncEndpoints(t *testing.T) {
 		t.Fatalf("执行为空")
 	}
 	executionID := executions.Data[0].ID
+	if err := app.SetExecutionVariable(context.Background(), executionID, "c", "旧值"); err != nil {
+		t.Fatal(err)
+	}
+	if err := app.SetVariable(context.Background(), instanceID, "e", "旧值"); err != nil {
+		t.Fatal(err)
+	}
 
 	response = postJSON(t, server.URL+"/service/runtime/executions/"+executionID+"/variables", []map[string]any{{"name": "a", "value": "A"}})
 	if response.StatusCode != http.StatusCreated {
@@ -46,7 +53,7 @@ func TestREST_VariableAsyncEndpoints(t *testing.T) {
 		t.Fatalf("异步执行变量失败: %d", response.StatusCode)
 	}
 	_ = response.Body.Close()
-	request, _ = http.NewRequest(http.MethodPut, server.URL+"/service/runtime/executions/"+executionID+"/variables-async/c", bytes.NewBufferString(`{"value":"C"}`))
+	request, _ = http.NewRequest(http.MethodPut, server.URL+"/service/runtime/executions/"+executionID+"/variables-async/c", bytes.NewBufferString(`{"name":"c","value":"C"}`))
 	request.Header.Set("Content-Type", "application/json")
 	response, _ = http.DefaultClient.Do(request)
 	if response.StatusCode != http.StatusNoContent {
@@ -55,17 +62,25 @@ func TestREST_VariableAsyncEndpoints(t *testing.T) {
 	_ = response.Body.Close()
 
 	response = postJSON(t, server.URL+"/service/runtime/process-instances/"+instanceID+"/variables-async", []map[string]any{{"name": "d", "value": "D"}})
-	if response.StatusCode != http.StatusNoContent {
+	if response.StatusCode != http.StatusCreated {
 		t.Fatalf("异步实例变量失败: %d", response.StatusCode)
 	}
 	_ = response.Body.Close()
-	request, _ = http.NewRequest(http.MethodPut, server.URL+"/service/runtime/process-instances/"+instanceID+"/variables-async/e", bytes.NewBufferString(`{"value":"E"}`))
+	request, _ = http.NewRequest(http.MethodPut, server.URL+"/service/runtime/process-instances/"+instanceID+"/variables-async/e", bytes.NewBufferString(`{"name":"e","value":"E"}`))
 	request.Header.Set("Content-Type", "application/json")
 	response, _ = http.DefaultClient.Do(request)
 	if response.StatusCode != http.StatusNoContent {
 		t.Fatalf("异步单实例变量失败: %d", response.StatusCode)
 	}
 	_ = response.Body.Close()
+	response = postJSON(t, server.URL+"/service/runtime/executions/"+executionID+"/variables-async", []map[string]any{{"name": "f", "value": "F"}})
+	if response.StatusCode != http.StatusNoContent {
+		t.Fatalf("异步执行变量POST失败: %d", response.StatusCode)
+	}
+	_ = response.Body.Close()
+	if count, err := app.RunDueJobs(context.Background()); err != nil || count != 5 {
+		t.Fatalf("异步作业执行: %d %v", count, err)
+	}
 	response, _ = http.Get(server.URL + "/service/runtime/process-instances/" + instanceID + "/variables")
 	var variables []map[string]any
 	_ = json.NewDecoder(response.Body).Decode(&variables)
@@ -75,7 +90,7 @@ func TestREST_VariableAsyncEndpoints(t *testing.T) {
 		name, _ := item["name"].(string)
 		names[name] = true
 	}
-	if !names["b"] || !names["c"] || !names["d"] || !names["e"] {
+	if !names["b"] || !names["c"] || !names["d"] || !names["e"] || !names["f"] {
 		t.Fatalf("异步变量未全部写入: %+v", names)
 	}
 
@@ -102,9 +117,9 @@ func TestREST_VariableAsyncEndpoints(t *testing.T) {
 		{"POST", "/service/runtime/process-instances/" + instanceID + "/variables-async", "{", http.StatusBadRequest},
 		{"PUT", "/service/runtime/process-instances/" + instanceID + "/variables-async/x", "{", http.StatusBadRequest},
 		{"POST", "/service/runtime/executions/missing/variables-async", `[{"name":"x","value":1}]`, http.StatusNotFound},
-		{"PUT", "/service/runtime/executions/missing/variables-async/x", `{"value":1}`, http.StatusNotFound},
+		{"PUT", "/service/runtime/executions/missing/variables-async/x", `{"name":"x","value":1}`, http.StatusNotFound},
 		{"POST", "/service/runtime/process-instances/missing/variables-async", `[{"name":"x","value":1}]`, http.StatusNotFound},
-		{"PUT", "/service/runtime/process-instances/missing/variables-async/x", `{"value":1}`, http.StatusNotFound},
+		{"PUT", "/service/runtime/process-instances/missing/variables-async/x", `{"name":"x","value":1}`, http.StatusNotFound},
 	}
 	for _, tc := range invalidBodies {
 		request, _ := http.NewRequest(tc.method, server.URL+tc.path, bytes.NewBufferString(tc.body))

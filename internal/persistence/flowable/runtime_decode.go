@@ -65,6 +65,7 @@ type RuntimeJob struct {
 	RepeatInfinite    bool       // 是否无限重复
 	IntervalMillis    int64      // 重复间隔
 	DeadLetter        bool       // 是否死信
+	VariablePayload   []byte     // 异步变量作业的外置类型化载荷
 }
 
 // RuntimeSubscription 是事件订阅行。
@@ -176,13 +177,13 @@ func DecodeRuntimeRows(rows []Row) (RuntimeSnapshot, error) {
 			}
 			snapshot.Variables = append(snapshot.Variables, variable)
 		case "ACT_RU_JOB":
-			job, err := decodeJob(row)
+			job, err := decodeJob(row, arrays)
 			if err != nil {
 				return RuntimeSnapshot{}, err
 			}
 			snapshot.Jobs = append(snapshot.Jobs, job)
 		case "ACT_RU_DEADLETTER_JOB":
-			job, err := decodeJob(row)
+			job, err := decodeJob(row, arrays)
 			if err != nil {
 				return RuntimeSnapshot{}, err
 			}
@@ -486,9 +487,10 @@ type jobHandlerConfig struct {
 
 // decodeJob 解析作业行。
 // @param row 行
+// @param arrays 同批次外置字节数据
 // @return 作业
 // @return 错误
-func decodeJob(row Row) (RuntimeJob, error) {
+func decodeJob(row Row, arrays ...map[string][]byte) (RuntimeJob, error) {
 	id, err := stringValue(row, "ID_")
 	if err != nil {
 		return RuntimeJob{}, err
@@ -552,6 +554,17 @@ func decodeJob(row Row) (RuntimeJob, error) {
 		ID: id, Type: jobType, ExecutionID: executionID, ProcessInstanceID: processInstanceID,
 		DefinitionID: definitionID, ActivityID: activityID, TenantID: tenant,
 		RepeatRemaining: config.Remaining, RepeatInfinite: config.Infinite, IntervalMillis: config.IntervalMillis,
+	}
+	// 本实现的变量作业必须携带完整字节载荷，禁止恢复为空作业后静默成功。
+	if job.Type == "variable-update" {
+		ref, err := optionalStringValue(row, "CUSTOM_VALUES_ID_")
+		if err != nil {
+			return RuntimeJob{}, err
+		}
+		if len(arrays) == 0 || ref == "" || len(arrays[0][ref]) == 0 {
+			return RuntimeJob{}, api.NewError("ROW-0032", "异步变量作业载荷缺失", api.ErrBadRequest)
+		}
+		job.VariablePayload = append([]byte(nil), arrays[0][ref]...)
 	}
 	if retries != nil {
 		job.Retries = int(*retries)

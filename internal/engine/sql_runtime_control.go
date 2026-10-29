@@ -49,7 +49,10 @@ func (e *Engine) runtimeControlRows() ([]flowablerow.Row, error) {
 		}
 		for _, job := range e.state.Jobs {
 			if job.ProcessInstanceID == instance.ID {
-				control.Jobs = append(control.Jobs, job)
+				copied := *job
+				// 变量载荷仅由 CUSTOM_VALUES_ID_ 引用的字节行保存，控制扩展不能形成第二份权威值。
+				copied.VariablePayload = nil
+				control.Jobs = append(control.Jobs, &copied)
 			}
 		}
 		for _, subscription := range e.state.Subscriptions {
@@ -131,7 +134,8 @@ func (e *Engine) restoreRuntimeControls(controls []runtimeControl) error {
 			if job == nil {
 				return api.NewError("ENGINE-0920", "作业扩展不能为空", api.ErrBadRequest)
 			}
-			if _, exists := e.state.Jobs[job.ID]; exists {
+			if current, exists := e.state.Jobs[job.ID]; exists {
+				job.VariablePayload = append([]byte(nil), current.VariablePayload...)
 				e.state.Jobs[job.ID] = job
 			}
 		}

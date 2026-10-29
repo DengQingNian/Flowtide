@@ -274,6 +274,8 @@ func variableTypeName(value any) string {
 		return "double"
 	case []byte:
 		return "binary"
+	case time.Time:
+		return "date"
 	default:
 		return "json"
 	}

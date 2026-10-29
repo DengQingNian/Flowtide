@@ -9,7 +9,7 @@
     "postgres": "16.3"
   },
   "implementation_base": "6823a1f",
-  "migration_status": "新建库原型；Java H2 用户任务离线转换通过，未通过停写切换和回退验收",
+  "migration_status": "双库单执行者工具链验收通过；生产停写切换、反向转换和Java增量接管未验收",
   "variables_supported": [
     "null",
     "string",
@@ -30,7 +30,7 @@
     "缺失的外置字节数据",
     "超出有符号 64 位范围的整数"
   ],
-  "fixture_status": "Go 回归语料与 Java H2 黄金样本；未完成 MySQL/PG 接管对照",
+  "fixture_status": "Java H2用户任务双库接管对照、异步变量服务及六方法原版HTTP场景通过；全量REST未验收",
   "artifacts": [
     {
       "path": "testdata/compatibility/flowable-swagger-process.yaml",
@@ -71,6 +71,18 @@
     {
       "path": "testdata/compatibility/java/provenance.json",
       "sha256": "78047a518ab0dacd91b345b9acfa487e56d0d9921dc7a65fa4f81689fd626197"
+    },
+    {
+      "path": "testdata/compatibility/java/002-async-variables.json",
+      "sha256": "6802230fda58e2f6f924d7038bac9a42a02b69c24b583f6e7e91085dab0bf14e"
+    },
+    {
+      "path": "testdata/compatibility/java/003-async-variable-rest.json",
+      "sha256": "475687d1d8dca172a604b3465a23c30a1a001687aa91cdedd2b93e4fea6a3af9"
+    },
+    {
+      "path": "testdata/compatibility/java/async-provenance.json",
+      "sha256": "20334d3c1d0a6be42add1757f113367ff1ed214ff878c17917a254f125d9ea5b"
     }
   ]
 }

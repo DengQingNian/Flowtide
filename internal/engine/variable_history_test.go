@@ -3,6 +3,7 @@ package engine
 import (
 	"context"
 	"testing"
+	"time"
 
 	"github.com/flowable-go/flowable/api"
 )
@@ -70,6 +71,7 @@ func TestVariableTypeName(t *testing.T) {
 	}{
 		{nil, "null"}, {"x", "string"}, {true, "boolean"}, {1, "long"}, {1.5, "double"},
 		{[]byte("x"), "binary"}, {map[string]any{}, "json"},
+		{time.UnixMilli(1700000000123), "date"},
 	}
 	for _, tc := range cases {
 		if got := variableTypeName(tc.value); got != tc.want {

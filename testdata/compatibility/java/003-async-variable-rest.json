@@ -1,0 +1,294 @@
+{
+  "baseline" : "f6017e32a4bdd3e59a8881f58b0ee181652d1d9e",
+  "transport" : "原版控制器与 Spring MockMvc",
+  "springVersion" : "7.0.7",
+  "controllerClassSha256" : {
+    "org.flowable.rest.service.api.runtime.process.ExecutionVariableCollectionResource" : "3cef55851c73bc438bc72d5a5a94bc5f0378419df66998f6fe0238d15e0ae616",
+    "org.flowable.rest.service.api.runtime.process.ExecutionVariableResource" : "a8620afe1a459ee830081ca6fc1eda7231c4da97b5f621338a504d0ead1e8a87",
+    "org.flowable.rest.service.api.runtime.process.ProcessInstanceVariableCollectionResource" : "0461d6aa7d42140c6491da413feeff3dd12b64b47009464260b7aa63d9167935",
+    "org.flowable.rest.service.api.runtime.process.ProcessInstanceVariableResource" : "42fd48b167a6c0e25c5bcb4fabfdaf431cfc70a38a394e90a34eba24829cf2e8"
+  },
+  "cases" : [ {
+    "name" : "process-instances/POST",
+    "method" : "POST",
+    "path" : "/service/runtime/process-instances/{instanceId}/variables-async",
+    "requestBody" : "[{\"name\":\"created\",\"type\":\"long\",\"value\":9007199254740993}]",
+    "initialVariables" : {
+      "amount" : 42,
+      "flag" : "before"
+    },
+    "status" : 201,
+    "responseBody" : "",
+    "afterEnqueue" : {
+      "amount" : 42,
+      "flag" : "before"
+    },
+    "queuedJobs" : 1,
+    "afterExecution" : {
+      "amount" : 42,
+      "flag" : "before",
+      "created" : 9007199254740993
+    }
+  }, {
+    "name" : "process-instances/PUT",
+    "method" : "PUT",
+    "path" : "/service/runtime/process-instances/{instanceId}/variables-async",
+    "requestBody" : "[{\"name\":\"flag\",\"type\":\"string\",\"value\":\"after\"}]",
+    "initialVariables" : {
+      "amount" : 42,
+      "flag" : "before"
+    },
+    "status" : 201,
+    "responseBody" : "",
+    "afterEnqueue" : {
+      "amount" : 42,
+      "flag" : "before"
+    },
+    "queuedJobs" : 1,
+    "afterExecution" : {
+      "amount" : 42,
+      "flag" : "after"
+    }
+  }, {
+    "name" : "process-instances/PUT-single",
+    "method" : "PUT",
+    "path" : "/service/runtime/process-instances/{instanceId}/variables-async/flag",
+    "requestBody" : "{\"name\":\"flag\",\"type\":\"string\",\"value\":\"after\"}",
+    "initialVariables" : {
+      "amount" : 42,
+      "flag" : "before"
+    },
+    "status" : 204,
+    "responseBody" : "",
+    "afterEnqueue" : {
+      "amount" : 42,
+      "flag" : "before"
+    },
+    "queuedJobs" : 1,
+    "afterExecution" : {
+      "amount" : 42,
+      "flag" : "after"
+    }
+  }, {
+    "name" : "process-instances/POST-conflict",
+    "method" : "POST",
+    "path" : "/service/runtime/process-instances/{instanceId}/variables-async",
+    "requestBody" : "[{\"name\":\"created\",\"value\":1},{\"name\":\"flag\",\"value\":\"conflict\"}]",
+    "initialVariables" : {
+      "amount" : 42,
+      "flag" : "before"
+    },
+    "status" : 409,
+    "responseBody" : "{\"message\":\"Conflict\",\"exception\":\"Variable 'flag' is already present on execution '{instanceId}'.\"}",
+    "afterEnqueue" : {
+      "amount" : 42,
+      "flag" : "before"
+    },
+    "queuedJobs" : 0,
+    "afterExecution" : {
+      "amount" : 42,
+      "flag" : "before"
+    }
+  }, {
+    "name" : "process-instances/PUT-name-mismatch",
+    "method" : "PUT",
+    "path" : "/service/runtime/process-instances/{instanceId}/variables-async/flag",
+    "requestBody" : "{\"name\":\"other\",\"value\":\"bad\"}",
+    "initialVariables" : {
+      "amount" : 42,
+      "flag" : "before"
+    },
+    "status" : 400,
+    "responseBody" : "{\"message\":\"Bad request\",\"exception\":\"Variable name in the body should be equal to the name used in the requested URL.\"}",
+    "afterEnqueue" : {
+      "amount" : 42,
+      "flag" : "before"
+    },
+    "queuedJobs" : 0,
+    "afterExecution" : {
+      "amount" : 42,
+      "flag" : "before"
+    }
+  }, {
+    "name" : "process-instances/POST-object",
+    "method" : "POST",
+    "path" : "/service/runtime/process-instances/{instanceId}/variables-async",
+    "requestBody" : "{\"name\":\"created\",\"value\":1}",
+    "initialVariables" : {
+      "amount" : 42,
+      "flag" : "before"
+    },
+    "status" : 400,
+    "responseBody" : "{\"message\":\"Bad request\",\"exception\":\"Failed to serialize to a RestVariable instance\"}",
+    "afterEnqueue" : {
+      "amount" : 42,
+      "flag" : "before"
+    },
+    "queuedJobs" : 0,
+    "afterExecution" : {
+      "amount" : 42,
+      "flag" : "before"
+    }
+  }, {
+    "name" : "process-instances/POST-empty",
+    "method" : "POST",
+    "path" : "/service/runtime/process-instances/{instanceId}/variables-async",
+    "requestBody" : "[]",
+    "initialVariables" : {
+      "amount" : 42,
+      "flag" : "before"
+    },
+    "status" : 400,
+    "responseBody" : "{\"message\":\"Bad request\",\"exception\":\"Request did not contain a list of variables to create.\"}",
+    "afterEnqueue" : {
+      "amount" : 42,
+      "flag" : "before"
+    },
+    "queuedJobs" : 0,
+    "afterExecution" : {
+      "amount" : 42,
+      "flag" : "before"
+    }
+  }, {
+    "name" : "executions/POST",
+    "method" : "POST",
+    "path" : "/service/runtime/executions/{instanceId}/variables-async",
+    "requestBody" : "[{\"name\":\"created\",\"type\":\"long\",\"value\":9007199254740993}]",
+    "initialVariables" : {
+      "amount" : 42,
+      "flag" : "before"
+    },
+    "status" : 204,
+    "responseBody" : "",
+    "afterEnqueue" : {
+      "amount" : 42,
+      "flag" : "before"
+    },
+    "queuedJobs" : 1,
+    "afterExecution" : {
+      "amount" : 42,
+      "flag" : "before",
+      "created" : 9007199254740993
+    }
+  }, {
+    "name" : "executions/PUT",
+    "method" : "PUT",
+    "path" : "/service/runtime/executions/{instanceId}/variables-async",
+    "requestBody" : "[{\"name\":\"flag\",\"type\":\"string\",\"value\":\"after\"}]",
+    "initialVariables" : {
+      "amount" : 42,
+      "flag" : "before"
+    },
+    "status" : 204,
+    "responseBody" : "",
+    "afterEnqueue" : {
+      "amount" : 42,
+      "flag" : "before"
+    },
+    "queuedJobs" : 1,
+    "afterExecution" : {
+      "amount" : 42,
+      "flag" : "after"
+    }
+  }, {
+    "name" : "executions/PUT-single",
+    "method" : "PUT",
+    "path" : "/service/runtime/executions/{instanceId}/variables-async/flag",
+    "requestBody" : "{\"name\":\"flag\",\"type\":\"string\",\"value\":\"after\"}",
+    "initialVariables" : {
+      "amount" : 42,
+      "flag" : "before"
+    },
+    "status" : 204,
+    "responseBody" : "",
+    "afterEnqueue" : {
+      "amount" : 42,
+      "flag" : "before"
+    },
+    "queuedJobs" : 1,
+    "afterExecution" : {
+      "amount" : 42,
+      "flag" : "after"
+    }
+  }, {
+    "name" : "executions/POST-conflict",
+    "method" : "POST",
+    "path" : "/service/runtime/executions/{instanceId}/variables-async",
+    "requestBody" : "[{\"name\":\"created\",\"value\":1},{\"name\":\"flag\",\"value\":\"conflict\"}]",
+    "initialVariables" : {
+      "amount" : 42,
+      "flag" : "before"
+    },
+    "status" : 409,
+    "responseBody" : "{\"message\":\"Conflict\",\"exception\":\"Variable 'flag' is already present on execution '{instanceId}'.\"}",
+    "afterEnqueue" : {
+      "amount" : 42,
+      "flag" : "before"
+    },
+    "queuedJobs" : 0,
+    "afterExecution" : {
+      "amount" : 42,
+      "flag" : "before"
+    }
+  }, {
+    "name" : "executions/PUT-name-mismatch",
+    "method" : "PUT",
+    "path" : "/service/runtime/executions/{instanceId}/variables-async/flag",
+    "requestBody" : "{\"name\":\"other\",\"value\":\"bad\"}",
+    "initialVariables" : {
+      "amount" : 42,
+      "flag" : "before"
+    },
+    "status" : 400,
+    "responseBody" : "{\"message\":\"Bad request\",\"exception\":\"Variable name in the body should be equal to the name used in the requested URL.\"}",
+    "afterEnqueue" : {
+      "amount" : 42,
+      "flag" : "before"
+    },
+    "queuedJobs" : 0,
+    "afterExecution" : {
+      "amount" : 42,
+      "flag" : "before"
+    }
+  }, {
+    "name" : "executions/POST-object",
+    "method" : "POST",
+    "path" : "/service/runtime/executions/{instanceId}/variables-async",
+    "requestBody" : "{\"name\":\"created\",\"value\":1}",
+    "initialVariables" : {
+      "amount" : 42,
+      "flag" : "before"
+    },
+    "status" : 400,
+    "responseBody" : "{\"message\":\"Bad request\",\"exception\":\"Failed to serialize to a RestVariable instance\"}",
+    "afterEnqueue" : {
+      "amount" : 42,
+      "flag" : "before"
+    },
+    "queuedJobs" : 0,
+    "afterExecution" : {
+      "amount" : 42,
+      "flag" : "before"
+    }
+  }, {
+    "name" : "executions/POST-empty",
+    "method" : "POST",
+    "path" : "/service/runtime/executions/{instanceId}/variables-async",
+    "requestBody" : "[]",
+    "initialVariables" : {
+      "amount" : 42,
+      "flag" : "before"
+    },
+    "status" : 400,
+    "responseBody" : "{\"message\":\"Bad request\",\"exception\":\"Request did not contain a list of variables to create.\"}",
+    "afterEnqueue" : {
+      "amount" : 42,
+      "flag" : "before"
+    },
+    "queuedJobs" : 0,
+    "afterExecution" : {
+      "amount" : 42,
+      "flag" : "before"
+    }
+  } ]
+}

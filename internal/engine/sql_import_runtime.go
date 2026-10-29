@@ -155,6 +155,7 @@ func (e *Engine) ImportRuntimeRows(ctx context.Context, rows []flowablerow.Row) 
 				due = *job.DueDate
 			}
 			e.state.Jobs[job.ID] = &jobState{
+				VariablePayload:     append([]byte(nil), job.VariablePayload...),
 				ID:                  job.ID,
 				Type:                job.Type,
 				ProcessInstanceID:   job.ProcessInstanceID,
@@ -176,6 +177,7 @@ func (e *Engine) ImportRuntimeRows(ctx context.Context, rows []flowablerow.Row) 
 				due = *job.DueDate
 			}
 			e.state.DeadLetters[job.ID] = &jobState{
+				VariablePayload:     append([]byte(nil), job.VariablePayload...),
 				ID:                  job.ID,
 				Type:                job.Type,
 				ProcessInstanceID:   job.ProcessInstanceID,

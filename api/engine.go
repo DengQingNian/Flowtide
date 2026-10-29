@@ -212,6 +212,11 @@ type StartRequest struct {
 
 // RuntimeService 提供流程实例与变量操作。
 type RuntimeService interface {
+	// SetVariablesAsync 在命令事务中排队变量更新，由作业执行器异步应用。
+	// @param ctx 上下文
+	// @param request 变量更新及请求阶段校验条件
+	// @return 排队错误
+	SetVariablesAsync(ctx context.Context, request AsyncVariableRequest) error
 	// StartProcessInstance 启动流程实例。
 	// @param ctx 上下文
 	// @param req 启动请求

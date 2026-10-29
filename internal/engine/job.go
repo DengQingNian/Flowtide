@@ -10,6 +10,7 @@ import (
 
 	"github.com/flowable-go/flowable/api"
 	"github.com/flowable-go/flowable/bpmn/model"
+	"github.com/flowable-go/flowable/internal/tenant"
 )
 
 // RunDueJobs 执行全部到期作业。
@@ -46,6 +47,10 @@ func (e *Engine) dueJobIDs(ctx context.Context) ([]string, error) {
 		due := make([]dueJob, 0)
 		now := e.cfg.Clock.Now()
 		for _, job := range e.state.Jobs {
+			// HTTP 请求始终显式绑定租户；后台无绑定扫描可处理全库，但不能让租户管理接口越权执行。
+			if tenant.Bound(ctx) && e.allowJob(ctx, job) != nil {
+				continue
+			}
 			if job.DueDate.After(now) {
 				continue
 			}
@@ -84,6 +89,19 @@ func (e *Engine) runOneJob(ctx context.Context, jobID string) (int, error) {
 		job, ok := e.state.Jobs[jobID]
 		if !ok {
 			return 0, nil
+		}
+		if tenant.Bound(ctx) && e.allowJob(ctx, job) != nil {
+			return 0, nil
+		}
+		// 选择和执行分属两次加锁，实例可能在两者之间挂起，必须在执行事务内复核。
+		if instance, exists := e.state.Instances[job.ProcessInstanceID]; exists && instance.Suspended {
+			return 0, nil
+		}
+		// 后台跨租户扫描进入具体作业后绑定资源租户，确保定时启动和条件续跑沿用正确归属。
+		if instance, exists := e.state.Instances[job.ProcessInstanceID]; exists {
+			cc.ctx = tenant.With(cc.ctx, instance.TenantID)
+		} else if definition, exists := e.state.Definitions[job.ProcessDefinitionID]; exists {
+			cc.ctx = tenant.With(cc.ctx, definition.Info.TenantID)
 		}
 		backup := cloneState(e.state)
 		delete(e.state.Jobs, job.ID)
@@ -133,6 +151,8 @@ func (e *Engine) handleJobFailure(job *jobState, err error, now time.Time) {
 // @return 触发错误
 func (e *Engine) triggerJob(cc *commandContext, job *jobState) error {
 	switch job.Type {
+	case "variable-update":
+		return e.applyAsyncVariables(cc, job)
 	case "async-before":
 		execution, ok := e.findExecution(job.ExecutionID)
 		if !ok || execution.Ended {

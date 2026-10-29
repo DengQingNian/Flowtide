@@ -371,7 +371,7 @@ func (e *Engine) runtimeRowsLocked() ([]flowablerow.Row, error) {
 		return nil, err
 	}
 	rows = append(rows, controls...)
-	return expandVariableRows(e.normalizeExecutionReferences(rows))
+	return expandVariableRows(e.normalizeExecutionReferences(e.asyncVariableRows(rows)))
 }
 
 // runtimeRow 创建带插入列的行。

@@ -10,6 +10,15 @@ type Variable struct {
 	Scope string `json:"scope,omitempty"` // global 或 local
 }
 
+// AsyncVariableRequest 是事务内持久排队的变量更新请求；实例和执行标识必须二选一。
+type AsyncVariableRequest struct {
+	ProcessInstanceID string     // 实例标识，变量写入实例根作用域并忽略变量 scope
+	ExecutionID       string     // 执行标识，支持统一的 local 或 global 作用域
+	Variables         []Variable // 同一作业原子更新的变量
+	CreateOnly        bool       // 排队前拒绝已存在的变量，对应集合 POST
+	RequireExisting   bool       // 排队前要求变量存在，对应单变量 PUT
+}
+
 // DeploymentRequest 是部署请求。
 type DeploymentRequest struct {
 	Name      string            // 部署名称

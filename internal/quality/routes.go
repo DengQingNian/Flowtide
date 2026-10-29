@@ -10,7 +10,7 @@ import (
 // RouteReport 对照官方规范和实现生成以方法及规范化路径为主键的清单。
 // @param specification 已固定的上游规范
 // @param implementation 路由源代码
-// @param differences 已声明的部分支持差异
+// @param differences 已声明的兼容验收状态与差异
 // @return 可重复生成的中文端点表
 func RouteReport(specification, implementation string, differences map[string]string) string {
 	official := make(map[string]string)

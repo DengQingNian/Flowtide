@@ -1,8 +1,8 @@
 {
-  "POST /runtime/process-instances/{}/variables-async": "部分支持：当前同步执行，未提供异步时序与重试语义",
-  "POST /runtime/executions/{}/variables-async": "部分支持：当前同步执行，未提供异步时序与重试语义",
-  "PUT /runtime/process-instances/{}/variables-async": "部分支持：当前同步执行，未提供异步时序与重试语义",
-  "PUT /runtime/process-instances/{}/variables-async/{}": "部分支持：当前同步执行，未提供异步时序与重试语义",
-  "PUT /runtime/executions/{}/variables-async": "部分支持：当前同步执行，未提供异步时序与重试语义",
-  "PUT /runtime/executions/{}/variables-async/{}": "部分支持：当前同步执行，未提供异步时序与重试语义"
+  "POST /runtime/process-instances/{}/variables-async": "持久异步已验收：单执行者重试与恢复；Java原版HTTP场景通过",
+  "POST /runtime/executions/{}/variables-async": "持久异步已验收：单执行者重试与恢复；Java原版HTTP场景通过；原版204与OpenAPI标记201不同",
+  "PUT /runtime/process-instances/{}/variables-async": "持久异步已验收：单执行者重试与恢复；Java原版HTTP场景通过",
+  "PUT /runtime/process-instances/{}/variables-async/{}": "持久异步已验收：单执行者重试与恢复；Java原版HTTP场景通过",
+  "PUT /runtime/executions/{}/variables-async": "持久异步已验收：单执行者重试与恢复；Java原版HTTP场景通过；原版204与OpenAPI标记201不同",
+  "PUT /runtime/executions/{}/variables-async/{}": "持久异步已验收：单执行者重试与恢复；Java原版HTTP场景通过"
 }

@@ -71,22 +71,23 @@ type executionState struct {
 
 // jobState 是定时器作业。
 type jobState struct {
-	ID                  string    `json:"id"`                   // 作业 ID
-	Type                string    `json:"type"`                 // 作业类型：boundary-timer/async-before/async-after
-	ProcessInstanceID   string    `json:"processInstanceId"`    // 流程实例 ID
-	ProcessDefinitionID string    `json:"processDefinitionId"`  // 流程定义 ID（启动定时器）
-	ExecutionID         string    `json:"executionId"`          // 执行 ID
-	BoundaryEventID     string    `json:"boundaryEventId"`      // 边界事件 ID
-	ActivityID          string    `json:"activityId"`           // 依附活动 ID
-	CancelActivity      bool      `json:"cancelActivity"`       // 是否中断
-	Retries             int       `json:"retries"`              // 剩余重试次数
-	RepeatRemaining     int       `json:"repeatRemaining"`      // 剩余重复次数
-	RepeatInfinite      bool      `json:"repeatInfinite"`       // 是否无限重复
-	IntervalMillis      int64     `json:"intervalMillis"`       // 重复间隔毫秒
-	Exception           string    `json:"exception,omitempty"`  // 最近异常
-	DueDate             time.Time `json:"dueDate"`              // 到期时间
-	CreatedAt           time.Time `json:"createdAt"`            // 创建时间
-	Executable          bool      `json:"executable,omitempty"` // 是否已被移入可执行作业桶
+	ID                  string    `json:"id"`                        // 作业 ID
+	Type                string    `json:"type"`                      // 作业类型：boundary-timer/async-before/async-after
+	ProcessInstanceID   string    `json:"processInstanceId"`         // 流程实例 ID
+	ProcessDefinitionID string    `json:"processDefinitionId"`       // 流程定义 ID（启动定时器）
+	ExecutionID         string    `json:"executionId"`               // 执行 ID
+	BoundaryEventID     string    `json:"boundaryEventId"`           // 边界事件 ID
+	ActivityID          string    `json:"activityId"`                // 依附活动 ID
+	CancelActivity      bool      `json:"cancelActivity"`            // 是否中断
+	Retries             int       `json:"retries"`                   // 剩余重试次数
+	RepeatRemaining     int       `json:"repeatRemaining"`           // 剩余重复次数
+	RepeatInfinite      bool      `json:"repeatInfinite"`            // 是否无限重复
+	IntervalMillis      int64     `json:"intervalMillis"`            // 重复间隔毫秒
+	Exception           string    `json:"exception,omitempty"`       // 最近异常
+	DueDate             time.Time `json:"dueDate"`                   // 到期时间
+	CreatedAt           time.Time `json:"createdAt"`                 // 创建时间
+	Executable          bool      `json:"executable,omitempty"`      // 是否已被移入可执行作业桶
+	VariablePayload     []byte    `json:"variablePayload,omitempty"` // 明确类型编码的异步变量载荷，行模式外置到字节表
 }
 
 // subscriptionState 是消息/信号订阅。
@@ -277,10 +278,12 @@ func cloneState(source *state) *state {
 	}
 	for id, job := range source.Jobs {
 		copied := *job
+		copied.VariablePayload = append([]byte(nil), job.VariablePayload...)
 		target.Jobs[id] = &copied
 	}
 	for id, job := range source.DeadLetters {
 		copied := *job
+		copied.VariablePayload = append([]byte(nil), job.VariablePayload...)
 		target.DeadLetters[id] = &copied
 	}
 	for id, subscription := range source.Subscriptions {

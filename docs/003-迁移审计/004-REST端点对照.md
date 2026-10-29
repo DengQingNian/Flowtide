@@ -200,7 +200,7 @@
 | `POST /repository/process-definitions/{}/migrate` | `/repository/process-definitions/{processDefinitionId}/migrate` | `/repository/process-definitions/{id}/migrate` | 已编码；待契约与 Java 行为验收 |
 | `POST /runtime/executions/{}/change-state` | `/runtime/executions/{executionId}/change-state` | `/runtime/executions/{id}/change-state` | 已编码；待契约与 Java 行为验收 |
 | `POST /runtime/executions/{}/variables` | `/runtime/executions/{executionId}/variables` | `/runtime/executions/{id}/variables` | 已编码；待契约与 Java 行为验收 |
-| `POST /runtime/executions/{}/variables-async` | `` | `/runtime/executions/{id}/variables-async` | 部分支持：当前同步执行，未提供异步时序与重试语义 |
+| `POST /runtime/executions/{}/variables-async` | `` | `/runtime/executions/{id}/variables-async` | 持久异步已验收：单执行者重试与恢复；Java原版HTTP场景通过；原版204与OpenAPI标记201不同 |
 | `POST /runtime/messages` | `` | `/runtime/messages` | 实现扩展；不计入官方覆盖 |
 | `POST /runtime/process-instances` | `/runtime/process-instances` | `/runtime/process-instances` | 已编码；待契约与 Java 行为验收 |
 | `POST /runtime/process-instances/delete` | `` | `/runtime/process-instances/delete` | 实现扩展；不计入官方覆盖 |
@@ -213,7 +213,7 @@
 | `POST /runtime/process-instances/{}/migrate` | `/runtime/process-instances/{processInstanceId}/migrate` | `/runtime/process-instances/{id}/migrate` | 已编码；待契约与 Java 行为验收 |
 | `POST /runtime/process-instances/{}/validate-migration` | `` | `/runtime/process-instances/{id}/validate-migration` | 实现扩展；不计入官方覆盖 |
 | `POST /runtime/process-instances/{}/variables` | `/runtime/process-instances/{processInstanceId}/variables` | `/runtime/process-instances/{id}/variables` | 已编码；待契约与 Java 行为验收 |
-| `POST /runtime/process-instances/{}/variables-async` | `` | `/runtime/process-instances/{id}/variables-async` | 部分支持：当前同步执行，未提供异步时序与重试语义 |
+| `POST /runtime/process-instances/{}/variables-async` | `` | `/runtime/process-instances/{id}/variables-async` | 持久异步已验收：单执行者重试与恢复；Java原版HTTP场景通过 |
 | `POST /runtime/signals` | `/runtime/signals` | `/runtime/signals` | 已编码；待契约与 Java 行为验收 |
 | `POST /runtime/tasks` | `/runtime/tasks` | `/runtime/tasks` | 已编码；待契约与 Java 行为验收 |
 | `POST /runtime/tasks/{}` | `/runtime/tasks/{taskId}` | `/runtime/tasks/{id}` | 已编码；待契约与 Java 行为验收 |
@@ -236,13 +236,13 @@
 | `PUT /runtime/executions` | `/runtime/executions` | `/runtime/executions` | 已编码；待契约与 Java 行为验收 |
 | `PUT /runtime/executions/{}` | `/runtime/executions/{executionId}` | `/runtime/executions/{id}` | 已编码；待契约与 Java 行为验收 |
 | `PUT /runtime/executions/{}/variables` | `/runtime/executions/{executionId}/variables` | `/runtime/executions/{id}/variables` | 已编码；待契约与 Java 行为验收 |
-| `PUT /runtime/executions/{}/variables-async` | `` | `/runtime/executions/{id}/variables-async` | 部分支持：当前同步执行，未提供异步时序与重试语义 |
-| `PUT /runtime/executions/{}/variables-async/{}` | `` | `/runtime/executions/{id}/variables-async/{name}` | 部分支持：当前同步执行，未提供异步时序与重试语义 |
+| `PUT /runtime/executions/{}/variables-async` | `` | `/runtime/executions/{id}/variables-async` | 持久异步已验收：单执行者重试与恢复；Java原版HTTP场景通过；原版204与OpenAPI标记201不同 |
+| `PUT /runtime/executions/{}/variables-async/{}` | `` | `/runtime/executions/{id}/variables-async/{name}` | 持久异步已验收：单执行者重试与恢复；Java原版HTTP场景通过 |
 | `PUT /runtime/executions/{}/variables/{}` | `/runtime/executions/{executionId}/variables/{variableName}` | `/runtime/executions/{id}/variables/{name}` | 已编码；待契约与 Java 行为验收 |
 | `PUT /runtime/process-instances/{}` | `/runtime/process-instances/{processInstanceId}` | `/runtime/process-instances/{id}` | 已编码；待契约与 Java 行为验收 |
 | `PUT /runtime/process-instances/{}/variables` | `/runtime/process-instances/{processInstanceId}/variables` | `/runtime/process-instances/{id}/variables` | 已编码；待契约与 Java 行为验收 |
-| `PUT /runtime/process-instances/{}/variables-async` | `` | `/runtime/process-instances/{id}/variables-async` | 部分支持：当前同步执行，未提供异步时序与重试语义 |
-| `PUT /runtime/process-instances/{}/variables-async/{}` | `` | `/runtime/process-instances/{id}/variables-async/{name}` | 部分支持：当前同步执行，未提供异步时序与重试语义 |
+| `PUT /runtime/process-instances/{}/variables-async` | `` | `/runtime/process-instances/{id}/variables-async` | 持久异步已验收：单执行者重试与恢复；Java原版HTTP场景通过 |
+| `PUT /runtime/process-instances/{}/variables-async/{}` | `` | `/runtime/process-instances/{id}/variables-async/{name}` | 持久异步已验收：单执行者重试与恢复；Java原版HTTP场景通过 |
 | `PUT /runtime/process-instances/{}/variables/{}` | `/runtime/process-instances/{processInstanceId}/variables/{variableName}` | `/runtime/process-instances/{id}/variables/{name}` | 已编码；待契约与 Java 行为验收 |
 | `PUT /runtime/tasks` | `` | `/runtime/tasks` | 实现扩展；不计入官方覆盖 |
 | `PUT /runtime/tasks/{}` | `/runtime/tasks/{taskId}` | `/runtime/tasks/{id}` | 已编码；待契约与 Java 行为验收 |

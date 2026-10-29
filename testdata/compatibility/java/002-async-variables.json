@@ -1,0 +1,69 @@
+{
+  "baseline" : "f6017e32a4bdd3e59a8881f58b0ee181652d1d9e",
+  "database" : "h2",
+  "historyLevel" : "full",
+  "asyncExecutorActive" : false,
+  "configurationClassSha256" : "e0746e8d8da5f741743d220a6667b90ce18cd0034130121c468940c078c05f3f",
+  "payload" : {
+    "amount" : 9007199254740993,
+    "status" : "after",
+    "binary" : {
+      "$bytes" : "AAH/"
+    },
+    "date" : {
+      "$date" : "2026-01-02T03:04:05.123Z"
+    },
+    "text" : "异步变量中文"
+  },
+  "cases" : [ {
+    "method" : "setVariablesAsync",
+    "before" : {
+      "amount" : 42,
+      "status" : "before"
+    },
+    "detailsBefore" : 2,
+    "afterEnqueue" : {
+      "amount" : 42,
+      "status" : "before"
+    },
+    "queuedJobs" : 1,
+    "afterExecution" : {
+      "date" : {
+        "$date" : "2026-01-02T03:04:05.123Z"
+      },
+      "amount" : 9007199254740993,
+      "binary" : {
+        "$bytes" : "AAH/"
+      },
+      "text" : "异步变量中文",
+      "status" : "after"
+    },
+    "remainingJobs" : 0,
+    "detailsAfter" : 7
+  }, {
+    "method" : "setVariablesLocalAsync",
+    "before" : {
+      "amount" : 42,
+      "status" : "before"
+    },
+    "detailsBefore" : 2,
+    "afterEnqueue" : {
+      "amount" : 42,
+      "status" : "before"
+    },
+    "queuedJobs" : 1,
+    "afterExecution" : {
+      "date" : {
+        "$date" : "2026-01-02T03:04:05.123Z"
+      },
+      "amount" : 9007199254740993,
+      "binary" : {
+        "$bytes" : "AAH/"
+      },
+      "text" : "异步变量中文",
+      "status" : "after"
+    },
+    "remainingJobs" : 0,
+    "detailsAfter" : 7
+  } ]
+}

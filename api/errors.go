@@ -1,7 +1,10 @@
 // Package api 定义流程引擎的公共类型与服务接口。
 package api
 
-import "errors"
+import (
+	"errors"
+	"fmt"
+)
 
 // 公共错误哨兵，调用方可用 errors.Is 判断错误类别。
 var (
@@ -20,6 +23,22 @@ var (
 	// ErrEngineClosed 表示引擎已关闭。
 	ErrEngineClosed = errors.New("引擎已关闭")
 )
+
+// VariableConflictError 提供变量创建冲突的结构化位置，供调用方生成对应协议的错误响应。
+type VariableConflictError struct {
+	Name        string // 冲突的变量名称
+	ExecutionID string // 请求操作的执行标识
+}
+
+// Error 返回变量冲突的中文说明。
+// @return 错误文本
+func (e *VariableConflictError) Error() string {
+	return fmt.Sprintf("执行 %s 的变量 %s 已存在", e.ExecutionID, e.Name)
+}
+
+// Unwrap 保持公共冲突哨兵语义，便于跨协议判断错误类别。
+// @return 冲突错误哨兵
+func (e *VariableConflictError) Unwrap() error { return ErrConflict }
 
 // Error 是引擎统一错误类型，携带稳定错误码与底层原因。
 type Error struct {
