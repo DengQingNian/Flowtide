@@ -10,3 +10,5 @@ coverage.out
 bin/
 data/
 .env
+docs-site/pnpm-workspace.yaml
+docs-site/pnpm-lock.yaml
