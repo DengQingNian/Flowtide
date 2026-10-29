@@ -94,14 +94,22 @@ func (e *Engine) restoreRows(ctx context.Context, rows []flowablerow.Row) error 
 	repositoryRows := make([]flowablerow.Row, 0)
 	runtimeRows := make([]flowablerow.Row, 0)
 	historicRows := make([]flowablerow.Row, 0)
+	identityRows := make([]flowablerow.Row, 0)
 	for _, row := range rows {
 		switch {
+		case strings.HasPrefix(row.Table, "ACT_ID_"):
+			identityRows = append(identityRows, row)
 		case strings.HasPrefix(row.Table, "ACT_RE_"), strings.HasPrefix(row.Table, "ACT_GE_"):
 			repositoryRows = append(repositoryRows, row)
 		case strings.HasPrefix(row.Table, "ACT_RU_"):
 			runtimeRows = append(runtimeRows, row)
 		case strings.HasPrefix(row.Table, "ACT_HI_"):
 			historicRows = append(historicRows, row)
+		}
+	}
+	if len(identityRows) > 0 {
+		if err := e.ImportIdentityRows(ctx, identityRows); err != nil {
+			return err
 		}
 	}
 	if len(repositoryRows) > 0 {

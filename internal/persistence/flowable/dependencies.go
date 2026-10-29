@@ -2,6 +2,9 @@ package flowable
 
 // foreignKeys 声明当前支持表的可空外键列与目标表。
 var foreignKeys = map[string]map[string]string{
+	"ACT_ID_MEMBERSHIP":     {"USER_ID_": "ACT_ID_USER", "GROUP_ID_": "ACT_ID_GROUP"},
+	"ACT_ID_USER":           {"PICTURE_ID_": "ACT_ID_BYTEARRAY"},
+	"ACT_ID_INFO":           {"USER_ID_": "ACT_ID_USER", "PARENT_ID_": "ACT_ID_INFO"},
 	"ACT_GE_BYTEARRAY":      {"DEPLOYMENT_ID_": "ACT_RE_DEPLOYMENT"},
 	"ACT_RE_MODEL":          {"DEPLOYMENT_ID_": "ACT_RE_DEPLOYMENT", "EDITOR_SOURCE_VALUE_ID_": "ACT_GE_BYTEARRAY", "EDITOR_SOURCE_EXTRA_VALUE_ID_": "ACT_GE_BYTEARRAY"},
 	"ACT_RE_PROCDEF":        {"DEPLOYMENT_ID_": "ACT_RE_DEPLOYMENT"},

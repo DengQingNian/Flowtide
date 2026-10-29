@@ -12,12 +12,28 @@ import (
 
 // Table 描述一张 ACT_* 表的列。
 type Table struct {
-	Name       string   // 表名
-	Columns    []string // 列顺序
-	PrimaryKey string   // 主键列，缺省为 ID_
+	PrimaryKeys []string // 复合主键列，非空时优先于单列主键
+	Name        string   // 表名
+	Columns     []string // 列顺序
+	PrimaryKey  string   // 主键列，缺省为 ID_
 }
 
 var tables = map[string]Table{
+	"ACT_ID_USER": {
+		Name: "ACT_ID_USER", Columns: []string{"ID_", "REV_", "FIRST_", "LAST_", "DISPLAY_NAME_", "EMAIL_", "PWD_", "PICTURE_ID_", "TENANT_ID_"},
+	},
+	"ACT_ID_GROUP": {
+		Name: "ACT_ID_GROUP", Columns: []string{"ID_", "REV_", "NAME_", "TYPE_"},
+	},
+	"ACT_ID_MEMBERSHIP": {
+		Name: "ACT_ID_MEMBERSHIP", Columns: []string{"USER_ID_", "GROUP_ID_"}, PrimaryKeys: []string{"USER_ID_", "GROUP_ID_"},
+	},
+	"ACT_ID_INFO": {
+		Name: "ACT_ID_INFO", Columns: []string{"ID_", "REV_", "USER_ID_", "TYPE_", "KEY_", "VALUE_", "PASSWORD_", "PARENT_ID_"},
+	},
+	"ACT_ID_BYTEARRAY": {
+		Name: "ACT_ID_BYTEARRAY", Columns: []string{"ID_", "REV_", "NAME_", "BYTES_"},
+	},
 	"ACT_RE_DEPLOYMENT": {
 		Name:    "ACT_RE_DEPLOYMENT",
 		Columns: []string{"ID_", "NAME_", "CATEGORY_", "KEY_", "TENANT_ID_", "DEPLOY_TIME_", "DERIVED_FROM_", "DERIVED_FROM_ROOT_", "PARENT_DEPLOYMENT_ID_", "ENGINE_VERSION_"},
@@ -218,10 +234,13 @@ func (r *Row) UpdateSQL(dialect string, oldRevision int64) (string, []any, error
 	if err := validateDialect(dialect); err != nil {
 		return "", nil, err
 	}
-	key := primaryKey(r.Table)
-	id, ok := r.Values[key]
-	if !ok || id == nil {
-		return "", nil, api.NewError("ROW-0003", "行缺少主键: "+key, api.ErrBadRequest)
+	keys := primaryKeys(r.Table)
+	keySet := make(map[string]bool, len(keys))
+	for _, key := range keys {
+		if value, exists := r.Values[key]; !exists || value == nil {
+			return "", nil, api.NewError("ROW-0003", "行缺少主键: "+key, api.ErrBadRequest)
+		}
+		keySet[key] = true
 	}
 	versioned := tableHasColumn(r.Table, "REV_")
 	if _, exists := r.Values["REV_"]; versioned && !exists {
@@ -231,7 +250,7 @@ func (r *Row) UpdateSQL(dialect string, oldRevision int64) (string, []any, error
 	args := make([]any, 0)
 	// 跳过主键后按实际参数数编号，避免 PostgreSQL 缺号或复用参数。
 	for _, column := range r.insertColumns() {
-		if column == key {
+		if keySet[column] {
 			continue
 		}
 		value := r.Values[column]
@@ -244,8 +263,12 @@ func (r *Row) UpdateSQL(dialect string, oldRevision int64) (string, []any, error
 	if len(assignments) == 0 {
 		return "", nil, api.NewError("ROW-0007", "没有可更新的列", api.ErrBadRequest)
 	}
-	args = append(args, id)
-	query := fmt.Sprintf("UPDATE %s SET %s WHERE %s = %s", r.Table, strings.Join(assignments, ", "), key, placeholder(dialect, len(args)))
+	conditions := make([]string, 0, len(keys))
+	for _, key := range keys {
+		args = append(args, r.Values[key])
+		conditions = append(conditions, key+" = "+placeholder(dialect, len(args)))
+	}
+	query := fmt.Sprintf("UPDATE %s SET %s WHERE %s", r.Table, strings.Join(assignments, ", "), strings.Join(conditions, " AND "))
 	if versioned {
 		args = append(args, oldRevision)
 		query += " AND REV_ = " + placeholder(dialect, len(args))
@@ -279,18 +302,34 @@ func (r *Row) DeleteSQL(dialect string) (string, []any, error) {
 	if err := validateDialect(dialect); err != nil {
 		return "", nil, err
 	}
-	key := primaryKey(r.Table)
-	id, ok := r.Values[key]
-	if !ok || id == nil {
-		return "", nil, api.NewError("ROW-0003", "行缺少主键: "+key, api.ErrBadRequest)
+	keys := primaryKeys(r.Table)
+	conditions := make([]string, 0, len(keys))
+	args := make([]any, 0, len(keys)+1)
+	// 复合主键必须包含全部分量，不能用第一列扩大删除范围。
+	for _, key := range keys {
+		value, exists := r.Values[key]
+		if !exists || value == nil {
+			return "", nil, api.NewError("ROW-0003", "行缺少主键: "+key, api.ErrBadRequest)
+		}
+		args = append(args, value)
+		conditions = append(conditions, key+" = "+placeholder(dialect, len(args)))
 	}
-	query := fmt.Sprintf("DELETE FROM %s WHERE %s = %s", r.Table, key, placeholder(dialect, 1))
-	args := []any{id}
+	query := fmt.Sprintf("DELETE FROM %s WHERE %s", r.Table, strings.Join(conditions, " AND "))
 	if revision, ok := revisionValue(*r); ok {
-		query += " AND REV_ = " + placeholder(dialect, 2)
 		args = append(args, revision)
+		query += " AND REV_ = " + placeholder(dialect, len(args))
 	}
 	return query, args, nil
+}
+
+// primaryKeys 返回实际主键的全部列，兼容既有单列主键表。
+// @param table 表名
+// @return 独立的主键列列表
+func primaryKeys(table string) []string {
+	if keys := tables[table].PrimaryKeys; len(keys) > 0 {
+		return append([]string(nil), keys...)
+	}
+	return []string{primaryKey(table)}
 }
 
 // primaryKey 返回当前支持表的实际主键列。

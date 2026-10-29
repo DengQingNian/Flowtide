@@ -94,9 +94,10 @@ func (e *Engine) DeleteUser(ctx context.Context, userID string) error {
 		}
 		delete(e.state.Users, userID)
 		delete(e.state.UserInfo, userID)
+		delete(e.state.UserInfoIDs, userID)
 		delete(e.state.UserPictures, userID)
 		for key := range e.state.Memberships {
-			if strings.HasPrefix(key, userID+"|") {
+			if user, _, valid := membershipPair(key); valid && user == userID {
 				delete(e.state.Memberships, key)
 			}
 		}
@@ -264,7 +265,12 @@ func (e *Engine) SetUserPicture(ctx context.Context, userID string, data []byte,
 		if strings.TrimSpace(mimeType) == "" {
 			mimeType = "image/jpeg"
 		}
+		pictureID := ""
+		if previous := e.state.UserPictures[userID]; previous != nil {
+			pictureID = previous.ID
+		}
 		e.state.UserPictures[userID] = &userPictureState{
+			ID:       pictureID,
 			Data:     append([]byte(nil), data...),
 			MimeType: mimeType,
 		}
@@ -370,7 +376,7 @@ func (e *Engine) DeleteGroup(ctx context.Context, groupID string) error {
 		}
 		delete(e.state.Groups, groupID)
 		for key := range e.state.Memberships {
-			if strings.HasSuffix(key, "|"+groupID) {
+			if _, group, valid := membershipPair(key); valid && group == groupID {
 				delete(e.state.Memberships, key)
 			}
 		}
@@ -392,7 +398,11 @@ func (e *Engine) AddMembership(ctx context.Context, userID, groupID string) erro
 		if _, ok := e.state.Groups[groupID]; !ok {
 			return nil, api.NewError("ENGINE-0404", "组不存在", api.ErrNotFound)
 		}
-		e.state.Memberships[userID+"|"+groupID] = true
+		e.state.Memberships[membershipKey(userID, groupID)] = true
+		// 普通旧格式关系在写入新格式后移除，防止同一关系被列表返回两次。
+		if user, group, valid := membershipPair(userID + "|" + groupID); valid && user == userID && group == groupID {
+			delete(e.state.Memberships, userID+"|"+groupID)
+		}
 		return nil, nil
 	})
 	return err
@@ -405,7 +415,10 @@ func (e *Engine) AddMembership(ctx context.Context, userID, groupID string) erro
 // @return 移除错误
 func (e *Engine) RemoveMembership(ctx context.Context, userID, groupID string) error {
 	_, err := e.execute(ctx, func(cc *commandContext) (any, error) {
-		delete(e.state.Memberships, userID+"|"+groupID)
+		delete(e.state.Memberships, membershipKey(userID, groupID))
+		if user, group, valid := membershipPair(userID + "|" + groupID); valid && user == userID && group == groupID {
+			delete(e.state.Memberships, userID+"|"+groupID)
+		}
 		return nil, nil
 	})
 	return err
@@ -420,11 +433,11 @@ func (e *Engine) ListMembers(ctx context.Context, groupID string) ([]api.User, e
 	result, err := e.read(func() (any, error) {
 		out := make([]api.User, 0)
 		for key := range e.state.Memberships {
-			parts := strings.SplitN(key, "|", 2)
-			if len(parts) != 2 || parts[1] != groupID {
+			user, group, valid := membershipPair(key)
+			if !valid || group != groupID {
 				continue
 			}
-			if user, ok := e.state.Users[parts[0]]; ok {
+			if user, ok := e.state.Users[user]; ok {
 				out = append(out, *user)
 			}
 		}
@@ -686,12 +699,11 @@ func (e *Engine) DeleteRole(ctx context.Context, roleID string) error {
 func (e *Engine) ListUserGroups(ctx context.Context, userID string) ([]api.Group, error) {
 	result, err := e.read(func() (any, error) {
 		out := make([]api.Group, 0)
-		prefix := userID + "|"
 		for key := range e.state.Memberships {
-			if !strings.HasPrefix(key, prefix) {
+			user, groupID, valid := membershipPair(key)
+			if !valid || user != userID {
 				continue
 			}
-			groupID := strings.TrimPrefix(key, prefix)
 			if group, ok := e.state.Groups[groupID]; ok {
 				out = append(out, *group)
 			}

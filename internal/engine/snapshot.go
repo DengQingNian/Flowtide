@@ -60,6 +60,7 @@ type snapshot struct {
 	AttachmentContents map[string]*attachmentContentState `json:"attachmentContents"`    // 附件内容
 	Users              []*api.User                        `json:"users"`                 // 用户
 	UserInfo           map[string]map[string]*string      `json:"userInfo"`              // 用户信息
+	UserInfoIDs        map[string]map[string]string       `json:"userInfoIds,omitempty"` // 用户信息标准行标识
 	UserPictures       map[string]*userPictureState       `json:"userPictures"`          // 用户头像
 	Groups             []*api.Group                       `json:"groups"`                // 组
 	Roles              []*api.Role                        `json:"roles"`                 // 角色
@@ -147,6 +148,7 @@ func (e *Engine) toSnapshot() *snapshot {
 		out.Users = append(out.Users, user)
 	}
 	out.UserInfo = e.state.UserInfo
+	out.UserInfoIDs = e.state.UserInfoIDs
 	out.UserPictures = e.state.UserPictures
 	out.Properties = e.state.Properties
 	for _, group := range e.state.Groups {
@@ -296,6 +298,9 @@ func (e *Engine) loadState(ctx context.Context) error {
 	if stored.UserInfo != nil {
 		restored.UserInfo = stored.UserInfo
 	}
+	if stored.UserInfoIDs != nil {
+		restored.UserInfoIDs = stored.UserInfoIDs
+	}
 	if stored.UserPictures != nil {
 		restored.UserPictures = stored.UserPictures
 	}
@@ -309,7 +314,16 @@ func (e *Engine) loadState(ctx context.Context) error {
 		restored.Roles[role.ID] = role
 	}
 	if stored.Memberships != nil {
-		restored.Memberships = stored.Memberships
+		// 旧成员键归一化后再保存，避免与新编码同时出现产生重复关系。
+		for key, enabled := range stored.Memberships {
+			user, group, valid := membershipPair(key)
+			if !valid {
+				return api.NewError("ENGINE-IDM-KEY", "成员关系键非法", api.ErrBadRequest)
+			}
+			if enabled {
+				restored.Memberships[membershipKey(user, group)] = true
+			}
+		}
 	}
 	for key, version := range stored.Versions {
 		restored.Versions[key] = version

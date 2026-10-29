@@ -303,21 +303,20 @@ func mapTaskIDs(tasks map[string]*taskState, ids []string) []*taskState {
 }
 
 // candidateGroupsForUser 从成员关系推导用户所属的候选组。
-// @param memberships 成员关系，key 为"用户|组"
+// @param memberships 成员关系，兼容新复合编码及旧分隔格式
 // @param userID 用户 ID
 // @return 按字典序升序排列的候选组
 func candidateGroupsForUser(memberships map[string]bool, userID string) []string {
 	if userID == "" {
 		return nil
 	}
-	prefix := userID + "|"
 	groups := make([]string, 0)
 	for key := range memberships {
 		// 只保留当前用户的成员关系
-		if !strings.HasPrefix(key, prefix) {
+		user, group, valid := membershipPair(key)
+		if !valid || user != userID {
 			continue
 		}
-		group := strings.TrimPrefix(key, prefix)
 		// 空组名无法对应身份链接，直接忽略
 		if group == "" {
 			continue
@@ -371,7 +370,7 @@ func (e *Engine) matchesTask(task *taskState, filter api.TaskFilter) bool {
 			return true
 		}
 		for _, group := range task.CandidateGroups {
-			if e.state.Memberships[filter.CandidateUser+"|"+group] {
+			if e.hasMembership(filter.CandidateUser, group) {
 				return true
 			}
 		}

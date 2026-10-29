@@ -162,8 +162,9 @@ type attachmentContentState struct {
 
 // userPictureState 是用户头像。
 type userPictureState struct {
-	Data     []byte `json:"data"`     // 图片数据
-	MimeType string `json:"mimeType"` // MIME 类型
+	ID       string `json:"id,omitempty"` // 标准头像字节行标识
+	Data     []byte `json:"data"`         // 图片数据
+	MimeType string `json:"mimeType"`     // MIME 类型
 }
 
 // state 是引擎的全部可变状态。
@@ -193,10 +194,11 @@ type state struct {
 	AttachmentContents map[string]*attachmentContentState       // 附件内容
 	Users              map[string]*api.User                     // 用户
 	UserInfo           map[string]map[string]*string            // 用户信息
+	UserInfoIDs        map[string]map[string]string             // 用户信息标准行标识
 	UserPictures       map[string]*userPictureState             // 用户头像
 	Groups             map[string]*api.Group                    // 组
 	Roles              map[string]*api.Role                     // 角色
-	Memberships        map[string]bool                          // 成员关系，key=user|group
+	Memberships        map[string]bool                          // 成员关系，键为用户与组的复合编码
 	Properties         map[string]string                        // 自定义引擎属性
 	Versions           map[string]int                           // 流程定义 Key 到最大版本
 	// RecordSequenceFlowHistory 表示此状态由 Java 迁移续跑创建，需补记顺序流历史。
@@ -231,6 +233,7 @@ func newState() *state {
 		AttachmentContents: make(map[string]*attachmentContentState),
 		Users:              make(map[string]*api.User),
 		UserInfo:           make(map[string]map[string]*string),
+		UserInfoIDs:        make(map[string]map[string]string),
 		UserPictures:       make(map[string]*userPictureState),
 		Groups:             make(map[string]*api.Group),
 		Roles:              make(map[string]*api.Role),
@@ -375,6 +378,13 @@ func cloneState(source *state) *state {
 		copied := *picture
 		copied.Data = append([]byte(nil), picture.Data...)
 		target.UserPictures[userID] = &copied
+	}
+	for userID, ids := range source.UserInfoIDs {
+		copied := make(map[string]string, len(ids))
+		for key, id := range ids {
+			copied[key] = id
+		}
+		target.UserInfoIDs[userID] = copied
 	}
 	for id, comment := range source.Comments {
 		copied := *comment

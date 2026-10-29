@@ -2,6 +2,7 @@ package flowable
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"reflect"
 	"strings"
@@ -297,15 +298,33 @@ func DiffOperations(oldRows, newRows []Row) []Operation {
 	return orderOperations(operations)
 }
 
-// rowIDValue 读取行的 ID_。
+// rowIDValue 读取完整行标识，复合键按 JSON 数组编码以避免分隔符冲突。
 // @param row 行
 // @return ID
 // @return 是否存在
 func rowIDValue(row Row) (string, bool) {
-	value, ok := row.Values[primaryKey(row.Table)]
-	if !ok {
-		return "", false
+	parts := make([]string, 0)
+	for _, key := range primaryKeys(row.Table) {
+		value, ok := rowKeyString(row.Values[key])
+		if !ok {
+			return "", false
+		}
+		parts = append(parts, value)
 	}
+	// 单列主键沿用旧标识，复合键的编码不受标识中竖线或零字节影响。
+	if len(parts) == 1 {
+		return parts[0], true
+	}
+	data, _ := json.Marshal(parts)
+	return string(data), true
+}
+
+// rowKeyString 将支持的 SQL 主键标量转成规范字符串，拒绝空值和结构体。
+// @param value 主键分量
+// @return 标识文本
+// @return 是否支持
+func rowKeyString(value any) (string, bool) {
+	// 保持数值主键与既有任务日志行的标识语义一致。
 	switch typed := value.(type) {
 	case string:
 		return typed, true
@@ -434,7 +453,7 @@ func hasColumn(table Table, column string) bool {
 // @param value 驱动值
 // @return 通用值
 func normalizeValue(column string, value any) any {
-	if column == "BYTES_" || column == "FULL_MSG_" {
+	if column == "BYTES_" || column == "FULL_MSG_" || column == "PASSWORD_" {
 		return value
 	}
 	switch typed := value.(type) {

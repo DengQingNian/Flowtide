@@ -32,9 +32,14 @@ func (e *Engine) snapshotRowsLocked() ([]flowablerow.Row, error) {
 	if err != nil {
 		return nil, err
 	}
+	identityRows, err := e.identityRowsLocked()
+	if err != nil {
+		return nil, err
+	}
 	rows := make([]flowablerow.Row, 0, len(repositoryRows)+len(runtimeRows)+len(historicRows))
 	rows = append(rows, repositoryRows...)
 	rows = append(rows, runtimeRows...)
 	rows = append(rows, historicRows...)
+	rows = append(rows, identityRows...)
 	return rows, nil
 }
