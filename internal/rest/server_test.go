@@ -19,12 +19,22 @@ import (
 // @return 测试服务器
 // @return 引擎
 func newTestServer(t *testing.T, tenants ...string) (*httptest.Server, *engine.Engine) {
+	return newHistoryTestServer(t, engine.HistoryAudit, tenants...)
+}
+
+// newHistoryTestServer 创建显式历史级别的测试服务，变量明细测试必须选择 full。
+// @param t 测试上下文
+// @param historyLevel 历史级别
+// @param tenants 可选默认租户
+// @return 测试服务器
+// @return 引擎
+func newHistoryTestServer(t *testing.T, historyLevel string, tenants ...string) (*httptest.Server, *engine.Engine) {
 	t.Helper()
 	tenantID := ""
 	if len(tenants) > 0 {
 		tenantID = tenants[0]
 	}
-	app, err := engine.New(engine.Config{HistoryLevel: engine.HistoryAudit, TenantID: tenantID})
+	app, err := engine.New(engine.Config{HistoryLevel: historyLevel, TenantID: tenantID})
 	if err != nil {
 		t.Fatalf("创建引擎失败: %v", err)
 	}

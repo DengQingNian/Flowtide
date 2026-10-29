@@ -3,6 +3,7 @@ package rest
 import (
 	"bytes"
 	"encoding/json"
+	"github.com/flowable-go/flowable/internal/engine"
 	"io"
 	"net/http"
 	"testing"
@@ -119,7 +120,7 @@ func TestREST_ExecutionVariableEndpoints(t *testing.T) {
 // TestREST_TaskAndHistoricVariableData 验证任务/历史变量数据端点。
 // @param t 测试上下文
 func TestREST_TaskAndHistoricVariableData(t *testing.T) {
-	server, _ := newTestServer(t)
+	server, _ := newHistoryTestServer(t, engine.HistoryFull)
 	deployREST(t, server)
 	instanceID := startQueryInstance(t, server.URL, "rest", "bk1", "Order")
 

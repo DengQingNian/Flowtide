@@ -238,6 +238,10 @@ func (e *Engine) historicVariableForOwner(key, executionID, taskID, name string)
 // @param value 变量值
 // @param now 时间
 func (e *Engine) recordHistoricDetail(processInstanceID, executionID, taskID, activityID, name string, value any, now time.Time) {
+	// 逐次变量变更仅在 full 级别记录；activity 与 audit 仅保留变量最终值。
+	if !e.historyAtLeast(HistoryFull) {
+		return
+	}
 	detail := &api.HistoricDetail{
 		ID:                e.newID(),
 		Type:              "variableUpdate",

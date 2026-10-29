@@ -143,10 +143,8 @@ func (e *Engine) GetHistoricDetail(ctx context.Context, detailID string) (api.Hi
 		if !ok {
 			return nil, api.NewError("ENGINE-0404", "历史明细不存在", api.ErrNotFound)
 		}
-		if detail.ProcessInstanceID != "" {
-			if err := e.allowInstance(ctx, detail.ProcessInstanceID); err != nil {
-				return nil, err
-			}
+		if err := e.allowHistoricResource(ctx, detail.ProcessInstanceID, detail.TaskID); err != nil {
+			return nil, err
 		}
 		return *detail, nil
 	})
@@ -164,14 +162,11 @@ func (e *Engine) GetHistoricDetail(ctx context.Context, detailID string) (api.Hi
 // @return 查询错误
 func (e *Engine) GetHistoricVariableByName(ctx context.Context, processInstanceID, name string) (api.HistoricVariableInstance, error) {
 	result, err := e.read(func() (any, error) {
-		if _, ok := e.findInstance(processInstanceID); !ok {
-			return nil, api.NewError("ENGINE-0404", "流程实例不存在", api.ErrNotFound)
-		}
-		if err := e.allowInstance(ctx, processInstanceID); err != nil {
+		if err := e.allowHistoricResource(ctx, processInstanceID, ""); err != nil {
 			return nil, err
 		}
 		return latestHistoricVariable(e.state.HistoricVariables, func(variable *api.HistoricVariableInstance) bool {
-			return variable.ProcessInstanceID == processInstanceID && variable.Name == name
+			return variable.ProcessInstanceID == processInstanceID && variable.TaskID == "" && variable.Name == name
 		})
 	})
 	if err != nil {
@@ -188,6 +183,9 @@ func (e *Engine) GetHistoricVariableByName(ctx context.Context, processInstanceI
 // @return 查询错误
 func (e *Engine) GetHistoricTaskVariableByName(ctx context.Context, taskID, name string) (api.HistoricVariableInstance, error) {
 	result, err := e.read(func() (any, error) {
+		if err := e.allowHistoricResource(ctx, "", taskID); err != nil {
+			return nil, err
+		}
 		variable, findErr := latestHistoricVariable(e.state.HistoricVariables, func(variable *api.HistoricVariableInstance) bool {
 			return variable.TaskID == taskID && variable.Name == name
 		})
@@ -196,11 +194,6 @@ func (e *Engine) GetHistoricTaskVariableByName(ctx context.Context, taskID, name
 				return nil, api.NewError("ENGINE-0404", "历史任务不存在", api.ErrNotFound)
 			}
 			return nil, findErr
-		}
-		if variable.ProcessInstanceID != "" {
-			if err := e.allowInstance(ctx, variable.ProcessInstanceID); err != nil {
-				return nil, err
-			}
 		}
 		return variable, nil
 	})

@@ -304,6 +304,9 @@ func (e *Engine) DeleteHistoricVariableInstance(ctx context.Context, variableID 
 	_, err := e.execute(ctx, func(cc *commandContext) (any, error) {
 		for key, variable := range e.state.HistoricVariables {
 			if variable.ID == variableID {
+				if err := e.allowHistoricResource(ctx, variable.ProcessInstanceID, variable.TaskID); err != nil {
+					return nil, err
+				}
 				delete(e.state.HistoricVariables, key)
 				return nil, nil
 			}

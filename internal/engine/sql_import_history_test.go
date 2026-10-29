@@ -12,6 +12,7 @@ import (
 // @param t 测试上下文
 func TestImportHistoricRows(t *testing.T) {
 	source := newTestEngine(t)
+	source.cfg.HistoryLevel = HistoryFull
 	deployXML(t, source, simpleProcess)
 	instance, _ := source.StartProcessInstance(context.Background(), api.StartRequest{
 		ProcessDefinitionKey: "simple",

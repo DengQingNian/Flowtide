@@ -104,6 +104,7 @@ func TestExecutionVariableTenant(t *testing.T) {
 // @param t 测试上下文
 func TestHistoricVariableLookups(t *testing.T) {
 	engine := newTestEngine(t)
+	engine.cfg.HistoryLevel = HistoryFull
 	deployXML(t, engine, simpleProcess)
 	ctx := context.Background()
 	instance, err := engine.StartProcessInstance(ctx, api.StartRequest{

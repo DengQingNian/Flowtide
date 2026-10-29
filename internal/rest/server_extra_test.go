@@ -268,7 +268,7 @@ func TestREST_DeleteExtras(t *testing.T) {
 // TestREST_DeleteHistoric 验证历史记录删除。
 // @param t 测试上下文
 func TestREST_DeleteHistoric(t *testing.T) {
-	server, _ := newTestServer(t)
+	server, _ := newHistoryTestServer(t, engine.HistoryFull)
 	deployREST(t, server)
 	response := postJSON(t, server.URL+"/service/runtime/process-instances", map[string]any{
 		"processDefinitionKey": "rest",

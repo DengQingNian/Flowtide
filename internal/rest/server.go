@@ -148,6 +148,9 @@ func (s *Server) withTenant(next http.Handler) http.Handler {
 				requested = identity.Tenant
 			}
 		}
+		if audit, ok := r.Context().Value(auditIdentityKey{}).(*auditIdentity); ok {
+			audit.tenant = requested
+		}
 		next.ServeHTTP(w, r.WithContext(tenant.With(r.Context(), requested)))
 	})
 }
@@ -172,6 +175,10 @@ func (s *Server) authenticate(next http.Handler) http.Handler {
 			return
 		}
 		r = r.WithContext(context.WithValue(r.Context(), authIdentityKey{}, identity))
+		if audit, ok := r.Context().Value(auditIdentityKey{}).(*auditIdentity); ok {
+			audit.user = identity.Subject
+			audit.tenant = identity.Tenant
+		}
 		if !s.permitted(r) {
 			writeError(w, api.NewError("REST-0403", "无权限", api.ErrForbidden))
 			return

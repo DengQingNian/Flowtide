@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"github.com/flowable-go/flowable/internal/engine"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -480,7 +481,7 @@ func TestREST_Deployments(t *testing.T) {
 // TestREST_HistoricVariables 验证历史变量端点。
 // @param t 测试上下文
 func TestREST_HistoricVariables(t *testing.T) {
-	server, _ := newTestServer(t)
+	server, _ := newHistoryTestServer(t, engine.HistoryFull)
 	deployREST(t, server)
 	response := postJSON(t, server.URL+"/service/runtime/process-instances", map[string]any{
 		"processDefinitionKey": "rest",

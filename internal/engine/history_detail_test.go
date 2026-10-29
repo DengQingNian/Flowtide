@@ -11,6 +11,7 @@ import (
 // @param t 测试上下文
 func TestHistoricDetails(t *testing.T) {
 	engine := newTestEngine(t)
+	engine.cfg.HistoryLevel = HistoryFull
 	deployXML(t, engine, simpleProcess)
 	instance, _ := engine.StartProcessInstance(context.Background(), api.StartRequest{
 		ProcessDefinitionKey: "simple",

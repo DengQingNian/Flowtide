@@ -1,6 +1,7 @@
 package rest
 
 import (
+	"context"
 	"net/http"
 	"strings"
 	"sync"
@@ -8,6 +9,15 @@ import (
 
 	"github.com/flowable-go/flowable/api"
 )
+
+// auditIdentityKey 标记当前请求独有的审计身份容器。
+type auditIdentityKey struct{}
+
+// auditIdentity 由认证及租户中间件填充，拒绝将未验证的请求头当作身份。
+type auditIdentity struct {
+	user   string // 通过认证的主体
+	tenant string // 通过校验的实际租户
+}
 
 // auditLog 是内存审计日志。
 type auditLog struct {
@@ -56,6 +66,14 @@ type statusWriter struct {
 // WriteHeader 记录状态码。
 // @param code 状态码
 func (w *statusWriter) WriteHeader(code int) {
+	// HTTP 只发送首次终态响应；临时响应允许后续终态覆盖。
+	if w.status != 0 {
+		return
+	}
+	if code >= 100 && code < 200 && code != http.StatusSwitchingProtocols {
+		w.ResponseWriter.WriteHeader(code)
+		return
+	}
 	w.status = code
 	w.ResponseWriter.WriteHeader(code)
 }
@@ -84,20 +102,18 @@ func (s *Server) audit(next http.Handler) http.Handler {
 			return
 		}
 		start := time.Now()
+		identity := &auditIdentity{}
+		r = r.WithContext(context.WithValue(r.Context(), auditIdentityKey{}, identity))
 		writer := &statusWriter{ResponseWriter: w}
 		next.ServeHTTP(writer, r)
 		status := writer.status
 		if status == 0 {
 			status = http.StatusOK
 		}
-		userID := ""
-		if user, _, ok := r.BasicAuth(); ok {
-			userID = user
-		}
 		s.auditLog.record(api.AuditEvent{
 			Time:           start,
-			UserID:         userID,
-			TenantID:       requestTenant(r),
+			UserID:         identity.user,
+			TenantID:       identity.tenant,
 			Method:         r.Method,
 			Path:           r.URL.Path,
 			Status:         status,
