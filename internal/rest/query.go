@@ -628,7 +628,8 @@ func filterQueryTasks(items []api.Task, body queryBody, tenant string, lookup *t
 		if businessKey != "" && lookup.businessKeys[item.ProcessInstanceID] != businessKey {
 			continue
 		}
-		if filterTenant != "" && lookup.tenants[item.ProcessInstanceID] != filterTenant {
+		// 独立任务没有实例，租户必须优先读取任务自身，流程任务才可回退实例索引。
+		if filterTenant != "" && firstNonEmpty(item.TenantID, lookup.tenants[item.ProcessInstanceID]) != filterTenant {
 			continue
 		}
 		if unassigned != nil && (item.Assignee == "") != *unassigned {
@@ -1151,36 +1152,12 @@ func (s *Server) handleQueryTasks(w http.ResponseWriter, r *http.Request) {
 		writeError(w, err)
 		return
 	}
-	lookup, err := s.taskQueryIndex(r.Context())
+	body, err = taskQueryFromRequest(r, body)
 	if err != nil {
 		writeError(w, err)
 		return
 	}
-	items, err := s.engine.TaskService().ListTasks(r.Context(), api.TaskFilter{Size: 1000})
-	if err != nil {
-		writeError(w, err)
-		return
-	}
-	items.Data, err = filterQueryTasks(items.Data, body, requestTenant(r), lookup)
-	if err != nil {
-		writeError(w, err)
-		return
-	}
-	items.Data, err = applyQueryVariableFilter(r.Context(), items.Data, body, s.taskVariables)
-	if err != nil {
-		writeError(w, err)
-		return
-	}
-	start, size, sortField, order, err := body.pagination()
-	if err != nil {
-		writeError(w, err)
-		return
-	}
-	if err := sortQueryItems(items.Data, sortField, order, taskSortKey); err != nil {
-		writeError(w, err)
-		return
-	}
-	writeQueryPage(w, items.Data, start, size, sortField, order)
+	s.serveTaskQuery(w, r, body)
 }
 
 // handleQueryHistoricProcesses 查询历史流程实例。

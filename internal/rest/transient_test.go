@@ -42,7 +42,7 @@ func TestREST_TransientVariables(t *testing.T) {
 		"action":             "complete",
 		"transientVariables": []map[string]any{{"name": "approved", "value": true}},
 	})
-	if response.StatusCode != http.StatusNoContent {
+	if response.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(response.Body)
 		t.Fatalf("完成任务失败: %d %s", response.StatusCode, body)
 	}

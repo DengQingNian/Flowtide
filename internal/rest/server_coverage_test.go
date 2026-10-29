@@ -187,7 +187,7 @@ func TestREST_TaskLocalVariables(t *testing.T) {
 		"userId":         "alice",
 		"localVariables": []map[string]any{{"name": "local", "value": "v"}},
 	})
-	if response.StatusCode != http.StatusNoContent {
+	if response.StatusCode != http.StatusOK {
 		t.Fatalf("局部变量完成失败: %d", response.StatusCode)
 	}
 	_ = response.Body.Close()

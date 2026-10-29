@@ -99,6 +99,9 @@ type ProcessInstance struct {
 // Task 是用户任务。
 type Task struct {
 	ID                  string         `json:"id"`                        // 任务 ID
+	ExecutionID         string         `json:"executionId,omitempty"`     // 所属执行 ID
+	ClaimTime           *time.Time     `json:"claimTime,omitempty"`       // 最近签收时间
+	Suspended           bool           `json:"suspended,omitempty"`       // 所属实例是否挂起
 	Name                string         `json:"name"`                      // 任务名称
 	Description         string         `json:"description"`               // 描述
 	ProcessInstanceID   string         `json:"processInstanceId"`         // 流程实例 ID

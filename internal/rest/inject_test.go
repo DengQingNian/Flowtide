@@ -45,7 +45,7 @@ func TestREST_InjectActivity(t *testing.T) {
 		t.Fatalf("注入后任务数量错误: %+v", tasks)
 	}
 	response = postJSON(t, server.URL+"/service/runtime/tasks/"+injectedID, map[string]any{"action": "complete", "userId": "bob"})
-	if response.StatusCode != http.StatusNoContent {
+	if response.StatusCode != http.StatusOK {
 		t.Fatalf("完成注入任务失败: %d", response.StatusCode)
 	}
 	_ = response.Body.Close()

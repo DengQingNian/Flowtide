@@ -90,6 +90,21 @@ func TestIntegrationPostgresRowsServiceMode(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	initial, err := first.ListTasks(ctx, api.TaskFilter{ProcessInstanceID: instance.ID})
+	if err != nil || len(initial.Data) != 1 {
+		t.Fatalf("PG 任务创建: %v", err)
+	}
+	due := time.Date(2026, 11, 1, 12, 0, 0, 0, time.FixedZone("验收时区", 8*3600))
+	if _, err := first.UpdateTask(ctx, initial.Data[0].ID, api.TaskUpdate{DueDate: &due}); err != nil {
+		t.Fatal(err)
+	}
+	if err := first.Claim(ctx, initial.Data[0].ID, "alice"); err != nil {
+		t.Fatal(err)
+	}
+	claimed, err := first.GetTask(ctx, initial.Data[0].ID)
+	if err != nil || claimed.ClaimTime == nil {
+		t.Fatalf("PG 签收时间缺失: %v", err)
+	}
 	if err := first.Close(ctx); err != nil {
 		t.Fatal(err)
 	}
@@ -109,6 +124,15 @@ func TestIntegrationPostgresRowsServiceMode(t *testing.T) {
 	tasks, err := second.ListTasks(ctx, api.TaskFilter{ProcessInstanceID: instance.ID})
 	if err != nil || len(tasks.Data) != 1 {
 		t.Fatalf("PG 服务任务恢复: %+v %v", tasks, err)
+	}
+	if tasks.Data[0].ExecutionID == "" || tasks.Data[0].ClaimTime == nil || !tasks.Data[0].ClaimTime.Equal(claimed.ClaimTime.Truncate(time.Millisecond)) {
+		t.Fatalf("PG 标准任务行恢复丢失执行或签收元数据: %+v", tasks.Data[0])
+	}
+	if tasks.Data[0].CreateTime.Sub(claimed.CreateTime).Abs() > time.Millisecond {
+		t.Fatalf("PG 任务创建时间重启后漂移: 原值=%s 恢复=%s", claimed.CreateTime, tasks.Data[0].CreateTime)
+	}
+	if tasks.Data[0].DueDate == nil || !tasks.Data[0].DueDate.Equal(due) {
+		t.Fatalf("PG 到期时间重启后漂移: %+v", tasks.Data[0].DueDate)
 	}
 	value, err := second.GetVariable(ctx, instance.ID, "金额")
 	if err != nil || value != int64(9007199254740993) {

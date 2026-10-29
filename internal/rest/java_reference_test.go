@@ -74,7 +74,7 @@ func TestJavaReferenceHTTPPlayback(t *testing.T) {
 			if scenario.Name == "approve" {
 				body = `{"action":"complete","variables":[{"name":"approved","value":true},{"name":"status","value":"approved"}]}`
 			}
-			javaHTTPRequest(t, s, http.MethodPost, "/service/runtime/tasks/"+tasks[0].(map[string]any)["id"].(string), body, http.StatusNoContent, scenario.BeforeExpected.Tasks[0].Assignee)
+			javaHTTPRequest(t, s, http.MethodPost, "/service/runtime/tasks/"+tasks[0].(map[string]any)["id"].(string), body, http.StatusOK, scenario.BeforeExpected.Tasks[0].Assignee)
 			assertJavaHTTP(t, s, scenario.Expected)
 		})
 	}

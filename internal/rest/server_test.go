@@ -113,7 +113,7 @@ func TestREST_DeployStartComplete(t *testing.T) {
 		"action": "complete",
 		"userId": "alice",
 	})
-	if response.StatusCode != http.StatusNoContent {
+	if response.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(response.Body)
 		t.Fatalf("完成任务失败: %d %s", response.StatusCode, body)
 	}
@@ -377,19 +377,19 @@ func TestREST_TaskActions(t *testing.T) {
 	taskID, _ := page.Data[0]["id"].(string)
 
 	response = postJSON(t, server.URL+"/service/runtime/tasks/"+taskID, map[string]any{"action": "claim", "userId": "alice"})
-	if response.StatusCode != http.StatusNoContent {
+	if response.StatusCode != http.StatusOK {
 		t.Fatalf("签收失败: %d", response.StatusCode)
 	}
 	_ = response.Body.Close()
 	response = postJSON(t, server.URL+"/service/runtime/tasks/"+taskID, map[string]any{"action": "delegate", "userId": "bob"})
-	if response.StatusCode != http.StatusNoContent {
+	if response.StatusCode != http.StatusOK {
 		t.Fatalf("委派失败: %d", response.StatusCode)
 	}
 	_ = response.Body.Close()
 	response = postJSON(t, server.URL+"/service/runtime/tasks/"+taskID, map[string]any{
 		"action": "complete", "userId": "bob", "variables": []map[string]any{{"name": "approved", "value": true}},
 	})
-	if response.StatusCode != http.StatusNoContent {
+	if response.StatusCode != http.StatusOK {
 		t.Fatalf("完成失败: %d", response.StatusCode)
 	}
 	_ = response.Body.Close()
@@ -473,7 +473,7 @@ func TestREST_BasicAuth(t *testing.T) {
 	request.Header.Set("Content-Type", "application/json")
 	request.SetBasicAuth("carol", "secret")
 	response, err := http.DefaultClient.Do(request)
-	if err != nil || response.StatusCode != http.StatusNoContent {
+	if err != nil || response.StatusCode != http.StatusOK {
 		t.Fatalf("Basic Auth 签收失败: %v %d", err, response.StatusCode)
 	}
 	_ = response.Body.Close()

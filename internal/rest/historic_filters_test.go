@@ -13,12 +13,12 @@ func TestREST_TaskEventAndLogFilters(t *testing.T) {
 	task := createRESTTask(t, server.URL, map[string]any{"name": "Filtered"}, "")
 	taskID, _ := task["id"].(string)
 	response := postJSON(t, server.URL+"/service/runtime/tasks/"+taskID+"?action=claim", map[string]any{"action": "claim", "userId": "alice"})
-	if response.StatusCode != http.StatusNoContent {
+	if response.StatusCode != http.StatusOK {
 		t.Fatalf("签收失败: %d", response.StatusCode)
 	}
 	_ = response.Body.Close()
 	response = postJSON(t, server.URL+"/service/runtime/tasks/"+taskID, map[string]any{"action": "complete", "userId": "alice"})
-	if response.StatusCode != http.StatusNoContent {
+	if response.StatusCode != http.StatusOK {
 		t.Fatalf("完成任务失败: %d", response.StatusCode)
 	}
 	_ = response.Body.Close()

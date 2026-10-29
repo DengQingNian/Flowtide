@@ -4,6 +4,7 @@ import (
 	"context"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/flowable-go/flowable/api"
 	"github.com/flowable-go/flowable/bpmn/model"
@@ -142,6 +143,10 @@ func (e *Engine) GetTask(ctx context.Context, id string) (api.Task, error) {
 // @return 任务 DTO
 func (e *Engine) toTaskDTO(task *taskState) api.Task {
 	dto := task.Task
+	dto.ExecutionID = task.ExecutionID
+	if instance, ok := e.findInstance(dto.ProcessInstanceID); ok {
+		dto.Suspended = instance.Suspended
+	}
 	dto.CandidateUsers = append([]string(nil), task.CandidateUsers...)
 	dto.CandidateGroups = append([]string(nil), task.CandidateGroups...)
 	dto.Variables = make(map[string]any)
@@ -427,10 +432,13 @@ func (e *Engine) Claim(ctx context.Context, taskID, userID string) error {
 		if strings.TrimSpace(userID) == "" {
 			return nil, api.NewError("ENGINE-0806", "签收人不能为空", api.ErrBadRequest)
 		}
-		if task.Task.Assignee != "" {
+		if task.Task.Assignee != "" && task.Task.Assignee != userID {
 			return nil, api.NewError("ENGINE-0807", "任务已被签收", api.ErrConflict)
 		}
 		task.Task.Assignee = userID
+		// Java Date 的精度为毫秒，在写入前统一，避免双库精度差异改变签收元数据。
+		claimed := cc.now.UTC().Truncate(time.Millisecond)
+		task.Task.ClaimTime = &claimed
 		if historic, exists := e.state.HistoricTasks[task.HistoricTaskID]; exists {
 			historic.Assignee = userID
 		}
@@ -542,13 +550,13 @@ func (e *Engine) Delegate(ctx context.Context, taskID, userID string) error {
 		if instance != nil && instance.Suspended {
 			return nil, api.NewError("ENGINE-0810", "流程实例已挂起", api.ErrConflict)
 		}
-		if task.Task.Assignee == "" {
-			return nil, api.NewError("ENGINE-0809", "任务未签收，无法委派", api.ErrConflict)
-		}
 		if strings.TrimSpace(userID) == "" {
 			return nil, api.NewError("ENGINE-0806", "被委托人不能为空", api.ErrBadRequest)
 		}
-		task.Task.Owner = task.Task.Assignee
+		// 已有所有者必须保留，只有首次委派且未设置所有者时才继承当前处理人。
+		if task.Task.Owner == "" {
+			task.Task.Owner = task.Task.Assignee
+		}
 		task.Task.Assignee = userID
 		task.Task.DelegationState = "PENDING"
 		e.recordTaskLog(cc, task, "delegate", userID, "")
@@ -578,14 +586,10 @@ func (e *Engine) Resolve(ctx context.Context, taskID, userID string) error {
 		if task.Task.DelegationState != "PENDING" {
 			return nil, api.NewError("ENGINE-0811", "任务未处于委派状态", api.ErrConflict)
 		}
-		if task.Task.Owner == "" {
-			return nil, api.NewError("ENGINE-0812", "委派任务缺少所有者", api.ErrConflict)
-		}
 		if strings.TrimSpace(userID) != "" && userID != task.Task.Owner {
 			return nil, api.NewError("ENGINE-0813", "只有任务所有者可以处理委派", api.ErrForbidden)
 		}
 		task.Task.Assignee = task.Task.Owner
-		task.Task.Owner = ""
 		task.Task.DelegationState = "RESOLVED"
 		e.recordTaskLog(cc, task, "resolve", userID, "")
 		return nil, nil

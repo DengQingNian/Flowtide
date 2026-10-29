@@ -79,7 +79,7 @@ func (s *Server) handleCreateTask(w http.ResponseWriter, r *http.Request) {
 		writeError(w, err)
 		return
 	}
-	writeJSON(w, http.StatusCreated, task)
+	writeJSON(w, http.StatusCreated, taskRESTResponse(r, task))
 }
 
 // handleUpdateTask 更新任务属性。
@@ -101,7 +101,7 @@ func (s *Server) handleUpdateTask(w http.ResponseWriter, r *http.Request) {
 		writeError(w, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, task)
+	writeJSON(w, http.StatusOK, taskRESTResponse(r, task))
 }
 
 // decodeNullableString 解析可空字符串，null 转为空串。
@@ -195,5 +195,5 @@ func (s *Server) handleListSubTasks(w http.ResponseWriter, r *http.Request) {
 		writeError(w, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, tasks)
+	writeJSON(w, http.StatusOK, taskRESTResponses(r, tasks))
 }

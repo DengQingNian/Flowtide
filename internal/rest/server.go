@@ -1954,23 +1954,12 @@ func (s *Server) handleGetVariables(w http.ResponseWriter, r *http.Request) {
 // @param w 响应
 // @param r 请求
 func (s *Server) handleListTasks(w http.ResponseWriter, r *http.Request) {
-	start, size := pageParams(r)
-	page, err := s.engine.TaskService().ListTasks(r.Context(), api.TaskFilter{
-		Assignee:             r.URL.Query().Get("assignee"),
-		Owner:                r.URL.Query().Get("owner"),
-		ProcessInstanceID:    r.URL.Query().Get("processInstanceId"),
-		ProcessDefinitionKey: r.URL.Query().Get("processDefinitionKey"),
-		CandidateUser:        r.URL.Query().Get("candidateUser"),
-		DelegationState:      r.URL.Query().Get("delegationState"),
-		TenantID:             requestTenant(r),
-		Start:                start,
-		Size:                 size,
-	})
+	body, err := taskQueryFromRequest(r, nil)
 	if err != nil {
 		writeError(w, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, page)
+	s.serveTaskQuery(w, r, body)
 }
 
 // handleGetTask 返回任务详情。
@@ -1979,15 +1968,16 @@ func (s *Server) handleListTasks(w http.ResponseWriter, r *http.Request) {
 func (s *Server) handleGetTask(w http.ResponseWriter, r *http.Request) {
 	task, err := s.engine.TaskService().GetTask(r.Context(), r.PathValue("id"))
 	if err != nil {
-		writeError(w, err)
+		writeTaskError(w, r, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, task)
+	writeJSON(w, http.StatusOK, taskRESTResponse(r, task))
 }
 
 // taskActionPayload 是任务动作请求体。
 type taskActionPayload struct {
 	Action             string          `json:"action"`             // 动作
+	Assignee           string          `json:"assignee"`           // 官方动作目标处理人
 	UserID             string          `json:"userId"`             // 操作人
 	Variables          json.RawMessage `json:"variables"`          // 流程变量
 	LocalVariables     json.RawMessage `json:"localVariables"`     // 任务变量
@@ -2320,10 +2310,10 @@ func (s *Server) handleGetAttachmentContent(w http.ResponseWriter, r *http.Reque
 func (s *Server) handleTaskAction(w http.ResponseWriter, r *http.Request) {
 	var payload taskActionPayload
 	if err := decodeJSON(r, &payload); err != nil {
-		writeError(w, err)
+		writeTaskError(w, r, err)
 		return
 	}
-	userID := payload.UserID
+	userID := firstNonEmpty(payload.Assignee, payload.UserID)
 	if userID == "" {
 		userID = requestUserID(r)
 	}
@@ -2331,33 +2321,39 @@ func (s *Server) handleTaskAction(w http.ResponseWriter, r *http.Request) {
 	switch payload.Action {
 	case "claim":
 		if err := s.engine.TaskService().Claim(r.Context(), taskID, userID); err != nil {
-			writeError(w, err)
+			writeTaskError(w, r, err)
+			return
+		}
+	case "unclaim":
+		empty := ""
+		if _, err := s.engine.TaskService().UpdateTask(r.Context(), taskID, api.TaskUpdate{Assignee: &empty}); err != nil {
+			writeTaskError(w, r, err)
 			return
 		}
 	case "delegate":
 		if err := s.engine.TaskService().Delegate(r.Context(), taskID, userID); err != nil {
-			writeError(w, err)
+			writeTaskError(w, r, err)
 			return
 		}
 	case "resolve":
-		if err := s.engine.TaskService().Resolve(r.Context(), taskID, userID); err != nil {
-			writeError(w, err)
+		if err := s.engine.TaskService().Resolve(r.Context(), taskID, payload.UserID); err != nil {
+			writeTaskError(w, r, err)
 			return
 		}
 	case "complete":
 		variables, err := parseVariables(payload.Variables)
 		if err != nil {
-			writeError(w, err)
+			writeTaskError(w, r, err)
 			return
 		}
 		localVariables, err := parseVariables(payload.LocalVariables)
 		if err != nil {
-			writeError(w, err)
+			writeTaskError(w, r, err)
 			return
 		}
 		transientVariables, err := parseVariables(payload.TransientVariables)
 		if err != nil {
-			writeError(w, err)
+			writeTaskError(w, r, err)
 			return
 		}
 		if err := s.engine.TaskService().Complete(r.Context(), taskID, api.CompleteTaskRequest{
@@ -2366,14 +2362,14 @@ func (s *Server) handleTaskAction(w http.ResponseWriter, r *http.Request) {
 			LocalVariables:     localVariables,
 			TransientVariables: transientVariables,
 		}); err != nil {
-			writeError(w, err)
+			writeTaskError(w, r, err)
 			return
 		}
 	default:
 		writeError(w, api.NewError("REST-0107", "不支持的任务动作: "+payload.Action, api.ErrBadRequest))
 		return
 	}
-	w.WriteHeader(http.StatusNoContent)
+	w.WriteHeader(http.StatusOK)
 }
 
 // handleHistoricProcesses 返回历史流程实例。

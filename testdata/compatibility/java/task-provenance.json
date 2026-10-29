@@ -1,0 +1,22 @@
+{
+  "javaRepository": "https://github.com/flowable/flowable-engine",
+  "javaCommit": "f6017e32a4bdd3e59a8881f58b0ee181652d1d9e",
+  "javaVersion": "17.0.21.0.2",
+  "database": "h2",
+  "h2Version": "2.4.240",
+  "springVersion": "7.0.7",
+  "transport": "原版任务控制器与Spring MockMvc",
+  "cases": 26,
+  "controllerClassSha256": {
+    "TaskResource": "3e012c54aee924d86d58f526cf24cdfce68eb8cf7f899869feec49e85647d741",
+    "TaskCollectionResource": "2d89a3b9a3499118bbca5f6caed74cd90306559d74776f4df871eb752e16f098",
+    "TaskQueryResource": "38f549becb9d652b6c2ff000e1caffc46bed7dd4d87fbe7617742462f7307a7f",
+    "TaskSubTaskCollectionResource": "5b23434ab01f87be3d8c56577c571ac49e4e29b1412aeeaaa2dd05d94211aa51"
+  },
+  "generatorSourceCommitted": false,
+  "generatorSourceSha256": "36d072b2a2bd1dfc26cf3dc51468a0291275d1ae1eafc826ce9b7d62176794a6",
+  "independentRuns": 2,
+  "independentJSONIdentical": true,
+  "artifact": "004-task-rest.json",
+  "artifactSha256": "fed02e2e003cd45f43caf4e21ec986b0eacfa49d269fda517f516927688952a7"
+}

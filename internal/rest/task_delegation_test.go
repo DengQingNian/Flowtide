@@ -13,7 +13,7 @@ func TestREST_TaskDelegation(t *testing.T) {
 	task := createRESTTask(t, server.URL, map[string]any{"name": "Task", "assignee": "alice"}, "")
 	taskID, _ := task["id"].(string)
 	response := postJSON(t, server.URL+"/service/runtime/tasks/"+taskID, map[string]any{"action": "delegate", "userId": "bob"})
-	if response.StatusCode != http.StatusNoContent {
+	if response.StatusCode != http.StatusOK {
 		t.Fatalf("委派失败: %d", response.StatusCode)
 	}
 	_ = response.Body.Close()
@@ -21,7 +21,7 @@ func TestREST_TaskDelegation(t *testing.T) {
 	var delegated map[string]any
 	_ = json.NewDecoder(response.Body).Decode(&delegated)
 	_ = response.Body.Close()
-	if delegated["assignee"] != "bob" || delegated["owner"] != "alice" || delegated["delegationState"] != "PENDING" {
+	if delegated["assignee"] != "bob" || delegated["owner"] != "alice" || delegated["delegationState"] != "pending" {
 		t.Fatalf("委派状态错误: %+v", delegated)
 	}
 	response, _ = http.Get(server.URL + "/service/runtime/tasks?delegationState=PENDING")
@@ -37,7 +37,7 @@ func TestREST_TaskDelegation(t *testing.T) {
 	}
 	_ = response.Body.Close()
 	response = postJSON(t, server.URL+"/service/runtime/tasks/"+taskID, map[string]any{"action": "resolve", "userId": "alice"})
-	if response.StatusCode != http.StatusNoContent {
+	if response.StatusCode != http.StatusOK {
 		t.Fatalf("处理委派失败: %d", response.StatusCode)
 	}
 	_ = response.Body.Close()
@@ -45,7 +45,7 @@ func TestREST_TaskDelegation(t *testing.T) {
 	var resolved map[string]any
 	_ = json.NewDecoder(response.Body).Decode(&resolved)
 	_ = response.Body.Close()
-	if resolved["assignee"] != "alice" || resolved["delegationState"] != "RESOLVED" {
+	if resolved["assignee"] != "alice" || resolved["delegationState"] != "resolved" {
 		t.Fatalf("处理后状态错误: %+v", resolved)
 	}
 	response = postJSON(t, server.URL+"/service/runtime/tasks/"+taskID, map[string]any{"action": "resolve", "userId": "alice"})

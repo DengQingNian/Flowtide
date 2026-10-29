@@ -28,6 +28,7 @@ type RuntimeExecution struct {
 
 // RuntimeTask 是运行时任务行。
 type RuntimeTask struct {
+	ClaimTime         *time.Time // 签收时间
 	DelegationState   string     // 委派状态
 	ID                string     // 任务 ID
 	ExecutionID       string     // 执行 ID
@@ -412,6 +413,10 @@ func decodeTask(row Row) (RuntimeTask, error) {
 	if err != nil {
 		return RuntimeTask{}, err
 	}
+	claimTime, err := optionalTime(row, "CLAIM_TIME_")
+	if err != nil {
+		return RuntimeTask{}, err
+	}
 	suspension, err := intValue(row, "SUSPENSION_STATE_")
 	if err != nil {
 		return RuntimeTask{}, err
@@ -426,7 +431,7 @@ func decodeTask(row Row) (RuntimeTask, error) {
 		DefinitionID: definitionID, Name: name, Description: description,
 		TaskDefinitionKey: taskKey, ParentTaskID: parentTaskID, Owner: owner, Assignee: assignee, Category: category,
 		FormKey: formKey, TenantID: tenant, Priority: priority, CreateTime: createTime,
-		DueDate: due, Suspended: suspension == 2,
+		DueDate: due, ClaimTime: claimTime, Suspended: suspension == 2,
 	}, nil
 }
 

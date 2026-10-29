@@ -34,14 +34,17 @@ func TestTaskDelegation(t *testing.T) {
 		t.Fatalf("处理委派失败: %v", err)
 	}
 	resolved, _ := engine.GetTask(context.Background(), task.ID)
-	if resolved.Assignee != "alice" || resolved.Owner != "" || resolved.DelegationState != "RESOLVED" {
+	if resolved.Assignee != "alice" || resolved.Owner != "alice" || resolved.DelegationState != "RESOLVED" {
 		t.Fatalf("处理后状态错误: %+v", resolved)
 	}
 	if err := engine.Resolve(context.Background(), task.ID, "alice"); !errors.Is(err, api.ErrConflict) {
 		t.Fatalf("重复处理应 409: %v", err)
 	}
 	unassigned, _ := engine.CreateTask(context.Background(), api.CreateTaskRequest{Name: "Unassigned"})
-	if err := engine.Delegate(context.Background(), unassigned.ID, "bob"); !errors.Is(err, api.ErrConflict) {
-		t.Fatalf("未签收委派应 409: %v", err)
+	if err := engine.Delegate(context.Background(), unassigned.ID, "bob"); err != nil {
+		t.Fatalf("原版允许未签收任务委派: %v", err)
+	}
+	if err := engine.Resolve(context.Background(), unassigned.ID, ""); err != nil {
+		t.Fatalf("无所有者的委派任务应恢复未签收状态: %v", err)
 	}
 }

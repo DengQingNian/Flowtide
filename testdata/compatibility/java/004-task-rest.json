@@ -1,0 +1,710 @@
+{
+  "baseline" : "f6017e32a4bdd3e59a8881f58b0ee181652d1d9e",
+  "clock" : "2026-10-29T01:02:03.123456789Z",
+  "transport" : "原版任务控制器与Spring MockMvc",
+  "cases" : [ {
+    "name" : "get",
+    "method" : "GET",
+    "path" : "/service/runtime/tasks/0-parent",
+    "requestBody" : "",
+    "status" : 200,
+    "responseBody" : "{\"assignee\":\"alice\",\"category\":\"review\",\"claimTime\":null,\"createTime\":\"2026-10-29T01:02:03.123Z\",\"delegationState\":null,\"description\":\"任务说明\",\"dueDate\":\"2026-12-01T00:00:00Z\",\"executionId\":null,\"executionUrl\":null,\"formKey\":\"form\",\"id\":\"0-parent\",\"name\":\"审批甲\",\"owner\":\"owner\",\"parentTaskId\":null,\"parentTaskUrl\":null,\"priority\":50,\"processDefinitionId\":null,\"processDefinitionUrl\":null,\"processInstanceId\":null,\"processInstanceUrl\":null,\"propagatedStageInstanceId\":null,\"scopeDefinitionId\":null,\"scopeId\":null,\"scopeType\":null,\"subScopeId\":null,\"suspended\":false,\"taskDefinitionKey\":null,\"tenantId\":\"\",\"url\":\"http://localhost/service/runtime/tasks/0-parent\",\"variables\":[]}",
+    "afterTasks" : {
+      "0-parent" : {
+        "name" : "审批甲",
+        "assignee" : "alice",
+        "owner" : "owner",
+        "delegationState" : null
+      },
+      "1-free" : {
+        "name" : "审批乙",
+        "assignee" : null,
+        "owner" : null,
+        "delegationState" : null
+      },
+      "2-child" : {
+        "name" : "子任务",
+        "assignee" : null,
+        "owner" : null,
+        "delegationState" : null
+      }
+    }
+  }, {
+    "name" : "child",
+    "method" : "GET",
+    "path" : "/service/runtime/tasks/2-child",
+    "requestBody" : "",
+    "status" : 200,
+    "responseBody" : "{\"assignee\":null,\"category\":null,\"claimTime\":null,\"createTime\":\"2026-10-29T01:02:03.123Z\",\"delegationState\":null,\"description\":null,\"dueDate\":null,\"executionId\":null,\"executionUrl\":null,\"formKey\":null,\"id\":\"2-child\",\"name\":\"子任务\",\"owner\":null,\"parentTaskId\":\"0-parent\",\"parentTaskUrl\":\"http://localhost/service/runtime/tasks/0-parent\",\"priority\":50,\"processDefinitionId\":null,\"processDefinitionUrl\":null,\"processInstanceId\":null,\"processInstanceUrl\":null,\"propagatedStageInstanceId\":null,\"scopeDefinitionId\":null,\"scopeId\":null,\"scopeType\":null,\"subScopeId\":null,\"suspended\":false,\"taskDefinitionKey\":null,\"tenantId\":\"\",\"url\":\"http://localhost/service/runtime/tasks/2-child\",\"variables\":[]}",
+    "afterTasks" : {
+      "0-parent" : {
+        "name" : "审批甲",
+        "assignee" : "alice",
+        "owner" : "owner",
+        "delegationState" : null
+      },
+      "1-free" : {
+        "name" : "审批乙",
+        "assignee" : null,
+        "owner" : null,
+        "delegationState" : null
+      },
+      "2-child" : {
+        "name" : "子任务",
+        "assignee" : null,
+        "owner" : null,
+        "delegationState" : null
+      }
+    }
+  }, {
+    "name" : "list-default",
+    "method" : "GET",
+    "path" : "/service/runtime/tasks",
+    "requestBody" : "",
+    "status" : 200,
+    "responseBody" : "{\"data\":[{\"assignee\":\"alice\",\"category\":\"review\",\"claimTime\":null,\"createTime\":\"2026-10-29T01:02:03.123Z\",\"delegationState\":null,\"description\":\"任务说明\",\"dueDate\":\"2026-12-01T00:00:00Z\",\"executionId\":null,\"executionUrl\":null,\"formKey\":\"form\",\"id\":\"0-parent\",\"name\":\"审批甲\",\"owner\":\"owner\",\"parentTaskId\":null,\"parentTaskUrl\":null,\"priority\":50,\"processDefinitionId\":null,\"processDefinitionUrl\":null,\"processInstanceId\":null,\"processInstanceUrl\":null,\"propagatedStageInstanceId\":null,\"scopeDefinitionId\":null,\"scopeId\":null,\"scopeType\":null,\"subScopeId\":null,\"suspended\":false,\"taskDefinitionKey\":null,\"tenantId\":\"\",\"url\":\"http://localhost/service/runtime/tasks/0-parent\",\"variables\":[]},{\"assignee\":null,\"category\":null,\"claimTime\":null,\"createTime\":\"2026-10-29T01:02:03.123Z\",\"delegationState\":null,\"description\":null,\"dueDate\":null,\"executionId\":null,\"executionUrl\":null,\"formKey\":null,\"id\":\"1-free\",\"name\":\"审批乙\",\"owner\":null,\"parentTaskId\":null,\"parentTaskUrl\":null,\"priority\":50,\"processDefinitionId\":null,\"processDefinitionUrl\":null,\"processInstanceId\":null,\"processInstanceUrl\":null,\"propagatedStageInstanceId\":null,\"scopeDefinitionId\":null,\"scopeId\":null,\"scopeType\":null,\"subScopeId\":null,\"suspended\":false,\"taskDefinitionKey\":null,\"tenantId\":\"\",\"url\":\"http://localhost/service/runtime/tasks/1-free\",\"variables\":[]},{\"assignee\":null,\"category\":null,\"claimTime\":null,\"createTime\":\"2026-10-29T01:02:03.123Z\",\"delegationState\":null,\"description\":null,\"dueDate\":null,\"executionId\":null,\"executionUrl\":null,\"formKey\":null,\"id\":\"2-child\",\"name\":\"子任务\",\"owner\":null,\"parentTaskId\":\"0-parent\",\"parentTaskUrl\":\"http://localhost/service/runtime/tasks/0-parent\",\"priority\":50,\"processDefinitionId\":null,\"processDefinitionUrl\":null,\"processInstanceId\":null,\"processInstanceUrl\":null,\"propagatedStageInstanceId\":null,\"scopeDefinitionId\":null,\"scopeId\":null,\"scopeType\":null,\"subScopeId\":null,\"suspended\":false,\"taskDefinitionKey\":null,\"tenantId\":\"\",\"url\":\"http://localhost/service/runtime/tasks/2-child\",\"variables\":[]}],\"order\":\"asc\",\"size\":3,\"sort\":\"id\",\"start\":0,\"total\":3}",
+    "afterTasks" : {
+      "0-parent" : {
+        "name" : "审批甲",
+        "assignee" : "alice",
+        "owner" : "owner",
+        "delegationState" : null
+      },
+      "1-free" : {
+        "name" : "审批乙",
+        "assignee" : null,
+        "owner" : null,
+        "delegationState" : null
+      },
+      "2-child" : {
+        "name" : "子任务",
+        "assignee" : null,
+        "owner" : null,
+        "delegationState" : null
+      }
+    }
+  }, {
+    "name" : "list-page",
+    "method" : "GET",
+    "path" : "/service/runtime/tasks?sort=name&order=asc&size=1&start=1",
+    "requestBody" : "",
+    "status" : 200,
+    "responseBody" : "{\"data\":[{\"assignee\":null,\"category\":null,\"claimTime\":null,\"createTime\":\"2026-10-29T01:02:03.123Z\",\"delegationState\":null,\"description\":null,\"dueDate\":null,\"executionId\":null,\"executionUrl\":null,\"formKey\":null,\"id\":\"1-free\",\"name\":\"审批乙\",\"owner\":null,\"parentTaskId\":null,\"parentTaskUrl\":null,\"priority\":50,\"processDefinitionId\":null,\"processDefinitionUrl\":null,\"processInstanceId\":null,\"processInstanceUrl\":null,\"propagatedStageInstanceId\":null,\"scopeDefinitionId\":null,\"scopeId\":null,\"scopeType\":null,\"subScopeId\":null,\"suspended\":false,\"taskDefinitionKey\":null,\"tenantId\":\"\",\"url\":\"http://localhost/service/runtime/tasks/1-free\",\"variables\":[]}],\"order\":\"asc\",\"size\":1,\"sort\":\"name\",\"start\":1,\"total\":3}",
+    "afterTasks" : {
+      "0-parent" : {
+        "name" : "审批甲",
+        "assignee" : "alice",
+        "owner" : "owner",
+        "delegationState" : null
+      },
+      "1-free" : {
+        "name" : "审批乙",
+        "assignee" : null,
+        "owner" : null,
+        "delegationState" : null
+      },
+      "2-child" : {
+        "name" : "子任务",
+        "assignee" : null,
+        "owner" : null,
+        "delegationState" : null
+      }
+    }
+  }, {
+    "name" : "list-negative",
+    "method" : "GET",
+    "path" : "/service/runtime/tasks?start=-1&size=-1",
+    "requestBody" : "",
+    "status" : 200,
+    "responseBody" : "{\"data\":[{\"assignee\":\"alice\",\"category\":\"review\",\"claimTime\":null,\"createTime\":\"2026-10-29T01:02:03.123Z\",\"delegationState\":null,\"description\":\"任务说明\",\"dueDate\":\"2026-12-01T00:00:00Z\",\"executionId\":null,\"executionUrl\":null,\"formKey\":\"form\",\"id\":\"0-parent\",\"name\":\"审批甲\",\"owner\":\"owner\",\"parentTaskId\":null,\"parentTaskUrl\":null,\"priority\":50,\"processDefinitionId\":null,\"processDefinitionUrl\":null,\"processInstanceId\":null,\"processInstanceUrl\":null,\"propagatedStageInstanceId\":null,\"scopeDefinitionId\":null,\"scopeId\":null,\"scopeType\":null,\"subScopeId\":null,\"suspended\":false,\"taskDefinitionKey\":null,\"tenantId\":\"\",\"url\":\"http://localhost/service/runtime/tasks/0-parent\",\"variables\":[]},{\"assignee\":null,\"category\":null,\"claimTime\":null,\"createTime\":\"2026-10-29T01:02:03.123Z\",\"delegationState\":null,\"description\":null,\"dueDate\":null,\"executionId\":null,\"executionUrl\":null,\"formKey\":null,\"id\":\"1-free\",\"name\":\"审批乙\",\"owner\":null,\"parentTaskId\":null,\"parentTaskUrl\":null,\"priority\":50,\"processDefinitionId\":null,\"processDefinitionUrl\":null,\"processInstanceId\":null,\"processInstanceUrl\":null,\"propagatedStageInstanceId\":null,\"scopeDefinitionId\":null,\"scopeId\":null,\"scopeType\":null,\"subScopeId\":null,\"suspended\":false,\"taskDefinitionKey\":null,\"tenantId\":\"\",\"url\":\"http://localhost/service/runtime/tasks/1-free\",\"variables\":[]},{\"assignee\":null,\"category\":null,\"claimTime\":null,\"createTime\":\"2026-10-29T01:02:03.123Z\",\"delegationState\":null,\"description\":null,\"dueDate\":null,\"executionId\":null,\"executionUrl\":null,\"formKey\":null,\"id\":\"2-child\",\"name\":\"子任务\",\"owner\":null,\"parentTaskId\":\"0-parent\",\"parentTaskUrl\":\"http://localhost/service/runtime/tasks/0-parent\",\"priority\":50,\"processDefinitionId\":null,\"processDefinitionUrl\":null,\"processInstanceId\":null,\"processInstanceUrl\":null,\"propagatedStageInstanceId\":null,\"scopeDefinitionId\":null,\"scopeId\":null,\"scopeType\":null,\"subScopeId\":null,\"suspended\":false,\"taskDefinitionKey\":null,\"tenantId\":\"\",\"url\":\"http://localhost/service/runtime/tasks/2-child\",\"variables\":[]}],\"order\":\"asc\",\"size\":3,\"sort\":\"id\",\"start\":0,\"total\":3}",
+    "afterTasks" : {
+      "0-parent" : {
+        "name" : "审批甲",
+        "assignee" : "alice",
+        "owner" : "owner",
+        "delegationState" : null
+      },
+      "1-free" : {
+        "name" : "审批乙",
+        "assignee" : null,
+        "owner" : null,
+        "delegationState" : null
+      },
+      "2-child" : {
+        "name" : "子任务",
+        "assignee" : null,
+        "owner" : null,
+        "delegationState" : null
+      }
+    }
+  }, {
+    "name" : "list-unassigned-false",
+    "method" : "GET",
+    "path" : "/service/runtime/tasks?unassigned=false",
+    "requestBody" : "",
+    "status" : 200,
+    "responseBody" : "{\"data\":[{\"assignee\":null,\"category\":null,\"claimTime\":null,\"createTime\":\"2026-10-29T01:02:03.123Z\",\"delegationState\":null,\"description\":null,\"dueDate\":null,\"executionId\":null,\"executionUrl\":null,\"formKey\":null,\"id\":\"1-free\",\"name\":\"审批乙\",\"owner\":null,\"parentTaskId\":null,\"parentTaskUrl\":null,\"priority\":50,\"processDefinitionId\":null,\"processDefinitionUrl\":null,\"processInstanceId\":null,\"processInstanceUrl\":null,\"propagatedStageInstanceId\":null,\"scopeDefinitionId\":null,\"scopeId\":null,\"scopeType\":null,\"subScopeId\":null,\"suspended\":false,\"taskDefinitionKey\":null,\"tenantId\":\"\",\"url\":\"http://localhost/service/runtime/tasks/1-free\",\"variables\":[]},{\"assignee\":null,\"category\":null,\"claimTime\":null,\"createTime\":\"2026-10-29T01:02:03.123Z\",\"delegationState\":null,\"description\":null,\"dueDate\":null,\"executionId\":null,\"executionUrl\":null,\"formKey\":null,\"id\":\"2-child\",\"name\":\"子任务\",\"owner\":null,\"parentTaskId\":\"0-parent\",\"parentTaskUrl\":\"http://localhost/service/runtime/tasks/0-parent\",\"priority\":50,\"processDefinitionId\":null,\"processDefinitionUrl\":null,\"processInstanceId\":null,\"processInstanceUrl\":null,\"propagatedStageInstanceId\":null,\"scopeDefinitionId\":null,\"scopeId\":null,\"scopeType\":null,\"subScopeId\":null,\"suspended\":false,\"taskDefinitionKey\":null,\"tenantId\":\"\",\"url\":\"http://localhost/service/runtime/tasks/2-child\",\"variables\":[]}],\"order\":\"asc\",\"size\":2,\"sort\":\"id\",\"start\":0,\"total\":2}",
+    "afterTasks" : {
+      "0-parent" : {
+        "name" : "审批甲",
+        "assignee" : "alice",
+        "owner" : "owner",
+        "delegationState" : null
+      },
+      "1-free" : {
+        "name" : "审批乙",
+        "assignee" : null,
+        "owner" : null,
+        "delegationState" : null
+      },
+      "2-child" : {
+        "name" : "子任务",
+        "assignee" : null,
+        "owner" : null,
+        "delegationState" : null
+      }
+    }
+  }, {
+    "name" : "list-zero",
+    "method" : "GET",
+    "path" : "/service/runtime/tasks?size=0",
+    "requestBody" : "",
+    "status" : 200,
+    "responseBody" : "{\"data\":[],\"order\":\"asc\",\"size\":0,\"sort\":\"id\",\"start\":0,\"total\":3}",
+    "afterTasks" : {
+      "0-parent" : {
+        "name" : "审批甲",
+        "assignee" : "alice",
+        "owner" : "owner",
+        "delegationState" : null
+      },
+      "1-free" : {
+        "name" : "审批乙",
+        "assignee" : null,
+        "owner" : null,
+        "delegationState" : null
+      },
+      "2-child" : {
+        "name" : "子任务",
+        "assignee" : null,
+        "owner" : null,
+        "delegationState" : null
+      }
+    }
+  }, {
+    "name" : "list-beyond",
+    "method" : "GET",
+    "path" : "/service/runtime/tasks?start=99",
+    "requestBody" : "",
+    "status" : 200,
+    "responseBody" : "{\"data\":[],\"order\":\"asc\",\"size\":0,\"sort\":\"id\",\"start\":99,\"total\":3}",
+    "afterTasks" : {
+      "0-parent" : {
+        "name" : "审批甲",
+        "assignee" : "alice",
+        "owner" : "owner",
+        "delegationState" : null
+      },
+      "1-free" : {
+        "name" : "审批乙",
+        "assignee" : null,
+        "owner" : null,
+        "delegationState" : null
+      },
+      "2-child" : {
+        "name" : "子任务",
+        "assignee" : null,
+        "owner" : null,
+        "delegationState" : null
+      }
+    }
+  }, {
+    "name" : "list-name",
+    "method" : "GET",
+    "path" : "/service/runtime/tasks?name=审批甲",
+    "requestBody" : "",
+    "status" : 200,
+    "responseBody" : "{\"data\":[{\"assignee\":\"alice\",\"category\":\"review\",\"claimTime\":null,\"createTime\":\"2026-10-29T01:02:03.123Z\",\"delegationState\":null,\"description\":\"任务说明\",\"dueDate\":\"2026-12-01T00:00:00Z\",\"executionId\":null,\"executionUrl\":null,\"formKey\":\"form\",\"id\":\"0-parent\",\"name\":\"审批甲\",\"owner\":\"owner\",\"parentTaskId\":null,\"parentTaskUrl\":null,\"priority\":50,\"processDefinitionId\":null,\"processDefinitionUrl\":null,\"processInstanceId\":null,\"processInstanceUrl\":null,\"propagatedStageInstanceId\":null,\"scopeDefinitionId\":null,\"scopeId\":null,\"scopeType\":null,\"subScopeId\":null,\"suspended\":false,\"taskDefinitionKey\":null,\"tenantId\":\"\",\"url\":\"http://localhost/service/runtime/tasks/0-parent\",\"variables\":[]}],\"order\":\"asc\",\"size\":1,\"sort\":\"id\",\"start\":0,\"total\":1}",
+    "afterTasks" : {
+      "0-parent" : {
+        "name" : "审批甲",
+        "assignee" : "alice",
+        "owner" : "owner",
+        "delegationState" : null
+      },
+      "1-free" : {
+        "name" : "审批乙",
+        "assignee" : null,
+        "owner" : null,
+        "delegationState" : null
+      },
+      "2-child" : {
+        "name" : "子任务",
+        "assignee" : null,
+        "owner" : null,
+        "delegationState" : null
+      }
+    }
+  }, {
+    "name" : "query",
+    "method" : "POST",
+    "path" : "/service/query/tasks?sort=name&order=desc",
+    "requestBody" : "{\"name\":\"审批甲\"}",
+    "status" : 200,
+    "responseBody" : "{\"data\":[{\"assignee\":\"alice\",\"category\":\"review\",\"claimTime\":null,\"createTime\":\"2026-10-29T01:02:03.123Z\",\"delegationState\":null,\"description\":\"任务说明\",\"dueDate\":\"2026-12-01T00:00:00Z\",\"executionId\":null,\"executionUrl\":null,\"formKey\":\"form\",\"id\":\"0-parent\",\"name\":\"审批甲\",\"owner\":\"owner\",\"parentTaskId\":null,\"parentTaskUrl\":null,\"priority\":50,\"processDefinitionId\":null,\"processDefinitionUrl\":null,\"processInstanceId\":null,\"processInstanceUrl\":null,\"propagatedStageInstanceId\":null,\"scopeDefinitionId\":null,\"scopeId\":null,\"scopeType\":null,\"subScopeId\":null,\"suspended\":false,\"taskDefinitionKey\":null,\"tenantId\":\"\",\"url\":\"http://localhost/service/runtime/tasks/0-parent\",\"variables\":[]}],\"order\":\"desc\",\"size\":1,\"sort\":\"name\",\"start\":0,\"total\":1}",
+    "afterTasks" : {
+      "0-parent" : {
+        "name" : "审批甲",
+        "assignee" : "alice",
+        "owner" : "owner",
+        "delegationState" : null
+      },
+      "1-free" : {
+        "name" : "审批乙",
+        "assignee" : null,
+        "owner" : null,
+        "delegationState" : null
+      },
+      "2-child" : {
+        "name" : "子任务",
+        "assignee" : null,
+        "owner" : null,
+        "delegationState" : null
+      }
+    }
+  }, {
+    "name" : "query-url-filter",
+    "method" : "POST",
+    "path" : "/service/query/tasks?name=审批甲",
+    "requestBody" : "{}",
+    "status" : 200,
+    "responseBody" : "{\"data\":[{\"assignee\":\"alice\",\"category\":\"review\",\"claimTime\":null,\"createTime\":\"2026-10-29T01:02:03.123Z\",\"delegationState\":null,\"description\":\"任务说明\",\"dueDate\":\"2026-12-01T00:00:00Z\",\"executionId\":null,\"executionUrl\":null,\"formKey\":\"form\",\"id\":\"0-parent\",\"name\":\"审批甲\",\"owner\":\"owner\",\"parentTaskId\":null,\"parentTaskUrl\":null,\"priority\":50,\"processDefinitionId\":null,\"processDefinitionUrl\":null,\"processInstanceId\":null,\"processInstanceUrl\":null,\"propagatedStageInstanceId\":null,\"scopeDefinitionId\":null,\"scopeId\":null,\"scopeType\":null,\"subScopeId\":null,\"suspended\":false,\"taskDefinitionKey\":null,\"tenantId\":\"\",\"url\":\"http://localhost/service/runtime/tasks/0-parent\",\"variables\":[]},{\"assignee\":null,\"category\":null,\"claimTime\":null,\"createTime\":\"2026-10-29T01:02:03.123Z\",\"delegationState\":null,\"description\":null,\"dueDate\":null,\"executionId\":null,\"executionUrl\":null,\"formKey\":null,\"id\":\"1-free\",\"name\":\"审批乙\",\"owner\":null,\"parentTaskId\":null,\"parentTaskUrl\":null,\"priority\":50,\"processDefinitionId\":null,\"processDefinitionUrl\":null,\"processInstanceId\":null,\"processInstanceUrl\":null,\"propagatedStageInstanceId\":null,\"scopeDefinitionId\":null,\"scopeId\":null,\"scopeType\":null,\"subScopeId\":null,\"suspended\":false,\"taskDefinitionKey\":null,\"tenantId\":\"\",\"url\":\"http://localhost/service/runtime/tasks/1-free\",\"variables\":[]},{\"assignee\":null,\"category\":null,\"claimTime\":null,\"createTime\":\"2026-10-29T01:02:03.123Z\",\"delegationState\":null,\"description\":null,\"dueDate\":null,\"executionId\":null,\"executionUrl\":null,\"formKey\":null,\"id\":\"2-child\",\"name\":\"子任务\",\"owner\":null,\"parentTaskId\":\"0-parent\",\"parentTaskUrl\":\"http://localhost/service/runtime/tasks/0-parent\",\"priority\":50,\"processDefinitionId\":null,\"processDefinitionUrl\":null,\"processInstanceId\":null,\"processInstanceUrl\":null,\"propagatedStageInstanceId\":null,\"scopeDefinitionId\":null,\"scopeId\":null,\"scopeType\":null,\"subScopeId\":null,\"suspended\":false,\"taskDefinitionKey\":null,\"tenantId\":\"\",\"url\":\"http://localhost/service/runtime/tasks/2-child\",\"variables\":[]}],\"order\":\"asc\",\"size\":3,\"sort\":\"id\",\"start\":0,\"total\":3}",
+    "afterTasks" : {
+      "0-parent" : {
+        "name" : "审批甲",
+        "assignee" : "alice",
+        "owner" : "owner",
+        "delegationState" : null
+      },
+      "1-free" : {
+        "name" : "审批乙",
+        "assignee" : null,
+        "owner" : null,
+        "delegationState" : null
+      },
+      "2-child" : {
+        "name" : "子任务",
+        "assignee" : null,
+        "owner" : null,
+        "delegationState" : null
+      }
+    }
+  }, {
+    "name" : "query-precedence",
+    "method" : "POST",
+    "path" : "/service/query/tasks?sort=id&order=asc&size=10",
+    "requestBody" : "{\"sort\":\"name\",\"order\":\"desc\",\"size\":0}",
+    "status" : 200,
+    "responseBody" : "{\"data\":[],\"order\":\"desc\",\"size\":0,\"sort\":\"name\",\"start\":0,\"total\":3}",
+    "afterTasks" : {
+      "0-parent" : {
+        "name" : "审批甲",
+        "assignee" : "alice",
+        "owner" : "owner",
+        "delegationState" : null
+      },
+      "1-free" : {
+        "name" : "审批乙",
+        "assignee" : null,
+        "owner" : null,
+        "delegationState" : null
+      },
+      "2-child" : {
+        "name" : "子任务",
+        "assignee" : null,
+        "owner" : null,
+        "delegationState" : null
+      }
+    }
+  }, {
+    "name" : "subtasks",
+    "method" : "GET",
+    "path" : "/service/runtime/tasks/0-parent/subtasks",
+    "requestBody" : "",
+    "status" : 200,
+    "responseBody" : "[{\"assignee\":null,\"category\":null,\"claimTime\":null,\"createTime\":\"2026-10-29T01:02:03.123Z\",\"delegationState\":null,\"description\":null,\"dueDate\":null,\"executionId\":null,\"executionUrl\":null,\"formKey\":null,\"id\":\"2-child\",\"name\":\"子任务\",\"owner\":null,\"parentTaskId\":\"0-parent\",\"parentTaskUrl\":\"http://localhost/service/runtime/tasks/0-parent\",\"priority\":50,\"processDefinitionId\":null,\"processDefinitionUrl\":null,\"processInstanceId\":null,\"processInstanceUrl\":null,\"propagatedStageInstanceId\":null,\"scopeDefinitionId\":null,\"scopeId\":null,\"scopeType\":null,\"subScopeId\":null,\"suspended\":false,\"taskDefinitionKey\":null,\"tenantId\":\"\",\"url\":\"http://localhost/service/runtime/tasks/2-child\",\"variables\":[]}]",
+    "afterTasks" : {
+      "0-parent" : {
+        "name" : "审批甲",
+        "assignee" : "alice",
+        "owner" : "owner",
+        "delegationState" : null
+      },
+      "1-free" : {
+        "name" : "审批乙",
+        "assignee" : null,
+        "owner" : null,
+        "delegationState" : null
+      },
+      "2-child" : {
+        "name" : "子任务",
+        "assignee" : null,
+        "owner" : null,
+        "delegationState" : null
+      }
+    }
+  }, {
+    "name" : "create",
+    "method" : "POST",
+    "path" : "/service/runtime/tasks",
+    "requestBody" : "{\"name\":\"新任务\",\"description\":\"创建\",\"owner\":\"owner\",\"priority\":70,\"category\":\"review\",\"formKey\":\"form\"}",
+    "status" : 201,
+    "responseBody" : "{\"assignee\":null,\"category\":\"review\",\"claimTime\":null,\"createTime\":\"2026-10-29T01:02:03.123Z\",\"delegationState\":null,\"description\":\"创建\",\"dueDate\":null,\"executionId\":null,\"executionUrl\":null,\"formKey\":\"form\",\"id\":\"{createdId}\",\"name\":\"新任务\",\"owner\":\"owner\",\"parentTaskId\":null,\"parentTaskUrl\":null,\"priority\":70,\"processDefinitionId\":null,\"processDefinitionUrl\":null,\"processInstanceId\":null,\"processInstanceUrl\":null,\"propagatedStageInstanceId\":null,\"scopeDefinitionId\":null,\"scopeId\":null,\"scopeType\":null,\"subScopeId\":null,\"suspended\":false,\"taskDefinitionKey\":null,\"tenantId\":\"\",\"url\":\"http://localhost/service/runtime/tasks/{createdId}\",\"variables\":[]}",
+    "afterTasks" : {
+      "0-parent" : {
+        "name" : "审批甲",
+        "assignee" : "alice",
+        "owner" : "owner",
+        "delegationState" : null
+      },
+      "1-free" : {
+        "name" : "审批乙",
+        "assignee" : null,
+        "owner" : null,
+        "delegationState" : null
+      },
+      "2-child" : {
+        "name" : "子任务",
+        "assignee" : null,
+        "owner" : null,
+        "delegationState" : null
+      },
+      "{createdId}" : {
+        "name" : "新任务",
+        "assignee" : null,
+        "owner" : "owner",
+        "delegationState" : null
+      }
+    }
+  }, {
+    "name" : "update",
+    "method" : "PUT",
+    "path" : "/service/runtime/tasks/0-parent",
+    "requestBody" : "{\"description\":null,\"assignee\":null,\"dueDate\":null,\"priority\":0}",
+    "status" : 200,
+    "responseBody" : "{\"assignee\":null,\"category\":\"review\",\"claimTime\":null,\"createTime\":\"2026-10-29T01:02:03.123Z\",\"delegationState\":null,\"description\":null,\"dueDate\":null,\"executionId\":null,\"executionUrl\":null,\"formKey\":\"form\",\"id\":\"0-parent\",\"name\":\"审批甲\",\"owner\":\"owner\",\"parentTaskId\":null,\"parentTaskUrl\":null,\"priority\":0,\"processDefinitionId\":null,\"processDefinitionUrl\":null,\"processInstanceId\":null,\"processInstanceUrl\":null,\"propagatedStageInstanceId\":null,\"scopeDefinitionId\":null,\"scopeId\":null,\"scopeType\":null,\"subScopeId\":null,\"suspended\":false,\"taskDefinitionKey\":null,\"tenantId\":\"\",\"url\":\"http://localhost/service/runtime/tasks/0-parent\",\"variables\":[]}",
+    "readBackBody" : "{\"assignee\":null,\"category\":\"review\",\"claimTime\":null,\"createTime\":\"2026-10-29T01:02:03.123Z\",\"delegationState\":null,\"description\":null,\"dueDate\":null,\"executionId\":null,\"executionUrl\":null,\"formKey\":\"form\",\"id\":\"0-parent\",\"name\":\"审批甲\",\"owner\":\"owner\",\"parentTaskId\":null,\"parentTaskUrl\":null,\"priority\":0,\"processDefinitionId\":null,\"processDefinitionUrl\":null,\"processInstanceId\":null,\"processInstanceUrl\":null,\"propagatedStageInstanceId\":null,\"scopeDefinitionId\":null,\"scopeId\":null,\"scopeType\":null,\"subScopeId\":null,\"suspended\":false,\"taskDefinitionKey\":null,\"tenantId\":\"\",\"url\":\"http://localhost/service/runtime/tasks/0-parent\",\"variables\":[]}",
+    "afterTasks" : {
+      "0-parent" : {
+        "name" : "审批甲",
+        "assignee" : null,
+        "owner" : "owner",
+        "delegationState" : null
+      },
+      "1-free" : {
+        "name" : "审批乙",
+        "assignee" : null,
+        "owner" : null,
+        "delegationState" : null
+      },
+      "2-child" : {
+        "name" : "子任务",
+        "assignee" : null,
+        "owner" : null,
+        "delegationState" : null
+      }
+    }
+  }, {
+    "name" : "claim-same",
+    "method" : "POST",
+    "path" : "/service/runtime/tasks/0-parent",
+    "requestBody" : "{\"action\":\"claim\",\"assignee\":\"alice\"}",
+    "status" : 200,
+    "responseBody" : "",
+    "readBackBody" : "{\"assignee\":\"alice\",\"category\":\"review\",\"claimTime\":\"2026-10-29T01:02:03.123Z\",\"createTime\":\"2026-10-29T01:02:03.123Z\",\"delegationState\":null,\"description\":\"任务说明\",\"dueDate\":\"2026-12-01T00:00:00Z\",\"executionId\":null,\"executionUrl\":null,\"formKey\":\"form\",\"id\":\"0-parent\",\"name\":\"审批甲\",\"owner\":\"owner\",\"parentTaskId\":null,\"parentTaskUrl\":null,\"priority\":50,\"processDefinitionId\":null,\"processDefinitionUrl\":null,\"processInstanceId\":null,\"processInstanceUrl\":null,\"propagatedStageInstanceId\":null,\"scopeDefinitionId\":null,\"scopeId\":null,\"scopeType\":null,\"subScopeId\":null,\"suspended\":false,\"taskDefinitionKey\":null,\"tenantId\":\"\",\"url\":\"http://localhost/service/runtime/tasks/0-parent\",\"variables\":[]}",
+    "afterTasks" : {
+      "0-parent" : {
+        "name" : "审批甲",
+        "assignee" : "alice",
+        "owner" : "owner",
+        "delegationState" : null
+      },
+      "1-free" : {
+        "name" : "审批乙",
+        "assignee" : null,
+        "owner" : null,
+        "delegationState" : null
+      },
+      "2-child" : {
+        "name" : "子任务",
+        "assignee" : null,
+        "owner" : null,
+        "delegationState" : null
+      }
+    }
+  }, {
+    "name" : "delegate-free",
+    "method" : "POST",
+    "path" : "/service/runtime/tasks/1-free",
+    "requestBody" : "{\"action\":\"delegate\",\"assignee\":\"bob\"}",
+    "status" : 200,
+    "responseBody" : "",
+    "readBackBody" : "{\"assignee\":\"bob\",\"category\":null,\"claimTime\":null,\"createTime\":\"2026-10-29T01:02:03.123Z\",\"delegationState\":\"pending\",\"description\":null,\"dueDate\":null,\"executionId\":null,\"executionUrl\":null,\"formKey\":null,\"id\":\"1-free\",\"name\":\"审批乙\",\"owner\":null,\"parentTaskId\":null,\"parentTaskUrl\":null,\"priority\":50,\"processDefinitionId\":null,\"processDefinitionUrl\":null,\"processInstanceId\":null,\"processInstanceUrl\":null,\"propagatedStageInstanceId\":null,\"scopeDefinitionId\":null,\"scopeId\":null,\"scopeType\":null,\"subScopeId\":null,\"suspended\":false,\"taskDefinitionKey\":null,\"tenantId\":\"\",\"url\":\"http://localhost/service/runtime/tasks/1-free\",\"variables\":[]}",
+    "afterTasks" : {
+      "0-parent" : {
+        "name" : "审批甲",
+        "assignee" : "alice",
+        "owner" : "owner",
+        "delegationState" : null
+      },
+      "1-free" : {
+        "name" : "审批乙",
+        "assignee" : "bob",
+        "owner" : null,
+        "delegationState" : "pending"
+      },
+      "2-child" : {
+        "name" : "子任务",
+        "assignee" : null,
+        "owner" : null,
+        "delegationState" : null
+      }
+    }
+  }, {
+    "name" : "resolve-free",
+    "method" : "POST",
+    "path" : "/service/runtime/tasks/1-free",
+    "requestBody" : "{\"action\":\"resolve\"}",
+    "status" : 200,
+    "responseBody" : "",
+    "readBackBody" : "{\"assignee\":null,\"category\":null,\"claimTime\":null,\"createTime\":\"2026-10-29T01:02:03.123Z\",\"delegationState\":\"resolved\",\"description\":null,\"dueDate\":null,\"executionId\":null,\"executionUrl\":null,\"formKey\":null,\"id\":\"1-free\",\"name\":\"审批乙\",\"owner\":null,\"parentTaskId\":null,\"parentTaskUrl\":null,\"priority\":50,\"processDefinitionId\":null,\"processDefinitionUrl\":null,\"processInstanceId\":null,\"processInstanceUrl\":null,\"propagatedStageInstanceId\":null,\"scopeDefinitionId\":null,\"scopeId\":null,\"scopeType\":null,\"subScopeId\":null,\"suspended\":false,\"taskDefinitionKey\":null,\"tenantId\":\"\",\"url\":\"http://localhost/service/runtime/tasks/1-free\",\"variables\":[]}",
+    "afterTasks" : {
+      "0-parent" : {
+        "name" : "审批甲",
+        "assignee" : "alice",
+        "owner" : "owner",
+        "delegationState" : null
+      },
+      "1-free" : {
+        "name" : "审批乙",
+        "assignee" : null,
+        "owner" : null,
+        "delegationState" : "resolved"
+      },
+      "2-child" : {
+        "name" : "子任务",
+        "assignee" : null,
+        "owner" : null,
+        "delegationState" : null
+      }
+    }
+  }, {
+    "name" : "claim",
+    "method" : "POST",
+    "path" : "/service/runtime/tasks/1-free",
+    "requestBody" : "{\"action\":\"claim\",\"assignee\":\"bob\"}",
+    "status" : 200,
+    "responseBody" : "",
+    "readBackBody" : "{\"assignee\":\"bob\",\"category\":null,\"claimTime\":\"2026-10-29T01:02:03.123Z\",\"createTime\":\"2026-10-29T01:02:03.123Z\",\"delegationState\":null,\"description\":null,\"dueDate\":null,\"executionId\":null,\"executionUrl\":null,\"formKey\":null,\"id\":\"1-free\",\"name\":\"审批乙\",\"owner\":null,\"parentTaskId\":null,\"parentTaskUrl\":null,\"priority\":50,\"processDefinitionId\":null,\"processDefinitionUrl\":null,\"processInstanceId\":null,\"processInstanceUrl\":null,\"propagatedStageInstanceId\":null,\"scopeDefinitionId\":null,\"scopeId\":null,\"scopeType\":null,\"subScopeId\":null,\"suspended\":false,\"taskDefinitionKey\":null,\"tenantId\":\"\",\"url\":\"http://localhost/service/runtime/tasks/1-free\",\"variables\":[]}",
+    "afterTasks" : {
+      "0-parent" : {
+        "name" : "审批甲",
+        "assignee" : "alice",
+        "owner" : "owner",
+        "delegationState" : null
+      },
+      "1-free" : {
+        "name" : "审批乙",
+        "assignee" : "bob",
+        "owner" : null,
+        "delegationState" : null
+      },
+      "2-child" : {
+        "name" : "子任务",
+        "assignee" : null,
+        "owner" : null,
+        "delegationState" : null
+      }
+    }
+  }, {
+    "name" : "unclaim",
+    "method" : "POST",
+    "path" : "/service/runtime/tasks/0-parent",
+    "requestBody" : "{\"action\":\"unclaim\"}",
+    "status" : 200,
+    "responseBody" : "",
+    "readBackBody" : "{\"assignee\":null,\"category\":\"review\",\"claimTime\":null,\"createTime\":\"2026-10-29T01:02:03.123Z\",\"delegationState\":null,\"description\":\"任务说明\",\"dueDate\":\"2026-12-01T00:00:00Z\",\"executionId\":null,\"executionUrl\":null,\"formKey\":\"form\",\"id\":\"0-parent\",\"name\":\"审批甲\",\"owner\":\"owner\",\"parentTaskId\":null,\"parentTaskUrl\":null,\"priority\":50,\"processDefinitionId\":null,\"processDefinitionUrl\":null,\"processInstanceId\":null,\"processInstanceUrl\":null,\"propagatedStageInstanceId\":null,\"scopeDefinitionId\":null,\"scopeId\":null,\"scopeType\":null,\"subScopeId\":null,\"suspended\":false,\"taskDefinitionKey\":null,\"tenantId\":\"\",\"url\":\"http://localhost/service/runtime/tasks/0-parent\",\"variables\":[]}",
+    "afterTasks" : {
+      "0-parent" : {
+        "name" : "审批甲",
+        "assignee" : null,
+        "owner" : "owner",
+        "delegationState" : null
+      },
+      "1-free" : {
+        "name" : "审批乙",
+        "assignee" : null,
+        "owner" : null,
+        "delegationState" : null
+      },
+      "2-child" : {
+        "name" : "子任务",
+        "assignee" : null,
+        "owner" : null,
+        "delegationState" : null
+      }
+    }
+  }, {
+    "name" : "delegate",
+    "method" : "POST",
+    "path" : "/service/runtime/tasks/0-parent",
+    "requestBody" : "{\"action\":\"delegate\",\"assignee\":\"bob\"}",
+    "status" : 200,
+    "responseBody" : "",
+    "readBackBody" : "{\"assignee\":\"bob\",\"category\":\"review\",\"claimTime\":null,\"createTime\":\"2026-10-29T01:02:03.123Z\",\"delegationState\":\"pending\",\"description\":\"任务说明\",\"dueDate\":\"2026-12-01T00:00:00Z\",\"executionId\":null,\"executionUrl\":null,\"formKey\":\"form\",\"id\":\"0-parent\",\"name\":\"审批甲\",\"owner\":\"owner\",\"parentTaskId\":null,\"parentTaskUrl\":null,\"priority\":50,\"processDefinitionId\":null,\"processDefinitionUrl\":null,\"processInstanceId\":null,\"processInstanceUrl\":null,\"propagatedStageInstanceId\":null,\"scopeDefinitionId\":null,\"scopeId\":null,\"scopeType\":null,\"subScopeId\":null,\"suspended\":false,\"taskDefinitionKey\":null,\"tenantId\":\"\",\"url\":\"http://localhost/service/runtime/tasks/0-parent\",\"variables\":[]}",
+    "afterTasks" : {
+      "0-parent" : {
+        "name" : "审批甲",
+        "assignee" : "bob",
+        "owner" : "owner",
+        "delegationState" : "pending"
+      },
+      "1-free" : {
+        "name" : "审批乙",
+        "assignee" : null,
+        "owner" : null,
+        "delegationState" : null
+      },
+      "2-child" : {
+        "name" : "子任务",
+        "assignee" : null,
+        "owner" : null,
+        "delegationState" : null
+      }
+    }
+  }, {
+    "name" : "resolve",
+    "method" : "POST",
+    "path" : "/service/runtime/tasks/0-parent",
+    "requestBody" : "{\"action\":\"resolve\"}",
+    "status" : 200,
+    "responseBody" : "",
+    "readBackBody" : "{\"assignee\":\"owner\",\"category\":\"review\",\"claimTime\":null,\"createTime\":\"2026-10-29T01:02:03.123Z\",\"delegationState\":\"resolved\",\"description\":\"任务说明\",\"dueDate\":\"2026-12-01T00:00:00Z\",\"executionId\":null,\"executionUrl\":null,\"formKey\":\"form\",\"id\":\"0-parent\",\"name\":\"审批甲\",\"owner\":\"owner\",\"parentTaskId\":null,\"parentTaskUrl\":null,\"priority\":50,\"processDefinitionId\":null,\"processDefinitionUrl\":null,\"processInstanceId\":null,\"processInstanceUrl\":null,\"propagatedStageInstanceId\":null,\"scopeDefinitionId\":null,\"scopeId\":null,\"scopeType\":null,\"subScopeId\":null,\"suspended\":false,\"taskDefinitionKey\":null,\"tenantId\":\"\",\"url\":\"http://localhost/service/runtime/tasks/0-parent\",\"variables\":[]}",
+    "afterTasks" : {
+      "0-parent" : {
+        "name" : "审批甲",
+        "assignee" : "owner",
+        "owner" : "owner",
+        "delegationState" : "resolved"
+      },
+      "1-free" : {
+        "name" : "审批乙",
+        "assignee" : null,
+        "owner" : null,
+        "delegationState" : null
+      },
+      "2-child" : {
+        "name" : "子任务",
+        "assignee" : null,
+        "owner" : null,
+        "delegationState" : null
+      }
+    }
+  }, {
+    "name" : "complete",
+    "method" : "POST",
+    "path" : "/service/runtime/tasks/1-free",
+    "requestBody" : "{\"action\":\"complete\"}",
+    "status" : 200,
+    "responseBody" : "",
+    "afterTasks" : {
+      "0-parent" : {
+        "name" : "审批甲",
+        "assignee" : "alice",
+        "owner" : "owner",
+        "delegationState" : null
+      },
+      "2-child" : {
+        "name" : "子任务",
+        "assignee" : null,
+        "owner" : null,
+        "delegationState" : null
+      }
+    }
+  }, {
+    "name" : "delete",
+    "method" : "DELETE",
+    "path" : "/service/runtime/tasks/1-free",
+    "requestBody" : "",
+    "status" : 204,
+    "responseBody" : "",
+    "afterTasks" : {
+      "0-parent" : {
+        "name" : "审批甲",
+        "assignee" : "alice",
+        "owner" : "owner",
+        "delegationState" : null
+      },
+      "2-child" : {
+        "name" : "子任务",
+        "assignee" : null,
+        "owner" : null,
+        "delegationState" : null
+      }
+    }
+  }, {
+    "name" : "missing",
+    "method" : "GET",
+    "path" : "/service/runtime/tasks/missing",
+    "requestBody" : "",
+    "status" : 404,
+    "responseBody" : "{\"message\":\"Not found\",\"exception\":\"Could not find a task with id 'missing'.\"}",
+    "afterTasks" : {
+      "0-parent" : {
+        "name" : "审批甲",
+        "assignee" : "alice",
+        "owner" : "owner",
+        "delegationState" : null
+      },
+      "1-free" : {
+        "name" : "审批乙",
+        "assignee" : null,
+        "owner" : null,
+        "delegationState" : null
+      },
+      "2-child" : {
+        "name" : "子任务",
+        "assignee" : null,
+        "owner" : null,
+        "delegationState" : null
+      }
+    }
+  }, {
+    "name" : "claim-conflict",
+    "method" : "POST",
+    "path" : "/service/runtime/tasks/0-parent",
+    "requestBody" : "{\"action\":\"claim\",\"assignee\":\"bob\"}",
+    "status" : 409,
+    "responseBody" : "{\"message\":\"Task was already claimed\",\"exception\":\"Task '0-parent' is already claimed by someone else.\"}",
+    "afterTasks" : {
+      "0-parent" : {
+        "name" : "审批甲",
+        "assignee" : "alice",
+        "owner" : "owner",
+        "delegationState" : null
+      },
+      "1-free" : {
+        "name" : "审批乙",
+        "assignee" : null,
+        "owner" : null,
+        "delegationState" : null
+      },
+      "2-child" : {
+        "name" : "子任务",
+        "assignee" : null,
+        "owner" : null,
+        "delegationState" : null
+      }
+    }
+  } ]
+}

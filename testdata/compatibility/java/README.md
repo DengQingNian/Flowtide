@@ -32,10 +32,17 @@
 ```bash
 go test ./internal/engine -run TestJavaAsyncVariableReference -count=1
 go test ./internal/rest -run TestJavaAsyncRESTReference -count=1
+go test ./internal/rest -run TestJavaTaskRESTReference -count=1
 make contract
 ```
 
 上面命令只回放固定样本。重生成需先取得本地生成器及构建脚本，核对 `async-provenance.json` 中的摘要，并准备固定 Java 源码和依赖。脚本校验提交且拒绝源码修改，输出目录必须不存在，两个 Java 运行器都成功后才发布；需要 Maven 代理时由调用者提供受限配置，不提交凭据。生成只使用独立 H2 内存数据库，不读取 `.env` 或连接业务库。新旧制品必须人工审核并更新 `baseline.json`，不能用 Go 响应重写 Java 期望。
+
+## 任务 HTTP 参考制品
+
+`004-task-rest.json` 保存八个官方任务方法的 26 个原版 HTTP 场景，包括完整 DTO、显式空值、资源 URL、UTC 毫秒时间、分页及其优先级、父子任务、签收冲突、重复签收、委派和完成副作用。`task-provenance.json` 保存原版四个控制器的字节摘要和本地运行器源码摘要；两次独立 Java 执行的完整 JSON 一致。该运行器同样只留本地。
+
+Go 回归入口为 `TestJavaTaskRESTReference`，另有双库创建、签收、到期时间恢复和查询大页测试。完整场景及当前边界见实施记录 069。任务动作按原版返回 200 空正文；分页 `size` 是实际条数。固定原版的 `unassigned=false` 也选择未签收任务，与 OpenAPI 描述不同。
 
 ## 证据边界
 

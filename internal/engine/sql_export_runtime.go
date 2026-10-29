@@ -77,7 +77,7 @@ func (e *Engine) runtimeRowsLocked() ([]flowablerow.Row, error) {
 	}
 	sort.Slice(tasks, func(i, j int) bool { return tasks[i].Task.ID < tasks[j].Task.ID })
 	for _, task := range tasks {
-		row, rowErr := runtimeRow("ACT_RU_TASK", []string{"ID_", "REV_", "EXECUTION_ID_", "PROC_INST_ID_", "PROC_DEF_ID_", "NAME_", "DESCRIPTION_", "TASK_DEF_KEY_", "PARENT_TASK_ID_", "OWNER_", "ASSIGNEE_", "DELEGATION_", "PRIORITY_", "CREATE_TIME_", "DUE_DATE_", "CATEGORY_", "SUSPENSION_STATE_", "TENANT_ID_", "FORM_KEY_"})
+		row, rowErr := runtimeRow("ACT_RU_TASK", []string{"ID_", "REV_", "EXECUTION_ID_", "PROC_INST_ID_", "PROC_DEF_ID_", "NAME_", "DESCRIPTION_", "TASK_DEF_KEY_", "PARENT_TASK_ID_", "OWNER_", "ASSIGNEE_", "DELEGATION_", "PRIORITY_", "CREATE_TIME_", "DUE_DATE_", "CLAIM_TIME_", "CATEGORY_", "SUSPENSION_STATE_", "TENANT_ID_", "FORM_KEY_"})
 		if rowErr != nil {
 			return nil, rowErr
 		}
@@ -109,6 +109,11 @@ func (e *Engine) runtimeRowsLocked() ([]flowablerow.Row, error) {
 			_ = row.Set("DUE_DATE_", *task.Task.DueDate)
 		} else {
 			_ = row.Set("DUE_DATE_", nil)
+		}
+		if task.Task.ClaimTime == nil {
+			_ = row.Set("CLAIM_TIME_", nil)
+		} else {
+			_ = row.Set("CLAIM_TIME_", *task.Task.ClaimTime)
 		}
 		_ = row.Set("CATEGORY_", task.Task.Category)
 		_ = row.Set("SUSPENSION_STATE_", suspension)

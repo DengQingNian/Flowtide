@@ -30,7 +30,7 @@
     "缺失的外置字节数据",
     "超出有符号 64 位范围的整数"
   ],
-  "fixture_status": "Java H2用户任务双库接管对照、异步变量服务及六方法原版HTTP场景通过；全量REST未验收",
+  "fixture_status": "Java H2用户任务双库接管、异步变量及任务原版HTTP场景通过；全量REST未验收",
   "artifacts": [
     {
       "path": "testdata/compatibility/flowable-swagger-process.yaml",
@@ -83,6 +83,14 @@
     {
       "path": "testdata/compatibility/java/async-provenance.json",
       "sha256": "20334d3c1d0a6be42add1757f113367ff1ed214ff878c17917a254f125d9ea5b"
+    },
+    {
+      "path": "testdata/compatibility/java/004-task-rest.json",
+      "sha256": "fed02e2e003cd45f43caf4e21ec986b0eacfa49d269fda517f516927688952a7"
+    },
+    {
+      "path": "testdata/compatibility/java/task-provenance.json",
+      "sha256": "59738f54cf389678d120abb30a89ac47fca6f0cd8d3ddc7bd252869c974ac1f6"
     }
   ]
 }

@@ -135,8 +135,8 @@ func TestDelegateTask(t *testing.T) {
 		t.Fatalf("启动失败: %v", err)
 	}
 	task := listTasks(t, engine)[0]
-	if err := engine.Delegate(context.Background(), task.ID, "bob"); err == nil {
-		t.Fatalf("未签收任务不应允许委派")
+	if err := engine.Delegate(context.Background(), task.ID, ""); err == nil {
+		t.Fatalf("空处理人不应允许委派")
 	}
 	if err := engine.Claim(context.Background(), task.ID, "alice"); err != nil {
 		t.Fatalf("签收失败: %v", err)

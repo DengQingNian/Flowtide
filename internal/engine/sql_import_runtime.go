@@ -90,6 +90,7 @@ func (e *Engine) ImportRuntimeRows(ctx context.Context, rows []flowablerow.Row) 
 					TenantID:            task.TenantID,
 					CreateTime:          task.CreateTime,
 					DueDate:             task.DueDate,
+					ClaimTime:           cloneTime(task.ClaimTime),
 				},
 				ExecutionID:    task.ExecutionID,
 				ActivityID:     task.TaskDefinitionKey,

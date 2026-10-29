@@ -6,6 +6,7 @@ import (
 	"reflect"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/flowable-go/flowable/api"
 	"github.com/flowable-go/flowable/internal/engine"
@@ -58,9 +59,17 @@ func TestIntegrationMySQLRows(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	standalone, err := first.CreateTask(ctx, api.CreateTaskRequest{Name: "独立任务"})
+	due := time.Date(2026, 11, 1, 12, 0, 0, 0, time.FixedZone("验收时区", 8*3600))
+	standalone, err := first.CreateTask(ctx, api.CreateTaskRequest{Name: "独立任务", DueDate: &due})
 	if err != nil {
 		t.Fatal(err)
+	}
+	if err := first.Claim(ctx, standalone.ID, "alice"); err != nil {
+		t.Fatal(err)
+	}
+	claimed, err := first.GetTask(ctx, standalone.ID)
+	if err != nil || claimed.ClaimTime == nil {
+		t.Fatalf("独立任务签收元数据缺失: %v", err)
 	}
 	if err := first.Close(ctx); err != nil {
 		t.Fatal(err)
@@ -68,6 +77,13 @@ func TestIntegrationMySQLRows(t *testing.T) {
 	second, err := engine.New(engine.Config{RowRepository: repository, LoadRows: true})
 	if err != nil {
 		t.Fatal(err)
+	}
+	if task, err := second.GetTask(ctx, standalone.ID); err != nil || task.ClaimTime == nil || !task.ClaimTime.Equal(claimed.ClaimTime.Truncate(time.Millisecond)) {
+		t.Fatalf("MySQL 标准任务行丢失签收时间: %+v %v", task, err)
+	} else if task.CreateTime.Sub(claimed.CreateTime).Abs() > time.Millisecond {
+		t.Fatalf("MySQL 任务创建时间重启后漂移: 原值=%s 恢复=%s", claimed.CreateTime, task.CreateTime)
+	} else if task.DueDate == nil || !task.DueDate.Equal(due) {
+		t.Fatalf("MySQL 到期时间重启后漂移: %+v", task.DueDate)
 	}
 	restored, err := second.GetModelSource(ctx, model.ID)
 	if err != nil || !bytes.Equal(restored, []byte("模型源码")) {

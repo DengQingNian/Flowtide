@@ -98,6 +98,9 @@ func (e *Engine) UpdateTask(ctx context.Context, taskID string, update api.TaskU
 		}
 		if update.Assignee != nil {
 			task.Task.Assignee = *update.Assignee
+			if *update.Assignee == "" {
+				task.Task.ClaimTime = nil
+			}
 		}
 		if update.Owner != nil {
 			task.Task.Owner = *update.Owner
@@ -123,7 +126,7 @@ func (e *Engine) UpdateTask(ctx context.Context, taskID string, update api.TaskU
 		}
 		e.recordTaskIdentityLinks(cc, task)
 		e.recordTaskLog(cc, task, "update", update.UserID, "")
-		return task.Task, nil
+		return e.toTaskDTO(task), nil
 	})
 	if err != nil {
 		return api.Task{}, err

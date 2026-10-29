@@ -4,5 +4,13 @@
   "PUT /runtime/process-instances/{}/variables-async": "持久异步已验收：单执行者重试与恢复；Java原版HTTP场景通过",
   "PUT /runtime/process-instances/{}/variables-async/{}": "持久异步已验收：单执行者重试与恢复；Java原版HTTP场景通过",
   "PUT /runtime/executions/{}/variables-async": "持久异步已验收：单执行者重试与恢复；Java原版HTTP场景通过；原版204与OpenAPI标记201不同",
-  "PUT /runtime/executions/{}/variables-async/{}": "持久异步已验收：单执行者重试与恢复；Java原版HTTP场景通过"
+  "PUT /runtime/executions/{}/variables-async/{}": "持久异步已验收：单执行者重试与恢复；Java原版HTTP场景通过",
+  "GET /runtime/tasks": "原版任务HTTP场景通过：完整DTO、分页与动作副作用；完整字段组合待验收",
+  "POST /runtime/tasks": "原版任务HTTP场景通过：完整DTO、分页与动作副作用；完整字段组合待验收",
+  "GET /runtime/tasks/{}": "原版任务HTTP场景通过：完整DTO、分页与动作副作用；完整字段组合待验收",
+  "PUT /runtime/tasks/{}": "原版任务HTTP场景通过：完整DTO、分页与动作副作用；完整字段组合待验收",
+  "DELETE /runtime/tasks/{}": "原版任务HTTP场景通过：完整DTO、分页与动作副作用；完整字段组合待验收",
+  "POST /runtime/tasks/{}": "原版任务HTTP场景通过：完整DTO、分页与动作副作用；完整字段组合待验收",
+  "GET /runtime/tasks/{}/subtasks": "原版任务HTTP场景通过：完整DTO、分页与动作副作用；完整字段组合待验收",
+  "POST /query/tasks": "原版任务HTTP场景通过：完整DTO、分页与动作副作用；完整字段组合待验收"
 }

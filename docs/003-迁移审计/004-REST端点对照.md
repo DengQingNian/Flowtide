@@ -35,7 +35,7 @@
 | `DELETE /runtime/process-instances/{}/identitylinks/{}/{}/{}` | `` | `/runtime/process-instances/{id}/identitylinks/{family}/{identityId}/{type}` | 实现扩展；不计入官方覆盖 |
 | `DELETE /runtime/process-instances/{}/variables` | `/runtime/process-instances/{processInstanceId}/variables` | `/runtime/process-instances/{id}/variables` | 已编码；待契约与 Java 行为验收 |
 | `DELETE /runtime/process-instances/{}/variables/{}` | `/runtime/process-instances/{processInstanceId}/variables/{variableName}` | `/runtime/process-instances/{id}/variables/{name}` | 已编码；待契约与 Java 行为验收 |
-| `DELETE /runtime/tasks/{}` | `/runtime/tasks/{taskId}` | `/runtime/tasks/{id}` | 已编码；待契约与 Java 行为验收 |
+| `DELETE /runtime/tasks/{}` | `/runtime/tasks/{taskId}` | `/runtime/tasks/{id}` | 原版任务HTTP场景通过：完整DTO、分页与动作副作用；完整字段组合待验收 |
 | `DELETE /runtime/tasks/{}/attachments/{}` | `/runtime/tasks/{taskId}/attachments/{attachmentId}` | `/runtime/tasks/{id}/attachments/{attachmentId}` | 已编码；待契约与 Java 行为验收 |
 | `DELETE /runtime/tasks/{}/comments/{}` | `/runtime/tasks/{taskId}/comments/{commentId}` | `/runtime/tasks/{id}/comments/{commentId}` | 已编码；待契约与 Java 行为验收 |
 | `DELETE /runtime/tasks/{}/events/{}` | `/runtime/tasks/{taskId}/events/{eventId}` | `/runtime/tasks/{id}/events/{eventId}` | 已编码；待契约与 Java 行为验收 |
@@ -148,8 +148,8 @@
 | `GET /runtime/process-instances/{}/variables` | `/runtime/process-instances/{processInstanceId}/variables` | `/runtime/process-instances/{id}/variables` | 已编码；待契约与 Java 行为验收 |
 | `GET /runtime/process-instances/{}/variables/{}` | `/runtime/process-instances/{processInstanceId}/variables/{variableName}` | `/runtime/process-instances/{id}/variables/{name}` | 已编码；待契约与 Java 行为验收 |
 | `GET /runtime/process-instances/{}/variables/{}/data` | `/runtime/process-instances/{processInstanceId}/variables/{variableName}/data` | `/runtime/process-instances/{id}/variables/{name}/data` | 已编码；待契约与 Java 行为验收 |
-| `GET /runtime/tasks` | `/runtime/tasks` | `/runtime/tasks` | 已编码；待契约与 Java 行为验收 |
-| `GET /runtime/tasks/{}` | `/runtime/tasks/{taskId}` | `/runtime/tasks/{id}` | 已编码；待契约与 Java 行为验收 |
+| `GET /runtime/tasks` | `/runtime/tasks` | `/runtime/tasks` | 原版任务HTTP场景通过：完整DTO、分页与动作副作用；完整字段组合待验收 |
+| `GET /runtime/tasks/{}` | `/runtime/tasks/{taskId}` | `/runtime/tasks/{id}` | 原版任务HTTP场景通过：完整DTO、分页与动作副作用；完整字段组合待验收 |
 | `GET /runtime/tasks/{}/attachments` | `/runtime/tasks/{taskId}/attachments` | `/runtime/tasks/{id}/attachments` | 已编码；待契约与 Java 行为验收 |
 | `GET /runtime/tasks/{}/attachments/{}` | `/runtime/tasks/{taskId}/attachments/{attachmentId}` | `/runtime/tasks/{id}/attachments/{attachmentId}` | 已编码；待契约与 Java 行为验收 |
 | `GET /runtime/tasks/{}/attachments/{}/content` | `/runtime/tasks/{taskId}/attachments/{attachmentId}/content` | `/runtime/tasks/{id}/attachments/{attachmentId}/content` | 已编码；待契约与 Java 行为验收 |
@@ -162,7 +162,7 @@
 | `GET /runtime/tasks/{}/identitylinks/{}` | `/runtime/tasks/{taskId}/identitylinks/{family}` | `/runtime/tasks/{id}/identitylinks/{family}` | 已编码；待契约与 Java 行为验收 |
 | `GET /runtime/tasks/{}/identitylinks/{}/{}` | `` | `/runtime/tasks/{id}/identitylinks/{family}/{identityId}` | 实现扩展；不计入官方覆盖 |
 | `GET /runtime/tasks/{}/identitylinks/{}/{}/{}` | `/runtime/tasks/{taskId}/identitylinks/{family}/{identityId}/{type}` | `/runtime/tasks/{id}/identitylinks/{family}/{identityId}/{type}` | 已编码；待契约与 Java 行为验收 |
-| `GET /runtime/tasks/{}/subtasks` | `/runtime/tasks/{taskId}/subtasks` | `/runtime/tasks/{id}/subtasks` | 已编码；待契约与 Java 行为验收 |
+| `GET /runtime/tasks/{}/subtasks` | `/runtime/tasks/{taskId}/subtasks` | `/runtime/tasks/{id}/subtasks` | 原版任务HTTP场景通过：完整DTO、分页与动作副作用；完整字段组合待验收 |
 | `GET /runtime/tasks/{}/variables` | `/runtime/tasks/{taskId}/variables` | `/runtime/tasks/{id}/variables` | 已编码；待契约与 Java 行为验收 |
 | `GET /runtime/tasks/{}/variables/{}` | `/runtime/tasks/{taskId}/variables/{variableName}` | `/runtime/tasks/{id}/variables/{name}` | 已编码；待契约与 Java 行为验收 |
 | `GET /runtime/tasks/{}/variables/{}/data` | `/runtime/tasks/{taskId}/variables/{variableName}/data` | `/runtime/tasks/{id}/variables/{name}/data` | 已编码；待契约与 Java 行为验收 |
@@ -190,7 +190,7 @@
 | `POST /query/historic-task-instances` | `/query/historic-task-instances` | `/query/historic-task-instances` | 已编码；待契约与 Java 行为验收 |
 | `POST /query/historic-variable-instances` | `/query/historic-variable-instances` | `/query/historic-variable-instances` | 已编码；待契约与 Java 行为验收 |
 | `POST /query/process-instances` | `/query/process-instances` | `/query/process-instances` | 已编码；待契约与 Java 行为验收 |
-| `POST /query/tasks` | `/query/tasks` | `/query/tasks` | 已编码；待契约与 Java 行为验收 |
+| `POST /query/tasks` | `/query/tasks` | `/query/tasks` | 原版任务HTTP场景通过：完整DTO、分页与动作副作用；完整字段组合待验收 |
 | `POST /query/variable-instances` | `` | `/query/variable-instances` | 实现扩展；不计入官方覆盖 |
 | `POST /repository/deployments` | `/repository/deployments` | `/repository/deployments` | 已编码；待契约与 Java 行为验收 |
 | `POST /repository/models` | `/repository/models` | `/repository/models` | 已编码；待契约与 Java 行为验收 |
@@ -215,8 +215,8 @@
 | `POST /runtime/process-instances/{}/variables` | `/runtime/process-instances/{processInstanceId}/variables` | `/runtime/process-instances/{id}/variables` | 已编码；待契约与 Java 行为验收 |
 | `POST /runtime/process-instances/{}/variables-async` | `` | `/runtime/process-instances/{id}/variables-async` | 持久异步已验收：单执行者重试与恢复；Java原版HTTP场景通过 |
 | `POST /runtime/signals` | `/runtime/signals` | `/runtime/signals` | 已编码；待契约与 Java 行为验收 |
-| `POST /runtime/tasks` | `/runtime/tasks` | `/runtime/tasks` | 已编码；待契约与 Java 行为验收 |
-| `POST /runtime/tasks/{}` | `/runtime/tasks/{taskId}` | `/runtime/tasks/{id}` | 已编码；待契约与 Java 行为验收 |
+| `POST /runtime/tasks` | `/runtime/tasks` | `/runtime/tasks` | 原版任务HTTP场景通过：完整DTO、分页与动作副作用；完整字段组合待验收 |
+| `POST /runtime/tasks/{}` | `/runtime/tasks/{taskId}` | `/runtime/tasks/{id}` | 原版任务HTTP场景通过：完整DTO、分页与动作副作用；完整字段组合待验收 |
 | `POST /runtime/tasks/{}/attachments` | `/runtime/tasks/{taskId}/attachments` | `/runtime/tasks/{id}/attachments` | 已编码；待契约与 Java 行为验收 |
 | `POST /runtime/tasks/{}/comments` | `/runtime/tasks/{taskId}/comments` | `/runtime/tasks/{id}/comments` | 已编码；待契约与 Java 行为验收 |
 | `POST /runtime/tasks/{}/identitylinks` | `/runtime/tasks/{taskId}/identitylinks` | `/runtime/tasks/{id}/identitylinks` | 已编码；待契约与 Java 行为验收 |
@@ -245,5 +245,5 @@
 | `PUT /runtime/process-instances/{}/variables-async/{}` | `` | `/runtime/process-instances/{id}/variables-async/{name}` | 持久异步已验收：单执行者重试与恢复；Java原版HTTP场景通过 |
 | `PUT /runtime/process-instances/{}/variables/{}` | `/runtime/process-instances/{processInstanceId}/variables/{variableName}` | `/runtime/process-instances/{id}/variables/{name}` | 已编码；待契约与 Java 行为验收 |
 | `PUT /runtime/tasks` | `` | `/runtime/tasks` | 实现扩展；不计入官方覆盖 |
-| `PUT /runtime/tasks/{}` | `/runtime/tasks/{taskId}` | `/runtime/tasks/{id}` | 已编码；待契约与 Java 行为验收 |
+| `PUT /runtime/tasks/{}` | `/runtime/tasks/{taskId}` | `/runtime/tasks/{id}` | 原版任务HTTP场景通过：完整DTO、分页与动作副作用；完整字段组合待验收 |
 | `PUT /runtime/tasks/{}/variables/{}` | `/runtime/tasks/{taskId}/variables/{variableName}` | `/runtime/tasks/{id}/variables/{name}` | 已编码；待契约与 Java 行为验收 |

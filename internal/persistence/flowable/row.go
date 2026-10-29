@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/flowable-go/flowable/api"
 )
@@ -184,7 +185,7 @@ func (r *Row) Args() []any {
 	columns := r.insertColumns()
 	args := make([]any, len(columns))
 	for i, column := range columns {
-		args[i] = r.Values[column]
+		args[i] = sqlRowValue(r.Values[column])
 	}
 	return args
 }
@@ -237,7 +238,7 @@ func (r *Row) UpdateSQL(dialect string, oldRevision int64) (string, []any, error
 		if column == "REV_" {
 			value = oldRevision + 1
 		}
-		args = append(args, value)
+		args = append(args, sqlRowValue(value))
 		assignments = append(assignments, fmt.Sprintf("%s = %s", column, placeholder(dialect, len(args))))
 	}
 	if len(assignments) == 0 {
@@ -250,6 +251,23 @@ func (r *Row) UpdateSQL(dialect string, oldRevision int64) (string, []any, error
 		query += " AND REV_ = " + placeholder(dialect, len(args))
 	}
 	return query, args, nil
+}
+
+// sqlRowValue 将有时区的时间参数转为 UTC，防止无时区 SQL 列在重启后产生绝对时间漂移。
+// @param value 原始列值
+// @return 可绑定的 SQL 参数，非时间值保持原样
+func sqlRowValue(value any) any {
+	switch timestamp := value.(type) {
+	case time.Time:
+		return timestamp.UTC()
+	case *time.Time:
+		// 历史与运行时的可空时间使用相同编码，空指针必须绑定为 SQL NULL。
+		if timestamp == nil {
+			return nil
+		}
+		return timestamp.UTC()
+	}
+	return value
 }
 
 // DeleteSQL 生成按真实主键及可用修订号删除的语句。
