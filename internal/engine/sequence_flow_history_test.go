@@ -51,6 +51,39 @@ func TestMigrationSequenceFlowHistory(t *testing.T) {
 	}
 }
 
+// TestMigrationSequenceFlowHistoryRows 验证迁移顺序流标记随行仓储恢复，不能只在 JSON 快照保留。
+// @param t 测试上下文
+// @return 无
+func TestMigrationSequenceFlowHistoryRows(t *testing.T) {
+	source, err := New(Config{HistoryLevel: HistoryAudit, RecordSequenceFlowHistory: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	deployXML(t, source, simpleProcess)
+	instance, err := source.StartProcessInstance(context.Background(), api.StartRequest{ProcessDefinitionKey: "simple"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	rows, err := source.SnapshotRows(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	target := newTestEngine(t)
+	if err := target.RestoreRows(context.Background(), rows); err != nil {
+		t.Fatal(err)
+	}
+	if !target.state.RecordSequenceFlowHistory {
+		t.Fatal("行恢复丢失 Java 迁移顺序流标记")
+	}
+	task := listTasks(t, target)[0]
+	if err := target.Complete(context.Background(), task.ID, api.CompleteTaskRequest{}); err != nil {
+		t.Fatal(err)
+	}
+	if count := sequenceFlowActivities(t, target, instance.ID); count != 2 {
+		t.Fatalf("行恢复后顺序流历史数量=%d", count)
+	}
+}
+
 // sequenceFlowActivities 统计实例中类型为 sequenceFlow 的历史活动。
 // @param t 测试上下文
 // @param workflow 引擎

@@ -93,7 +93,7 @@ func sourceKnownTables() map[string]bool {
 	for _, name := range flowable.Tables() {
 		known[name] = true
 	}
-	for _, name := range []string{"ACT_RU_ACTINST", "ACT_RU_TIMER_JOB", "ACT_RU_SUSPENDED_JOB", "ACT_RU_EXTERNAL_JOB", "ACT_RU_HISTORY_JOB", "ACT_HI_JOB_LOG"} {
+	for _, name := range []string{"ACT_ID_PROPERTY", "ACT_RU_ACTINST", "ACT_RU_TIMER_JOB", "ACT_RU_SUSPENDED_JOB", "ACT_RU_EXTERNAL_JOB", "ACT_RU_HISTORY_JOB", "ACT_HI_JOB_LOG"} {
 		known[name] = true
 	}
 	return known

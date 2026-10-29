@@ -25,6 +25,8 @@ func TestParseStorageMode(t *testing.T) {
 		{"快照与状态文件互斥", "mysql", "state.json", false, true},
 		{"行仓储模式", "mysql-rows", "", true, false},
 		{"行仓储与状态文件互斥", "mysql-rows", "state.json", false, true},
+		{"PG行仓储", "postgres-rows", "", true, false},
+		{"PG行仓储与文件互斥", "postgres-rows", "state.json", false, true},
 		{"非法模式", "postgres", "", false, true},
 	}
 	for _, scenario := range cases {

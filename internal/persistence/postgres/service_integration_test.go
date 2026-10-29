@@ -1,0 +1,172 @@
+package postgres_test
+
+import (
+	"context"
+	"database/sql"
+	"fmt"
+	"net/url"
+	"os"
+	"testing"
+	"time"
+
+	"github.com/flowable-go/flowable/api"
+	"github.com/flowable-go/flowable/internal/engine"
+	flowablerow "github.com/flowable-go/flowable/internal/persistence/flowable"
+	pgstore "github.com/flowable-go/flowable/internal/persistence/postgres"
+)
+
+// postgresServiceDatabase 创建服务模式验收专用库，测试结束只删除该临时库。
+// @param t 测试上下文
+// @return 操作上下文
+// @return 已初始化的临时连接池
+func postgresServiceDatabase(t *testing.T) (context.Context, *sql.DB) {
+	t.Helper()
+	if os.Getenv("FLOWABLE_POSTGRES_INTEGRATION") != "1" {
+		t.Skip("设置 FLOWABLE_POSTGRES_INTEGRATION=1 启用 PostgreSQL 服务验收")
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+	t.Cleanup(cancel)
+	endpoint, err := url.Parse(os.Getenv("FLOWABLE_POSTGRES_DSN"))
+	if err != nil || endpoint.Host == "" {
+		t.Fatal("需要 PostgreSQL 验收 URI")
+	}
+	admin, err := pgstore.Open(ctx, endpoint.String())
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = admin.Close() })
+	name := fmt.Sprintf("flowable_go_service_%d", time.Now().UnixNano())
+	if _, err := admin.ExecContext(ctx, "CREATE DATABASE "+name); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() {
+		cleanup, stop := context.WithTimeout(context.Background(), 30*time.Second)
+		defer stop()
+		if _, err := admin.ExecContext(cleanup, "DROP DATABASE "+name+" WITH (FORCE)"); err != nil {
+			t.Error(err)
+		}
+	})
+	endpoint.Path = "/" + name
+	db, err := pgstore.Open(ctx, endpoint.String())
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = db.Close() })
+	if err := pgstore.EnsureSchema(ctx, db, true); err != nil {
+		t.Fatal(err)
+	}
+	if err := pgstore.EnsureSchema(ctx, db, false); err != nil {
+		t.Fatal(err)
+	}
+	return ctx, db
+}
+
+// TestIntegrationPostgresRowsServiceMode 验证会话独占、重启续跑、历史明细和真实断线回滚。
+// @param t 测试上下文
+// @return 无
+func TestIntegrationPostgresRowsServiceMode(t *testing.T) {
+	ctx, db := postgresServiceDatabase(t)
+	lock, err := pgstore.NewLockedRows(ctx, db)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if duplicate, err := pgstore.NewLockedRows(ctx, db); err == nil {
+		_ = duplicate.Release()
+		t.Fatal("第二个服务获得了独占权")
+	}
+	repository, err := flowablerow.NewRepository(lock, "postgres")
+	if err != nil {
+		t.Fatal(err)
+	}
+	first, err := engine.New(engine.Config{RowRepository: repository, LoadRows: true, HistoryLevel: engine.HistoryFull})
+	if err != nil {
+		t.Fatal(err)
+	}
+	xml := `<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"><process id="pg_service" isExecutable="true"><startEvent id="s"/><sequenceFlow id="a" sourceRef="s" targetRef="task"/><userTask id="task"/><sequenceFlow id="b" sourceRef="task" targetRef="end"/><endEvent id="end"/></process></definitions>`
+	if _, err := first.Deploy(ctx, api.DeploymentRequest{Resources: map[string][]byte{"service.bpmn20.xml": []byte(xml)}}); err != nil {
+		t.Fatal(err)
+	}
+	instance, err := first.StartProcessInstance(ctx, api.StartRequest{ProcessDefinitionKey: "pg_service", Variables: []api.Variable{{Name: "金额", Value: int64(9007199254740993)}, {Name: "二进制", Value: []byte{1, 2, 3}}}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := first.Close(ctx); err != nil {
+		t.Fatal(err)
+	}
+	if err := lock.Release(); err != nil {
+		t.Fatal(err)
+	}
+	// 新执行者重新取锁并从真实行表恢复，不能复用首个引擎的内存。
+	restartedLock, err := pgstore.NewLockedRows(ctx, db)
+	if err != nil {
+		t.Fatal(err)
+	}
+	restartedRepository, _ := flowablerow.NewRepository(restartedLock, "postgres")
+	second, err := engine.New(engine.Config{RowRepository: restartedRepository, LoadRows: true, HistoryLevel: engine.HistoryFull})
+	if err != nil {
+		t.Fatal(err)
+	}
+	tasks, err := second.ListTasks(ctx, api.TaskFilter{ProcessInstanceID: instance.ID})
+	if err != nil || len(tasks.Data) != 1 {
+		t.Fatalf("PG 服务任务恢复: %+v %v", tasks, err)
+	}
+	value, err := second.GetVariable(ctx, instance.ID, "金额")
+	if err != nil || value != int64(9007199254740993) {
+		t.Fatalf("PG 大整数恢复: %v %v", value, err)
+	}
+	if err := second.Complete(ctx, tasks.Data[0].ID, api.CompleteTaskRequest{}); err != nil {
+		t.Fatal(err)
+	}
+	if variable, err := second.GetHistoricVariableByName(ctx, instance.ID, "金额"); err != nil || variable.Value != int64(9007199254740993) {
+		t.Fatalf("PG 完成后历史查询: %+v %v", variable, err)
+	}
+	if details, err := second.ListHistoricDetails(ctx, instance.ID); err != nil || len(details) != 2 {
+		t.Fatalf("PG full 明细恢复: %+v %v", details, err)
+	}
+	if err := second.Close(ctx); err != nil {
+		t.Fatal(err)
+	}
+	// 在持锁物理连接上开始事务，外部终止会话后不得透明重连并提交。
+	rows, err := restartedLock.QueryContext(ctx, "SELECT pg_backend_pid()")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var pid int
+	if !rows.Next() {
+		t.Fatal("缺少会话标识")
+	}
+	if err := rows.Scan(&pid); err != nil {
+		t.Fatal(err)
+	}
+	_ = rows.Close()
+	tx, err := restartedLock.BeginTx(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := tx.ExecContext(ctx, "INSERT INTO ACT_GE_PROPERTY (NAME_,VALUE_,REV_) VALUES ('disconnect-probe','未提交',1)"); err != nil {
+		t.Fatal(err)
+	}
+	var killed bool
+	if err := db.QueryRowContext(ctx, "SELECT pg_terminate_backend($1)", pid).Scan(&killed); err != nil || !killed {
+		t.Fatalf("终止测试会话失败: %v", err)
+	}
+	if err := tx.Commit(); err == nil {
+		t.Fatal("断线事务错误提交")
+	}
+	if _, err := restartedLock.ExecContext(ctx, "DELETE FROM ACT_GE_PROPERTY"); err == nil {
+		t.Fatal("失效连接恢复了写入")
+	}
+	_ = restartedLock.Release()
+	var count int
+	if err := db.QueryRowContext(ctx, "SELECT COUNT(*) FROM ACT_GE_PROPERTY WHERE NAME_='disconnect-probe'").Scan(&count); err != nil || count != 0 {
+		t.Fatalf("断线写入未回滚: %d %v", count, err)
+	}
+	finalLock, err := pgstore.NewLockedRows(ctx, db)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := finalLock.Release(); err != nil {
+		t.Fatal(err)
+	}
+	t.Log("PostgreSQL Schema 原子初始化、独占竞争、重启续跑、full 历史及断线回滚通过")
+}

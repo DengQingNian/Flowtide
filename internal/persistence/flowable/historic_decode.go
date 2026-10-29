@@ -3,6 +3,7 @@ package flowable
 import (
 	"sort"
 	"time"
+	"unicode/utf8"
 
 	"github.com/flowable-go/flowable/api"
 )
@@ -478,11 +479,32 @@ func decodeHistoricComment(row Row) (api.Comment, error) {
 	if err != nil {
 		return api.Comment{}, err
 	}
-	fullMessage, err := optionalStringValue(row, "FULL_MSG_")
+	fullMessage, err := historicCommentMessage(row)
 	if err != nil {
 		return api.Comment{}, err
 	}
 	return api.Comment{ID: id, Type: commentType, Time: commentTime, UserID: userID, TaskID: taskID, ProcessInstanceID: processInstanceID, Action: action, Message: message, FullMessage: fullMessage}, nil
+}
+
+// historicCommentMessage 解码完整评论的 BLOB、bytea 或旧快照文本，拒绝非 UTF-8 数据。
+// @param row 评论历史行
+// @return 完整评论文本
+// @return 列类型或编码错误
+func historicCommentMessage(row Row) (string, error) {
+	// 数据库二进制列与旧快照字符串分别处理，不能把任意对象格式化成业务文本。
+	switch value := row.Values["FULL_MSG_"].(type) {
+	case nil:
+		return "", nil
+	case string:
+		if utf8.ValidString(value) {
+			return value, nil
+		}
+	case []byte:
+		if utf8.Valid(value) {
+			return string(value), nil
+		}
+	}
+	return "", api.NewError("ROW-0014", "完整评论不是有效的 UTF-8 文本", api.ErrBadRequest)
 }
 
 // decodeHistoricAttachment 解析历史附件行。

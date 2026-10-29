@@ -9,6 +9,7 @@ import (
 
 	flowablerow "github.com/flowable-go/flowable/internal/persistence/flowable"
 	mysqlstore "github.com/flowable-go/flowable/internal/persistence/mysql"
+	pgstore "github.com/flowable-go/flowable/internal/persistence/postgres"
 	"github.com/flowable-go/flowable/internal/persistence/sqlstate"
 	statestore "github.com/flowable-go/flowable/internal/persistence/state"
 )
@@ -38,10 +39,10 @@ func parseStorageMode(storage, statePath string) (bool, error) {
 			return false, errors.New("-storage mysql 与 -state 不能同时使用")
 		}
 		return false, nil
-	case "mysql-rows":
+	case "mysql-rows", "postgres-rows":
 		// 行仓储与状态文件同样只能选择一个权威来源。
 		if statePath != "" {
-			return false, errors.New("-storage mysql-rows 与 -state 不能同时使用")
+			return false, fmt.Errorf("-storage %s 与 -state 不能同时使用", storage)
 		}
 		return true, nil
 	default:
@@ -64,6 +65,9 @@ func newStorage(ctx context.Context, storage, statePath, envPath string) (*stora
 	// 未显式选择数据库时保留原有内存或文件模式，不读取配置文件。
 	if storage == "" {
 		return &storageSetup{}, nil
+	}
+	if storage == "postgres-rows" {
+		return newPostgresStorage(ctx, envPath)
 	}
 	cfg, err := mysqlstore.LoadConfig(envPath)
 	if err != nil {
@@ -93,6 +97,63 @@ func newStorage(ctx context.Context, storage, statePath, envPath string) (*stora
 		}
 		return closeErr
 	}}, nil
+}
+
+// newPostgresStorage 校验 PostgreSQL Schema 并初始化绑定会话独占锁的行仓储。
+// @param ctx 初始化上下文
+// @param envPath 配置文件路径
+// @return 存储配置
+// @return 配置、Schema、锁或仓储错误
+func newPostgresStorage(ctx context.Context, envPath string) (*storageSetup, error) {
+	dsn, err := pgstore.LoadDSN(envPath)
+	if err != nil {
+		return nil, err
+	}
+	db, err := pgstore.Open(ctx, dsn)
+	if err != nil {
+		return nil, err
+	}
+	if err := pgstore.EnsureSchema(ctx, db, false); err != nil {
+		_ = db.Close()
+		return nil, err
+	}
+	return newPostgresRowStorage(ctx, db)
+}
+
+// newPostgresRowStorage 在已校验数据库上取独占锁并拒绝混用快照数据。
+// @param ctx 初始化上下文
+// @param db 已校验连接池
+// @return 行仓储初始化结果
+// @return 初始化错误
+func newPostgresRowStorage(ctx context.Context, db *sql.DB) (*storageSetup, error) {
+	locked, err := pgstore.NewLockedRows(ctx, db)
+	if err != nil {
+		_ = db.Close()
+		return nil, err
+	}
+	cleanup := func() error { return errors.Join(locked.Release(), db.Close()) }
+	rows, err := locked.QueryContext(ctx, "SELECT COUNT(*) FROM ACT_GE_BYTEARRAY WHERE NAME_ = $1", "flowable-go-state")
+	if err != nil {
+		return nil, errors.Join(err, cleanup())
+	}
+	var count int
+	if !rows.Next() {
+		err = errors.New("查询 PostgreSQL 快照标记失败")
+	} else {
+		err = rows.Scan(&count)
+	}
+	err = errors.Join(err, rows.Err(), rows.Close())
+	if err != nil {
+		return nil, errors.Join(err, cleanup())
+	}
+	if count != 0 {
+		return nil, errors.Join(errors.New("PostgreSQL 包含快照状态，不能启用行仓储"), cleanup())
+	}
+	repository, err := flowablerow.NewRepository(locked, "postgres")
+	if err != nil {
+		return nil, errors.Join(err, cleanup())
+	}
+	return &storageSetup{Repository: repository, LoadRows: true, closeFn: cleanup}, nil
 }
 
 // newRowStorage 在已校验 Schema 的连接池上建立行仓储及其独占锁。

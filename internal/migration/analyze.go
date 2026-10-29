@@ -163,9 +163,22 @@ func (s *analysisState) checkTables(snapshot SourceSnapshot) {
 	for _, name := range auditAnalysisTables {
 		analyzed[name] = true
 	}
+	analyzed["ACT_ID_PROPERTY"] = true
 	// 未知表即使无法读取实体，也必须按全库数量报告，不能被租户筛选隐藏。
 	for _, table := range snapshot.Tables {
 		present[table.Name] = true
+		// 官方完整双库 DDL 自带身份版本表；只接受已读取且匹配基线的标准标记，不放行身份业务表。
+		if table.Name == "ACT_ID_PROPERTY" {
+			metadata := s.index[table.Name]
+			if int64(len(metadata)) != table.Count {
+				s.add(flowable.Row{Table: table.Name}, "SCHEMA_METADATA", "身份版本标记未完整读取。")
+			}
+			for _, row := range metadata {
+				if analysisString(row, "NAME_") != "schema.version" || analysisString(row, "VALUE_") != schema.Version {
+					s.add(row, "SCHEMA_METADATA", "身份版本元数据包含未知属性或版本冲突。")
+				}
+			}
+		}
 		if table.Count > 0 && !analyzed[table.Name] {
 			s.add(flowable.Row{Table: table.Name}, "UNSUPPORTED_TABLE", "该表包含数据，当前分析器尚未覆盖；无法确定租户归属，按全库阻断。")
 		}
@@ -261,7 +274,7 @@ func (s *analysisState) add(row flowable.Row, code, message string) {
 // @param row 来源行
 // @return 主键文本
 func analysisID(row flowable.Row) string {
-	if row.Table == "ACT_GE_PROPERTY" {
+	if row.Table == "ACT_GE_PROPERTY" || row.Table == "ACT_ID_PROPERTY" {
 		return analysisString(row, "NAME_")
 	}
 	return analysisString(row, "ID_")

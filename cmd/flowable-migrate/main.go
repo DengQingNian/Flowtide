@@ -16,24 +16,27 @@ import (
 
 	"github.com/flowable-go/flowable/internal/migration"
 	mysqlstore "github.com/flowable-go/flowable/internal/persistence/mysql"
+	pgstore "github.com/flowable-go/flowable/internal/persistence/postgres"
 	"github.com/flowable-go/flowable/internal/persistence/schema"
 	_ "github.com/lib/pq"
 )
 
 // commandDependencies 提供命令使用的数据库操作与报告分析入口。
 type commandDependencies struct {
-	scan        func(context.Context, string, string) (migration.SourceSnapshot, error)                              // 只读扫描
-	analyze     func(migration.SourceSnapshot, migration.Options) migration.Report                                   // 风险分析
-	convert     func(context.Context, migration.SourceSnapshot, migration.Options) ([]byte, migration.Report, error) // 离线状态转换
-	apply       func(string) error                                                                                   // 开发库初始化
-	cutover     func(context.Context, string, string, time.Duration) (migration.CutoverReport, error)                // 停写静默检查
-	verifyState func(context.Context, []byte) (migration.StateReport, error)                                         // 离线状态恢复校验
+	scan          func(context.Context, string, string) (migration.SourceSnapshot, error)                                       // 只读扫描
+	analyze       func(migration.SourceSnapshot, migration.Options) migration.Report                                            // 风险分析
+	convert       func(context.Context, migration.SourceSnapshot, migration.Options) ([]byte, migration.Report, error)          // 离线状态转换
+	apply         func(string) error                                                                                            // 开发库初始化
+	applyPostgres func(string) error                                                                                            // PostgreSQL 开发库初始化
+	cutover       func(context.Context, string, string, time.Duration) (migration.CutoverReport, error)                         // 停写静默检查
+	verifyState   func(context.Context, []byte) (migration.StateReport, error)                                                  // 离线状态恢复校验
+	reconcile     func(context.Context, migration.SourceSnapshot, []byte, migration.Options) (migration.ReconcileReport, error) // 源库状态核对
 }
 
 // main 运行迁移工具并将结果映射为进程退出码。
 // @return 无
 func main() {
-	os.Exit(runWithDependencies(os.Args[1:], os.Stdout, os.Stderr, commandDependencies{scan: scanSource, analyze: migration.Analyze, convert: migration.Convert, apply: applyMySQL, cutover: cutoverSource, verifyState: migration.VerifyState}))
+	os.Exit(runWithDependencies(os.Args[1:], os.Stdout, os.Stderr, commandDependencies{scan: scanSource, analyze: migration.Analyze, convert: migration.Convert, apply: applyMySQL, applyPostgres: applyPostgres, cutover: cutoverSource, verifyState: migration.VerifyState, reconcile: migration.ReconcileState}))
 }
 
 // runWithDependencies 校验参数并执行所选模式，预检阻断或静默检查发现变化返回二。
@@ -48,11 +51,12 @@ func runWithDependencies(args []string, stdout, stderr io.Writer, dependencies c
 	dialect := flags.String("dialect", "mysql", "数据库方言：mysql 或 postgres")
 	output := flags.String("out", "", "输出文件路径，为空时输出到标准输出")
 	listTables := flags.Bool("tables", false, "仅列出表名")
-	apply := flags.Bool("apply", false, "连接 MySQL 并初始化或校验 Schema")
+	apply := flags.Bool("apply", false, "按指定方言连接开发库并初始化或校验 Schema")
 	preflight := flags.Bool("preflight", false, "只读扫描既有 Java 数据库并输出迁移预检 JSON")
 	convertMode := flags.Bool("convert", false, "只读源库并离线准备 Go 状态文件，必须指定不存在的 -out；不协调停写或执行者切换")
 	cutoverCheck := flags.Bool("cutover-check", false, "在观察窗口前后只读扫描源库并检查是否静默，输出 JSON；不执行停写或切换")
 	verifyMode := flags.Bool("verify-state", false, "离线恢复校验 Go 状态文件并输出 JSON 报告，不连接数据库")
+	verifySource := flags.Bool("verify-source", false, "配合 -verify-state 只读扫描源库并逐表核对状态数量与内容指纹")
 	statePath := flags.String("state", "", "待校验的离线状态文件路径，仅 -verify-state 模式必填")
 	quiesceWindow := flags.Duration("quiesce-window", 5*time.Second, "停写静默检查的观察窗口，必须大于零")
 	envPath := flags.String("env", ".env", "MySQL 开发配置文件路径")
@@ -86,7 +90,7 @@ func runWithDependencies(args []string, stdout, stderr io.Writer, dependencies c
 	invalidVerify := *verifyMode && (*preflight || *convertMode || *apply || *listTables || *cutoverCheck)
 	invalidState := (stateSet && !*verifyMode) || (*verifyMode && *statePath == "")
 	// 在任何连接和写文件之前检查模式互斥、租户范围、状态文件与输出位置。
-	if flags.NArg() != 0 || (*dialect != "mysql" && *dialect != "postgres") || (*preflight && (*apply || *listTables || *convertMode || *cutoverCheck)) || (*convertMode && (*apply || *listTables || *cutoverCheck || *output == "")) || (*cutoverCheck && (*apply || *listTables)) || (*apply && (*dialect != "mysql" || *listTables || *output != "")) || (tenantSet && !*preflight && !*convertMode) || (timeoutSet && !*preflight && !*convertMode && !*cutoverCheck && !*verifyMode) || ((*preflight || *convertMode || *cutoverCheck || *verifyMode) && *timeout <= 0) || (quiesceSet && !*cutoverCheck) || (*cutoverCheck && *quiesceWindow <= 0) || invalidVerify || invalidState {
+	if (*verifySource && !*verifyMode) || flags.NArg() != 0 || (*dialect != "mysql" && *dialect != "postgres") || (*preflight && (*apply || *listTables || *convertMode || *cutoverCheck)) || (*convertMode && (*apply || *listTables || *cutoverCheck || *output == "")) || (*cutoverCheck && (*apply || *listTables)) || (*apply && (*listTables || *output != "")) || (tenantSet && !*preflight && !*convertMode && !*verifySource) || (timeoutSet && !*preflight && !*convertMode && !*cutoverCheck && !*verifyMode) || ((*preflight || *convertMode || *cutoverCheck || *verifyMode) && *timeout <= 0) || (quiesceSet && !*cutoverCheck) || (*cutoverCheck && *quiesceWindow <= 0) || invalidVerify || invalidState {
 		fmt.Fprintln(stderr, "参数无效：请检查方言、互斥模式、租户范围、状态文件、超时时间和观察窗口")
 		return 1
 	}
@@ -115,6 +119,13 @@ func runWithDependencies(args []string, stdout, stderr io.Writer, dependencies c
 	if *verifyMode {
 		ctx, cancel := context.WithTimeout(context.Background(), *timeout)
 		defer cancel()
+		if *verifySource {
+			options := migration.Options{}
+			if tenantSet {
+				options.TenantID = tenant
+			}
+			return runVerifySource(ctx, *statePath, *output, *envPath, *dialect, options, stdout, stderr, dependencies)
+		}
 		return runVerifyState(ctx, *statePath, *output, stdout, stderr, dependencies)
 	}
 	if *cutoverCheck {
@@ -159,11 +170,19 @@ func runWithDependencies(args []string, stdout, stderr io.Writer, dependencies c
 		return 0
 	}
 	if *apply {
-		if err := dependencies.apply(*envPath); err != nil {
-			fmt.Fprintln(stderr, "初始化 MySQL 失败，请检查配置、连接与 Schema")
+		initialize := dependencies.apply
+		if *dialect == "postgres" {
+			initialize = dependencies.applyPostgres
+		}
+		if initialize == nil {
+			fmt.Fprintln(stderr, "缺少数据库初始化入口")
 			return 1
 		}
-		fmt.Fprintln(stdout, "MySQL Schema 初始化及校验完成，版本", schema.Version)
+		if err := initialize(*envPath); err != nil {
+			fmt.Fprintln(stderr, "初始化数据库失败，请检查配置、连接与 Schema")
+			return 1
+		}
+		fmt.Fprintln(stdout, *dialect, "Schema 初始化及校验完成，版本", schema.Version)
 		return 0
 	}
 	if *listTables {
@@ -189,6 +208,54 @@ func runWithDependencies(args []string, stdout, stderr io.Writer, dependencies c
 		return 1
 	}
 	fmt.Fprintln(stdout, "已写入", *output)
+	return 0
+}
+
+// runVerifySource 在只读扫描后核对状态，差异返回二且不覆盖已有报告。
+// @param ctx 核对上下文
+// @param statePath 状态路径
+// @param output 新报告路径，空值写入标准输出
+// @param envPath 数据库配置路径
+// @param dialect 数据库方言
+// @param options 租户范围
+// @param stdout 标准输出
+// @param stderr 错误输出
+// @param dependencies 扫描及核对依赖
+// @return 退出码，零一致、一操作失败、二存在差异
+func runVerifySource(ctx context.Context, statePath, output, envPath, dialect string, options migration.Options, stdout, stderr io.Writer, dependencies commandDependencies) int {
+	data, err := os.ReadFile(statePath)
+	if err != nil {
+		fmt.Fprintln(stderr, "读取核对状态失败")
+		return 1
+	}
+	source, err := dependencies.scan(ctx, envPath, dialect)
+	if err != nil {
+		fmt.Fprintln(stderr, "源库只读核对扫描失败，请检查配置和只读权限")
+		return 1
+	}
+	report, err := dependencies.reconcile(ctx, source, data, options)
+	if err != nil || ctx.Err() != nil {
+		fmt.Fprintln(stderr, "源库与状态核对失败，请检查预检阻断及状态格式")
+		return 1
+	}
+	content, err := json.MarshalIndent(report, "", "  ")
+	if err != nil {
+		fmt.Fprintln(stderr, "生成源库核对报告失败")
+		return 1
+	}
+	content = append(content, '\n')
+	if output != "" {
+		err = writeVerifyReport(output, content)
+	} else {
+		_, err = stdout.Write(content)
+	}
+	if err != nil {
+		fmt.Fprintln(stderr, "写入源库核对报告失败")
+		return 1
+	}
+	if !report.Matched {
+		return 2
+	}
 	return 0
 }
 
@@ -448,9 +515,9 @@ func openSourceDatabase(ctx context.Context, envPath, dialect string) (*sql.DB, 
 		}
 		return db, nil
 	}
-	dsn := os.Getenv("FLOWABLE_POSTGRES_DSN")
-	if dsn == "" {
-		return nil, errors.New("缺少 PostgreSQL 连接配置")
+	dsn, err := pgstore.LoadDSN(envPath)
+	if err != nil {
+		return nil, err
 	}
 	db, err := sql.Open("postgres", dsn)
 	if err != nil {
@@ -515,4 +582,18 @@ func applyMySQL(envPath string) error {
 	}
 	defer func() { _ = db.Close() }()
 	return mysqlstore.EnsureSchema(ctx, db, true)
+}
+
+// applyPostgres 在显式 apply 模式下原子初始化 PostgreSQL 开发库。
+// @param envPath 开发配置文件路径
+// @return 配置、连接或迁移错误
+func applyPostgres(envPath string) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+	defer cancel()
+	db, err := openSourceDatabase(ctx, envPath, "postgres")
+	if err != nil {
+		return err
+	}
+	defer func() { _ = db.Close() }()
+	return pgstore.EnsureSchema(ctx, db, true)
 }

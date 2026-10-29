@@ -45,7 +45,8 @@ func Convert(ctx context.Context, snapshot SourceSnapshot, options Options) ([]b
 	// Java 运行时活动与同标识历史活动已由预检逐列验证相等，仅保留历史容器恢复。
 	converted := make([]flowable.Row, 0, len(rows))
 	for _, row := range rows {
-		if row.Table != "ACT_RU_ACTINST" {
+		// 身份版本表只用于源 Schema 核验，不混入业务状态；身份用户及组仍由预检阻断。
+		if row.Table != "ACT_RU_ACTINST" && row.Table != "ACT_ID_PROPERTY" {
 			converted = append(converted, row)
 		}
 	}
