@@ -11,6 +11,7 @@ import (
 
 // runtimeControl 保存 ACT 标准列无法表达的 Go 续跑控制信息；不宣称 Java 可读。
 type runtimeControl struct {
+	StandardInstanceMetadata  bool                 `json:"standardInstanceMetadata,omitempty"`  // 根实例元数据由标准行保存
 	Version                   int                  `json:"version"`                             // 扩展版本
 	Instance                  *instanceState       `json:"instance"`                            // 实例控制
 	Executions                []*executionState    `json:"executions"`                          // 不含变量的执行控制
@@ -30,7 +31,7 @@ func (e *Engine) runtimeControlRows() ([]flowablerow.Row, error) {
 		if instance.Ended {
 			continue
 		}
-		control := runtimeControl{Version: 1, Instance: copyValue(instance).(*instanceState), Compensations: e.state.Compensations[instance.ID], RecordSequenceFlowHistory: e.state.RecordSequenceFlowHistory}
+		control := runtimeControl{Version: 1, Instance: &instanceState{ID: instance.ID, RootExecutionID: instance.ID}, StandardInstanceMetadata: true, Compensations: e.state.Compensations[instance.ID], RecordSequenceFlowHistory: e.state.RecordSequenceFlowHistory}
 		control.Instance.RootExecutionID = instance.ID
 		for _, execution := range e.state.Executions {
 			if execution.ProcessInstanceID != instance.ID || execution.Ended {
@@ -113,7 +114,10 @@ func (e *Engine) restoreRuntimeControls(controls []runtimeControl) error {
 		if _, exists := e.state.Instances[control.Instance.ID]; !exists {
 			return api.NewError("ENGINE-0920", "续跑扩展缺少实例", api.ErrBadRequest)
 		}
-		e.state.Instances[control.Instance.ID] = control.Instance
+		if !control.StandardInstanceMetadata {
+			// 兼容旧版把实例元数据放在控制扩展中的格式，新格式不允许覆盖标准根行。
+			e.state.Instances[control.Instance.ID] = control.Instance
+		}
 		// 行仓储恢复也需沿用迁移历史模式，否则重启续跑会遗漏顺序流历史。
 		e.state.RecordSequenceFlowHistory = e.state.RecordSequenceFlowHistory || control.RecordSequenceFlowHistory
 		for _, execution := range control.Executions {

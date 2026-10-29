@@ -23,19 +23,29 @@ type definitionState struct {
 
 // instanceState 是流程实例的运行时状态。
 type instanceState struct {
-	ID                   string     // 实例 ID
-	ProcessDefinitionID  string     // 流程定义 ID
-	ProcessDefinitionKey string     // 流程定义 Key
-	BusinessKey          string     // 业务键
-	Name                 string     // 名称
-	TenantID             string     // 租户
-	StartTime            time.Time  // 开始时间
-	EndTime              *time.Time // 结束时间
-	Ended                bool       // 是否结束
-	Suspended            bool       // 是否挂起
-	DeleteReason         string     // 删除原因
-	SuperExecutionID     string     // 父调用活动执行 ID
-	RootExecutionID      string     // 根执行 ID
+	ID                        string     // 实例 ID
+	ProcessDefinitionID       string     // 流程定义 ID
+	ProcessDefinitionKey      string     // 流程定义 Key
+	BusinessKey               string     // 业务键
+	Name                      string     // 名称
+	StartUserID               string     // 发起人
+	BusinessStatus            string     // 业务状态
+	DueDate                   *time.Time // 截止时间
+	ClaimTime                 *time.Time // 签收时间
+	ClaimedBy                 string     // 签收人
+	CallbackID                string     // 回调标识
+	CallbackType              string     // 回调类型
+	ReferenceID               string     // 关联标识
+	ReferenceType             string     // 关联类型
+	PropagatedStageInstanceID string     // 传播阶段标识
+	TenantID                  string     // 租户
+	StartTime                 time.Time  // 开始时间
+	EndTime                   *time.Time // 结束时间
+	Ended                     bool       // 是否结束
+	Suspended                 bool       // 是否挂起
+	DeleteReason              string     // 删除原因
+	SuperExecutionID          string     // 父调用活动执行 ID
+	RootExecutionID           string     // 根执行 ID
 }
 
 // executionState 是执行树节点。
@@ -259,6 +269,8 @@ func cloneState(source *state) *state {
 	for id, instance := range source.Instances {
 		copied := *instance
 		copied.EndTime = cloneTime(instance.EndTime)
+		copied.DueDate = cloneTime(instance.DueDate)
+		copied.ClaimTime = cloneTime(instance.ClaimTime)
 		target.Instances[id] = &copied
 	}
 	for id, execution := range source.Executions {

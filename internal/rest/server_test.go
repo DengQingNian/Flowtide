@@ -127,8 +127,8 @@ func TestREST_DeployStartComplete(t *testing.T) {
 	var got map[string]any
 	_ = json.NewDecoder(response.Body).Decode(&got)
 	_ = response.Body.Close()
-	if got["ended"] != true {
-		t.Fatalf("期望实例结束，实际 %+v", got)
+	if response.StatusCode != http.StatusNotFound {
+		t.Fatalf("已结束实例应从运行时资源消失: %d %+v", response.StatusCode, got)
 	}
 }
 

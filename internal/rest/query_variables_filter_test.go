@@ -519,10 +519,10 @@ func TestREST_QueryProcessInstancesVariables(t *testing.T) {
 	}
 
 	combined := withVariables(variableFilter("status", "open"))
-	combined["businessKey"] = "var-a"
+	combined["processBusinessKey"] = "var-a"
 	assertVariableQueryTotal(t, server.URL, path, combined, 1)
 	combined = withVariables(variableFilter("status", "closed"))
-	combined["businessKey"] = "var-a"
+	combined["processBusinessKey"] = "var-a"
 	assertVariableQueryTotal(t, server.URL, path, combined, 0)
 
 	invalid := []any{
@@ -893,7 +893,7 @@ func TestREST_QueryExecutionsVariables(t *testing.T) {
 
 	page := assertVariableQueryTotal(t, server.URL, path, map[string]any{
 		"variables": []map[string]any{variableFilter("amount", 0, "greaterThan")},
-		"sort":      "id",
+		"sort":      "processInstanceId",
 		"size":      1,
 	}, totalA+totalB)
 	if len(page.Data) != 1 {

@@ -69,7 +69,7 @@ func TestREST_MoreErrors(t *testing.T) {
 		{"GET", "/service/runtime/tasks/missing", "", http.StatusNotFound},
 		{"POST", "/service/runtime/tasks/missing", `{"action":"complete"}`, http.StatusNotFound},
 		{"POST", "/service/runtime/tasks/missing", `{"action":"unknown"}`, http.StatusBadRequest},
-		{"POST", "/service/runtime/process-instances", `{"processDefinitionKey":"missing"}`, http.StatusNotFound},
+		{"POST", "/service/runtime/process-instances", `{"processDefinitionKey":"missing"}`, http.StatusBadRequest},
 		{"GET", "/service/repository/deployments/missing", "", http.StatusNotFound},
 		{"GET", "/service/repository/deployments/missing/resources", "", http.StatusNotFound},
 		{"GET", "/service/repository/deployments/missing/resources/x", "", http.StatusNotFound},
@@ -306,7 +306,7 @@ func TestREST_Suspension(t *testing.T) {
 	taskID, _ := tasks.Data[0]["id"].(string)
 
 	response = putJSON("/service/runtime/process-instances/"+instanceID, map[string]any{"action": "suspend"})
-	if response.StatusCode != http.StatusNoContent {
+	if response.StatusCode != http.StatusOK {
 		t.Fatalf("挂起实例失败: %d", response.StatusCode)
 	}
 	_ = response.Body.Close()

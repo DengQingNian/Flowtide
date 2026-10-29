@@ -1,0 +1,994 @@
+{
+  "baseline" : "f6017e32a4bdd3e59a8881f58b0ee181652d1d9e",
+  "clock" : "2026-10-29T01:02:03.123456789Z",
+  "startUserId" : "starter",
+  "idStrategy" : "单调序号，用于核对跨语言默认排序",
+  "transport" : "原版流程实例及执行控制器与Spring MockMvc",
+  "models" : {
+    "runtime.bpmn20.xml" : "<definitions xmlns=\"http://www.omg.org/spec/BPMN/20100524/MODEL\" targetNamespace=\"urn:runtime-reference\"><process id=\"runtime_reference\" name=\"实例验收\" isExecutable=\"true\"><documentation>流程说明</documentation><startEvent id=\"s\"/><sequenceFlow id=\"a\" sourceRef=\"s\" targetRef=\"approve\"/><userTask id=\"approve\" name=\"审批\"/><sequenceFlow id=\"b\" sourceRef=\"approve\" targetRef=\"end\"/><endEvent id=\"end\"/></process></definitions>",
+    "message.bpmn20.xml" : "<definitions xmlns=\"http://www.omg.org/spec/BPMN/20100524/MODEL\" targetNamespace=\"urn:runtime-reference\"><message id=\"m\" name=\"begin\"/><process id=\"message_reference\" name=\"消息启动\" isExecutable=\"true\"><startEvent id=\"s\"><messageEventDefinition messageRef=\"m\"/></startEvent><sequenceFlow id=\"a\" sourceRef=\"s\" targetRef=\"approve\"/><userTask id=\"approve\" name=\"审批\"/><sequenceFlow id=\"b\" sourceRef=\"approve\" targetRef=\"end\"/><endEvent id=\"end\"/></process></definitions>",
+    "receive.bpmn20.xml" : "<definitions xmlns=\"http://www.omg.org/spec/BPMN/20100524/MODEL\" targetNamespace=\"urn:runtime-reference\"><process id=\"receive_reference\" isExecutable=\"true\"><startEvent id=\"s\"/><sequenceFlow id=\"a\" sourceRef=\"s\" targetRef=\"receive\"/><receiveTask id=\"receive\"/><sequenceFlow id=\"b\" sourceRef=\"receive\" targetRef=\"approve\"/><userTask id=\"approve\"/><sequenceFlow id=\"c\" sourceRef=\"approve\" targetRef=\"end\"/><endEvent id=\"end\"/></process></definitions>"
+  },
+  "cases" : [ {
+    "name" : "instance-get",
+    "method" : "GET",
+    "path" : "/service/runtime/process-instances/{instanceId}",
+    "requestBody" : "",
+    "prepare" : "",
+    "status" : 200,
+    "responseBody" : "{\"activityId\":null,\"businessKey\":\"alpha\",\"businessStatus\":null,\"callbackId\":null,\"callbackType\":null,\"claimTime\":null,\"claimedBy\":null,\"completed\":false,\"dueDate\":null,\"ended\":false,\"id\":\"{instanceId}\",\"name\":\"实例甲\",\"processDefinitionDescription\":\"流程说明\",\"processDefinitionId\":\"{definitionId}\",\"processDefinitionName\":\"实例验收\",\"processDefinitionUrl\":\"http://localhost/service/repository/process-definitions/{definitionId}\",\"propagatedStageInstanceId\":null,\"referenceId\":null,\"referenceType\":null,\"startTime\":\"2026-10-29T01:02:03.123Z\",\"startUserId\":\"starter\",\"superProcessInstanceId\":null,\"suspended\":false,\"tenantId\":\"\",\"url\":\"http://localhost/service/runtime/process-instances/{instanceId}\",\"variables\":[]}",
+    "afterInstances" : {
+      "{instanceId}" : "{\"activityId\":null,\"businessKey\":\"alpha\",\"businessStatus\":null,\"callbackId\":null,\"callbackType\":null,\"claimTime\":null,\"claimedBy\":null,\"completed\":false,\"dueDate\":null,\"ended\":false,\"id\":\"{instanceId}\",\"name\":\"实例甲\",\"processDefinitionDescription\":\"流程说明\",\"processDefinitionId\":\"{definitionId}\",\"processDefinitionName\":\"实例验收\",\"processDefinitionUrl\":\"http://localhost/service/repository/process-definitions/{definitionId}\",\"propagatedStageInstanceId\":null,\"referenceId\":null,\"referenceType\":null,\"startTime\":\"2026-10-29T01:02:03.123Z\",\"startUserId\":\"starter\",\"superProcessInstanceId\":null,\"suspended\":false,\"tenantId\":\"\",\"url\":\"http://localhost/service/runtime/process-instances/{instanceId}\",\"variables\":[]}",
+      "{secondId}" : "{\"activityId\":null,\"businessKey\":\"beta\",\"businessStatus\":null,\"callbackId\":null,\"callbackType\":null,\"claimTime\":null,\"claimedBy\":null,\"completed\":false,\"dueDate\":null,\"ended\":false,\"id\":\"{secondId}\",\"name\":\"实例乙\",\"processDefinitionDescription\":\"流程说明\",\"processDefinitionId\":\"{definitionId}\",\"processDefinitionName\":\"实例验收\",\"processDefinitionUrl\":\"http://localhost/service/repository/process-definitions/{definitionId}\",\"propagatedStageInstanceId\":null,\"referenceId\":null,\"referenceType\":null,\"startTime\":\"2026-10-29T01:02:03.123Z\",\"startUserId\":\"starter\",\"superProcessInstanceId\":null,\"suspended\":false,\"tenantId\":\"\",\"url\":\"http://localhost/service/runtime/process-instances/{secondId}\",\"variables\":[]}"
+    },
+    "afterVariables" : {
+      "{instanceId}" : {
+        "amount" : 9007199254740993,
+        "flag" : "before"
+      },
+      "{secondId}" : {
+        "amount" : 42,
+        "flag" : "before"
+      }
+    },
+    "afterTaskCount" : 2
+  }, {
+    "name" : "instance-list",
+    "method" : "GET",
+    "path" : "/service/runtime/process-instances",
+    "requestBody" : "",
+    "prepare" : "",
+    "status" : 200,
+    "responseBody" : "{\"data\":[{\"activityId\":null,\"businessKey\":\"alpha\",\"businessStatus\":null,\"callbackId\":null,\"callbackType\":null,\"claimTime\":null,\"claimedBy\":null,\"completed\":false,\"dueDate\":null,\"ended\":false,\"id\":\"{instanceId}\",\"name\":\"实例甲\",\"processDefinitionDescription\":\"流程说明\",\"processDefinitionId\":\"{definitionId}\",\"processDefinitionName\":\"实例验收\",\"processDefinitionUrl\":\"http://localhost/service/repository/process-definitions/{definitionId}\",\"propagatedStageInstanceId\":null,\"referenceId\":null,\"referenceType\":null,\"startTime\":\"2026-10-29T01:02:03.123Z\",\"startUserId\":\"starter\",\"superProcessInstanceId\":null,\"suspended\":false,\"tenantId\":\"\",\"url\":\"http://localhost/service/runtime/process-instances/{instanceId}\",\"variables\":[]},{\"activityId\":null,\"businessKey\":\"beta\",\"businessStatus\":null,\"callbackId\":null,\"callbackType\":null,\"claimTime\":null,\"claimedBy\":null,\"completed\":false,\"dueDate\":null,\"ended\":false,\"id\":\"{secondId}\",\"name\":\"实例乙\",\"processDefinitionDescription\":\"流程说明\",\"processDefinitionId\":\"{definitionId}\",\"processDefinitionName\":\"实例验收\",\"processDefinitionUrl\":\"http://localhost/service/repository/process-definitions/{definitionId}\",\"propagatedStageInstanceId\":null,\"referenceId\":null,\"referenceType\":null,\"startTime\":\"2026-10-29T01:02:03.123Z\",\"startUserId\":\"starter\",\"superProcessInstanceId\":null,\"suspended\":false,\"tenantId\":\"\",\"url\":\"http://localhost/service/runtime/process-instances/{secondId}\",\"variables\":[]}],\"order\":\"asc\",\"size\":2,\"sort\":\"id\",\"start\":0,\"total\":2}",
+    "afterInstances" : {
+      "{instanceId}" : "{\"activityId\":null,\"businessKey\":\"alpha\",\"businessStatus\":null,\"callbackId\":null,\"callbackType\":null,\"claimTime\":null,\"claimedBy\":null,\"completed\":false,\"dueDate\":null,\"ended\":false,\"id\":\"{instanceId}\",\"name\":\"实例甲\",\"processDefinitionDescription\":\"流程说明\",\"processDefinitionId\":\"{definitionId}\",\"processDefinitionName\":\"实例验收\",\"processDefinitionUrl\":\"http://localhost/service/repository/process-definitions/{definitionId}\",\"propagatedStageInstanceId\":null,\"referenceId\":null,\"referenceType\":null,\"startTime\":\"2026-10-29T01:02:03.123Z\",\"startUserId\":\"starter\",\"superProcessInstanceId\":null,\"suspended\":false,\"tenantId\":\"\",\"url\":\"http://localhost/service/runtime/process-instances/{instanceId}\",\"variables\":[]}",
+      "{secondId}" : "{\"activityId\":null,\"businessKey\":\"beta\",\"businessStatus\":null,\"callbackId\":null,\"callbackType\":null,\"claimTime\":null,\"claimedBy\":null,\"completed\":false,\"dueDate\":null,\"ended\":false,\"id\":\"{secondId}\",\"name\":\"实例乙\",\"processDefinitionDescription\":\"流程说明\",\"processDefinitionId\":\"{definitionId}\",\"processDefinitionName\":\"实例验收\",\"processDefinitionUrl\":\"http://localhost/service/repository/process-definitions/{definitionId}\",\"propagatedStageInstanceId\":null,\"referenceId\":null,\"referenceType\":null,\"startTime\":\"2026-10-29T01:02:03.123Z\",\"startUserId\":\"starter\",\"superProcessInstanceId\":null,\"suspended\":false,\"tenantId\":\"\",\"url\":\"http://localhost/service/runtime/process-instances/{secondId}\",\"variables\":[]}"
+    },
+    "afterVariables" : {
+      "{instanceId}" : {
+        "amount" : 9007199254740993,
+        "flag" : "before"
+      },
+      "{secondId}" : {
+        "amount" : 42,
+        "flag" : "before"
+      }
+    },
+    "afterTaskCount" : 2
+  }, {
+    "name" : "instance-page",
+    "method" : "GET",
+    "path" : "/service/runtime/process-instances?sort=name&order=asc&start=1&size=1",
+    "requestBody" : "",
+    "prepare" : "",
+    "status" : 400,
+    "responseBody" : "{\"message\":\"Bad request\",\"exception\":\"Value for param 'sort' is not valid, 'name' is not a valid property\"}",
+    "afterInstances" : {
+      "{instanceId}" : "{\"activityId\":null,\"businessKey\":\"alpha\",\"businessStatus\":null,\"callbackId\":null,\"callbackType\":null,\"claimTime\":null,\"claimedBy\":null,\"completed\":false,\"dueDate\":null,\"ended\":false,\"id\":\"{instanceId}\",\"name\":\"实例甲\",\"processDefinitionDescription\":\"流程说明\",\"processDefinitionId\":\"{definitionId}\",\"processDefinitionName\":\"实例验收\",\"processDefinitionUrl\":\"http://localhost/service/repository/process-definitions/{definitionId}\",\"propagatedStageInstanceId\":null,\"referenceId\":null,\"referenceType\":null,\"startTime\":\"2026-10-29T01:02:03.123Z\",\"startUserId\":\"starter\",\"superProcessInstanceId\":null,\"suspended\":false,\"tenantId\":\"\",\"url\":\"http://localhost/service/runtime/process-instances/{instanceId}\",\"variables\":[]}",
+      "{secondId}" : "{\"activityId\":null,\"businessKey\":\"beta\",\"businessStatus\":null,\"callbackId\":null,\"callbackType\":null,\"claimTime\":null,\"claimedBy\":null,\"completed\":false,\"dueDate\":null,\"ended\":false,\"id\":\"{secondId}\",\"name\":\"实例乙\",\"processDefinitionDescription\":\"流程说明\",\"processDefinitionId\":\"{definitionId}\",\"processDefinitionName\":\"实例验收\",\"processDefinitionUrl\":\"http://localhost/service/repository/process-definitions/{definitionId}\",\"propagatedStageInstanceId\":null,\"referenceId\":null,\"referenceType\":null,\"startTime\":\"2026-10-29T01:02:03.123Z\",\"startUserId\":\"starter\",\"superProcessInstanceId\":null,\"suspended\":false,\"tenantId\":\"\",\"url\":\"http://localhost/service/runtime/process-instances/{secondId}\",\"variables\":[]}"
+    },
+    "afterVariables" : {
+      "{instanceId}" : {
+        "amount" : 9007199254740993,
+        "flag" : "before"
+      },
+      "{secondId}" : {
+        "amount" : 42,
+        "flag" : "before"
+      }
+    },
+    "afterTaskCount" : 2
+  }, {
+    "name" : "instance-page-valid",
+    "method" : "GET",
+    "path" : "/service/runtime/process-instances?sort=businessKey&order=asc&start=1&size=1",
+    "requestBody" : "",
+    "prepare" : "",
+    "status" : 200,
+    "responseBody" : "{\"data\":[{\"activityId\":null,\"businessKey\":\"beta\",\"businessStatus\":null,\"callbackId\":null,\"callbackType\":null,\"claimTime\":null,\"claimedBy\":null,\"completed\":false,\"dueDate\":null,\"ended\":false,\"id\":\"{secondId}\",\"name\":\"实例乙\",\"processDefinitionDescription\":\"流程说明\",\"processDefinitionId\":\"{definitionId}\",\"processDefinitionName\":\"实例验收\",\"processDefinitionUrl\":\"http://localhost/service/repository/process-definitions/{definitionId}\",\"propagatedStageInstanceId\":null,\"referenceId\":null,\"referenceType\":null,\"startTime\":\"2026-10-29T01:02:03.123Z\",\"startUserId\":\"starter\",\"superProcessInstanceId\":null,\"suspended\":false,\"tenantId\":\"\",\"url\":\"http://localhost/service/runtime/process-instances/{secondId}\",\"variables\":[]}],\"order\":\"asc\",\"size\":1,\"sort\":\"businessKey\",\"start\":1,\"total\":2}",
+    "afterInstances" : {
+      "{instanceId}" : "{\"activityId\":null,\"businessKey\":\"alpha\",\"businessStatus\":null,\"callbackId\":null,\"callbackType\":null,\"claimTime\":null,\"claimedBy\":null,\"completed\":false,\"dueDate\":null,\"ended\":false,\"id\":\"{instanceId}\",\"name\":\"实例甲\",\"processDefinitionDescription\":\"流程说明\",\"processDefinitionId\":\"{definitionId}\",\"processDefinitionName\":\"实例验收\",\"processDefinitionUrl\":\"http://localhost/service/repository/process-definitions/{definitionId}\",\"propagatedStageInstanceId\":null,\"referenceId\":null,\"referenceType\":null,\"startTime\":\"2026-10-29T01:02:03.123Z\",\"startUserId\":\"starter\",\"superProcessInstanceId\":null,\"suspended\":false,\"tenantId\":\"\",\"url\":\"http://localhost/service/runtime/process-instances/{instanceId}\",\"variables\":[]}",
+      "{secondId}" : "{\"activityId\":null,\"businessKey\":\"beta\",\"businessStatus\":null,\"callbackId\":null,\"callbackType\":null,\"claimTime\":null,\"claimedBy\":null,\"completed\":false,\"dueDate\":null,\"ended\":false,\"id\":\"{secondId}\",\"name\":\"实例乙\",\"processDefinitionDescription\":\"流程说明\",\"processDefinitionId\":\"{definitionId}\",\"processDefinitionName\":\"实例验收\",\"processDefinitionUrl\":\"http://localhost/service/repository/process-definitions/{definitionId}\",\"propagatedStageInstanceId\":null,\"referenceId\":null,\"referenceType\":null,\"startTime\":\"2026-10-29T01:02:03.123Z\",\"startUserId\":\"starter\",\"superProcessInstanceId\":null,\"suspended\":false,\"tenantId\":\"\",\"url\":\"http://localhost/service/runtime/process-instances/{secondId}\",\"variables\":[]}"
+    },
+    "afterVariables" : {
+      "{instanceId}" : {
+        "amount" : 9007199254740993,
+        "flag" : "before"
+      },
+      "{secondId}" : {
+        "amount" : 42,
+        "flag" : "before"
+      }
+    },
+    "afterTaskCount" : 2
+  }, {
+    "name" : "instance-zero",
+    "method" : "GET",
+    "path" : "/service/runtime/process-instances?size=0",
+    "requestBody" : "",
+    "prepare" : "",
+    "status" : 200,
+    "responseBody" : "{\"data\":[],\"order\":\"asc\",\"size\":0,\"sort\":\"id\",\"start\":0,\"total\":2}",
+    "afterInstances" : {
+      "{instanceId}" : "{\"activityId\":null,\"businessKey\":\"alpha\",\"businessStatus\":null,\"callbackId\":null,\"callbackType\":null,\"claimTime\":null,\"claimedBy\":null,\"completed\":false,\"dueDate\":null,\"ended\":false,\"id\":\"{instanceId}\",\"name\":\"实例甲\",\"processDefinitionDescription\":\"流程说明\",\"processDefinitionId\":\"{definitionId}\",\"processDefinitionName\":\"实例验收\",\"processDefinitionUrl\":\"http://localhost/service/repository/process-definitions/{definitionId}\",\"propagatedStageInstanceId\":null,\"referenceId\":null,\"referenceType\":null,\"startTime\":\"2026-10-29T01:02:03.123Z\",\"startUserId\":\"starter\",\"superProcessInstanceId\":null,\"suspended\":false,\"tenantId\":\"\",\"url\":\"http://localhost/service/runtime/process-instances/{instanceId}\",\"variables\":[]}",
+      "{secondId}" : "{\"activityId\":null,\"businessKey\":\"beta\",\"businessStatus\":null,\"callbackId\":null,\"callbackType\":null,\"claimTime\":null,\"claimedBy\":null,\"completed\":false,\"dueDate\":null,\"ended\":false,\"id\":\"{secondId}\",\"name\":\"实例乙\",\"processDefinitionDescription\":\"流程说明\",\"processDefinitionId\":\"{definitionId}\",\"processDefinitionName\":\"实例验收\",\"processDefinitionUrl\":\"http://localhost/service/repository/process-definitions/{definitionId}\",\"propagatedStageInstanceId\":null,\"referenceId\":null,\"referenceType\":null,\"startTime\":\"2026-10-29T01:02:03.123Z\",\"startUserId\":\"starter\",\"superProcessInstanceId\":null,\"suspended\":false,\"tenantId\":\"\",\"url\":\"http://localhost/service/runtime/process-instances/{secondId}\",\"variables\":[]}"
+    },
+    "afterVariables" : {
+      "{instanceId}" : {
+        "amount" : 9007199254740993,
+        "flag" : "before"
+      },
+      "{secondId}" : {
+        "amount" : 42,
+        "flag" : "before"
+      }
+    },
+    "afterTaskCount" : 2
+  }, {
+    "name" : "instance-negative",
+    "method" : "GET",
+    "path" : "/service/runtime/process-instances?start=-1&size=-1",
+    "requestBody" : "",
+    "prepare" : "",
+    "status" : 200,
+    "responseBody" : "{\"data\":[{\"activityId\":null,\"businessKey\":\"alpha\",\"businessStatus\":null,\"callbackId\":null,\"callbackType\":null,\"claimTime\":null,\"claimedBy\":null,\"completed\":false,\"dueDate\":null,\"ended\":false,\"id\":\"{instanceId}\",\"name\":\"实例甲\",\"processDefinitionDescription\":\"流程说明\",\"processDefinitionId\":\"{definitionId}\",\"processDefinitionName\":\"实例验收\",\"processDefinitionUrl\":\"http://localhost/service/repository/process-definitions/{definitionId}\",\"propagatedStageInstanceId\":null,\"referenceId\":null,\"referenceType\":null,\"startTime\":\"2026-10-29T01:02:03.123Z\",\"startUserId\":\"starter\",\"superProcessInstanceId\":null,\"suspended\":false,\"tenantId\":\"\",\"url\":\"http://localhost/service/runtime/process-instances/{instanceId}\",\"variables\":[]},{\"activityId\":null,\"businessKey\":\"beta\",\"businessStatus\":null,\"callbackId\":null,\"callbackType\":null,\"claimTime\":null,\"claimedBy\":null,\"completed\":false,\"dueDate\":null,\"ended\":false,\"id\":\"{secondId}\",\"name\":\"实例乙\",\"processDefinitionDescription\":\"流程说明\",\"processDefinitionId\":\"{definitionId}\",\"processDefinitionName\":\"实例验收\",\"processDefinitionUrl\":\"http://localhost/service/repository/process-definitions/{definitionId}\",\"propagatedStageInstanceId\":null,\"referenceId\":null,\"referenceType\":null,\"startTime\":\"2026-10-29T01:02:03.123Z\",\"startUserId\":\"starter\",\"superProcessInstanceId\":null,\"suspended\":false,\"tenantId\":\"\",\"url\":\"http://localhost/service/runtime/process-instances/{secondId}\",\"variables\":[]}],\"order\":\"asc\",\"size\":2,\"sort\":\"id\",\"start\":0,\"total\":2}",
+    "afterInstances" : {
+      "{instanceId}" : "{\"activityId\":null,\"businessKey\":\"alpha\",\"businessStatus\":null,\"callbackId\":null,\"callbackType\":null,\"claimTime\":null,\"claimedBy\":null,\"completed\":false,\"dueDate\":null,\"ended\":false,\"id\":\"{instanceId}\",\"name\":\"实例甲\",\"processDefinitionDescription\":\"流程说明\",\"processDefinitionId\":\"{definitionId}\",\"processDefinitionName\":\"实例验收\",\"processDefinitionUrl\":\"http://localhost/service/repository/process-definitions/{definitionId}\",\"propagatedStageInstanceId\":null,\"referenceId\":null,\"referenceType\":null,\"startTime\":\"2026-10-29T01:02:03.123Z\",\"startUserId\":\"starter\",\"superProcessInstanceId\":null,\"suspended\":false,\"tenantId\":\"\",\"url\":\"http://localhost/service/runtime/process-instances/{instanceId}\",\"variables\":[]}",
+      "{secondId}" : "{\"activityId\":null,\"businessKey\":\"beta\",\"businessStatus\":null,\"callbackId\":null,\"callbackType\":null,\"claimTime\":null,\"claimedBy\":null,\"completed\":false,\"dueDate\":null,\"ended\":false,\"id\":\"{secondId}\",\"name\":\"实例乙\",\"processDefinitionDescription\":\"流程说明\",\"processDefinitionId\":\"{definitionId}\",\"processDefinitionName\":\"实例验收\",\"processDefinitionUrl\":\"http://localhost/service/repository/process-definitions/{definitionId}\",\"propagatedStageInstanceId\":null,\"referenceId\":null,\"referenceType\":null,\"startTime\":\"2026-10-29T01:02:03.123Z\",\"startUserId\":\"starter\",\"superProcessInstanceId\":null,\"suspended\":false,\"tenantId\":\"\",\"url\":\"http://localhost/service/runtime/process-instances/{secondId}\",\"variables\":[]}"
+    },
+    "afterVariables" : {
+      "{instanceId}" : {
+        "amount" : 9007199254740993,
+        "flag" : "before"
+      },
+      "{secondId}" : {
+        "amount" : 42,
+        "flag" : "before"
+      }
+    },
+    "afterTaskCount" : 2
+  }, {
+    "name" : "instance-filter",
+    "method" : "GET",
+    "path" : "/service/runtime/process-instances?businessKey=alpha",
+    "requestBody" : "",
+    "prepare" : "",
+    "status" : 200,
+    "responseBody" : "{\"data\":[{\"activityId\":null,\"businessKey\":\"alpha\",\"businessStatus\":null,\"callbackId\":null,\"callbackType\":null,\"claimTime\":null,\"claimedBy\":null,\"completed\":false,\"dueDate\":null,\"ended\":false,\"id\":\"{instanceId}\",\"name\":\"实例甲\",\"processDefinitionDescription\":\"流程说明\",\"processDefinitionId\":\"{definitionId}\",\"processDefinitionName\":\"实例验收\",\"processDefinitionUrl\":\"http://localhost/service/repository/process-definitions/{definitionId}\",\"propagatedStageInstanceId\":null,\"referenceId\":null,\"referenceType\":null,\"startTime\":\"2026-10-29T01:02:03.123Z\",\"startUserId\":\"starter\",\"superProcessInstanceId\":null,\"suspended\":false,\"tenantId\":\"\",\"url\":\"http://localhost/service/runtime/process-instances/{instanceId}\",\"variables\":[]}],\"order\":\"asc\",\"size\":1,\"sort\":\"id\",\"start\":0,\"total\":1}",
+    "afterInstances" : {
+      "{instanceId}" : "{\"activityId\":null,\"businessKey\":\"alpha\",\"businessStatus\":null,\"callbackId\":null,\"callbackType\":null,\"claimTime\":null,\"claimedBy\":null,\"completed\":false,\"dueDate\":null,\"ended\":false,\"id\":\"{instanceId}\",\"name\":\"实例甲\",\"processDefinitionDescription\":\"流程说明\",\"processDefinitionId\":\"{definitionId}\",\"processDefinitionName\":\"实例验收\",\"processDefinitionUrl\":\"http://localhost/service/repository/process-definitions/{definitionId}\",\"propagatedStageInstanceId\":null,\"referenceId\":null,\"referenceType\":null,\"startTime\":\"2026-10-29T01:02:03.123Z\",\"startUserId\":\"starter\",\"superProcessInstanceId\":null,\"suspended\":false,\"tenantId\":\"\",\"url\":\"http://localhost/service/runtime/process-instances/{instanceId}\",\"variables\":[]}",
+      "{secondId}" : "{\"activityId\":null,\"businessKey\":\"beta\",\"businessStatus\":null,\"callbackId\":null,\"callbackType\":null,\"claimTime\":null,\"claimedBy\":null,\"completed\":false,\"dueDate\":null,\"ended\":false,\"id\":\"{secondId}\",\"name\":\"实例乙\",\"processDefinitionDescription\":\"流程说明\",\"processDefinitionId\":\"{definitionId}\",\"processDefinitionName\":\"实例验收\",\"processDefinitionUrl\":\"http://localhost/service/repository/process-definitions/{definitionId}\",\"propagatedStageInstanceId\":null,\"referenceId\":null,\"referenceType\":null,\"startTime\":\"2026-10-29T01:02:03.123Z\",\"startUserId\":\"starter\",\"superProcessInstanceId\":null,\"suspended\":false,\"tenantId\":\"\",\"url\":\"http://localhost/service/runtime/process-instances/{secondId}\",\"variables\":[]}"
+    },
+    "afterVariables" : {
+      "{instanceId}" : {
+        "amount" : 9007199254740993,
+        "flag" : "before"
+      },
+      "{secondId}" : {
+        "amount" : 42,
+        "flag" : "before"
+      }
+    },
+    "afterTaskCount" : 2
+  }, {
+    "name" : "instance-suspended-filter",
+    "method" : "GET",
+    "path" : "/service/runtime/process-instances?suspended=true",
+    "requestBody" : "",
+    "prepare" : "suspended",
+    "status" : 200,
+    "responseBody" : "{\"data\":[{\"activityId\":null,\"businessKey\":\"alpha\",\"businessStatus\":null,\"callbackId\":null,\"callbackType\":null,\"claimTime\":null,\"claimedBy\":null,\"completed\":false,\"dueDate\":null,\"ended\":false,\"id\":\"{instanceId}\",\"name\":\"实例甲\",\"processDefinitionDescription\":\"流程说明\",\"processDefinitionId\":\"{definitionId}\",\"processDefinitionName\":\"实例验收\",\"processDefinitionUrl\":\"http://localhost/service/repository/process-definitions/{definitionId}\",\"propagatedStageInstanceId\":null,\"referenceId\":null,\"referenceType\":null,\"startTime\":\"2026-10-29T01:02:03.123Z\",\"startUserId\":\"starter\",\"superProcessInstanceId\":null,\"suspended\":true,\"tenantId\":\"\",\"url\":\"http://localhost/service/runtime/process-instances/{instanceId}\",\"variables\":[]}],\"order\":\"asc\",\"size\":1,\"sort\":\"id\",\"start\":0,\"total\":1}",
+    "afterInstances" : {
+      "{instanceId}" : "{\"activityId\":null,\"businessKey\":\"alpha\",\"businessStatus\":null,\"callbackId\":null,\"callbackType\":null,\"claimTime\":null,\"claimedBy\":null,\"completed\":false,\"dueDate\":null,\"ended\":false,\"id\":\"{instanceId}\",\"name\":\"实例甲\",\"processDefinitionDescription\":\"流程说明\",\"processDefinitionId\":\"{definitionId}\",\"processDefinitionName\":\"实例验收\",\"processDefinitionUrl\":\"http://localhost/service/repository/process-definitions/{definitionId}\",\"propagatedStageInstanceId\":null,\"referenceId\":null,\"referenceType\":null,\"startTime\":\"2026-10-29T01:02:03.123Z\",\"startUserId\":\"starter\",\"superProcessInstanceId\":null,\"suspended\":true,\"tenantId\":\"\",\"url\":\"http://localhost/service/runtime/process-instances/{instanceId}\",\"variables\":[]}",
+      "{secondId}" : "{\"activityId\":null,\"businessKey\":\"beta\",\"businessStatus\":null,\"callbackId\":null,\"callbackType\":null,\"claimTime\":null,\"claimedBy\":null,\"completed\":false,\"dueDate\":null,\"ended\":false,\"id\":\"{secondId}\",\"name\":\"实例乙\",\"processDefinitionDescription\":\"流程说明\",\"processDefinitionId\":\"{definitionId}\",\"processDefinitionName\":\"实例验收\",\"processDefinitionUrl\":\"http://localhost/service/repository/process-definitions/{definitionId}\",\"propagatedStageInstanceId\":null,\"referenceId\":null,\"referenceType\":null,\"startTime\":\"2026-10-29T01:02:03.123Z\",\"startUserId\":\"starter\",\"superProcessInstanceId\":null,\"suspended\":false,\"tenantId\":\"\",\"url\":\"http://localhost/service/runtime/process-instances/{secondId}\",\"variables\":[]}"
+    },
+    "afterVariables" : {
+      "{instanceId}" : {
+        "amount" : 9007199254740993,
+        "flag" : "before"
+      },
+      "{secondId}" : {
+        "amount" : 42,
+        "flag" : "before"
+      }
+    },
+    "afterTaskCount" : 2
+  }, {
+    "name" : "instance-query",
+    "method" : "POST",
+    "path" : "/service/query/process-instances?sort=name&order=desc",
+    "requestBody" : "{\"businessKey\":\"alpha\"}",
+    "prepare" : "",
+    "status" : 400,
+    "responseBody" : "{\"message\":\"Bad request\",\"exception\":\"Value for param 'sort' is not valid, 'name' is not a valid property\"}",
+    "afterInstances" : {
+      "{instanceId}" : "{\"activityId\":null,\"businessKey\":\"alpha\",\"businessStatus\":null,\"callbackId\":null,\"callbackType\":null,\"claimTime\":null,\"claimedBy\":null,\"completed\":false,\"dueDate\":null,\"ended\":false,\"id\":\"{instanceId}\",\"name\":\"实例甲\",\"processDefinitionDescription\":\"流程说明\",\"processDefinitionId\":\"{definitionId}\",\"processDefinitionName\":\"实例验收\",\"processDefinitionUrl\":\"http://localhost/service/repository/process-definitions/{definitionId}\",\"propagatedStageInstanceId\":null,\"referenceId\":null,\"referenceType\":null,\"startTime\":\"2026-10-29T01:02:03.123Z\",\"startUserId\":\"starter\",\"superProcessInstanceId\":null,\"suspended\":false,\"tenantId\":\"\",\"url\":\"http://localhost/service/runtime/process-instances/{instanceId}\",\"variables\":[]}",
+      "{secondId}" : "{\"activityId\":null,\"businessKey\":\"beta\",\"businessStatus\":null,\"callbackId\":null,\"callbackType\":null,\"claimTime\":null,\"claimedBy\":null,\"completed\":false,\"dueDate\":null,\"ended\":false,\"id\":\"{secondId}\",\"name\":\"实例乙\",\"processDefinitionDescription\":\"流程说明\",\"processDefinitionId\":\"{definitionId}\",\"processDefinitionName\":\"实例验收\",\"processDefinitionUrl\":\"http://localhost/service/repository/process-definitions/{definitionId}\",\"propagatedStageInstanceId\":null,\"referenceId\":null,\"referenceType\":null,\"startTime\":\"2026-10-29T01:02:03.123Z\",\"startUserId\":\"starter\",\"superProcessInstanceId\":null,\"suspended\":false,\"tenantId\":\"\",\"url\":\"http://localhost/service/runtime/process-instances/{secondId}\",\"variables\":[]}"
+    },
+    "afterVariables" : {
+      "{instanceId}" : {
+        "amount" : 9007199254740993,
+        "flag" : "before"
+      },
+      "{secondId}" : {
+        "amount" : 42,
+        "flag" : "before"
+      }
+    },
+    "afterTaskCount" : 2
+  }, {
+    "name" : "instance-query-priority",
+    "method" : "POST",
+    "path" : "/service/query/process-instances?sort=id&size=10",
+    "requestBody" : "{\"sort\":\"name\",\"order\":\"desc\",\"size\":0}",
+    "prepare" : "",
+    "status" : 400,
+    "responseBody" : "{\"message\":\"Bad request\",\"exception\":\"Value for param 'sort' is not valid, 'name' is not a valid property\"}",
+    "afterInstances" : {
+      "{instanceId}" : "{\"activityId\":null,\"businessKey\":\"alpha\",\"businessStatus\":null,\"callbackId\":null,\"callbackType\":null,\"claimTime\":null,\"claimedBy\":null,\"completed\":false,\"dueDate\":null,\"ended\":false,\"id\":\"{instanceId}\",\"name\":\"实例甲\",\"processDefinitionDescription\":\"流程说明\",\"processDefinitionId\":\"{definitionId}\",\"processDefinitionName\":\"实例验收\",\"processDefinitionUrl\":\"http://localhost/service/repository/process-definitions/{definitionId}\",\"propagatedStageInstanceId\":null,\"referenceId\":null,\"referenceType\":null,\"startTime\":\"2026-10-29T01:02:03.123Z\",\"startUserId\":\"starter\",\"superProcessInstanceId\":null,\"suspended\":false,\"tenantId\":\"\",\"url\":\"http://localhost/service/runtime/process-instances/{instanceId}\",\"variables\":[]}",
+      "{secondId}" : "{\"activityId\":null,\"businessKey\":\"beta\",\"businessStatus\":null,\"callbackId\":null,\"callbackType\":null,\"claimTime\":null,\"claimedBy\":null,\"completed\":false,\"dueDate\":null,\"ended\":false,\"id\":\"{secondId}\",\"name\":\"实例乙\",\"processDefinitionDescription\":\"流程说明\",\"processDefinitionId\":\"{definitionId}\",\"processDefinitionName\":\"实例验收\",\"processDefinitionUrl\":\"http://localhost/service/repository/process-definitions/{definitionId}\",\"propagatedStageInstanceId\":null,\"referenceId\":null,\"referenceType\":null,\"startTime\":\"2026-10-29T01:02:03.123Z\",\"startUserId\":\"starter\",\"superProcessInstanceId\":null,\"suspended\":false,\"tenantId\":\"\",\"url\":\"http://localhost/service/runtime/process-instances/{secondId}\",\"variables\":[]}"
+    },
+    "afterVariables" : {
+      "{instanceId}" : {
+        "amount" : 9007199254740993,
+        "flag" : "before"
+      },
+      "{secondId}" : {
+        "amount" : 42,
+        "flag" : "before"
+      }
+    },
+    "afterTaskCount" : 2
+  }, {
+    "name" : "instance-query-valid",
+    "method" : "POST",
+    "path" : "/service/query/process-instances?sort=businessKey&order=desc",
+    "requestBody" : "{\"businessKey\":\"alpha\"}",
+    "prepare" : "",
+    "status" : 200,
+    "responseBody" : "{\"data\":[{\"activityId\":null,\"businessKey\":\"beta\",\"businessStatus\":null,\"callbackId\":null,\"callbackType\":null,\"claimTime\":null,\"claimedBy\":null,\"completed\":false,\"dueDate\":null,\"ended\":false,\"id\":\"{secondId}\",\"name\":\"实例乙\",\"processDefinitionDescription\":\"流程说明\",\"processDefinitionId\":\"{definitionId}\",\"processDefinitionName\":\"实例验收\",\"processDefinitionUrl\":\"http://localhost/service/repository/process-definitions/{definitionId}\",\"propagatedStageInstanceId\":null,\"referenceId\":null,\"referenceType\":null,\"startTime\":\"2026-10-29T01:02:03.123Z\",\"startUserId\":\"starter\",\"superProcessInstanceId\":null,\"suspended\":false,\"tenantId\":\"\",\"url\":\"http://localhost/service/runtime/process-instances/{secondId}\",\"variables\":[]},{\"activityId\":null,\"businessKey\":\"alpha\",\"businessStatus\":null,\"callbackId\":null,\"callbackType\":null,\"claimTime\":null,\"claimedBy\":null,\"completed\":false,\"dueDate\":null,\"ended\":false,\"id\":\"{instanceId}\",\"name\":\"实例甲\",\"processDefinitionDescription\":\"流程说明\",\"processDefinitionId\":\"{definitionId}\",\"processDefinitionName\":\"实例验收\",\"processDefinitionUrl\":\"http://localhost/service/repository/process-definitions/{definitionId}\",\"propagatedStageInstanceId\":null,\"referenceId\":null,\"referenceType\":null,\"startTime\":\"2026-10-29T01:02:03.123Z\",\"startUserId\":\"starter\",\"superProcessInstanceId\":null,\"suspended\":false,\"tenantId\":\"\",\"url\":\"http://localhost/service/runtime/process-instances/{instanceId}\",\"variables\":[]}],\"order\":\"desc\",\"size\":2,\"sort\":\"businessKey\",\"start\":0,\"total\":2}",
+    "afterInstances" : {
+      "{instanceId}" : "{\"activityId\":null,\"businessKey\":\"alpha\",\"businessStatus\":null,\"callbackId\":null,\"callbackType\":null,\"claimTime\":null,\"claimedBy\":null,\"completed\":false,\"dueDate\":null,\"ended\":false,\"id\":\"{instanceId}\",\"name\":\"实例甲\",\"processDefinitionDescription\":\"流程说明\",\"processDefinitionId\":\"{definitionId}\",\"processDefinitionName\":\"实例验收\",\"processDefinitionUrl\":\"http://localhost/service/repository/process-definitions/{definitionId}\",\"propagatedStageInstanceId\":null,\"referenceId\":null,\"referenceType\":null,\"startTime\":\"2026-10-29T01:02:03.123Z\",\"startUserId\":\"starter\",\"superProcessInstanceId\":null,\"suspended\":false,\"tenantId\":\"\",\"url\":\"http://localhost/service/runtime/process-instances/{instanceId}\",\"variables\":[]}",
+      "{secondId}" : "{\"activityId\":null,\"businessKey\":\"beta\",\"businessStatus\":null,\"callbackId\":null,\"callbackType\":null,\"claimTime\":null,\"claimedBy\":null,\"completed\":false,\"dueDate\":null,\"ended\":false,\"id\":\"{secondId}\",\"name\":\"实例乙\",\"processDefinitionDescription\":\"流程说明\",\"processDefinitionId\":\"{definitionId}\",\"processDefinitionName\":\"实例验收\",\"processDefinitionUrl\":\"http://localhost/service/repository/process-definitions/{definitionId}\",\"propagatedStageInstanceId\":null,\"referenceId\":null,\"referenceType\":null,\"startTime\":\"2026-10-29T01:02:03.123Z\",\"startUserId\":\"starter\",\"superProcessInstanceId\":null,\"suspended\":false,\"tenantId\":\"\",\"url\":\"http://localhost/service/runtime/process-instances/{secondId}\",\"variables\":[]}"
+    },
+    "afterVariables" : {
+      "{instanceId}" : {
+        "amount" : 9007199254740993,
+        "flag" : "before"
+      },
+      "{secondId}" : {
+        "amount" : 42,
+        "flag" : "before"
+      }
+    },
+    "afterTaskCount" : 2
+  }, {
+    "name" : "instance-query-precedence",
+    "method" : "POST",
+    "path" : "/service/query/process-instances?sort=id&size=10",
+    "requestBody" : "{\"sort\":\"businessKey\",\"order\":\"desc\",\"size\":0}",
+    "prepare" : "",
+    "status" : 200,
+    "responseBody" : "{\"data\":[],\"order\":\"desc\",\"size\":0,\"sort\":\"businessKey\",\"start\":0,\"total\":2}",
+    "afterInstances" : {
+      "{instanceId}" : "{\"activityId\":null,\"businessKey\":\"alpha\",\"businessStatus\":null,\"callbackId\":null,\"callbackType\":null,\"claimTime\":null,\"claimedBy\":null,\"completed\":false,\"dueDate\":null,\"ended\":false,\"id\":\"{instanceId}\",\"name\":\"实例甲\",\"processDefinitionDescription\":\"流程说明\",\"processDefinitionId\":\"{definitionId}\",\"processDefinitionName\":\"实例验收\",\"processDefinitionUrl\":\"http://localhost/service/repository/process-definitions/{definitionId}\",\"propagatedStageInstanceId\":null,\"referenceId\":null,\"referenceType\":null,\"startTime\":\"2026-10-29T01:02:03.123Z\",\"startUserId\":\"starter\",\"superProcessInstanceId\":null,\"suspended\":false,\"tenantId\":\"\",\"url\":\"http://localhost/service/runtime/process-instances/{instanceId}\",\"variables\":[]}",
+      "{secondId}" : "{\"activityId\":null,\"businessKey\":\"beta\",\"businessStatus\":null,\"callbackId\":null,\"callbackType\":null,\"claimTime\":null,\"claimedBy\":null,\"completed\":false,\"dueDate\":null,\"ended\":false,\"id\":\"{secondId}\",\"name\":\"实例乙\",\"processDefinitionDescription\":\"流程说明\",\"processDefinitionId\":\"{definitionId}\",\"processDefinitionName\":\"实例验收\",\"processDefinitionUrl\":\"http://localhost/service/repository/process-definitions/{definitionId}\",\"propagatedStageInstanceId\":null,\"referenceId\":null,\"referenceType\":null,\"startTime\":\"2026-10-29T01:02:03.123Z\",\"startUserId\":\"starter\",\"superProcessInstanceId\":null,\"suspended\":false,\"tenantId\":\"\",\"url\":\"http://localhost/service/runtime/process-instances/{secondId}\",\"variables\":[]}"
+    },
+    "afterVariables" : {
+      "{instanceId}" : {
+        "amount" : 9007199254740993,
+        "flag" : "before"
+      },
+      "{secondId}" : {
+        "amount" : 42,
+        "flag" : "before"
+      }
+    },
+    "afterTaskCount" : 2
+  }, {
+    "name" : "instance-start",
+    "method" : "POST",
+    "path" : "/service/runtime/process-instances",
+    "requestBody" : "{\"processDefinitionKey\":\"runtime_reference\",\"name\":\"新实例\",\"businessKey\":\"created\",\"variables\":[{\"name\":\"amount\",\"type\":\"long\",\"value\":9007199254740993}]}",
+    "prepare" : "",
+    "status" : 201,
+    "responseBody" : "{\"activityId\":null,\"businessKey\":\"created\",\"businessStatus\":null,\"callbackId\":null,\"callbackType\":null,\"claimTime\":null,\"claimedBy\":null,\"completed\":false,\"dueDate\":null,\"ended\":false,\"id\":\"{createdId}\",\"name\":\"新实例\",\"processDefinitionDescription\":\"流程说明\",\"processDefinitionId\":\"{definitionId}\",\"processDefinitionName\":\"实例验收\",\"processDefinitionUrl\":\"http://localhost/service/repository/process-definitions/{definitionId}\",\"propagatedStageInstanceId\":null,\"referenceId\":null,\"referenceType\":null,\"startTime\":\"2026-10-29T01:02:03.123Z\",\"startUserId\":\"starter\",\"superProcessInstanceId\":null,\"suspended\":false,\"tenantId\":\"\",\"url\":\"http://localhost/service/runtime/process-instances/{createdId}\",\"variables\":[{\"name\":\"amount\",\"scope\":\"local\",\"type\":\"long\",\"value\":9007199254740993}]}",
+    "afterInstances" : {
+      "{createdId}" : "{\"activityId\":null,\"businessKey\":\"created\",\"businessStatus\":null,\"callbackId\":null,\"callbackType\":null,\"claimTime\":null,\"claimedBy\":null,\"completed\":false,\"dueDate\":null,\"ended\":false,\"id\":\"{createdId}\",\"name\":\"新实例\",\"processDefinitionDescription\":\"流程说明\",\"processDefinitionId\":\"{definitionId}\",\"processDefinitionName\":\"实例验收\",\"processDefinitionUrl\":\"http://localhost/service/repository/process-definitions/{definitionId}\",\"propagatedStageInstanceId\":null,\"referenceId\":null,\"referenceType\":null,\"startTime\":\"2026-10-29T01:02:03.123Z\",\"startUserId\":\"starter\",\"superProcessInstanceId\":null,\"suspended\":false,\"tenantId\":\"\",\"url\":\"http://localhost/service/runtime/process-instances/{createdId}\",\"variables\":[]}",
+      "{instanceId}" : "{\"activityId\":null,\"businessKey\":\"alpha\",\"businessStatus\":null,\"callbackId\":null,\"callbackType\":null,\"claimTime\":null,\"claimedBy\":null,\"completed\":false,\"dueDate\":null,\"ended\":false,\"id\":\"{instanceId}\",\"name\":\"实例甲\",\"processDefinitionDescription\":\"流程说明\",\"processDefinitionId\":\"{definitionId}\",\"processDefinitionName\":\"实例验收\",\"processDefinitionUrl\":\"http://localhost/service/repository/process-definitions/{definitionId}\",\"propagatedStageInstanceId\":null,\"referenceId\":null,\"referenceType\":null,\"startTime\":\"2026-10-29T01:02:03.123Z\",\"startUserId\":\"starter\",\"superProcessInstanceId\":null,\"suspended\":false,\"tenantId\":\"\",\"url\":\"http://localhost/service/runtime/process-instances/{instanceId}\",\"variables\":[]}",
+      "{secondId}" : "{\"activityId\":null,\"businessKey\":\"beta\",\"businessStatus\":null,\"callbackId\":null,\"callbackType\":null,\"claimTime\":null,\"claimedBy\":null,\"completed\":false,\"dueDate\":null,\"ended\":false,\"id\":\"{secondId}\",\"name\":\"实例乙\",\"processDefinitionDescription\":\"流程说明\",\"processDefinitionId\":\"{definitionId}\",\"processDefinitionName\":\"实例验收\",\"processDefinitionUrl\":\"http://localhost/service/repository/process-definitions/{definitionId}\",\"propagatedStageInstanceId\":null,\"referenceId\":null,\"referenceType\":null,\"startTime\":\"2026-10-29T01:02:03.123Z\",\"startUserId\":\"starter\",\"superProcessInstanceId\":null,\"suspended\":false,\"tenantId\":\"\",\"url\":\"http://localhost/service/runtime/process-instances/{secondId}\",\"variables\":[]}"
+    },
+    "afterVariables" : {
+      "{createdId}" : {
+        "amount" : 9007199254740993
+      },
+      "{instanceId}" : {
+        "amount" : 9007199254740993,
+        "flag" : "before"
+      },
+      "{secondId}" : {
+        "amount" : 42,
+        "flag" : "before"
+      }
+    },
+    "afterTaskCount" : 3
+  }, {
+    "name" : "instance-start-id",
+    "method" : "POST",
+    "path" : "/service/runtime/process-instances",
+    "requestBody" : "{\"processDefinitionId\":\"{definitionId}\"}",
+    "prepare" : "",
+    "status" : 201,
+    "responseBody" : "{\"activityId\":null,\"businessKey\":null,\"businessStatus\":null,\"callbackId\":null,\"callbackType\":null,\"claimTime\":null,\"claimedBy\":null,\"completed\":false,\"dueDate\":null,\"ended\":false,\"id\":\"{createdId}\",\"name\":null,\"processDefinitionDescription\":\"流程说明\",\"processDefinitionId\":\"{definitionId}\",\"processDefinitionName\":\"实例验收\",\"processDefinitionUrl\":\"http://localhost/service/repository/process-definitions/{definitionId}\",\"propagatedStageInstanceId\":null,\"referenceId\":null,\"referenceType\":null,\"startTime\":\"2026-10-29T01:02:03.123Z\",\"startUserId\":\"starter\",\"superProcessInstanceId\":null,\"suspended\":false,\"tenantId\":\"\",\"url\":\"http://localhost/service/runtime/process-instances/{createdId}\",\"variables\":[]}",
+    "afterInstances" : {
+      "{createdId}" : "{\"activityId\":null,\"businessKey\":null,\"businessStatus\":null,\"callbackId\":null,\"callbackType\":null,\"claimTime\":null,\"claimedBy\":null,\"completed\":false,\"dueDate\":null,\"ended\":false,\"id\":\"{createdId}\",\"name\":null,\"processDefinitionDescription\":\"流程说明\",\"processDefinitionId\":\"{definitionId}\",\"processDefinitionName\":\"实例验收\",\"processDefinitionUrl\":\"http://localhost/service/repository/process-definitions/{definitionId}\",\"propagatedStageInstanceId\":null,\"referenceId\":null,\"referenceType\":null,\"startTime\":\"2026-10-29T01:02:03.123Z\",\"startUserId\":\"starter\",\"superProcessInstanceId\":null,\"suspended\":false,\"tenantId\":\"\",\"url\":\"http://localhost/service/runtime/process-instances/{createdId}\",\"variables\":[]}",
+      "{instanceId}" : "{\"activityId\":null,\"businessKey\":\"alpha\",\"businessStatus\":null,\"callbackId\":null,\"callbackType\":null,\"claimTime\":null,\"claimedBy\":null,\"completed\":false,\"dueDate\":null,\"ended\":false,\"id\":\"{instanceId}\",\"name\":\"实例甲\",\"processDefinitionDescription\":\"流程说明\",\"processDefinitionId\":\"{definitionId}\",\"processDefinitionName\":\"实例验收\",\"processDefinitionUrl\":\"http://localhost/service/repository/process-definitions/{definitionId}\",\"propagatedStageInstanceId\":null,\"referenceId\":null,\"referenceType\":null,\"startTime\":\"2026-10-29T01:02:03.123Z\",\"startUserId\":\"starter\",\"superProcessInstanceId\":null,\"suspended\":false,\"tenantId\":\"\",\"url\":\"http://localhost/service/runtime/process-instances/{instanceId}\",\"variables\":[]}",
+      "{secondId}" : "{\"activityId\":null,\"businessKey\":\"beta\",\"businessStatus\":null,\"callbackId\":null,\"callbackType\":null,\"claimTime\":null,\"claimedBy\":null,\"completed\":false,\"dueDate\":null,\"ended\":false,\"id\":\"{secondId}\",\"name\":\"实例乙\",\"processDefinitionDescription\":\"流程说明\",\"processDefinitionId\":\"{definitionId}\",\"processDefinitionName\":\"实例验收\",\"processDefinitionUrl\":\"http://localhost/service/repository/process-definitions/{definitionId}\",\"propagatedStageInstanceId\":null,\"referenceId\":null,\"referenceType\":null,\"startTime\":\"2026-10-29T01:02:03.123Z\",\"startUserId\":\"starter\",\"superProcessInstanceId\":null,\"suspended\":false,\"tenantId\":\"\",\"url\":\"http://localhost/service/runtime/process-instances/{secondId}\",\"variables\":[]}"
+    },
+    "afterVariables" : {
+      "{createdId}" : { },
+      "{instanceId}" : {
+        "amount" : 9007199254740993,
+        "flag" : "before"
+      },
+      "{secondId}" : {
+        "amount" : 42,
+        "flag" : "before"
+      }
+    },
+    "afterTaskCount" : 3
+  }, {
+    "name" : "instance-start-message",
+    "method" : "POST",
+    "path" : "/service/runtime/process-instances",
+    "requestBody" : "{\"message\":\"begin\",\"businessKey\":\"message\"}",
+    "prepare" : "",
+    "status" : 201,
+    "responseBody" : "{\"activityId\":null,\"businessKey\":\"message\",\"businessStatus\":null,\"callbackId\":null,\"callbackType\":null,\"claimTime\":null,\"claimedBy\":null,\"completed\":false,\"dueDate\":null,\"ended\":false,\"id\":\"{createdId}\",\"name\":null,\"processDefinitionDescription\":null,\"processDefinitionId\":\"{messageDefinitionId}\",\"processDefinitionName\":\"消息启动\",\"processDefinitionUrl\":\"http://localhost/service/repository/process-definitions/{messageDefinitionId}\",\"propagatedStageInstanceId\":null,\"referenceId\":null,\"referenceType\":null,\"startTime\":\"2026-10-29T01:02:03.123Z\",\"startUserId\":\"starter\",\"superProcessInstanceId\":null,\"suspended\":false,\"tenantId\":\"\",\"url\":\"http://localhost/service/runtime/process-instances/{createdId}\",\"variables\":[]}",
+    "afterInstances" : {
+      "{createdId}" : "{\"activityId\":null,\"businessKey\":\"message\",\"businessStatus\":null,\"callbackId\":null,\"callbackType\":null,\"claimTime\":null,\"claimedBy\":null,\"completed\":false,\"dueDate\":null,\"ended\":false,\"id\":\"{createdId}\",\"name\":null,\"processDefinitionDescription\":null,\"processDefinitionId\":\"{messageDefinitionId}\",\"processDefinitionName\":\"消息启动\",\"processDefinitionUrl\":\"http://localhost/service/repository/process-definitions/{messageDefinitionId}\",\"propagatedStageInstanceId\":null,\"referenceId\":null,\"referenceType\":null,\"startTime\":\"2026-10-29T01:02:03.123Z\",\"startUserId\":\"starter\",\"superProcessInstanceId\":null,\"suspended\":false,\"tenantId\":\"\",\"url\":\"http://localhost/service/runtime/process-instances/{createdId}\",\"variables\":[]}",
+      "{instanceId}" : "{\"activityId\":null,\"businessKey\":\"alpha\",\"businessStatus\":null,\"callbackId\":null,\"callbackType\":null,\"claimTime\":null,\"claimedBy\":null,\"completed\":false,\"dueDate\":null,\"ended\":false,\"id\":\"{instanceId}\",\"name\":\"实例甲\",\"processDefinitionDescription\":\"流程说明\",\"processDefinitionId\":\"{definitionId}\",\"processDefinitionName\":\"实例验收\",\"processDefinitionUrl\":\"http://localhost/service/repository/process-definitions/{definitionId}\",\"propagatedStageInstanceId\":null,\"referenceId\":null,\"referenceType\":null,\"startTime\":\"2026-10-29T01:02:03.123Z\",\"startUserId\":\"starter\",\"superProcessInstanceId\":null,\"suspended\":false,\"tenantId\":\"\",\"url\":\"http://localhost/service/runtime/process-instances/{instanceId}\",\"variables\":[]}",
+      "{secondId}" : "{\"activityId\":null,\"businessKey\":\"beta\",\"businessStatus\":null,\"callbackId\":null,\"callbackType\":null,\"claimTime\":null,\"claimedBy\":null,\"completed\":false,\"dueDate\":null,\"ended\":false,\"id\":\"{secondId}\",\"name\":\"实例乙\",\"processDefinitionDescription\":\"流程说明\",\"processDefinitionId\":\"{definitionId}\",\"processDefinitionName\":\"实例验收\",\"processDefinitionUrl\":\"http://localhost/service/repository/process-definitions/{definitionId}\",\"propagatedStageInstanceId\":null,\"referenceId\":null,\"referenceType\":null,\"startTime\":\"2026-10-29T01:02:03.123Z\",\"startUserId\":\"starter\",\"superProcessInstanceId\":null,\"suspended\":false,\"tenantId\":\"\",\"url\":\"http://localhost/service/runtime/process-instances/{secondId}\",\"variables\":[]}"
+    },
+    "afterVariables" : {
+      "{createdId}" : { },
+      "{instanceId}" : {
+        "amount" : 9007199254740993,
+        "flag" : "before"
+      },
+      "{secondId}" : {
+        "amount" : 42,
+        "flag" : "before"
+      }
+    },
+    "afterTaskCount" : 3
+  }, {
+    "name" : "instance-start-return",
+    "method" : "POST",
+    "path" : "/service/runtime/process-instances",
+    "requestBody" : "{\"processDefinitionKey\":\"runtime_reference\",\"returnVariables\":true,\"variables\":[{\"name\":\"amount\",\"type\":\"long\",\"value\":9007199254740993},{\"name\":\"flag\",\"type\":\"boolean\",\"value\":true},{\"name\":\"date\",\"type\":\"date\",\"value\":\"2026-01-02T03:04:05.123Z\"}]}",
+    "prepare" : "",
+    "status" : 201,
+    "responseBody" : "{\"activityId\":null,\"businessKey\":null,\"businessStatus\":null,\"callbackId\":null,\"callbackType\":null,\"claimTime\":null,\"claimedBy\":null,\"completed\":false,\"dueDate\":null,\"ended\":false,\"id\":\"{createdId}\",\"name\":null,\"processDefinitionDescription\":\"流程说明\",\"processDefinitionId\":\"{definitionId}\",\"processDefinitionName\":\"实例验收\",\"processDefinitionUrl\":\"http://localhost/service/repository/process-definitions/{definitionId}\",\"propagatedStageInstanceId\":null,\"referenceId\":null,\"referenceType\":null,\"startTime\":\"2026-10-29T01:02:03.123Z\",\"startUserId\":\"starter\",\"superProcessInstanceId\":null,\"suspended\":false,\"tenantId\":\"\",\"url\":\"http://localhost/service/runtime/process-instances/{createdId}\",\"variables\":[{\"name\":\"date\",\"scope\":\"local\",\"type\":\"date\",\"value\":\"2026-01-02T03:04:05.123Z\"},{\"name\":\"amount\",\"scope\":\"local\",\"type\":\"long\",\"value\":9007199254740993},{\"name\":\"flag\",\"scope\":\"local\",\"type\":\"boolean\",\"value\":true}]}",
+    "afterInstances" : {
+      "{createdId}" : "{\"activityId\":null,\"businessKey\":null,\"businessStatus\":null,\"callbackId\":null,\"callbackType\":null,\"claimTime\":null,\"claimedBy\":null,\"completed\":false,\"dueDate\":null,\"ended\":false,\"id\":\"{createdId}\",\"name\":null,\"processDefinitionDescription\":\"流程说明\",\"processDefinitionId\":\"{definitionId}\",\"processDefinitionName\":\"实例验收\",\"processDefinitionUrl\":\"http://localhost/service/repository/process-definitions/{definitionId}\",\"propagatedStageInstanceId\":null,\"referenceId\":null,\"referenceType\":null,\"startTime\":\"2026-10-29T01:02:03.123Z\",\"startUserId\":\"starter\",\"superProcessInstanceId\":null,\"suspended\":false,\"tenantId\":\"\",\"url\":\"http://localhost/service/runtime/process-instances/{createdId}\",\"variables\":[]}",
+      "{instanceId}" : "{\"activityId\":null,\"businessKey\":\"alpha\",\"businessStatus\":null,\"callbackId\":null,\"callbackType\":null,\"claimTime\":null,\"claimedBy\":null,\"completed\":false,\"dueDate\":null,\"ended\":false,\"id\":\"{instanceId}\",\"name\":\"实例甲\",\"processDefinitionDescription\":\"流程说明\",\"processDefinitionId\":\"{definitionId}\",\"processDefinitionName\":\"实例验收\",\"processDefinitionUrl\":\"http://localhost/service/repository/process-definitions/{definitionId}\",\"propagatedStageInstanceId\":null,\"referenceId\":null,\"referenceType\":null,\"startTime\":\"2026-10-29T01:02:03.123Z\",\"startUserId\":\"starter\",\"superProcessInstanceId\":null,\"suspended\":false,\"tenantId\":\"\",\"url\":\"http://localhost/service/runtime/process-instances/{instanceId}\",\"variables\":[]}",
+      "{secondId}" : "{\"activityId\":null,\"businessKey\":\"beta\",\"businessStatus\":null,\"callbackId\":null,\"callbackType\":null,\"claimTime\":null,\"claimedBy\":null,\"completed\":false,\"dueDate\":null,\"ended\":false,\"id\":\"{secondId}\",\"name\":\"实例乙\",\"processDefinitionDescription\":\"流程说明\",\"processDefinitionId\":\"{definitionId}\",\"processDefinitionName\":\"实例验收\",\"processDefinitionUrl\":\"http://localhost/service/repository/process-definitions/{definitionId}\",\"propagatedStageInstanceId\":null,\"referenceId\":null,\"referenceType\":null,\"startTime\":\"2026-10-29T01:02:03.123Z\",\"startUserId\":\"starter\",\"superProcessInstanceId\":null,\"suspended\":false,\"tenantId\":\"\",\"url\":\"http://localhost/service/runtime/process-instances/{secondId}\",\"variables\":[]}"
+    },
+    "afterVariables" : {
+      "{createdId}" : {
+        "amount" : 9007199254740993,
+        "date" : {
+          "$date" : "2026-01-02T03:04:05.123Z"
+        },
+        "flag" : true
+      },
+      "{instanceId}" : {
+        "amount" : 9007199254740993,
+        "flag" : "before"
+      },
+      "{secondId}" : {
+        "amount" : 42,
+        "flag" : "before"
+      }
+    },
+    "afterTaskCount" : 3
+  }, {
+    "name" : "instance-start-missing",
+    "method" : "POST",
+    "path" : "/service/runtime/process-instances",
+    "requestBody" : "{}",
+    "prepare" : "",
+    "status" : 400,
+    "responseBody" : "{\"message\":\"Bad request\",\"exception\":\"Either processDefinitionId, processDefinitionKey or message is required.\"}",
+    "afterInstances" : {
+      "{instanceId}" : "{\"activityId\":null,\"businessKey\":\"alpha\",\"businessStatus\":null,\"callbackId\":null,\"callbackType\":null,\"claimTime\":null,\"claimedBy\":null,\"completed\":false,\"dueDate\":null,\"ended\":false,\"id\":\"{instanceId}\",\"name\":\"实例甲\",\"processDefinitionDescription\":\"流程说明\",\"processDefinitionId\":\"{definitionId}\",\"processDefinitionName\":\"实例验收\",\"processDefinitionUrl\":\"http://localhost/service/repository/process-definitions/{definitionId}\",\"propagatedStageInstanceId\":null,\"referenceId\":null,\"referenceType\":null,\"startTime\":\"2026-10-29T01:02:03.123Z\",\"startUserId\":\"starter\",\"superProcessInstanceId\":null,\"suspended\":false,\"tenantId\":\"\",\"url\":\"http://localhost/service/runtime/process-instances/{instanceId}\",\"variables\":[]}",
+      "{secondId}" : "{\"activityId\":null,\"businessKey\":\"beta\",\"businessStatus\":null,\"callbackId\":null,\"callbackType\":null,\"claimTime\":null,\"claimedBy\":null,\"completed\":false,\"dueDate\":null,\"ended\":false,\"id\":\"{secondId}\",\"name\":\"实例乙\",\"processDefinitionDescription\":\"流程说明\",\"processDefinitionId\":\"{definitionId}\",\"processDefinitionName\":\"实例验收\",\"processDefinitionUrl\":\"http://localhost/service/repository/process-definitions/{definitionId}\",\"propagatedStageInstanceId\":null,\"referenceId\":null,\"referenceType\":null,\"startTime\":\"2026-10-29T01:02:03.123Z\",\"startUserId\":\"starter\",\"superProcessInstanceId\":null,\"suspended\":false,\"tenantId\":\"\",\"url\":\"http://localhost/service/runtime/process-instances/{secondId}\",\"variables\":[]}"
+    },
+    "afterVariables" : {
+      "{instanceId}" : {
+        "amount" : 9007199254740993,
+        "flag" : "before"
+      },
+      "{secondId}" : {
+        "amount" : 42,
+        "flag" : "before"
+      }
+    },
+    "afterTaskCount" : 2
+  }, {
+    "name" : "instance-start-duplicate",
+    "method" : "POST",
+    "path" : "/service/runtime/process-instances",
+    "requestBody" : "{\"processDefinitionId\":\"{definitionId}\",\"processDefinitionKey\":\"runtime_reference\"}",
+    "prepare" : "",
+    "status" : 400,
+    "responseBody" : "{\"message\":\"Bad request\",\"exception\":\"Only one of processDefinitionId, processDefinitionKey or message should be set.\"}",
+    "afterInstances" : {
+      "{instanceId}" : "{\"activityId\":null,\"businessKey\":\"alpha\",\"businessStatus\":null,\"callbackId\":null,\"callbackType\":null,\"claimTime\":null,\"claimedBy\":null,\"completed\":false,\"dueDate\":null,\"ended\":false,\"id\":\"{instanceId}\",\"name\":\"实例甲\",\"processDefinitionDescription\":\"流程说明\",\"processDefinitionId\":\"{definitionId}\",\"processDefinitionName\":\"实例验收\",\"processDefinitionUrl\":\"http://localhost/service/repository/process-definitions/{definitionId}\",\"propagatedStageInstanceId\":null,\"referenceId\":null,\"referenceType\":null,\"startTime\":\"2026-10-29T01:02:03.123Z\",\"startUserId\":\"starter\",\"superProcessInstanceId\":null,\"suspended\":false,\"tenantId\":\"\",\"url\":\"http://localhost/service/runtime/process-instances/{instanceId}\",\"variables\":[]}",
+      "{secondId}" : "{\"activityId\":null,\"businessKey\":\"beta\",\"businessStatus\":null,\"callbackId\":null,\"callbackType\":null,\"claimTime\":null,\"claimedBy\":null,\"completed\":false,\"dueDate\":null,\"ended\":false,\"id\":\"{secondId}\",\"name\":\"实例乙\",\"processDefinitionDescription\":\"流程说明\",\"processDefinitionId\":\"{definitionId}\",\"processDefinitionName\":\"实例验收\",\"processDefinitionUrl\":\"http://localhost/service/repository/process-definitions/{definitionId}\",\"propagatedStageInstanceId\":null,\"referenceId\":null,\"referenceType\":null,\"startTime\":\"2026-10-29T01:02:03.123Z\",\"startUserId\":\"starter\",\"superProcessInstanceId\":null,\"suspended\":false,\"tenantId\":\"\",\"url\":\"http://localhost/service/runtime/process-instances/{secondId}\",\"variables\":[]}"
+    },
+    "afterVariables" : {
+      "{instanceId}" : {
+        "amount" : 9007199254740993,
+        "flag" : "before"
+      },
+      "{secondId}" : {
+        "amount" : 42,
+        "flag" : "before"
+      }
+    },
+    "afterTaskCount" : 2
+  }, {
+    "name" : "instance-start-tenant-id",
+    "method" : "POST",
+    "path" : "/service/runtime/process-instances",
+    "requestBody" : "{\"processDefinitionId\":\"{definitionId}\",\"tenantId\":\"tenant-a\"}",
+    "prepare" : "",
+    "status" : 400,
+    "responseBody" : "{\"message\":\"Bad request\",\"exception\":\"TenantId can only be used with either processDefinitionKey or message.\"}",
+    "afterInstances" : {
+      "{instanceId}" : "{\"activityId\":null,\"businessKey\":\"alpha\",\"businessStatus\":null,\"callbackId\":null,\"callbackType\":null,\"claimTime\":null,\"claimedBy\":null,\"completed\":false,\"dueDate\":null,\"ended\":false,\"id\":\"{instanceId}\",\"name\":\"实例甲\",\"processDefinitionDescription\":\"流程说明\",\"processDefinitionId\":\"{definitionId}\",\"processDefinitionName\":\"实例验收\",\"processDefinitionUrl\":\"http://localhost/service/repository/process-definitions/{definitionId}\",\"propagatedStageInstanceId\":null,\"referenceId\":null,\"referenceType\":null,\"startTime\":\"2026-10-29T01:02:03.123Z\",\"startUserId\":\"starter\",\"superProcessInstanceId\":null,\"suspended\":false,\"tenantId\":\"\",\"url\":\"http://localhost/service/runtime/process-instances/{instanceId}\",\"variables\":[]}",
+      "{secondId}" : "{\"activityId\":null,\"businessKey\":\"beta\",\"businessStatus\":null,\"callbackId\":null,\"callbackType\":null,\"claimTime\":null,\"claimedBy\":null,\"completed\":false,\"dueDate\":null,\"ended\":false,\"id\":\"{secondId}\",\"name\":\"实例乙\",\"processDefinitionDescription\":\"流程说明\",\"processDefinitionId\":\"{definitionId}\",\"processDefinitionName\":\"实例验收\",\"processDefinitionUrl\":\"http://localhost/service/repository/process-definitions/{definitionId}\",\"propagatedStageInstanceId\":null,\"referenceId\":null,\"referenceType\":null,\"startTime\":\"2026-10-29T01:02:03.123Z\",\"startUserId\":\"starter\",\"superProcessInstanceId\":null,\"suspended\":false,\"tenantId\":\"\",\"url\":\"http://localhost/service/runtime/process-instances/{secondId}\",\"variables\":[]}"
+    },
+    "afterVariables" : {
+      "{instanceId}" : {
+        "amount" : 9007199254740993,
+        "flag" : "before"
+      },
+      "{secondId}" : {
+        "amount" : 42,
+        "flag" : "before"
+      }
+    },
+    "afterTaskCount" : 2
+  }, {
+    "name" : "instance-start-unknown",
+    "method" : "POST",
+    "path" : "/service/runtime/process-instances",
+    "requestBody" : "{\"processDefinitionKey\":\"missing\"}",
+    "prepare" : "",
+    "status" : 400,
+    "responseBody" : "{\"message\":\"Bad request\",\"exception\":\"No process definition found for key 'missing'\"}",
+    "afterInstances" : {
+      "{instanceId}" : "{\"activityId\":null,\"businessKey\":\"alpha\",\"businessStatus\":null,\"callbackId\":null,\"callbackType\":null,\"claimTime\":null,\"claimedBy\":null,\"completed\":false,\"dueDate\":null,\"ended\":false,\"id\":\"{instanceId}\",\"name\":\"实例甲\",\"processDefinitionDescription\":\"流程说明\",\"processDefinitionId\":\"{definitionId}\",\"processDefinitionName\":\"实例验收\",\"processDefinitionUrl\":\"http://localhost/service/repository/process-definitions/{definitionId}\",\"propagatedStageInstanceId\":null,\"referenceId\":null,\"referenceType\":null,\"startTime\":\"2026-10-29T01:02:03.123Z\",\"startUserId\":\"starter\",\"superProcessInstanceId\":null,\"suspended\":false,\"tenantId\":\"\",\"url\":\"http://localhost/service/runtime/process-instances/{instanceId}\",\"variables\":[]}",
+      "{secondId}" : "{\"activityId\":null,\"businessKey\":\"beta\",\"businessStatus\":null,\"callbackId\":null,\"callbackType\":null,\"claimTime\":null,\"claimedBy\":null,\"completed\":false,\"dueDate\":null,\"ended\":false,\"id\":\"{secondId}\",\"name\":\"实例乙\",\"processDefinitionDescription\":\"流程说明\",\"processDefinitionId\":\"{definitionId}\",\"processDefinitionName\":\"实例验收\",\"processDefinitionUrl\":\"http://localhost/service/repository/process-definitions/{definitionId}\",\"propagatedStageInstanceId\":null,\"referenceId\":null,\"referenceType\":null,\"startTime\":\"2026-10-29T01:02:03.123Z\",\"startUserId\":\"starter\",\"superProcessInstanceId\":null,\"suspended\":false,\"tenantId\":\"\",\"url\":\"http://localhost/service/runtime/process-instances/{secondId}\",\"variables\":[]}"
+    },
+    "afterVariables" : {
+      "{instanceId}" : {
+        "amount" : 9007199254740993,
+        "flag" : "before"
+      },
+      "{secondId}" : {
+        "amount" : 42,
+        "flag" : "before"
+      }
+    },
+    "afterTaskCount" : 2
+  }, {
+    "name" : "instance-update",
+    "method" : "PUT",
+    "path" : "/service/runtime/process-instances/{instanceId}",
+    "requestBody" : "{\"name\":\"更新名称\",\"businessKey\":\"updated\",\"businessStatus\":\"review\",\"dueDate\":\"2026-12-01T08:00:00+08:00\"}",
+    "prepare" : "",
+    "status" : 200,
+    "responseBody" : "{\"activityId\":null,\"businessKey\":\"updated\",\"businessStatus\":\"review\",\"callbackId\":null,\"callbackType\":null,\"claimTime\":null,\"claimedBy\":null,\"completed\":false,\"dueDate\":\"2026-12-01T00:00:00Z\",\"ended\":false,\"id\":\"{instanceId}\",\"name\":\"更新名称\",\"processDefinitionDescription\":null,\"processDefinitionId\":\"{definitionId}\",\"processDefinitionName\":null,\"processDefinitionUrl\":\"http://localhost/service/repository/process-definitions/{definitionId}\",\"propagatedStageInstanceId\":null,\"referenceId\":null,\"referenceType\":null,\"startTime\":\"2026-10-29T01:02:03.123Z\",\"startUserId\":\"starter\",\"superProcessInstanceId\":null,\"suspended\":false,\"tenantId\":\"\",\"url\":\"http://localhost/service/runtime/process-instances/{instanceId}\",\"variables\":[]}",
+    "afterInstances" : {
+      "{instanceId}" : "{\"activityId\":null,\"businessKey\":\"updated\",\"businessStatus\":\"review\",\"callbackId\":null,\"callbackType\":null,\"claimTime\":null,\"claimedBy\":null,\"completed\":false,\"dueDate\":\"2026-12-01T00:00:00Z\",\"ended\":false,\"id\":\"{instanceId}\",\"name\":\"更新名称\",\"processDefinitionDescription\":\"流程说明\",\"processDefinitionId\":\"{definitionId}\",\"processDefinitionName\":\"实例验收\",\"processDefinitionUrl\":\"http://localhost/service/repository/process-definitions/{definitionId}\",\"propagatedStageInstanceId\":null,\"referenceId\":null,\"referenceType\":null,\"startTime\":\"2026-10-29T01:02:03.123Z\",\"startUserId\":\"starter\",\"superProcessInstanceId\":null,\"suspended\":false,\"tenantId\":\"\",\"url\":\"http://localhost/service/runtime/process-instances/{instanceId}\",\"variables\":[]}",
+      "{secondId}" : "{\"activityId\":null,\"businessKey\":\"beta\",\"businessStatus\":null,\"callbackId\":null,\"callbackType\":null,\"claimTime\":null,\"claimedBy\":null,\"completed\":false,\"dueDate\":null,\"ended\":false,\"id\":\"{secondId}\",\"name\":\"实例乙\",\"processDefinitionDescription\":\"流程说明\",\"processDefinitionId\":\"{definitionId}\",\"processDefinitionName\":\"实例验收\",\"processDefinitionUrl\":\"http://localhost/service/repository/process-definitions/{definitionId}\",\"propagatedStageInstanceId\":null,\"referenceId\":null,\"referenceType\":null,\"startTime\":\"2026-10-29T01:02:03.123Z\",\"startUserId\":\"starter\",\"superProcessInstanceId\":null,\"suspended\":false,\"tenantId\":\"\",\"url\":\"http://localhost/service/runtime/process-instances/{secondId}\",\"variables\":[]}"
+    },
+    "afterVariables" : {
+      "{instanceId}" : {
+        "amount" : 9007199254740993,
+        "flag" : "before"
+      },
+      "{secondId}" : {
+        "amount" : 42,
+        "flag" : "before"
+      }
+    },
+    "afterTaskCount" : 2
+  }, {
+    "name" : "instance-update-empty",
+    "method" : "PUT",
+    "path" : "/service/runtime/process-instances/{instanceId}",
+    "requestBody" : "{}",
+    "prepare" : "",
+    "status" : 200,
+    "responseBody" : "{\"activityId\":null,\"businessKey\":\"alpha\",\"businessStatus\":null,\"callbackId\":null,\"callbackType\":null,\"claimTime\":null,\"claimedBy\":null,\"completed\":false,\"dueDate\":null,\"ended\":false,\"id\":\"{instanceId}\",\"name\":\"实例甲\",\"processDefinitionDescription\":null,\"processDefinitionId\":\"{definitionId}\",\"processDefinitionName\":null,\"processDefinitionUrl\":\"http://localhost/service/repository/process-definitions/{definitionId}\",\"propagatedStageInstanceId\":null,\"referenceId\":null,\"referenceType\":null,\"startTime\":\"2026-10-29T01:02:03.123Z\",\"startUserId\":\"starter\",\"superProcessInstanceId\":null,\"suspended\":false,\"tenantId\":\"\",\"url\":\"http://localhost/service/runtime/process-instances/{instanceId}\",\"variables\":[]}",
+    "afterInstances" : {
+      "{instanceId}" : "{\"activityId\":null,\"businessKey\":\"alpha\",\"businessStatus\":null,\"callbackId\":null,\"callbackType\":null,\"claimTime\":null,\"claimedBy\":null,\"completed\":false,\"dueDate\":null,\"ended\":false,\"id\":\"{instanceId}\",\"name\":\"实例甲\",\"processDefinitionDescription\":\"流程说明\",\"processDefinitionId\":\"{definitionId}\",\"processDefinitionName\":\"实例验收\",\"processDefinitionUrl\":\"http://localhost/service/repository/process-definitions/{definitionId}\",\"propagatedStageInstanceId\":null,\"referenceId\":null,\"referenceType\":null,\"startTime\":\"2026-10-29T01:02:03.123Z\",\"startUserId\":\"starter\",\"superProcessInstanceId\":null,\"suspended\":false,\"tenantId\":\"\",\"url\":\"http://localhost/service/runtime/process-instances/{instanceId}\",\"variables\":[]}",
+      "{secondId}" : "{\"activityId\":null,\"businessKey\":\"beta\",\"businessStatus\":null,\"callbackId\":null,\"callbackType\":null,\"claimTime\":null,\"claimedBy\":null,\"completed\":false,\"dueDate\":null,\"ended\":false,\"id\":\"{secondId}\",\"name\":\"实例乙\",\"processDefinitionDescription\":\"流程说明\",\"processDefinitionId\":\"{definitionId}\",\"processDefinitionName\":\"实例验收\",\"processDefinitionUrl\":\"http://localhost/service/repository/process-definitions/{definitionId}\",\"propagatedStageInstanceId\":null,\"referenceId\":null,\"referenceType\":null,\"startTime\":\"2026-10-29T01:02:03.123Z\",\"startUserId\":\"starter\",\"superProcessInstanceId\":null,\"suspended\":false,\"tenantId\":\"\",\"url\":\"http://localhost/service/runtime/process-instances/{secondId}\",\"variables\":[]}"
+    },
+    "afterVariables" : {
+      "{instanceId}" : {
+        "amount" : 9007199254740993,
+        "flag" : "before"
+      },
+      "{secondId}" : {
+        "amount" : 42,
+        "flag" : "before"
+      }
+    },
+    "afterTaskCount" : 2
+  }, {
+    "name" : "instance-suspend",
+    "method" : "PUT",
+    "path" : "/service/runtime/process-instances/{instanceId}",
+    "requestBody" : "{\"action\":\"suspend\"}",
+    "prepare" : "",
+    "status" : 200,
+    "responseBody" : "{\"activityId\":null,\"businessKey\":\"alpha\",\"businessStatus\":null,\"callbackId\":null,\"callbackType\":null,\"claimTime\":null,\"claimedBy\":null,\"completed\":false,\"dueDate\":null,\"ended\":false,\"id\":\"{instanceId}\",\"name\":\"实例甲\",\"processDefinitionDescription\":null,\"processDefinitionId\":\"{definitionId}\",\"processDefinitionName\":null,\"processDefinitionUrl\":\"http://localhost/service/repository/process-definitions/{definitionId}\",\"propagatedStageInstanceId\":null,\"referenceId\":null,\"referenceType\":null,\"startTime\":\"2026-10-29T01:02:03.123Z\",\"startUserId\":\"starter\",\"superProcessInstanceId\":null,\"suspended\":true,\"tenantId\":\"\",\"url\":\"http://localhost/service/runtime/process-instances/{instanceId}\",\"variables\":[]}",
+    "afterInstances" : {
+      "{instanceId}" : "{\"activityId\":null,\"businessKey\":\"alpha\",\"businessStatus\":null,\"callbackId\":null,\"callbackType\":null,\"claimTime\":null,\"claimedBy\":null,\"completed\":false,\"dueDate\":null,\"ended\":false,\"id\":\"{instanceId}\",\"name\":\"实例甲\",\"processDefinitionDescription\":\"流程说明\",\"processDefinitionId\":\"{definitionId}\",\"processDefinitionName\":\"实例验收\",\"processDefinitionUrl\":\"http://localhost/service/repository/process-definitions/{definitionId}\",\"propagatedStageInstanceId\":null,\"referenceId\":null,\"referenceType\":null,\"startTime\":\"2026-10-29T01:02:03.123Z\",\"startUserId\":\"starter\",\"superProcessInstanceId\":null,\"suspended\":true,\"tenantId\":\"\",\"url\":\"http://localhost/service/runtime/process-instances/{instanceId}\",\"variables\":[]}",
+      "{secondId}" : "{\"activityId\":null,\"businessKey\":\"beta\",\"businessStatus\":null,\"callbackId\":null,\"callbackType\":null,\"claimTime\":null,\"claimedBy\":null,\"completed\":false,\"dueDate\":null,\"ended\":false,\"id\":\"{secondId}\",\"name\":\"实例乙\",\"processDefinitionDescription\":\"流程说明\",\"processDefinitionId\":\"{definitionId}\",\"processDefinitionName\":\"实例验收\",\"processDefinitionUrl\":\"http://localhost/service/repository/process-definitions/{definitionId}\",\"propagatedStageInstanceId\":null,\"referenceId\":null,\"referenceType\":null,\"startTime\":\"2026-10-29T01:02:03.123Z\",\"startUserId\":\"starter\",\"superProcessInstanceId\":null,\"suspended\":false,\"tenantId\":\"\",\"url\":\"http://localhost/service/runtime/process-instances/{secondId}\",\"variables\":[]}"
+    },
+    "afterVariables" : {
+      "{instanceId}" : {
+        "amount" : 9007199254740993,
+        "flag" : "before"
+      },
+      "{secondId}" : {
+        "amount" : 42,
+        "flag" : "before"
+      }
+    },
+    "afterTaskCount" : 2
+  }, {
+    "name" : "instance-activate",
+    "method" : "PUT",
+    "path" : "/service/runtime/process-instances/{instanceId}",
+    "requestBody" : "{\"action\":\"activate\"}",
+    "prepare" : "suspended",
+    "status" : 200,
+    "responseBody" : "{\"activityId\":null,\"businessKey\":\"alpha\",\"businessStatus\":null,\"callbackId\":null,\"callbackType\":null,\"claimTime\":null,\"claimedBy\":null,\"completed\":false,\"dueDate\":null,\"ended\":false,\"id\":\"{instanceId}\",\"name\":\"实例甲\",\"processDefinitionDescription\":null,\"processDefinitionId\":\"{definitionId}\",\"processDefinitionName\":null,\"processDefinitionUrl\":\"http://localhost/service/repository/process-definitions/{definitionId}\",\"propagatedStageInstanceId\":null,\"referenceId\":null,\"referenceType\":null,\"startTime\":\"2026-10-29T01:02:03.123Z\",\"startUserId\":\"starter\",\"superProcessInstanceId\":null,\"suspended\":false,\"tenantId\":\"\",\"url\":\"http://localhost/service/runtime/process-instances/{instanceId}\",\"variables\":[]}",
+    "afterInstances" : {
+      "{instanceId}" : "{\"activityId\":null,\"businessKey\":\"alpha\",\"businessStatus\":null,\"callbackId\":null,\"callbackType\":null,\"claimTime\":null,\"claimedBy\":null,\"completed\":false,\"dueDate\":null,\"ended\":false,\"id\":\"{instanceId}\",\"name\":\"实例甲\",\"processDefinitionDescription\":\"流程说明\",\"processDefinitionId\":\"{definitionId}\",\"processDefinitionName\":\"实例验收\",\"processDefinitionUrl\":\"http://localhost/service/repository/process-definitions/{definitionId}\",\"propagatedStageInstanceId\":null,\"referenceId\":null,\"referenceType\":null,\"startTime\":\"2026-10-29T01:02:03.123Z\",\"startUserId\":\"starter\",\"superProcessInstanceId\":null,\"suspended\":false,\"tenantId\":\"\",\"url\":\"http://localhost/service/runtime/process-instances/{instanceId}\",\"variables\":[]}",
+      "{secondId}" : "{\"activityId\":null,\"businessKey\":\"beta\",\"businessStatus\":null,\"callbackId\":null,\"callbackType\":null,\"claimTime\":null,\"claimedBy\":null,\"completed\":false,\"dueDate\":null,\"ended\":false,\"id\":\"{secondId}\",\"name\":\"实例乙\",\"processDefinitionDescription\":\"流程说明\",\"processDefinitionId\":\"{definitionId}\",\"processDefinitionName\":\"实例验收\",\"processDefinitionUrl\":\"http://localhost/service/repository/process-definitions/{definitionId}\",\"propagatedStageInstanceId\":null,\"referenceId\":null,\"referenceType\":null,\"startTime\":\"2026-10-29T01:02:03.123Z\",\"startUserId\":\"starter\",\"superProcessInstanceId\":null,\"suspended\":false,\"tenantId\":\"\",\"url\":\"http://localhost/service/runtime/process-instances/{secondId}\",\"variables\":[]}"
+    },
+    "afterVariables" : {
+      "{instanceId}" : {
+        "amount" : 9007199254740993,
+        "flag" : "before"
+      },
+      "{secondId}" : {
+        "amount" : 42,
+        "flag" : "before"
+      }
+    },
+    "afterTaskCount" : 2
+  }, {
+    "name" : "instance-suspend-conflict",
+    "method" : "PUT",
+    "path" : "/service/runtime/process-instances/{instanceId}",
+    "requestBody" : "{\"action\":\"suspend\"}",
+    "prepare" : "suspended",
+    "status" : 409,
+    "responseBody" : "{\"message\":\"Conflict\",\"exception\":\"Process instance with id '{instanceId}' is already suspended.\"}",
+    "afterInstances" : {
+      "{instanceId}" : "{\"activityId\":null,\"businessKey\":\"alpha\",\"businessStatus\":null,\"callbackId\":null,\"callbackType\":null,\"claimTime\":null,\"claimedBy\":null,\"completed\":false,\"dueDate\":null,\"ended\":false,\"id\":\"{instanceId}\",\"name\":\"实例甲\",\"processDefinitionDescription\":\"流程说明\",\"processDefinitionId\":\"{definitionId}\",\"processDefinitionName\":\"实例验收\",\"processDefinitionUrl\":\"http://localhost/service/repository/process-definitions/{definitionId}\",\"propagatedStageInstanceId\":null,\"referenceId\":null,\"referenceType\":null,\"startTime\":\"2026-10-29T01:02:03.123Z\",\"startUserId\":\"starter\",\"superProcessInstanceId\":null,\"suspended\":true,\"tenantId\":\"\",\"url\":\"http://localhost/service/runtime/process-instances/{instanceId}\",\"variables\":[]}",
+      "{secondId}" : "{\"activityId\":null,\"businessKey\":\"beta\",\"businessStatus\":null,\"callbackId\":null,\"callbackType\":null,\"claimTime\":null,\"claimedBy\":null,\"completed\":false,\"dueDate\":null,\"ended\":false,\"id\":\"{secondId}\",\"name\":\"实例乙\",\"processDefinitionDescription\":\"流程说明\",\"processDefinitionId\":\"{definitionId}\",\"processDefinitionName\":\"实例验收\",\"processDefinitionUrl\":\"http://localhost/service/repository/process-definitions/{definitionId}\",\"propagatedStageInstanceId\":null,\"referenceId\":null,\"referenceType\":null,\"startTime\":\"2026-10-29T01:02:03.123Z\",\"startUserId\":\"starter\",\"superProcessInstanceId\":null,\"suspended\":false,\"tenantId\":\"\",\"url\":\"http://localhost/service/runtime/process-instances/{secondId}\",\"variables\":[]}"
+    },
+    "afterVariables" : {
+      "{instanceId}" : {
+        "amount" : 9007199254740993,
+        "flag" : "before"
+      },
+      "{secondId}" : {
+        "amount" : 42,
+        "flag" : "before"
+      }
+    },
+    "afterTaskCount" : 2
+  }, {
+    "name" : "instance-activate-conflict",
+    "method" : "PUT",
+    "path" : "/service/runtime/process-instances/{instanceId}",
+    "requestBody" : "{\"action\":\"activate\"}",
+    "prepare" : "",
+    "status" : 409,
+    "responseBody" : "{\"message\":\"Conflict\",\"exception\":\"Process instance with id '{instanceId}' is already active.\"}",
+    "afterInstances" : {
+      "{instanceId}" : "{\"activityId\":null,\"businessKey\":\"alpha\",\"businessStatus\":null,\"callbackId\":null,\"callbackType\":null,\"claimTime\":null,\"claimedBy\":null,\"completed\":false,\"dueDate\":null,\"ended\":false,\"id\":\"{instanceId}\",\"name\":\"实例甲\",\"processDefinitionDescription\":\"流程说明\",\"processDefinitionId\":\"{definitionId}\",\"processDefinitionName\":\"实例验收\",\"processDefinitionUrl\":\"http://localhost/service/repository/process-definitions/{definitionId}\",\"propagatedStageInstanceId\":null,\"referenceId\":null,\"referenceType\":null,\"startTime\":\"2026-10-29T01:02:03.123Z\",\"startUserId\":\"starter\",\"superProcessInstanceId\":null,\"suspended\":false,\"tenantId\":\"\",\"url\":\"http://localhost/service/runtime/process-instances/{instanceId}\",\"variables\":[]}",
+      "{secondId}" : "{\"activityId\":null,\"businessKey\":\"beta\",\"businessStatus\":null,\"callbackId\":null,\"callbackType\":null,\"claimTime\":null,\"claimedBy\":null,\"completed\":false,\"dueDate\":null,\"ended\":false,\"id\":\"{secondId}\",\"name\":\"实例乙\",\"processDefinitionDescription\":\"流程说明\",\"processDefinitionId\":\"{definitionId}\",\"processDefinitionName\":\"实例验收\",\"processDefinitionUrl\":\"http://localhost/service/repository/process-definitions/{definitionId}\",\"propagatedStageInstanceId\":null,\"referenceId\":null,\"referenceType\":null,\"startTime\":\"2026-10-29T01:02:03.123Z\",\"startUserId\":\"starter\",\"superProcessInstanceId\":null,\"suspended\":false,\"tenantId\":\"\",\"url\":\"http://localhost/service/runtime/process-instances/{secondId}\",\"variables\":[]}"
+    },
+    "afterVariables" : {
+      "{instanceId}" : {
+        "amount" : 9007199254740993,
+        "flag" : "before"
+      },
+      "{secondId}" : {
+        "amount" : 42,
+        "flag" : "before"
+      }
+    },
+    "afterTaskCount" : 2
+  }, {
+    "name" : "instance-claim",
+    "method" : "PUT",
+    "path" : "/service/runtime/process-instances/{instanceId}",
+    "requestBody" : "{\"action\":\"claim\",\"assignee\":\"bob\"}",
+    "prepare" : "",
+    "status" : 200,
+    "responseBody" : "{\"activityId\":null,\"businessKey\":\"alpha\",\"businessStatus\":null,\"callbackId\":null,\"callbackType\":null,\"claimTime\":\"2026-10-29T01:02:03.123Z\",\"claimedBy\":\"bob\",\"completed\":false,\"dueDate\":null,\"ended\":false,\"id\":\"{instanceId}\",\"name\":\"实例甲\",\"processDefinitionDescription\":null,\"processDefinitionId\":\"{definitionId}\",\"processDefinitionName\":null,\"processDefinitionUrl\":\"http://localhost/service/repository/process-definitions/{definitionId}\",\"propagatedStageInstanceId\":null,\"referenceId\":null,\"referenceType\":null,\"startTime\":\"2026-10-29T01:02:03.123Z\",\"startUserId\":\"starter\",\"superProcessInstanceId\":null,\"suspended\":false,\"tenantId\":\"\",\"url\":\"http://localhost/service/runtime/process-instances/{instanceId}\",\"variables\":[]}",
+    "afterInstances" : {
+      "{instanceId}" : "{\"activityId\":null,\"businessKey\":\"alpha\",\"businessStatus\":null,\"callbackId\":null,\"callbackType\":null,\"claimTime\":\"2026-10-29T01:02:03.123Z\",\"claimedBy\":\"bob\",\"completed\":false,\"dueDate\":null,\"ended\":false,\"id\":\"{instanceId}\",\"name\":\"实例甲\",\"processDefinitionDescription\":\"流程说明\",\"processDefinitionId\":\"{definitionId}\",\"processDefinitionName\":\"实例验收\",\"processDefinitionUrl\":\"http://localhost/service/repository/process-definitions/{definitionId}\",\"propagatedStageInstanceId\":null,\"referenceId\":null,\"referenceType\":null,\"startTime\":\"2026-10-29T01:02:03.123Z\",\"startUserId\":\"starter\",\"superProcessInstanceId\":null,\"suspended\":false,\"tenantId\":\"\",\"url\":\"http://localhost/service/runtime/process-instances/{instanceId}\",\"variables\":[]}",
+      "{secondId}" : "{\"activityId\":null,\"businessKey\":\"beta\",\"businessStatus\":null,\"callbackId\":null,\"callbackType\":null,\"claimTime\":null,\"claimedBy\":null,\"completed\":false,\"dueDate\":null,\"ended\":false,\"id\":\"{secondId}\",\"name\":\"实例乙\",\"processDefinitionDescription\":\"流程说明\",\"processDefinitionId\":\"{definitionId}\",\"processDefinitionName\":\"实例验收\",\"processDefinitionUrl\":\"http://localhost/service/repository/process-definitions/{definitionId}\",\"propagatedStageInstanceId\":null,\"referenceId\":null,\"referenceType\":null,\"startTime\":\"2026-10-29T01:02:03.123Z\",\"startUserId\":\"starter\",\"superProcessInstanceId\":null,\"suspended\":false,\"tenantId\":\"\",\"url\":\"http://localhost/service/runtime/process-instances/{secondId}\",\"variables\":[]}"
+    },
+    "afterVariables" : {
+      "{instanceId}" : {
+        "amount" : 9007199254740993,
+        "flag" : "before"
+      },
+      "{secondId}" : {
+        "amount" : 42,
+        "flag" : "before"
+      }
+    },
+    "afterTaskCount" : 2
+  }, {
+    "name" : "instance-unclaim",
+    "method" : "PUT",
+    "path" : "/service/runtime/process-instances/{instanceId}",
+    "requestBody" : "{\"action\":\"unclaim\"}",
+    "prepare" : "claimed",
+    "status" : 200,
+    "responseBody" : "{\"activityId\":null,\"businessKey\":\"alpha\",\"businessStatus\":null,\"callbackId\":null,\"callbackType\":null,\"claimTime\":null,\"claimedBy\":null,\"completed\":false,\"dueDate\":null,\"ended\":false,\"id\":\"{instanceId}\",\"name\":\"实例甲\",\"processDefinitionDescription\":null,\"processDefinitionId\":\"{definitionId}\",\"processDefinitionName\":null,\"processDefinitionUrl\":\"http://localhost/service/repository/process-definitions/{definitionId}\",\"propagatedStageInstanceId\":null,\"referenceId\":null,\"referenceType\":null,\"startTime\":\"2026-10-29T01:02:03.123Z\",\"startUserId\":\"starter\",\"superProcessInstanceId\":null,\"suspended\":false,\"tenantId\":\"\",\"url\":\"http://localhost/service/runtime/process-instances/{instanceId}\",\"variables\":[]}",
+    "afterInstances" : {
+      "{instanceId}" : "{\"activityId\":null,\"businessKey\":\"alpha\",\"businessStatus\":null,\"callbackId\":null,\"callbackType\":null,\"claimTime\":null,\"claimedBy\":null,\"completed\":false,\"dueDate\":null,\"ended\":false,\"id\":\"{instanceId}\",\"name\":\"实例甲\",\"processDefinitionDescription\":\"流程说明\",\"processDefinitionId\":\"{definitionId}\",\"processDefinitionName\":\"实例验收\",\"processDefinitionUrl\":\"http://localhost/service/repository/process-definitions/{definitionId}\",\"propagatedStageInstanceId\":null,\"referenceId\":null,\"referenceType\":null,\"startTime\":\"2026-10-29T01:02:03.123Z\",\"startUserId\":\"starter\",\"superProcessInstanceId\":null,\"suspended\":false,\"tenantId\":\"\",\"url\":\"http://localhost/service/runtime/process-instances/{instanceId}\",\"variables\":[]}",
+      "{secondId}" : "{\"activityId\":null,\"businessKey\":\"beta\",\"businessStatus\":null,\"callbackId\":null,\"callbackType\":null,\"claimTime\":null,\"claimedBy\":null,\"completed\":false,\"dueDate\":null,\"ended\":false,\"id\":\"{secondId}\",\"name\":\"实例乙\",\"processDefinitionDescription\":\"流程说明\",\"processDefinitionId\":\"{definitionId}\",\"processDefinitionName\":\"实例验收\",\"processDefinitionUrl\":\"http://localhost/service/repository/process-definitions/{definitionId}\",\"propagatedStageInstanceId\":null,\"referenceId\":null,\"referenceType\":null,\"startTime\":\"2026-10-29T01:02:03.123Z\",\"startUserId\":\"starter\",\"superProcessInstanceId\":null,\"suspended\":false,\"tenantId\":\"\",\"url\":\"http://localhost/service/runtime/process-instances/{secondId}\",\"variables\":[]}"
+    },
+    "afterVariables" : {
+      "{instanceId}" : {
+        "amount" : 9007199254740993,
+        "flag" : "before"
+      },
+      "{secondId}" : {
+        "amount" : 42,
+        "flag" : "before"
+      }
+    },
+    "afterTaskCount" : 2
+  }, {
+    "name" : "instance-claim-conflict",
+    "method" : "PUT",
+    "path" : "/service/runtime/process-instances/{instanceId}",
+    "requestBody" : "{\"action\":\"claim\",\"assignee\":\"bob\"}",
+    "prepare" : "claimed",
+    "status" : 500,
+    "responseBody" : "{\"message\":\"Internal server error\",\"exception\":\"Process instance '{instanceId}' is already claimed.\"}",
+    "afterInstances" : {
+      "{instanceId}" : "{\"activityId\":null,\"businessKey\":\"alpha\",\"businessStatus\":null,\"callbackId\":null,\"callbackType\":null,\"claimTime\":\"2026-10-29T01:02:03.123Z\",\"claimedBy\":\"alice\",\"completed\":false,\"dueDate\":null,\"ended\":false,\"id\":\"{instanceId}\",\"name\":\"实例甲\",\"processDefinitionDescription\":\"流程说明\",\"processDefinitionId\":\"{definitionId}\",\"processDefinitionName\":\"实例验收\",\"processDefinitionUrl\":\"http://localhost/service/repository/process-definitions/{definitionId}\",\"propagatedStageInstanceId\":null,\"referenceId\":null,\"referenceType\":null,\"startTime\":\"2026-10-29T01:02:03.123Z\",\"startUserId\":\"starter\",\"superProcessInstanceId\":null,\"suspended\":false,\"tenantId\":\"\",\"url\":\"http://localhost/service/runtime/process-instances/{instanceId}\",\"variables\":[]}",
+      "{secondId}" : "{\"activityId\":null,\"businessKey\":\"beta\",\"businessStatus\":null,\"callbackId\":null,\"callbackType\":null,\"claimTime\":null,\"claimedBy\":null,\"completed\":false,\"dueDate\":null,\"ended\":false,\"id\":\"{secondId}\",\"name\":\"实例乙\",\"processDefinitionDescription\":\"流程说明\",\"processDefinitionId\":\"{definitionId}\",\"processDefinitionName\":\"实例验收\",\"processDefinitionUrl\":\"http://localhost/service/repository/process-definitions/{definitionId}\",\"propagatedStageInstanceId\":null,\"referenceId\":null,\"referenceType\":null,\"startTime\":\"2026-10-29T01:02:03.123Z\",\"startUserId\":\"starter\",\"superProcessInstanceId\":null,\"suspended\":false,\"tenantId\":\"\",\"url\":\"http://localhost/service/runtime/process-instances/{secondId}\",\"variables\":[]}"
+    },
+    "afterVariables" : {
+      "{instanceId}" : {
+        "amount" : 9007199254740993,
+        "flag" : "before"
+      },
+      "{secondId}" : {
+        "amount" : 42,
+        "flag" : "before"
+      }
+    },
+    "afterTaskCount" : 2
+  }, {
+    "name" : "instance-action-invalid",
+    "method" : "PUT",
+    "path" : "/service/runtime/process-instances/{instanceId}",
+    "requestBody" : "{\"action\":\"bad\"}",
+    "prepare" : "",
+    "status" : 400,
+    "responseBody" : "{\"message\":\"Bad request\",\"exception\":\"Invalid action: 'bad'.\"}",
+    "afterInstances" : {
+      "{instanceId}" : "{\"activityId\":null,\"businessKey\":\"alpha\",\"businessStatus\":null,\"callbackId\":null,\"callbackType\":null,\"claimTime\":null,\"claimedBy\":null,\"completed\":false,\"dueDate\":null,\"ended\":false,\"id\":\"{instanceId}\",\"name\":\"实例甲\",\"processDefinitionDescription\":\"流程说明\",\"processDefinitionId\":\"{definitionId}\",\"processDefinitionName\":\"实例验收\",\"processDefinitionUrl\":\"http://localhost/service/repository/process-definitions/{definitionId}\",\"propagatedStageInstanceId\":null,\"referenceId\":null,\"referenceType\":null,\"startTime\":\"2026-10-29T01:02:03.123Z\",\"startUserId\":\"starter\",\"superProcessInstanceId\":null,\"suspended\":false,\"tenantId\":\"\",\"url\":\"http://localhost/service/runtime/process-instances/{instanceId}\",\"variables\":[]}",
+      "{secondId}" : "{\"activityId\":null,\"businessKey\":\"beta\",\"businessStatus\":null,\"callbackId\":null,\"callbackType\":null,\"claimTime\":null,\"claimedBy\":null,\"completed\":false,\"dueDate\":null,\"ended\":false,\"id\":\"{secondId}\",\"name\":\"实例乙\",\"processDefinitionDescription\":\"流程说明\",\"processDefinitionId\":\"{definitionId}\",\"processDefinitionName\":\"实例验收\",\"processDefinitionUrl\":\"http://localhost/service/repository/process-definitions/{definitionId}\",\"propagatedStageInstanceId\":null,\"referenceId\":null,\"referenceType\":null,\"startTime\":\"2026-10-29T01:02:03.123Z\",\"startUserId\":\"starter\",\"superProcessInstanceId\":null,\"suspended\":false,\"tenantId\":\"\",\"url\":\"http://localhost/service/runtime/process-instances/{secondId}\",\"variables\":[]}"
+    },
+    "afterVariables" : {
+      "{instanceId}" : {
+        "amount" : 9007199254740993,
+        "flag" : "before"
+      },
+      "{secondId}" : {
+        "amount" : 42,
+        "flag" : "before"
+      }
+    },
+    "afterTaskCount" : 2
+  }, {
+    "name" : "instance-delete",
+    "method" : "DELETE",
+    "path" : "/service/runtime/process-instances/{instanceId}?deleteReason=test",
+    "requestBody" : "",
+    "prepare" : "",
+    "status" : 204,
+    "responseBody" : "",
+    "afterInstances" : {
+      "{secondId}" : "{\"activityId\":null,\"businessKey\":\"beta\",\"businessStatus\":null,\"callbackId\":null,\"callbackType\":null,\"claimTime\":null,\"claimedBy\":null,\"completed\":false,\"dueDate\":null,\"ended\":false,\"id\":\"{secondId}\",\"name\":\"实例乙\",\"processDefinitionDescription\":\"流程说明\",\"processDefinitionId\":\"{definitionId}\",\"processDefinitionName\":\"实例验收\",\"processDefinitionUrl\":\"http://localhost/service/repository/process-definitions/{definitionId}\",\"propagatedStageInstanceId\":null,\"referenceId\":null,\"referenceType\":null,\"startTime\":\"2026-10-29T01:02:03.123Z\",\"startUserId\":\"starter\",\"superProcessInstanceId\":null,\"suspended\":false,\"tenantId\":\"\",\"url\":\"http://localhost/service/runtime/process-instances/{secondId}\",\"variables\":[]}"
+    },
+    "afterVariables" : {
+      "{secondId}" : {
+        "amount" : 42,
+        "flag" : "before"
+      }
+    },
+    "afterTaskCount" : 1
+  }, {
+    "name" : "instance-missing",
+    "method" : "GET",
+    "path" : "/service/runtime/process-instances/missing",
+    "requestBody" : "",
+    "prepare" : "",
+    "status" : 404,
+    "responseBody" : "{\"message\":\"Not found\",\"exception\":\"Could not find a process instance with id 'missing'.\"}",
+    "afterInstances" : {
+      "{instanceId}" : "{\"activityId\":null,\"businessKey\":\"alpha\",\"businessStatus\":null,\"callbackId\":null,\"callbackType\":null,\"claimTime\":null,\"claimedBy\":null,\"completed\":false,\"dueDate\":null,\"ended\":false,\"id\":\"{instanceId}\",\"name\":\"实例甲\",\"processDefinitionDescription\":\"流程说明\",\"processDefinitionId\":\"{definitionId}\",\"processDefinitionName\":\"实例验收\",\"processDefinitionUrl\":\"http://localhost/service/repository/process-definitions/{definitionId}\",\"propagatedStageInstanceId\":null,\"referenceId\":null,\"referenceType\":null,\"startTime\":\"2026-10-29T01:02:03.123Z\",\"startUserId\":\"starter\",\"superProcessInstanceId\":null,\"suspended\":false,\"tenantId\":\"\",\"url\":\"http://localhost/service/runtime/process-instances/{instanceId}\",\"variables\":[]}",
+      "{secondId}" : "{\"activityId\":null,\"businessKey\":\"beta\",\"businessStatus\":null,\"callbackId\":null,\"callbackType\":null,\"claimTime\":null,\"claimedBy\":null,\"completed\":false,\"dueDate\":null,\"ended\":false,\"id\":\"{secondId}\",\"name\":\"实例乙\",\"processDefinitionDescription\":\"流程说明\",\"processDefinitionId\":\"{definitionId}\",\"processDefinitionName\":\"实例验收\",\"processDefinitionUrl\":\"http://localhost/service/repository/process-definitions/{definitionId}\",\"propagatedStageInstanceId\":null,\"referenceId\":null,\"referenceType\":null,\"startTime\":\"2026-10-29T01:02:03.123Z\",\"startUserId\":\"starter\",\"superProcessInstanceId\":null,\"suspended\":false,\"tenantId\":\"\",\"url\":\"http://localhost/service/runtime/process-instances/{secondId}\",\"variables\":[]}"
+    },
+    "afterVariables" : {
+      "{instanceId}" : {
+        "amount" : 9007199254740993,
+        "flag" : "before"
+      },
+      "{secondId}" : {
+        "amount" : 42,
+        "flag" : "before"
+      }
+    },
+    "afterTaskCount" : 2
+  }, {
+    "name" : "execution-root",
+    "method" : "GET",
+    "path" : "/service/runtime/executions/{instanceId}",
+    "requestBody" : "",
+    "prepare" : "",
+    "status" : 200,
+    "responseBody" : "{\"activityId\":null,\"id\":\"{instanceId}\",\"parentId\":null,\"parentUrl\":null,\"processInstanceId\":\"{instanceId}\",\"processInstanceUrl\":\"http://localhost/service/runtime/process-instances/{instanceId}\",\"superExecutionId\":null,\"superExecutionUrl\":null,\"suspended\":false,\"tenantId\":\"\",\"url\":\"http://localhost/service/runtime/executions/{instanceId}\"}",
+    "afterInstances" : {
+      "{instanceId}" : "{\"activityId\":null,\"businessKey\":\"alpha\",\"businessStatus\":null,\"callbackId\":null,\"callbackType\":null,\"claimTime\":null,\"claimedBy\":null,\"completed\":false,\"dueDate\":null,\"ended\":false,\"id\":\"{instanceId}\",\"name\":\"实例甲\",\"processDefinitionDescription\":\"流程说明\",\"processDefinitionId\":\"{definitionId}\",\"processDefinitionName\":\"实例验收\",\"processDefinitionUrl\":\"http://localhost/service/repository/process-definitions/{definitionId}\",\"propagatedStageInstanceId\":null,\"referenceId\":null,\"referenceType\":null,\"startTime\":\"2026-10-29T01:02:03.123Z\",\"startUserId\":\"starter\",\"superProcessInstanceId\":null,\"suspended\":false,\"tenantId\":\"\",\"url\":\"http://localhost/service/runtime/process-instances/{instanceId}\",\"variables\":[]}",
+      "{secondId}" : "{\"activityId\":null,\"businessKey\":\"beta\",\"businessStatus\":null,\"callbackId\":null,\"callbackType\":null,\"claimTime\":null,\"claimedBy\":null,\"completed\":false,\"dueDate\":null,\"ended\":false,\"id\":\"{secondId}\",\"name\":\"实例乙\",\"processDefinitionDescription\":\"流程说明\",\"processDefinitionId\":\"{definitionId}\",\"processDefinitionName\":\"实例验收\",\"processDefinitionUrl\":\"http://localhost/service/repository/process-definitions/{definitionId}\",\"propagatedStageInstanceId\":null,\"referenceId\":null,\"referenceType\":null,\"startTime\":\"2026-10-29T01:02:03.123Z\",\"startUserId\":\"starter\",\"superProcessInstanceId\":null,\"suspended\":false,\"tenantId\":\"\",\"url\":\"http://localhost/service/runtime/process-instances/{secondId}\",\"variables\":[]}"
+    },
+    "afterVariables" : {
+      "{instanceId}" : {
+        "amount" : 9007199254740993,
+        "flag" : "before"
+      },
+      "{secondId}" : {
+        "amount" : 42,
+        "flag" : "before"
+      }
+    },
+    "afterTaskCount" : 2
+  }, {
+    "name" : "execution-child",
+    "method" : "GET",
+    "path" : "/service/runtime/executions/{executionId}",
+    "requestBody" : "",
+    "prepare" : "",
+    "status" : 200,
+    "responseBody" : "{\"activityId\":\"approve\",\"id\":\"{executionId}\",\"parentId\":\"{instanceId}\",\"parentUrl\":\"http://localhost/service/runtime/executions/{instanceId}\",\"processInstanceId\":\"{instanceId}\",\"processInstanceUrl\":\"http://localhost/service/runtime/process-instances/{instanceId}\",\"superExecutionId\":null,\"superExecutionUrl\":null,\"suspended\":false,\"tenantId\":\"\",\"url\":\"http://localhost/service/runtime/executions/{executionId}\"}",
+    "afterInstances" : {
+      "{instanceId}" : "{\"activityId\":null,\"businessKey\":\"alpha\",\"businessStatus\":null,\"callbackId\":null,\"callbackType\":null,\"claimTime\":null,\"claimedBy\":null,\"completed\":false,\"dueDate\":null,\"ended\":false,\"id\":\"{instanceId}\",\"name\":\"实例甲\",\"processDefinitionDescription\":\"流程说明\",\"processDefinitionId\":\"{definitionId}\",\"processDefinitionName\":\"实例验收\",\"processDefinitionUrl\":\"http://localhost/service/repository/process-definitions/{definitionId}\",\"propagatedStageInstanceId\":null,\"referenceId\":null,\"referenceType\":null,\"startTime\":\"2026-10-29T01:02:03.123Z\",\"startUserId\":\"starter\",\"superProcessInstanceId\":null,\"suspended\":false,\"tenantId\":\"\",\"url\":\"http://localhost/service/runtime/process-instances/{instanceId}\",\"variables\":[]}",
+      "{secondId}" : "{\"activityId\":null,\"businessKey\":\"beta\",\"businessStatus\":null,\"callbackId\":null,\"callbackType\":null,\"claimTime\":null,\"claimedBy\":null,\"completed\":false,\"dueDate\":null,\"ended\":false,\"id\":\"{secondId}\",\"name\":\"实例乙\",\"processDefinitionDescription\":\"流程说明\",\"processDefinitionId\":\"{definitionId}\",\"processDefinitionName\":\"实例验收\",\"processDefinitionUrl\":\"http://localhost/service/repository/process-definitions/{definitionId}\",\"propagatedStageInstanceId\":null,\"referenceId\":null,\"referenceType\":null,\"startTime\":\"2026-10-29T01:02:03.123Z\",\"startUserId\":\"starter\",\"superProcessInstanceId\":null,\"suspended\":false,\"tenantId\":\"\",\"url\":\"http://localhost/service/runtime/process-instances/{secondId}\",\"variables\":[]}"
+    },
+    "afterVariables" : {
+      "{instanceId}" : {
+        "amount" : 9007199254740993,
+        "flag" : "before"
+      },
+      "{secondId}" : {
+        "amount" : 42,
+        "flag" : "before"
+      }
+    },
+    "afterTaskCount" : 2
+  }, {
+    "name" : "execution-list",
+    "method" : "GET",
+    "path" : "/service/runtime/executions",
+    "requestBody" : "",
+    "prepare" : "",
+    "status" : 200,
+    "responseBody" : "{\"data\":[{\"activityId\":null,\"id\":\"{instanceId}\",\"parentId\":null,\"parentUrl\":null,\"processInstanceId\":\"{instanceId}\",\"processInstanceUrl\":\"http://localhost/service/runtime/process-instances/{instanceId}\",\"superExecutionId\":null,\"superExecutionUrl\":null,\"suspended\":false,\"tenantId\":\"\",\"url\":\"http://localhost/service/runtime/executions/{instanceId}\"},{\"activityId\":\"approve\",\"id\":\"{executionId}\",\"parentId\":\"{instanceId}\",\"parentUrl\":\"http://localhost/service/runtime/executions/{instanceId}\",\"processInstanceId\":\"{instanceId}\",\"processInstanceUrl\":\"http://localhost/service/runtime/process-instances/{instanceId}\",\"superExecutionId\":null,\"superExecutionUrl\":null,\"suspended\":false,\"tenantId\":\"\",\"url\":\"http://localhost/service/runtime/executions/{executionId}\"},{\"activityId\":null,\"id\":\"{secondId}\",\"parentId\":null,\"parentUrl\":null,\"processInstanceId\":\"{secondId}\",\"processInstanceUrl\":\"http://localhost/service/runtime/process-instances/{secondId}\",\"superExecutionId\":null,\"superExecutionUrl\":null,\"suspended\":false,\"tenantId\":\"\",\"url\":\"http://localhost/service/runtime/executions/{secondId}\"},{\"activityId\":\"approve\",\"id\":\"{secondExecutionId}\",\"parentId\":\"{secondId}\",\"parentUrl\":\"http://localhost/service/runtime/executions/{secondId}\",\"processInstanceId\":\"{secondId}\",\"processInstanceUrl\":\"http://localhost/service/runtime/process-instances/{secondId}\",\"superExecutionId\":null,\"superExecutionUrl\":null,\"suspended\":false,\"tenantId\":\"\",\"url\":\"http://localhost/service/runtime/executions/{secondExecutionId}\"}],\"order\":\"asc\",\"size\":4,\"sort\":\"processInstanceId\",\"start\":0,\"total\":4}",
+    "afterInstances" : {
+      "{instanceId}" : "{\"activityId\":null,\"businessKey\":\"alpha\",\"businessStatus\":null,\"callbackId\":null,\"callbackType\":null,\"claimTime\":null,\"claimedBy\":null,\"completed\":false,\"dueDate\":null,\"ended\":false,\"id\":\"{instanceId}\",\"name\":\"实例甲\",\"processDefinitionDescription\":\"流程说明\",\"processDefinitionId\":\"{definitionId}\",\"processDefinitionName\":\"实例验收\",\"processDefinitionUrl\":\"http://localhost/service/repository/process-definitions/{definitionId}\",\"propagatedStageInstanceId\":null,\"referenceId\":null,\"referenceType\":null,\"startTime\":\"2026-10-29T01:02:03.123Z\",\"startUserId\":\"starter\",\"superProcessInstanceId\":null,\"suspended\":false,\"tenantId\":\"\",\"url\":\"http://localhost/service/runtime/process-instances/{instanceId}\",\"variables\":[]}",
+      "{secondId}" : "{\"activityId\":null,\"businessKey\":\"beta\",\"businessStatus\":null,\"callbackId\":null,\"callbackType\":null,\"claimTime\":null,\"claimedBy\":null,\"completed\":false,\"dueDate\":null,\"ended\":false,\"id\":\"{secondId}\",\"name\":\"实例乙\",\"processDefinitionDescription\":\"流程说明\",\"processDefinitionId\":\"{definitionId}\",\"processDefinitionName\":\"实例验收\",\"processDefinitionUrl\":\"http://localhost/service/repository/process-definitions/{definitionId}\",\"propagatedStageInstanceId\":null,\"referenceId\":null,\"referenceType\":null,\"startTime\":\"2026-10-29T01:02:03.123Z\",\"startUserId\":\"starter\",\"superProcessInstanceId\":null,\"suspended\":false,\"tenantId\":\"\",\"url\":\"http://localhost/service/runtime/process-instances/{secondId}\",\"variables\":[]}"
+    },
+    "afterVariables" : {
+      "{instanceId}" : {
+        "amount" : 9007199254740993,
+        "flag" : "before"
+      },
+      "{secondId}" : {
+        "amount" : 42,
+        "flag" : "before"
+      }
+    },
+    "afterTaskCount" : 2
+  }, {
+    "name" : "execution-instance",
+    "method" : "GET",
+    "path" : "/service/runtime/executions?processInstanceId={instanceId}",
+    "requestBody" : "",
+    "prepare" : "",
+    "status" : 200,
+    "responseBody" : "{\"data\":[{\"activityId\":null,\"id\":\"{instanceId}\",\"parentId\":null,\"parentUrl\":null,\"processInstanceId\":\"{instanceId}\",\"processInstanceUrl\":\"http://localhost/service/runtime/process-instances/{instanceId}\",\"superExecutionId\":null,\"superExecutionUrl\":null,\"suspended\":false,\"tenantId\":\"\",\"url\":\"http://localhost/service/runtime/executions/{instanceId}\"},{\"activityId\":\"approve\",\"id\":\"{executionId}\",\"parentId\":\"{instanceId}\",\"parentUrl\":\"http://localhost/service/runtime/executions/{instanceId}\",\"processInstanceId\":\"{instanceId}\",\"processInstanceUrl\":\"http://localhost/service/runtime/process-instances/{instanceId}\",\"superExecutionId\":null,\"superExecutionUrl\":null,\"suspended\":false,\"tenantId\":\"\",\"url\":\"http://localhost/service/runtime/executions/{executionId}\"}],\"order\":\"asc\",\"size\":2,\"sort\":\"processInstanceId\",\"start\":0,\"total\":2}",
+    "afterInstances" : {
+      "{instanceId}" : "{\"activityId\":null,\"businessKey\":\"alpha\",\"businessStatus\":null,\"callbackId\":null,\"callbackType\":null,\"claimTime\":null,\"claimedBy\":null,\"completed\":false,\"dueDate\":null,\"ended\":false,\"id\":\"{instanceId}\",\"name\":\"实例甲\",\"processDefinitionDescription\":\"流程说明\",\"processDefinitionId\":\"{definitionId}\",\"processDefinitionName\":\"实例验收\",\"processDefinitionUrl\":\"http://localhost/service/repository/process-definitions/{definitionId}\",\"propagatedStageInstanceId\":null,\"referenceId\":null,\"referenceType\":null,\"startTime\":\"2026-10-29T01:02:03.123Z\",\"startUserId\":\"starter\",\"superProcessInstanceId\":null,\"suspended\":false,\"tenantId\":\"\",\"url\":\"http://localhost/service/runtime/process-instances/{instanceId}\",\"variables\":[]}",
+      "{secondId}" : "{\"activityId\":null,\"businessKey\":\"beta\",\"businessStatus\":null,\"callbackId\":null,\"callbackType\":null,\"claimTime\":null,\"claimedBy\":null,\"completed\":false,\"dueDate\":null,\"ended\":false,\"id\":\"{secondId}\",\"name\":\"实例乙\",\"processDefinitionDescription\":\"流程说明\",\"processDefinitionId\":\"{definitionId}\",\"processDefinitionName\":\"实例验收\",\"processDefinitionUrl\":\"http://localhost/service/repository/process-definitions/{definitionId}\",\"propagatedStageInstanceId\":null,\"referenceId\":null,\"referenceType\":null,\"startTime\":\"2026-10-29T01:02:03.123Z\",\"startUserId\":\"starter\",\"superProcessInstanceId\":null,\"suspended\":false,\"tenantId\":\"\",\"url\":\"http://localhost/service/runtime/process-instances/{secondId}\",\"variables\":[]}"
+    },
+    "afterVariables" : {
+      "{instanceId}" : {
+        "amount" : 9007199254740993,
+        "flag" : "before"
+      },
+      "{secondId}" : {
+        "amount" : 42,
+        "flag" : "before"
+      }
+    },
+    "afterTaskCount" : 2
+  }, {
+    "name" : "execution-query",
+    "method" : "POST",
+    "path" : "/service/query/executions",
+    "requestBody" : "{\"activityId\":\"approve\"}",
+    "prepare" : "",
+    "status" : 200,
+    "responseBody" : "{\"data\":[{\"activityId\":\"approve\",\"id\":\"{executionId}\",\"parentId\":\"{instanceId}\",\"parentUrl\":\"http://localhost/service/runtime/executions/{instanceId}\",\"processInstanceId\":\"{instanceId}\",\"processInstanceUrl\":\"http://localhost/service/runtime/process-instances/{instanceId}\",\"superExecutionId\":null,\"superExecutionUrl\":null,\"suspended\":false,\"tenantId\":\"\",\"url\":\"http://localhost/service/runtime/executions/{executionId}\"},{\"activityId\":\"approve\",\"id\":\"{secondExecutionId}\",\"parentId\":\"{secondId}\",\"parentUrl\":\"http://localhost/service/runtime/executions/{secondId}\",\"processInstanceId\":\"{secondId}\",\"processInstanceUrl\":\"http://localhost/service/runtime/process-instances/{secondId}\",\"superExecutionId\":null,\"superExecutionUrl\":null,\"suspended\":false,\"tenantId\":\"\",\"url\":\"http://localhost/service/runtime/executions/{secondExecutionId}\"}],\"order\":\"asc\",\"size\":2,\"sort\":\"processInstanceId\",\"start\":0,\"total\":2}",
+    "afterInstances" : {
+      "{instanceId}" : "{\"activityId\":null,\"businessKey\":\"alpha\",\"businessStatus\":null,\"callbackId\":null,\"callbackType\":null,\"claimTime\":null,\"claimedBy\":null,\"completed\":false,\"dueDate\":null,\"ended\":false,\"id\":\"{instanceId}\",\"name\":\"实例甲\",\"processDefinitionDescription\":\"流程说明\",\"processDefinitionId\":\"{definitionId}\",\"processDefinitionName\":\"实例验收\",\"processDefinitionUrl\":\"http://localhost/service/repository/process-definitions/{definitionId}\",\"propagatedStageInstanceId\":null,\"referenceId\":null,\"referenceType\":null,\"startTime\":\"2026-10-29T01:02:03.123Z\",\"startUserId\":\"starter\",\"superProcessInstanceId\":null,\"suspended\":false,\"tenantId\":\"\",\"url\":\"http://localhost/service/runtime/process-instances/{instanceId}\",\"variables\":[]}",
+      "{secondId}" : "{\"activityId\":null,\"businessKey\":\"beta\",\"businessStatus\":null,\"callbackId\":null,\"callbackType\":null,\"claimTime\":null,\"claimedBy\":null,\"completed\":false,\"dueDate\":null,\"ended\":false,\"id\":\"{secondId}\",\"name\":\"实例乙\",\"processDefinitionDescription\":\"流程说明\",\"processDefinitionId\":\"{definitionId}\",\"processDefinitionName\":\"实例验收\",\"processDefinitionUrl\":\"http://localhost/service/repository/process-definitions/{definitionId}\",\"propagatedStageInstanceId\":null,\"referenceId\":null,\"referenceType\":null,\"startTime\":\"2026-10-29T01:02:03.123Z\",\"startUserId\":\"starter\",\"superProcessInstanceId\":null,\"suspended\":false,\"tenantId\":\"\",\"url\":\"http://localhost/service/runtime/process-instances/{secondId}\",\"variables\":[]}"
+    },
+    "afterVariables" : {
+      "{instanceId}" : {
+        "amount" : 9007199254740993,
+        "flag" : "before"
+      },
+      "{secondId}" : {
+        "amount" : 42,
+        "flag" : "before"
+      }
+    },
+    "afterTaskCount" : 2
+  }, {
+    "name" : "execution-query-parent",
+    "method" : "POST",
+    "path" : "/service/query/executions",
+    "requestBody" : "{\"parentId\":\"{instanceId}\"}",
+    "prepare" : "",
+    "status" : 200,
+    "responseBody" : "{\"data\":[{\"activityId\":\"approve\",\"id\":\"{executionId}\",\"parentId\":\"{instanceId}\",\"parentUrl\":\"http://localhost/service/runtime/executions/{instanceId}\",\"processInstanceId\":\"{instanceId}\",\"processInstanceUrl\":\"http://localhost/service/runtime/process-instances/{instanceId}\",\"superExecutionId\":null,\"superExecutionUrl\":null,\"suspended\":false,\"tenantId\":\"\",\"url\":\"http://localhost/service/runtime/executions/{executionId}\"}],\"order\":\"asc\",\"size\":1,\"sort\":\"processInstanceId\",\"start\":0,\"total\":1}",
+    "afterInstances" : {
+      "{instanceId}" : "{\"activityId\":null,\"businessKey\":\"alpha\",\"businessStatus\":null,\"callbackId\":null,\"callbackType\":null,\"claimTime\":null,\"claimedBy\":null,\"completed\":false,\"dueDate\":null,\"ended\":false,\"id\":\"{instanceId}\",\"name\":\"实例甲\",\"processDefinitionDescription\":\"流程说明\",\"processDefinitionId\":\"{definitionId}\",\"processDefinitionName\":\"实例验收\",\"processDefinitionUrl\":\"http://localhost/service/repository/process-definitions/{definitionId}\",\"propagatedStageInstanceId\":null,\"referenceId\":null,\"referenceType\":null,\"startTime\":\"2026-10-29T01:02:03.123Z\",\"startUserId\":\"starter\",\"superProcessInstanceId\":null,\"suspended\":false,\"tenantId\":\"\",\"url\":\"http://localhost/service/runtime/process-instances/{instanceId}\",\"variables\":[]}",
+      "{secondId}" : "{\"activityId\":null,\"businessKey\":\"beta\",\"businessStatus\":null,\"callbackId\":null,\"callbackType\":null,\"claimTime\":null,\"claimedBy\":null,\"completed\":false,\"dueDate\":null,\"ended\":false,\"id\":\"{secondId}\",\"name\":\"实例乙\",\"processDefinitionDescription\":\"流程说明\",\"processDefinitionId\":\"{definitionId}\",\"processDefinitionName\":\"实例验收\",\"processDefinitionUrl\":\"http://localhost/service/repository/process-definitions/{definitionId}\",\"propagatedStageInstanceId\":null,\"referenceId\":null,\"referenceType\":null,\"startTime\":\"2026-10-29T01:02:03.123Z\",\"startUserId\":\"starter\",\"superProcessInstanceId\":null,\"suspended\":false,\"tenantId\":\"\",\"url\":\"http://localhost/service/runtime/process-instances/{secondId}\",\"variables\":[]}"
+    },
+    "afterVariables" : {
+      "{instanceId}" : {
+        "amount" : 9007199254740993,
+        "flag" : "before"
+      },
+      "{secondId}" : {
+        "amount" : 42,
+        "flag" : "before"
+      }
+    },
+    "afterTaskCount" : 2
+  }, {
+    "name" : "execution-query-zero",
+    "method" : "POST",
+    "path" : "/service/query/executions",
+    "requestBody" : "{\"size\":0}",
+    "prepare" : "",
+    "status" : 200,
+    "responseBody" : "{\"data\":[],\"order\":\"asc\",\"size\":0,\"sort\":\"processInstanceId\",\"start\":0,\"total\":4}",
+    "afterInstances" : {
+      "{instanceId}" : "{\"activityId\":null,\"businessKey\":\"alpha\",\"businessStatus\":null,\"callbackId\":null,\"callbackType\":null,\"claimTime\":null,\"claimedBy\":null,\"completed\":false,\"dueDate\":null,\"ended\":false,\"id\":\"{instanceId}\",\"name\":\"实例甲\",\"processDefinitionDescription\":\"流程说明\",\"processDefinitionId\":\"{definitionId}\",\"processDefinitionName\":\"实例验收\",\"processDefinitionUrl\":\"http://localhost/service/repository/process-definitions/{definitionId}\",\"propagatedStageInstanceId\":null,\"referenceId\":null,\"referenceType\":null,\"startTime\":\"2026-10-29T01:02:03.123Z\",\"startUserId\":\"starter\",\"superProcessInstanceId\":null,\"suspended\":false,\"tenantId\":\"\",\"url\":\"http://localhost/service/runtime/process-instances/{instanceId}\",\"variables\":[]}",
+      "{secondId}" : "{\"activityId\":null,\"businessKey\":\"beta\",\"businessStatus\":null,\"callbackId\":null,\"callbackType\":null,\"claimTime\":null,\"claimedBy\":null,\"completed\":false,\"dueDate\":null,\"ended\":false,\"id\":\"{secondId}\",\"name\":\"实例乙\",\"processDefinitionDescription\":\"流程说明\",\"processDefinitionId\":\"{definitionId}\",\"processDefinitionName\":\"实例验收\",\"processDefinitionUrl\":\"http://localhost/service/repository/process-definitions/{definitionId}\",\"propagatedStageInstanceId\":null,\"referenceId\":null,\"referenceType\":null,\"startTime\":\"2026-10-29T01:02:03.123Z\",\"startUserId\":\"starter\",\"superProcessInstanceId\":null,\"suspended\":false,\"tenantId\":\"\",\"url\":\"http://localhost/service/runtime/process-instances/{secondId}\",\"variables\":[]}"
+    },
+    "afterVariables" : {
+      "{instanceId}" : {
+        "amount" : 9007199254740993,
+        "flag" : "before"
+      },
+      "{secondId}" : {
+        "amount" : 42,
+        "flag" : "before"
+      }
+    },
+    "afterTaskCount" : 2
+  }, {
+    "name" : "execution-missing",
+    "method" : "GET",
+    "path" : "/service/runtime/executions/missing",
+    "requestBody" : "",
+    "prepare" : "",
+    "status" : 404,
+    "responseBody" : "{\"message\":\"Not found\",\"exception\":\"Could not find an execution with id 'missing'.\"}",
+    "afterInstances" : {
+      "{instanceId}" : "{\"activityId\":null,\"businessKey\":\"alpha\",\"businessStatus\":null,\"callbackId\":null,\"callbackType\":null,\"claimTime\":null,\"claimedBy\":null,\"completed\":false,\"dueDate\":null,\"ended\":false,\"id\":\"{instanceId}\",\"name\":\"实例甲\",\"processDefinitionDescription\":\"流程说明\",\"processDefinitionId\":\"{definitionId}\",\"processDefinitionName\":\"实例验收\",\"processDefinitionUrl\":\"http://localhost/service/repository/process-definitions/{definitionId}\",\"propagatedStageInstanceId\":null,\"referenceId\":null,\"referenceType\":null,\"startTime\":\"2026-10-29T01:02:03.123Z\",\"startUserId\":\"starter\",\"superProcessInstanceId\":null,\"suspended\":false,\"tenantId\":\"\",\"url\":\"http://localhost/service/runtime/process-instances/{instanceId}\",\"variables\":[]}",
+      "{secondId}" : "{\"activityId\":null,\"businessKey\":\"beta\",\"businessStatus\":null,\"callbackId\":null,\"callbackType\":null,\"claimTime\":null,\"claimedBy\":null,\"completed\":false,\"dueDate\":null,\"ended\":false,\"id\":\"{secondId}\",\"name\":\"实例乙\",\"processDefinitionDescription\":\"流程说明\",\"processDefinitionId\":\"{definitionId}\",\"processDefinitionName\":\"实例验收\",\"processDefinitionUrl\":\"http://localhost/service/repository/process-definitions/{definitionId}\",\"propagatedStageInstanceId\":null,\"referenceId\":null,\"referenceType\":null,\"startTime\":\"2026-10-29T01:02:03.123Z\",\"startUserId\":\"starter\",\"superProcessInstanceId\":null,\"suspended\":false,\"tenantId\":\"\",\"url\":\"http://localhost/service/runtime/process-instances/{secondId}\",\"variables\":[]}"
+    },
+    "afterVariables" : {
+      "{instanceId}" : {
+        "amount" : 9007199254740993,
+        "flag" : "before"
+      },
+      "{secondId}" : {
+        "amount" : 42,
+        "flag" : "before"
+      }
+    },
+    "afterTaskCount" : 2
+  }, {
+    "name" : "execution-trigger",
+    "method" : "PUT",
+    "path" : "/service/runtime/executions/{receiveExecutionId}",
+    "requestBody" : "{\"action\":\"trigger\",\"variables\":[{\"name\":\"approved\",\"type\":\"boolean\",\"value\":true}]}",
+    "prepare" : "receive",
+    "status" : 200,
+    "responseBody" : "{\"activityId\":\"approve\",\"id\":\"{receiveExecutionId}\",\"parentId\":\"{receiveId}\",\"parentUrl\":\"http://localhost/service/runtime/executions/{receiveId}\",\"processInstanceId\":\"{receiveId}\",\"processInstanceUrl\":\"http://localhost/service/runtime/process-instances/{receiveId}\",\"superExecutionId\":null,\"superExecutionUrl\":null,\"suspended\":false,\"tenantId\":\"\",\"url\":\"http://localhost/service/runtime/executions/{receiveExecutionId}\"}",
+    "afterInstances" : {
+      "{instanceId}" : "{\"activityId\":null,\"businessKey\":\"alpha\",\"businessStatus\":null,\"callbackId\":null,\"callbackType\":null,\"claimTime\":null,\"claimedBy\":null,\"completed\":false,\"dueDate\":null,\"ended\":false,\"id\":\"{instanceId}\",\"name\":\"实例甲\",\"processDefinitionDescription\":\"流程说明\",\"processDefinitionId\":\"{definitionId}\",\"processDefinitionName\":\"实例验收\",\"processDefinitionUrl\":\"http://localhost/service/repository/process-definitions/{definitionId}\",\"propagatedStageInstanceId\":null,\"referenceId\":null,\"referenceType\":null,\"startTime\":\"2026-10-29T01:02:03.123Z\",\"startUserId\":\"starter\",\"superProcessInstanceId\":null,\"suspended\":false,\"tenantId\":\"\",\"url\":\"http://localhost/service/runtime/process-instances/{instanceId}\",\"variables\":[]}",
+      "{receiveId}" : "{\"activityId\":null,\"businessKey\":null,\"businessStatus\":null,\"callbackId\":null,\"callbackType\":null,\"claimTime\":null,\"claimedBy\":null,\"completed\":false,\"dueDate\":null,\"ended\":false,\"id\":\"{receiveId}\",\"name\":null,\"processDefinitionDescription\":null,\"processDefinitionId\":\"{receiveDefinitionId}\",\"processDefinitionName\":null,\"processDefinitionUrl\":\"http://localhost/service/repository/process-definitions/{receiveDefinitionId}\",\"propagatedStageInstanceId\":null,\"referenceId\":null,\"referenceType\":null,\"startTime\":\"2026-10-29T01:02:03.123Z\",\"startUserId\":\"starter\",\"superProcessInstanceId\":null,\"suspended\":false,\"tenantId\":\"\",\"url\":\"http://localhost/service/runtime/process-instances/{receiveId}\",\"variables\":[]}",
+      "{secondId}" : "{\"activityId\":null,\"businessKey\":\"beta\",\"businessStatus\":null,\"callbackId\":null,\"callbackType\":null,\"claimTime\":null,\"claimedBy\":null,\"completed\":false,\"dueDate\":null,\"ended\":false,\"id\":\"{secondId}\",\"name\":\"实例乙\",\"processDefinitionDescription\":\"流程说明\",\"processDefinitionId\":\"{definitionId}\",\"processDefinitionName\":\"实例验收\",\"processDefinitionUrl\":\"http://localhost/service/repository/process-definitions/{definitionId}\",\"propagatedStageInstanceId\":null,\"referenceId\":null,\"referenceType\":null,\"startTime\":\"2026-10-29T01:02:03.123Z\",\"startUserId\":\"starter\",\"superProcessInstanceId\":null,\"suspended\":false,\"tenantId\":\"\",\"url\":\"http://localhost/service/runtime/process-instances/{secondId}\",\"variables\":[]}"
+    },
+    "afterVariables" : {
+      "{instanceId}" : {
+        "amount" : 9007199254740993,
+        "flag" : "before"
+      },
+      "{receiveId}" : {
+        "approved" : true
+      },
+      "{secondId}" : {
+        "amount" : 42,
+        "flag" : "before"
+      }
+    },
+    "afterTaskCount" : 3
+  }, {
+    "name" : "execution-action-invalid",
+    "method" : "PUT",
+    "path" : "/service/runtime/executions/{executionId}",
+    "requestBody" : "{\"action\":\"bad\"}",
+    "prepare" : "",
+    "status" : 400,
+    "responseBody" : "{\"message\":\"Bad request\",\"exception\":\"Invalid action: 'bad'.\"}",
+    "afterInstances" : {
+      "{instanceId}" : "{\"activityId\":null,\"businessKey\":\"alpha\",\"businessStatus\":null,\"callbackId\":null,\"callbackType\":null,\"claimTime\":null,\"claimedBy\":null,\"completed\":false,\"dueDate\":null,\"ended\":false,\"id\":\"{instanceId}\",\"name\":\"实例甲\",\"processDefinitionDescription\":\"流程说明\",\"processDefinitionId\":\"{definitionId}\",\"processDefinitionName\":\"实例验收\",\"processDefinitionUrl\":\"http://localhost/service/repository/process-definitions/{definitionId}\",\"propagatedStageInstanceId\":null,\"referenceId\":null,\"referenceType\":null,\"startTime\":\"2026-10-29T01:02:03.123Z\",\"startUserId\":\"starter\",\"superProcessInstanceId\":null,\"suspended\":false,\"tenantId\":\"\",\"url\":\"http://localhost/service/runtime/process-instances/{instanceId}\",\"variables\":[]}",
+      "{secondId}" : "{\"activityId\":null,\"businessKey\":\"beta\",\"businessStatus\":null,\"callbackId\":null,\"callbackType\":null,\"claimTime\":null,\"claimedBy\":null,\"completed\":false,\"dueDate\":null,\"ended\":false,\"id\":\"{secondId}\",\"name\":\"实例乙\",\"processDefinitionDescription\":\"流程说明\",\"processDefinitionId\":\"{definitionId}\",\"processDefinitionName\":\"实例验收\",\"processDefinitionUrl\":\"http://localhost/service/repository/process-definitions/{definitionId}\",\"propagatedStageInstanceId\":null,\"referenceId\":null,\"referenceType\":null,\"startTime\":\"2026-10-29T01:02:03.123Z\",\"startUserId\":\"starter\",\"superProcessInstanceId\":null,\"suspended\":false,\"tenantId\":\"\",\"url\":\"http://localhost/service/runtime/process-instances/{secondId}\",\"variables\":[]}"
+    },
+    "afterVariables" : {
+      "{instanceId}" : {
+        "amount" : 9007199254740993,
+        "flag" : "before"
+      },
+      "{secondId}" : {
+        "amount" : 42,
+        "flag" : "before"
+      }
+    },
+    "afterTaskCount" : 2
+  } ]
+}

@@ -44,6 +44,18 @@ func (e *Engine) ImportRuntimeRows(ctx context.Context, rows []flowablerow.Row) 
 			}
 			if execution.ParentID == "" {
 				instance.RootExecutionID = execution.ID
+				instance.Name = execution.Name
+				instance.StartUserID = execution.StartUserID
+				instance.BusinessStatus = execution.BusinessStatus
+				instance.DueDate = cloneTime(execution.DueDate)
+				instance.ClaimTime = cloneTime(execution.ClaimTime)
+				instance.ClaimedBy = execution.ClaimedBy
+				instance.SuperExecutionID = execution.SuperExecutionID
+				instance.CallbackID = execution.CallbackID
+				instance.CallbackType = execution.CallbackType
+				instance.ReferenceID = execution.ReferenceID
+				instance.ReferenceType = execution.ReferenceType
+				instance.PropagatedStageInstanceID = execution.PropagatedStageInstanceID
 				// Java 的子执行不保存实例元数据，不能依赖按标识排序后的首行。
 				instance.BusinessKey = execution.BusinessKey
 				instance.StartTime = execution.StartTime

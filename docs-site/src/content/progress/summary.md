@@ -42,7 +42,7 @@ tags: [进度, 重构, 基线]
 | M3 | 用户任务、身份、表单、监听器 | 完成 | [任务与身份](/docs/progress/kernel) |
 | M4 | 作业、定时器、异步续跑、死信 | 完成 | [持久化与作业](/docs/progress/persistence) |
 | M5 | 历史、审计、变量明细 | 实现与回归验收完成 | [质量门禁](/docs/progress/quality) |
-| M6 | 官方 REST 方法级路由补齐 | 方法安全、14 个方法共 40 个原版 HTTP 场景通过；全量 REST 待验收 | [REST 与安全](/docs/progress/rest-security) |
+| M6 | 官方 REST 方法级路由补齐 | 方法安全、24 个方法共 82 个原版 HTTP 场景通过；全量 REST 待验收 | [REST 与安全](/docs/progress/rest-security) |
 | M7 | 真实数据库、行仓储、迁移工具 | 双库单执行者及迁移工具闭环验收通过 | [迁移工具链](/docs/progress/migration) |
 | M8 | 集群、租约、故障转移、生产容量 | 未开始 | [差距与下一步](/docs/progress/gaps) |
 | M9 | 生产切换、反向转换与 Java 增量接管 | 待生产验收 | [停写与回退](/docs/migration/cutover) |

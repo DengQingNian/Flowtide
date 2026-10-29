@@ -164,13 +164,13 @@ func TestREST_QueryProcessInstances(t *testing.T) {
 		t.Fatalf("按定义查询失败: %d %+v", response.StatusCode, page)
 	}
 
-	response = postQuery(t, server.URL, "/service/query/process-instances", map[string]any{"businessKey": "bk1"}, "")
+	response = postQuery(t, server.URL, "/service/query/process-instances", map[string]any{"processBusinessKey": "bk1"}, "")
 	page = decodeQueryPage[map[string]any](t, response)
 	if page.Total != 1 {
 		t.Fatalf("按业务键查询失败: %+v", page)
 	}
 
-	response = postQuery(t, server.URL, "/service/query/process-instances", map[string]any{"nameLike": "%order%"}, "")
+	response = postQuery(t, server.URL, "/service/query/process-instances", map[string]any{"processInstanceNameLike": "%order%"}, "")
 	page = decodeQueryPage[map[string]any](t, response)
 	if page.Total != 2 {
 		t.Fatalf("按名称模糊查询失败: %+v", page)
@@ -450,7 +450,7 @@ func TestREST_QueryExecutions(t *testing.T) {
 		t.Fatalf("已结束执行查询失败: %+v", page)
 	}
 
-	response = postQuery(t, server.URL, "/service/query/executions", map[string]any{"sort": "activityId", "order": "desc"}, "")
+	response = postQuery(t, server.URL, "/service/query/executions", map[string]any{"sort": "processInstanceId", "order": "desc"}, "")
 	page = decodeQueryPage[map[string]any](t, response)
 	if page.Total == 0 {
 		t.Fatalf("执行排序查询失败: %+v", page)

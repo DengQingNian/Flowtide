@@ -19,6 +19,7 @@ func (e *Engine) recordProcessStart(cc *commandContext, instance *instanceState)
 		ProcessDefinitionKey: instance.ProcessDefinitionKey,
 		BusinessKey:          instance.BusinessKey,
 		Name:                 instance.Name,
+		StartUserID:          instance.StartUserID,
 		TenantID:             instance.TenantID,
 		StartTime:            instance.StartTime,
 		State:                "running",

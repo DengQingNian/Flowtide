@@ -1,0 +1,26 @@
+{
+  "javaRepository": "https://github.com/flowable/flowable-engine",
+  "javaCommit": "f6017e32a4bdd3e59a8881f58b0ee181652d1d9e",
+  "javaVersion": "17.0.21.0.2",
+  "database": "h2",
+  "h2Version": "2.4.240",
+  "springVersion": "7.0.7",
+  "transport": "原版流程实例及执行控制器与Spring MockMvc",
+  "cases": 42,
+  "idStrategy": "单调二十位序号，用于核对默认排序；动态标识在回放时替换为占位符",
+  "variableCollectionOrder": "仅实例DTO的variables集合按scope及name规范化比较；保留原始Java样本和其他数组顺序",
+  "controllerClassSha256": {
+    "ProcessInstanceCollectionResource": "d0a8bfe7f01799d5a6af9deb8880c3912de1cbdfb0e342a310387eb1b1111d10",
+    "ProcessInstanceResource": "50441d10331f99d2f6d34a60eabe750e557e336990fa3a4188144b1d469204b1",
+    "ProcessInstanceQueryResource": "f6e84826bef56a4ae7fbf0c8a2f682bbcfc41ac398820d565a77a78bcacdcd67",
+    "ExecutionCollectionResource": "4ce6fabde83c72c3c9f523244ca66de002ef05af65eac3afb094c6f33d1fedd2",
+    "ExecutionResource": "adbba31f704426333bedab2329130111cdfdd869bb63b0a9b0d8286a0a3d3765",
+    "ExecutionQueryResource": "f7ec7528217112f1cd46e9002c0e5215455784b9ec8c0ae6ea9dd389d8150c92"
+  },
+  "generatorSourceCommitted": false,
+  "generatorSourceSha256": "b4291aca522654b40c47e7a4421e9a37ceeaae779d07a2b49f0d8bb0b14d29f7",
+  "independentRuns": 2,
+  "independentJSONIdentical": true,
+  "artifact": "005-runtime-rest.json",
+  "artifactSha256": "ed949d5259f91e85e42c9f04c31c008de19c56277ca399178c9fc6587c89c070"
+}

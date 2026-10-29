@@ -71,29 +71,51 @@ type ModelUpdate struct {
 
 // ProcessDefinition 是流程定义。
 type ProcessDefinition struct {
-	ID           string `json:"id"`           // 流程定义 ID
-	Key          string `json:"key"`          // 流程定义 Key
-	Name         string `json:"name"`         // 名称
-	Version      int    `json:"version"`      // 版本
-	DeploymentID string `json:"deploymentId"` // 部署 ID
-	ResourceName string `json:"resourceName"` // 资源名
-	TenantID     string `json:"tenantId"`     // 租户
-	Suspended    bool   `json:"suspended"`    // 是否挂起
+	ID           string `json:"id"`                    // 流程定义 ID
+	Key          string `json:"key"`                   // 流程定义 Key
+	Name         string `json:"name"`                  // 名称
+	Description  string `json:"description,omitempty"` // 流程说明
+	Version      int    `json:"version"`               // 版本
+	DeploymentID string `json:"deploymentId"`          // 部署 ID
+	ResourceName string `json:"resourceName"`          // 资源名
+	TenantID     string `json:"tenantId"`              // 租户
+	Suspended    bool   `json:"suspended"`             // 是否挂起
 }
 
 // ProcessInstance 是流程实例。
 type ProcessInstance struct {
-	ID                   string         `json:"id"`                   // 实例 ID
-	ProcessDefinitionID  string         `json:"processDefinitionId"`  // 流程定义 ID
-	ProcessDefinitionKey string         `json:"processDefinitionKey"` // 流程定义 Key
-	BusinessKey          string         `json:"businessKey"`          // 业务键
-	Name                 string         `json:"name"`                 // 实例名称
-	TenantID             string         `json:"tenantId"`             // 租户
-	StartTime            time.Time      `json:"startTime"`            // 开始时间
-	EndTime              *time.Time     `json:"endTime,omitempty"`    // 结束时间
-	Ended                bool           `json:"ended"`                // 是否结束
-	Suspended            bool           `json:"suspended"`            // 是否挂起
-	Variables            map[string]any `json:"variables,omitempty"`  // 变量快照
+	ID                        string         `json:"id"`                                  // 实例 ID
+	ProcessDefinitionID       string         `json:"processDefinitionId"`                 // 流程定义 ID
+	ProcessDefinitionKey      string         `json:"processDefinitionKey"`                // 流程定义 Key
+	BusinessKey               string         `json:"businessKey"`                         // 业务键
+	Name                      string         `json:"name"`                                // 实例名称
+	ActivityID                string         `json:"activityId,omitempty"`                // 根执行当前活动
+	StartUserID               string         `json:"startUserId,omitempty"`               // 发起人
+	BusinessStatus            string         `json:"businessStatus,omitempty"`            // 业务状态
+	DueDate                   *time.Time     `json:"dueDate,omitempty"`                   // 截止时间
+	ClaimTime                 *time.Time     `json:"claimTime,omitempty"`                 // 签收时间
+	ClaimedBy                 string         `json:"claimedBy,omitempty"`                 // 签收人
+	CallbackID                string         `json:"callbackId,omitempty"`                // 回调标识
+	CallbackType              string         `json:"callbackType,omitempty"`              // 回调类型
+	ReferenceID               string         `json:"referenceId,omitempty"`               // 关联标识
+	ReferenceType             string         `json:"referenceType,omitempty"`             // 关联类型
+	PropagatedStageInstanceID string         `json:"propagatedStageInstanceId,omitempty"` // 传播阶段标识
+	SuperProcessInstanceID    string         `json:"superProcessInstanceId,omitempty"`    // 父流程实例标识
+	TenantID                  string         `json:"tenantId"`                            // 租户
+	StartTime                 time.Time      `json:"startTime"`                           // 开始时间
+	EndTime                   *time.Time     `json:"endTime,omitempty"`                   // 结束时间
+	Ended                     bool           `json:"ended"`                               // 是否结束
+	Suspended                 bool           `json:"suspended"`                           // 是否挂起
+	Variables                 map[string]any `json:"variables,omitempty"`                 // 变量快照
+}
+
+// ProcessInstanceUpdate 是单次事务内的实例属性更新或签收请求，空指针表示保持原值。
+type ProcessInstanceUpdate struct {
+	Name           *string    // 实例名称
+	BusinessKey    *string    // 业务键
+	BusinessStatus *string    // 业务状态
+	DueDate        *time.Time // 截止时间
+	ClaimUserID    *string    // 签收人，空字符串表示取消签收
 }
 
 // Task 是用户任务。
@@ -374,14 +396,18 @@ type EventSubscription struct {
 
 // ExecutionInfo 是执行实例信息。
 type ExecutionInfo struct {
-	ID                  string `json:"id"`                   // 执行 ID
-	ProcessInstanceID   string `json:"processInstanceId"`    // 流程实例 ID
-	ProcessDefinitionID string `json:"processDefinitionId"`  // 流程定义 ID
-	ParentID            string `json:"parentId,omitempty"`   // 父执行 ID
-	ActivityID          string `json:"activityId,omitempty"` // 当前活动 ID
-	Active              bool   `json:"active"`               // 是否活跃
-	Ended               bool   `json:"ended"`                // 是否结束
-	Waiting             bool   `json:"waiting"`              // 是否等待
+	ProcessDefinitionKey string `json:"processDefinitionKey"`       // 流程定义 Key
+	ID                   string `json:"id"`                         // 执行 ID
+	ProcessInstanceID    string `json:"processInstanceId"`          // 流程实例 ID
+	ProcessDefinitionID  string `json:"processDefinitionId"`        // 流程定义 ID
+	ParentID             string `json:"parentId,omitempty"`         // 父执行 ID
+	SuperExecutionID     string `json:"superExecutionId,omitempty"` // 父调用活动执行 ID
+	TenantID             string `json:"tenantId,omitempty"`         // 租户标识
+	Suspended            bool   `json:"suspended,omitempty"`        // 是否挂起
+	ActivityID           string `json:"activityId,omitempty"`       // 当前活动 ID
+	Active               bool   `json:"active"`                     // 是否活跃
+	Ended                bool   `json:"ended"`                      // 是否结束
+	Waiting              bool   `json:"waiting"`                    // 是否等待
 }
 
 // HistoricTaskLog 是任务生命周期日志。

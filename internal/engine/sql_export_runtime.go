@@ -64,6 +64,24 @@ func (e *Engine) runtimeRowsLocked() ([]flowablerow.Row, error) {
 		}
 		_ = row.Set("TENANT_ID_", tenant)
 		_ = row.Set("START_TIME_", startTime)
+		if instance != nil && execution.ID == instance.RootExecutionID {
+			// 实例元数据以标准根行为准，续跑扩展只负责内部控制。
+			metadata := map[string]any{"NAME_": instance.Name, "START_USER_ID_": instance.StartUserID, "BUSINESS_STATUS_": instance.BusinessStatus, "DUE_DATE_": instance.DueDate, "CLAIM_TIME_": instance.ClaimTime, "CLAIMED_BY_": instance.ClaimedBy, "SUPER_EXEC_": instance.SuperExecutionID, "CALLBACK_ID_": instance.CallbackID, "CALLBACK_TYPE_": instance.CallbackType, "REFERENCE_ID_": instance.ReferenceID, "REFERENCE_TYPE_": instance.ReferenceType, "PROPAGATED_STAGE_INST_ID_": instance.PropagatedStageInstanceID}
+			for _, column := range []string{"NAME_", "START_USER_ID_", "BUSINESS_STATUS_", "DUE_DATE_", "CLAIM_TIME_", "CLAIMED_BY_", "SUPER_EXEC_", "CALLBACK_ID_", "CALLBACK_TYPE_", "REFERENCE_ID_", "REFERENCE_TYPE_", "PROPAGATED_STAGE_INST_ID_"} {
+				value := metadata[column]
+				if text, ok := value.(string); ok && text == "" {
+					value = nil
+				}
+				if timestamp, ok := value.(*time.Time); ok {
+					value = nil
+					if timestamp != nil {
+						value = *timestamp
+					}
+				}
+				_ = row.Set(column, value)
+				row.InsertColumns = append(row.InsertColumns, column)
+			}
+		}
 		_ = row.Set("PARENT_ID_", execution.ParentID)
 		_ = row.Set("PROC_DEF_ID_", execution.DefinitionID)
 		if execution.ActivityID == "" {

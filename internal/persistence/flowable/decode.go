@@ -267,10 +267,15 @@ func decodeDefinition(row Row) (api.ProcessDefinition, error) {
 	if err != nil {
 		return api.ProcessDefinition{}, err
 	}
+	description, err := optionalStringValue(row, "DESCRIPTION_")
+	if err != nil {
+		return api.ProcessDefinition{}, err
+	}
 	return api.ProcessDefinition{
 		ID:           id,
 		Key:          key,
 		Name:         name,
+		Description:  description,
 		Version:      version,
 		DeploymentID: deploymentID,
 		ResourceName: resourceName,

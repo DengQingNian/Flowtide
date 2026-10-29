@@ -12,5 +12,15 @@
   "DELETE /runtime/tasks/{}": "原版任务HTTP场景通过：完整DTO、分页与动作副作用；完整字段组合待验收",
   "POST /runtime/tasks/{}": "原版任务HTTP场景通过：完整DTO、分页与动作副作用；完整字段组合待验收",
   "GET /runtime/tasks/{}/subtasks": "原版任务HTTP场景通过：完整DTO、分页与动作副作用；完整字段组合待验收",
-  "POST /query/tasks": "原版任务HTTP场景通过：完整DTO、分页与动作副作用；完整字段组合待验收"
+  "POST /query/tasks": "原版任务HTTP场景通过：完整DTO、分页与动作副作用；完整字段组合待验收",
+  "GET /runtime/process-instances": "原版实例与执行HTTP场景通过：完整DTO、分页、启动及动作副作用；完整字段组合待验收",
+  "POST /runtime/process-instances": "原版实例与执行HTTP场景通过：完整DTO、分页、启动及动作副作用；完整字段组合待验收",
+  "GET /runtime/process-instances/{}": "原版实例与执行HTTP场景通过：完整DTO、分页、启动及动作副作用；完整字段组合待验收",
+  "PUT /runtime/process-instances/{}": "原版实例与执行HTTP场景通过：完整DTO、分页、启动及动作副作用；完整字段组合待验收",
+  "DELETE /runtime/process-instances/{}": "原版实例与执行HTTP场景通过：完整DTO、分页、启动及动作副作用；完整字段组合待验收",
+  "POST /query/process-instances": "原版实例与执行HTTP场景通过：完整DTO、分页、启动及动作副作用；完整字段组合待验收",
+  "GET /runtime/executions": "原版实例与执行HTTP场景通过：完整DTO、分页、启动及动作副作用；完整字段组合待验收",
+  "GET /runtime/executions/{}": "原版实例与执行HTTP场景通过：完整DTO、分页、启动及动作副作用；完整字段组合待验收",
+  "PUT /runtime/executions/{}": "原版实例与执行HTTP场景通过：完整DTO、分页、启动及动作副作用；完整字段组合待验收",
+  "POST /query/executions": "原版实例与执行HTTP场景通过：完整DTO、分页、启动及动作副作用；完整字段组合待验收"
 }

@@ -86,7 +86,7 @@ func TestIntegrationPostgresRowsServiceMode(t *testing.T) {
 	if _, err := first.Deploy(ctx, api.DeploymentRequest{Resources: map[string][]byte{"service.bpmn20.xml": []byte(xml)}}); err != nil {
 		t.Fatal(err)
 	}
-	instance, err := first.StartProcessInstance(ctx, api.StartRequest{ProcessDefinitionKey: "pg_service", Variables: []api.Variable{{Name: "金额", Value: int64(9007199254740993)}, {Name: "二进制", Value: []byte{1, 2, 3}}}})
+	instance, err := first.StartProcessInstance(ctx, api.StartRequest{ProcessDefinitionKey: "pg_service", UserID: "starter", Variables: []api.Variable{{Name: "金额", Value: int64(9007199254740993)}, {Name: "二进制", Value: []byte{1, 2, 3}}}})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -95,6 +95,12 @@ func TestIntegrationPostgresRowsServiceMode(t *testing.T) {
 		t.Fatalf("PG 任务创建: %v", err)
 	}
 	due := time.Date(2026, 11, 1, 12, 0, 0, 0, time.FixedZone("验收时区", 8*3600))
+	instanceName, businessStatus, instanceUser := "实例元数据验收", "review", "bob"
+	updatedInstance, err := first.UpdateProcessInstance(ctx, instance.ID, api.ProcessInstanceUpdate{Name: &instanceName, BusinessStatus: &businessStatus, DueDate: &due, ClaimUserID: &instanceUser})
+	if err != nil || updatedInstance.ClaimTime == nil {
+		t.Fatalf("实例签收元数据更新失败: %+v %v", updatedInstance, err)
+	}
+
 	if _, err := first.UpdateTask(ctx, initial.Data[0].ID, api.TaskUpdate{DueDate: &due}); err != nil {
 		t.Fatal(err)
 	}
@@ -120,6 +126,16 @@ func TestIntegrationPostgresRowsServiceMode(t *testing.T) {
 	second, err := engine.New(engine.Config{RowRepository: restartedRepository, LoadRows: true, HistoryLevel: engine.HistoryFull})
 	if err != nil {
 		t.Fatal(err)
+	}
+
+	restoredInstance, err := second.GetProcessInstance(ctx, instance.ID)
+	if err != nil || restoredInstance.Name != instanceName || restoredInstance.StartUserID != "starter" || restoredInstance.BusinessStatus != businessStatus || restoredInstance.ClaimedBy != instanceUser || restoredInstance.DueDate == nil || !restoredInstance.DueDate.Equal(due) || restoredInstance.ClaimTime == nil || !restoredInstance.ClaimTime.Equal(*updatedInstance.ClaimTime) {
+		t.Fatalf("标准实例元数据重启后丢失: %+v %v", restoredInstance, err)
+	}
+	var storedName, storedUser, storedStatus, storedClaimedBy string
+	var storedDue, storedClaim time.Time
+	if err := db.QueryRowContext(ctx, "SELECT NAME_, START_USER_ID_, BUSINESS_STATUS_, CLAIMED_BY_, DUE_DATE_, CLAIM_TIME_ FROM ACT_RU_EXECUTION WHERE ID_=$1", instance.ID).Scan(&storedName, &storedUser, &storedStatus, &storedClaimedBy, &storedDue, &storedClaim); err != nil || storedName != instanceName || storedUser != "starter" || storedStatus != businessStatus || storedClaimedBy != instanceUser || !storedDue.Equal(due) || !storedClaim.Equal(*updatedInstance.ClaimTime) {
+		t.Fatalf("标准实例行不是元数据真实来源: 名称=%s 用户=%s 状态=%s 签收人=%s 到期=%s 签收=%s 错误=%v", storedName, storedUser, storedStatus, storedClaimedBy, storedDue, storedClaim, err)
 	}
 	tasks, err := second.ListTasks(ctx, api.TaskFilter{ProcessInstanceID: instance.ID})
 	if err != nil || len(tasks.Data) != 1 {

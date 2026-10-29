@@ -202,6 +202,7 @@ type RepositoryService interface {
 type StartRequest struct {
 	ProcessDefinitionKey string     // 流程定义 Key
 	ProcessDefinitionID  string     // 流程定义 ID，优先于 Key
+	MessageName          string     // 消息开始事件名称，无定义 ID 或 Key 时使用
 	BusinessKey          string     // 业务键
 	Name                 string     // 实例名称
 	TenantID             string     // 租户
@@ -212,6 +213,13 @@ type StartRequest struct {
 
 // RuntimeService 提供流程实例与变量操作。
 type RuntimeService interface {
+	// UpdateProcessInstance 在单次事务中更新流程实例属性或签收状态。
+	// @param ctx 请求上下文
+	// @param id 实例标识
+	// @param update 属性更新或签收请求
+	// @return 更新后的实例
+	// @return 更新错误
+	UpdateProcessInstance(ctx context.Context, id string, update ProcessInstanceUpdate) (ProcessInstance, error)
 	// SetVariablesAsync 在命令事务中排队变量更新，由作业执行器异步应用。
 	// @param ctx 上下文
 	// @param request 变量更新及请求阶段校验条件

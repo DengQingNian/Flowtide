@@ -28,7 +28,7 @@
 | `DELETE /repository/process-definitions/{}/identitylinks/{}/{}` | `/repository/process-definitions/{processDefinitionId}/identitylinks/{family}/{identityId}` | `/repository/process-definitions/{id}/identitylinks/{family}/{identityId}` | 已编码；待契约与 Java 行为验收 |
 | `DELETE /runtime/executions/{}/variables` | `/runtime/executions/{executionId}/variables` | `/runtime/executions/{id}/variables` | 已编码；待契约与 Java 行为验收 |
 | `DELETE /runtime/executions/{}/variables/{}` | `/runtime/executions/{executionId}/variables/{variableName}` | `/runtime/executions/{id}/variables/{name}` | 已编码；待契约与 Java 行为验收 |
-| `DELETE /runtime/process-instances/{}` | `/runtime/process-instances/{processInstanceId}` | `/runtime/process-instances/{id}` | 已编码；待契约与 Java 行为验收 |
+| `DELETE /runtime/process-instances/{}` | `/runtime/process-instances/{processInstanceId}` | `/runtime/process-instances/{id}` | 原版实例与执行HTTP场景通过：完整DTO、分页、启动及动作副作用；完整字段组合待验收 |
 | `DELETE /runtime/process-instances/{}/attachments/{}` | `` | `/runtime/process-instances/{id}/attachments/{attachmentId}` | 实现扩展；不计入官方覆盖 |
 | `DELETE /runtime/process-instances/{}/comments/{}` | `` | `/runtime/process-instances/{id}/comments/{commentId}` | 实现扩展；不计入官方覆盖 |
 | `DELETE /runtime/process-instances/{}/identitylinks/users/{}/{}` | `/runtime/process-instances/{processInstanceId}/identitylinks/users/{identityId}/{type}` | `/runtime/process-instances/{id}/identitylinks/users/{identityId}/{type}` | 已编码；待契约与 Java 行为验收 |
@@ -129,14 +129,14 @@
 | `GET /runtime/activity-instances` | `` | `/runtime/activity-instances` | 实现扩展；不计入官方覆盖 |
 | `GET /runtime/event-subscriptions` | `/runtime/event-subscriptions` | `/runtime/event-subscriptions` | 已编码；待契约与 Java 行为验收 |
 | `GET /runtime/event-subscriptions/{}` | `/runtime/event-subscriptions/{eventSubscriptionId}` | `/runtime/event-subscriptions/{id}` | 已编码；待契约与 Java 行为验收 |
-| `GET /runtime/executions` | `/runtime/executions` | `/runtime/executions` | 已编码；待契约与 Java 行为验收 |
-| `GET /runtime/executions/{}` | `/runtime/executions/{executionId}` | `/runtime/executions/{id}` | 已编码；待契约与 Java 行为验收 |
+| `GET /runtime/executions` | `/runtime/executions` | `/runtime/executions` | 原版实例与执行HTTP场景通过：完整DTO、分页、启动及动作副作用；完整字段组合待验收 |
+| `GET /runtime/executions/{}` | `/runtime/executions/{executionId}` | `/runtime/executions/{id}` | 原版实例与执行HTTP场景通过：完整DTO、分页、启动及动作副作用；完整字段组合待验收 |
 | `GET /runtime/executions/{}/activities` | `/runtime/executions/{executionId}/activities` | `/runtime/executions/{id}/activities` | 已编码；待契约与 Java 行为验收 |
 | `GET /runtime/executions/{}/variables` | `/runtime/executions/{executionId}/variables` | `/runtime/executions/{id}/variables` | 已编码；待契约与 Java 行为验收 |
 | `GET /runtime/executions/{}/variables/{}` | `/runtime/executions/{executionId}/variables/{variableName}` | `/runtime/executions/{id}/variables/{name}` | 已编码；待契约与 Java 行为验收 |
 | `GET /runtime/executions/{}/variables/{}/data` | `/runtime/executions/{executionId}/variables/{variableName}/data` | `/runtime/executions/{id}/variables/{name}/data` | 已编码；待契约与 Java 行为验收 |
-| `GET /runtime/process-instances` | `/runtime/process-instances` | `/runtime/process-instances` | 已编码；待契约与 Java 行为验收 |
-| `GET /runtime/process-instances/{}` | `/runtime/process-instances/{processInstanceId}` | `/runtime/process-instances/{id}` | 已编码；待契约与 Java 行为验收 |
+| `GET /runtime/process-instances` | `/runtime/process-instances` | `/runtime/process-instances` | 原版实例与执行HTTP场景通过：完整DTO、分页、启动及动作副作用；完整字段组合待验收 |
+| `GET /runtime/process-instances/{}` | `/runtime/process-instances/{processInstanceId}` | `/runtime/process-instances/{id}` | 原版实例与执行HTTP场景通过：完整DTO、分页、启动及动作副作用；完整字段组合待验收 |
 | `GET /runtime/process-instances/{}/attachments` | `` | `/runtime/process-instances/{id}/attachments` | 实现扩展；不计入官方覆盖 |
 | `GET /runtime/process-instances/{}/comments` | `` | `/runtime/process-instances/{id}/comments` | 实现扩展；不计入官方覆盖 |
 | `GET /runtime/process-instances/{}/diagram` | `/runtime/process-instances/{processInstanceId}/diagram` | `/runtime/process-instances/{id}/diagram` | 已编码；待契约与 Java 行为验收 |
@@ -183,13 +183,13 @@
 | `POST /management/jobs/{}` | `/management/jobs/{jobId}` | `/management/jobs/{id}` | 已编码；待契约与 Java 行为验收 |
 | `POST /management/timer-jobs/{}` | `/management/timer-jobs/{jobId}` | `/management/timer-jobs/{id}` | 已编码；待契约与 Java 行为验收 |
 | `POST /query/activity-instances` | `` | `/query/activity-instances` | 实现扩展；不计入官方覆盖 |
-| `POST /query/executions` | `/query/executions` | `/query/executions` | 已编码；待契约与 Java 行为验收 |
+| `POST /query/executions` | `/query/executions` | `/query/executions` | 原版实例与执行HTTP场景通过：完整DTO、分页、启动及动作副作用；完整字段组合待验收 |
 | `POST /query/historic-activity-instances` | `/query/historic-activity-instances` | `/query/historic-activity-instances` | 已编码；待契约与 Java 行为验收 |
 | `POST /query/historic-detail` | `/query/historic-detail` | `/query/historic-detail` | 已编码；待契约与 Java 行为验收 |
 | `POST /query/historic-process-instances` | `/query/historic-process-instances` | `/query/historic-process-instances` | 已编码；待契约与 Java 行为验收 |
 | `POST /query/historic-task-instances` | `/query/historic-task-instances` | `/query/historic-task-instances` | 已编码；待契约与 Java 行为验收 |
 | `POST /query/historic-variable-instances` | `/query/historic-variable-instances` | `/query/historic-variable-instances` | 已编码；待契约与 Java 行为验收 |
-| `POST /query/process-instances` | `/query/process-instances` | `/query/process-instances` | 已编码；待契约与 Java 行为验收 |
+| `POST /query/process-instances` | `/query/process-instances` | `/query/process-instances` | 原版实例与执行HTTP场景通过：完整DTO、分页、启动及动作副作用；完整字段组合待验收 |
 | `POST /query/tasks` | `/query/tasks` | `/query/tasks` | 原版任务HTTP场景通过：完整DTO、分页与动作副作用；完整字段组合待验收 |
 | `POST /query/variable-instances` | `` | `/query/variable-instances` | 实现扩展；不计入官方覆盖 |
 | `POST /repository/deployments` | `/repository/deployments` | `/repository/deployments` | 已编码；待契约与 Java 行为验收 |
@@ -202,7 +202,7 @@
 | `POST /runtime/executions/{}/variables` | `/runtime/executions/{executionId}/variables` | `/runtime/executions/{id}/variables` | 已编码；待契约与 Java 行为验收 |
 | `POST /runtime/executions/{}/variables-async` | `` | `/runtime/executions/{id}/variables-async` | 持久异步已验收：单执行者重试与恢复；Java原版HTTP场景通过；原版204与OpenAPI标记201不同 |
 | `POST /runtime/messages` | `` | `/runtime/messages` | 实现扩展；不计入官方覆盖 |
-| `POST /runtime/process-instances` | `/runtime/process-instances` | `/runtime/process-instances` | 已编码；待契约与 Java 行为验收 |
+| `POST /runtime/process-instances` | `/runtime/process-instances` | `/runtime/process-instances` | 原版实例与执行HTTP场景通过：完整DTO、分页、启动及动作副作用；完整字段组合待验收 |
 | `POST /runtime/process-instances/delete` | `` | `/runtime/process-instances/delete` | 实现扩展；不计入官方覆盖 |
 | `POST /runtime/process-instances/{}/attachments` | `` | `/runtime/process-instances/{id}/attachments` | 实现扩展；不计入官方覆盖 |
 | `POST /runtime/process-instances/{}/change-state` | `/runtime/process-instances/{processInstanceId}/change-state` | `/runtime/process-instances/{id}/change-state` | 已编码；待契约与 Java 行为验收 |
@@ -234,12 +234,12 @@
 | `PUT /repository/models/{}/source-extra` | `/repository/models/{modelId}/source-extra` | `/repository/models/{id}/source-extra` | 已编码；待契约与 Java 行为验收 |
 | `PUT /repository/process-definitions/{}` | `/repository/process-definitions/{processDefinitionId}` | `/repository/process-definitions/{id}` | 已编码；待契约与 Java 行为验收 |
 | `PUT /runtime/executions` | `/runtime/executions` | `/runtime/executions` | 已编码；待契约与 Java 行为验收 |
-| `PUT /runtime/executions/{}` | `/runtime/executions/{executionId}` | `/runtime/executions/{id}` | 已编码；待契约与 Java 行为验收 |
+| `PUT /runtime/executions/{}` | `/runtime/executions/{executionId}` | `/runtime/executions/{id}` | 原版实例与执行HTTP场景通过：完整DTO、分页、启动及动作副作用；完整字段组合待验收 |
 | `PUT /runtime/executions/{}/variables` | `/runtime/executions/{executionId}/variables` | `/runtime/executions/{id}/variables` | 已编码；待契约与 Java 行为验收 |
 | `PUT /runtime/executions/{}/variables-async` | `` | `/runtime/executions/{id}/variables-async` | 持久异步已验收：单执行者重试与恢复；Java原版HTTP场景通过；原版204与OpenAPI标记201不同 |
 | `PUT /runtime/executions/{}/variables-async/{}` | `` | `/runtime/executions/{id}/variables-async/{name}` | 持久异步已验收：单执行者重试与恢复；Java原版HTTP场景通过 |
 | `PUT /runtime/executions/{}/variables/{}` | `/runtime/executions/{executionId}/variables/{variableName}` | `/runtime/executions/{id}/variables/{name}` | 已编码；待契约与 Java 行为验收 |
-| `PUT /runtime/process-instances/{}` | `/runtime/process-instances/{processInstanceId}` | `/runtime/process-instances/{id}` | 已编码；待契约与 Java 行为验收 |
+| `PUT /runtime/process-instances/{}` | `/runtime/process-instances/{processInstanceId}` | `/runtime/process-instances/{id}` | 原版实例与执行HTTP场景通过：完整DTO、分页、启动及动作副作用；完整字段组合待验收 |
 | `PUT /runtime/process-instances/{}/variables` | `/runtime/process-instances/{processInstanceId}/variables` | `/runtime/process-instances/{id}/variables` | 已编码；待契约与 Java 行为验收 |
 | `PUT /runtime/process-instances/{}/variables-async` | `` | `/runtime/process-instances/{id}/variables-async` | 持久异步已验收：单执行者重试与恢复；Java原版HTTP场景通过 |
 | `PUT /runtime/process-instances/{}/variables-async/{}` | `` | `/runtime/process-instances/{id}/variables-async/{name}` | 持久异步已验收：单执行者重试与恢复；Java原版HTTP场景通过 |

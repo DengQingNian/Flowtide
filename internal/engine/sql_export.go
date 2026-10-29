@@ -87,7 +87,7 @@ func (e *Engine) repositoryRowsLocked() ([]flowablerow.Row, error) {
 		_ = procRow.Set("DEPLOYMENT_ID_", definition.Info.DeploymentID)
 		_ = procRow.Set("RESOURCE_NAME_", definition.Info.ResourceName)
 		_ = procRow.Set("DGRM_RESOURCE_NAME_", "")
-		_ = procRow.Set("DESCRIPTION_", "")
+		_ = procRow.Set("DESCRIPTION_", definitionDTO(definition).Description)
 		_ = procRow.Set("HAS_START_FORM_KEY_", false)
 		_ = procRow.Set("HAS_GRAPHICAL_NOTATION_", false)
 		_ = procRow.Set("SUSPENSION_STATE_", suspension)

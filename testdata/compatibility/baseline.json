@@ -99,6 +99,14 @@
     {
       "path": "testdata/compatibility/go/provenance.json",
       "sha256": "96cb478f65e46c3dc82d98e0725d1ff74a84bf5dfdb15f254eed33899f6e398a"
+    },
+    {
+      "path": "testdata/compatibility/java/005-runtime-rest.json",
+      "sha256": "ed949d5259f91e85e42c9f04c31c008de19c56277ca399178c9fc6587c89c070"
+    },
+    {
+      "path": "testdata/compatibility/java/runtime-provenance.json",
+      "sha256": "c4ef5cd9d9d708132a32881e3737ef7c4273601d861858fa64fdf14b8df653a3"
     }
   ]
 }

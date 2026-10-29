@@ -1,6 +1,8 @@
 package rest
 
 import (
+	"encoding/json"
+	"fmt"
 	"net/http"
 	"strings"
 
@@ -19,12 +21,30 @@ type executionActionPayload struct {
 // handleExecutionAction 对单个执行执行动作。
 // @param w 响应
 // @param r 请求
+// @return 无
 func (s *Server) handleExecutionAction(w http.ResponseWriter, r *http.Request) {
-	var payload executionActionPayload
-	if err := decodeTaskJSON(r, &payload); err != nil {
+	var raw struct {
+		Action             string          `json:"action"`
+		SignalName         string          `json:"signalName"`
+		MessageName        string          `json:"messageName"`
+		Variables          json.RawMessage `json:"variables"`
+		TransientVariables json.RawMessage `json:"transientVariables"`
+	}
+	if err := decodeTaskJSON(r, &raw); err != nil {
 		writeError(w, err)
 		return
 	}
+	variables, err := parseRuntimeVariables(raw.Variables)
+	if err != nil {
+		writeError(w, err)
+		return
+	}
+	transient, err := parseRuntimeVariables(raw.TransientVariables)
+	if err != nil {
+		writeError(w, err)
+		return
+	}
+	payload := executionActionPayload{Action: raw.Action, SignalName: raw.SignalName, MessageName: raw.MessageName, Variables: variables, TransientVariables: transient}
 	action := strings.ToLower(payload.Action)
 	switch action {
 	case "trigger", "signal":
@@ -51,15 +71,15 @@ func (s *Server) handleExecutionAction(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	default:
-		writeError(w, api.NewError("REST-0140", "不支持的执行动作: "+payload.Action, api.ErrBadRequest))
+		writeRuntimeFailure(w, 400, fmt.Sprintf("Invalid action: '%s'.", payload.Action))
 		return
 	}
 	execution, err := s.engine.RuntimeService().GetExecution(r.Context(), r.PathValue("id"))
-	if err != nil {
+	if err != nil || execution.Ended {
 		w.WriteHeader(http.StatusNoContent)
 		return
 	}
-	writeJSON(w, http.StatusOK, execution)
+	writeJSON(w, http.StatusOK, executionRESTResponse(r, execution))
 }
 
 // handleExecutionsAction 广播执行动作。

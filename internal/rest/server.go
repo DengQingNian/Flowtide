@@ -1159,6 +1159,8 @@ func (s *Server) handleGetDefinitionXML(w http.ResponseWriter, r *http.Request) 
 type startPayload struct {
 	ProcessDefinitionKey string          `json:"processDefinitionKey"` // 流程定义 Key
 	ProcessDefinitionID  string          `json:"processDefinitionId"`  // 流程定义 ID
+	Message              string          `json:"message"`              // 消息开始事件名称
+	ReturnVariables      bool            `json:"returnVariables"`      // 返回首次等待后的变量
 	BusinessKey          string          `json:"businessKey"`          // 业务键
 	Name                 string          `json:"name"`                 // 名称
 	TenantID             string          `json:"tenantId"`             // 租户
@@ -1169,19 +1171,20 @@ type startPayload struct {
 // handleListExecutions 返回执行列表。
 // @param w 响应
 // @param r 请求
+// @return 无
 func (s *Server) handleListExecutions(w http.ResponseWriter, r *http.Request) {
-	items, err := s.engine.RuntimeService().ListExecutions(r.Context(), r.URL.Query().Get("processInstanceId"))
+	body, err := runtimeQueryFromRequest(r, nil, true)
 	if err != nil {
 		writeError(w, err)
 		return
 	}
-	start, size := pageParams(r)
-	writePage(w, items, start, size)
+	s.serveExecutionQuery(w, r, body)
 }
 
 // handleGetExecutionVariables 返回执行变量。
 // @param w 响应
 // @param r 请求
+// @return 无
 func (s *Server) handleGetExecutionVariables(w http.ResponseWriter, r *http.Request) {
 	values, err := s.engine.RuntimeService().GetExecutionVariables(r.Context(), r.PathValue("id"))
 	if err != nil {
@@ -1196,28 +1199,35 @@ func (s *Server) handleGetExecutionVariables(w http.ResponseWriter, r *http.Requ
 // @param r 请求
 func (s *Server) handleGetExecution(w http.ResponseWriter, r *http.Request) {
 	execution, err := s.engine.RuntimeService().GetExecution(r.Context(), r.PathValue("id"))
+	if err == nil && execution.Ended {
+		err = api.ErrNotFound
+	}
 	if err != nil {
-		writeError(w, err)
+		writeRuntimeError(w, r, err, true)
 		return
 	}
-	writeJSON(w, http.StatusOK, execution)
+	writeJSON(w, http.StatusOK, executionRESTResponse(r, execution))
 }
 
 // handleStartInstance 启动流程实例。
 // @param w 响应
 // @param r 请求
+// @return 无
 func (s *Server) handleStartInstance(w http.ResponseWriter, r *http.Request) {
 	var payload startPayload
-	if err := decodeJSON(r, &payload); err != nil {
+	if err := decodeTaskJSON(r, &payload); err != nil {
 		writeError(w, err)
 		return
 	}
-	variables, err := parseVariables(payload.Variables)
+	if !validateRuntimeStart(w, payload) {
+		return
+	}
+	variables, err := parseRuntimeVariables(payload.Variables)
 	if err != nil {
 		writeError(w, err)
 		return
 	}
-	transientVariables, err := parseVariables(payload.TransientVariables)
+	transientVariables, err := parseRuntimeVariables(payload.TransientVariables)
 	if err != nil {
 		writeError(w, err)
 		return
@@ -1225,6 +1235,7 @@ func (s *Server) handleStartInstance(w http.ResponseWriter, r *http.Request) {
 	instance, err := s.engine.RuntimeService().StartProcessInstance(r.Context(), api.StartRequest{
 		ProcessDefinitionKey: payload.ProcessDefinitionKey,
 		ProcessDefinitionID:  payload.ProcessDefinitionID,
+		MessageName:          payload.Message,
 		BusinessKey:          payload.BusinessKey,
 		Name:                 payload.Name,
 		TenantID:             firstNonEmpty(payload.TenantID, requestTenant(r)),
@@ -1233,10 +1244,26 @@ func (s *Server) handleStartInstance(w http.ResponseWriter, r *http.Request) {
 		TransientVariables:   transientVariables,
 	})
 	if err != nil {
+		writeRuntimeStartError(w, payload, err)
+		return
+	}
+	values := make(map[string]any, len(variables))
+	for _, variable := range variables {
+		values[variable.Name] = variable.Value
+	}
+	if payload.ReturnVariables {
+		values, err = s.engine.RuntimeService().GetVariables(r.Context(), instance.ID)
+		if err != nil {
+			writeError(w, err)
+			return
+		}
+	}
+	definition, err := s.engine.RepositoryService().GetProcessDefinition(r.Context(), instance.ProcessDefinitionID)
+	if err != nil {
 		writeError(w, err)
 		return
 	}
-	writeJSON(w, http.StatusCreated, instance)
+	writeJSON(w, http.StatusCreated, instanceRESTResponse(r, instance, &definition, values))
 }
 
 // eventPayload 是消息/信号请求体。
@@ -1677,76 +1704,59 @@ func (s *Server) handleSignal(w http.ResponseWriter, r *http.Request) {
 // handleListInstances 返回运行中实例。
 // @param w 响应
 // @param r 请求
+// @return 无
 func (s *Server) handleListInstances(w http.ResponseWriter, r *http.Request) {
-	instances, err := s.engine.RuntimeService().ListProcessInstances(r.Context())
+	body, err := runtimeQueryFromRequest(r, nil, false)
 	if err != nil {
 		writeError(w, err)
 		return
 	}
-	instances = filterInstances(instances, requestTenant(r))
-	if key := r.URL.Query().Get("processDefinitionKey"); key != "" {
-		filtered := make([]api.ProcessInstance, 0, len(instances))
-		for _, instance := range instances {
-			if instance.ProcessDefinitionKey == key {
-				filtered = append(filtered, instance)
-			}
-		}
-		instances = filtered
-	}
-	if businessKey := r.URL.Query().Get("businessKey"); businessKey != "" {
-		filtered := make([]api.ProcessInstance, 0, len(instances))
-		for _, instance := range instances {
-			if instance.BusinessKey == businessKey {
-				filtered = append(filtered, instance)
-			}
-		}
-		instances = filtered
-	}
-	start, size := pageParams(r)
-	writePage(w, instances, start, size)
+	s.serveInstanceQuery(w, r, body)
 }
 
 // handleGetInstance 返回实例详情。
 // @param w 响应
 // @param r 请求
+// @return 无
 func (s *Server) handleGetInstance(w http.ResponseWriter, r *http.Request) {
 	instance, err := s.engine.RuntimeService().GetProcessInstance(r.Context(), r.PathValue("id"))
+	if err == nil && instance.Ended {
+		err = api.ErrNotFound
+	}
+	if err != nil {
+		writeRuntimeError(w, r, err, false)
+		return
+	}
+	definition, err := s.engine.RepositoryService().GetProcessDefinition(r.Context(), instance.ProcessDefinitionID)
 	if err != nil {
 		writeError(w, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, instance)
-}
-
-// instanceActionPayload 是实例动作请求体。
-type instanceActionPayload struct {
-	Action string `json:"action"` // suspend/activate
+	writeJSON(w, http.StatusOK, instanceRESTResponse(r, instance, &definition, nil))
 }
 
 // handleInstanceAction 处理实例挂起/激活。
 // @param w 响应
 // @param r 请求
+// @return 无
 func (s *Server) handleInstanceAction(w http.ResponseWriter, r *http.Request) {
-	var payload instanceActionPayload
-	if err := decodeJSON(r, &payload); err != nil {
+	var payload instanceUpdatePayload
+	if err := decodeTaskJSON(r, &payload); err != nil {
 		writeError(w, err)
 		return
 	}
-	var err error
-	switch payload.Action {
-	case "suspend":
-		err = s.engine.RuntimeService().SuspendProcessInstance(r.Context(), r.PathValue("id"))
-	case "activate":
-		err = s.engine.RuntimeService().ActivateProcessInstance(r.Context(), r.PathValue("id"))
-	default:
-		writeError(w, api.NewError("REST-0111", "不支持的实例动作: "+payload.Action, api.ErrBadRequest))
-		return
+	instance, err := s.engine.RuntimeService().GetProcessInstance(r.Context(), r.PathValue("id"))
+	if err == nil && instance.Ended {
+		err = api.ErrNotFound
 	}
 	if err != nil {
-		writeError(w, err)
+		writeRuntimeError(w, r, err, false)
 		return
 	}
-	w.WriteHeader(http.StatusNoContent)
+	updated, ok := s.applyRuntimeInstanceAction(w, r, instance, payload)
+	if ok {
+		writeJSON(w, http.StatusOK, instanceRESTResponse(r, updated, nil, nil))
+	}
 }
 
 // migratePayload 是迁移请求体。
@@ -1778,10 +1788,18 @@ func (s *Server) handleMigrate(w http.ResponseWriter, r *http.Request) {
 // handleDeleteInstance 删除实例。
 // @param w 响应
 // @param r 请求
+// @return 无
 func (s *Server) handleDeleteInstance(w http.ResponseWriter, r *http.Request) {
-	reason := r.URL.Query().Get("deleteReason")
-	if err := s.engine.RuntimeService().DeleteProcessInstance(r.Context(), r.PathValue("id"), reason); err != nil {
-		writeError(w, err)
+	instance, err := s.engine.RuntimeService().GetProcessInstance(r.Context(), r.PathValue("id"))
+	if err == nil && instance.Ended {
+		err = api.ErrNotFound
+	}
+	if err != nil {
+		writeRuntimeError(w, r, err, false)
+		return
+	}
+	if err := s.engine.RuntimeService().DeleteProcessInstance(r.Context(), instance.ID, r.URL.Query().Get("deleteReason")); err != nil {
+		writeRuntimeError(w, r, err, false)
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)

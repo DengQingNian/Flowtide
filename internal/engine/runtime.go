@@ -36,10 +36,18 @@ func (e *Engine) StartProcessInstance(ctx context.Context, req api.StartRequest)
 func (e *Engine) startProcess(cc *commandContext, req api.StartRequest) (api.ProcessInstance, error) {
 	var definition *definitionState
 	var ok bool
+	var messageStart *model.StartEvent
 	if req.ProcessDefinitionID != "" {
 		definition, ok = e.findDefinition(req.ProcessDefinitionID)
 	} else if req.ProcessDefinitionKey != "" {
 		definition, ok = e.findTenantDefinition(cc.ctx, req.ProcessDefinitionKey)
+	} else if req.MessageName != "" {
+		var err error
+		definition, messageStart, err = e.messageStartDefinition(cc.ctx, req.MessageName)
+		if err != nil {
+			return api.ProcessInstance{}, err
+		}
+		ok = true
 	} else {
 		return api.ProcessInstance{}, api.NewError("ENGINE-0101", "必须指定流程定义 Key 或 ID", api.ErrBadRequest)
 	}
@@ -60,6 +68,9 @@ func (e *Engine) startProcess(cc *commandContext, req api.StartRequest) (api.Pro
 		return api.ProcessInstance{}, api.NewError("ENGINE-0103", "流程定义不包含流程", nil)
 	}
 	startEvent := firstStartEvent(process)
+	if messageStart != nil {
+		startEvent = messageStart
+	}
 	if startEvent == nil {
 		return api.ProcessInstance{}, api.NewError("ENGINE-0104", "流程缺少开始事件", nil)
 	}
@@ -81,6 +92,7 @@ func (e *Engine) startProcess(cc *commandContext, req api.StartRequest) (api.Pro
 		ProcessDefinitionKey: definition.Info.Key,
 		BusinessKey:          req.BusinessKey,
 		Name:                 req.Name,
+		StartUserID:          req.UserID,
 		TenantID:             tenantID,
 		StartTime:            cc.now,
 		RootExecutionID:      instanceID,
@@ -806,19 +818,33 @@ func (e *Engine) executeServiceTask(cc *commandContext, execution *executionStat
 // @return 流程实例 DTO
 func (e *Engine) toProcessInstance(instance *instanceState) api.ProcessInstance {
 	dto := api.ProcessInstance{
-		ID:                   instance.ID,
-		ProcessDefinitionID:  instance.ProcessDefinitionID,
-		ProcessDefinitionKey: instance.ProcessDefinitionKey,
-		BusinessKey:          instance.BusinessKey,
-		Name:                 instance.Name,
-		TenantID:             instance.TenantID,
-		StartTime:            instance.StartTime,
-		EndTime:              cloneTime(instance.EndTime),
-		Ended:                instance.Ended,
-		Suspended:            instance.Suspended,
+		ID:                        instance.ID,
+		ProcessDefinitionID:       instance.ProcessDefinitionID,
+		ProcessDefinitionKey:      instance.ProcessDefinitionKey,
+		BusinessKey:               instance.BusinessKey,
+		Name:                      instance.Name,
+		StartUserID:               instance.StartUserID,
+		BusinessStatus:            instance.BusinessStatus,
+		DueDate:                   cloneTime(instance.DueDate),
+		ClaimTime:                 cloneTime(instance.ClaimTime),
+		ClaimedBy:                 instance.ClaimedBy,
+		CallbackID:                instance.CallbackID,
+		CallbackType:              instance.CallbackType,
+		ReferenceID:               instance.ReferenceID,
+		ReferenceType:             instance.ReferenceType,
+		PropagatedStageInstanceID: instance.PropagatedStageInstanceID,
+		TenantID:                  instance.TenantID,
+		StartTime:                 instance.StartTime,
+		EndTime:                   cloneTime(instance.EndTime),
+		Ended:                     instance.Ended,
+		Suspended:                 instance.Suspended,
 	}
 	if root, ok := e.rootExecution(instance); ok {
+		dto.ActivityID = root.ActivityID
 		dto.Variables = e.variablesOf(root)
+	}
+	if parent, ok := e.state.Executions[instance.SuperExecutionID]; ok {
+		dto.SuperProcessInstanceID = parent.ProcessInstanceID
 	}
 	return dto
 }

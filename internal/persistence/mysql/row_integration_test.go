@@ -61,6 +61,12 @@ func TestIntegrationMySQLRows(t *testing.T) {
 		t.Fatal(err)
 	}
 	due := time.Date(2026, 11, 1, 12, 0, 0, 0, time.FixedZone("验收时区", 8*3600))
+	instanceName, businessStatus, instanceUser := "实例元数据验收", "review", "bob"
+	updatedInstance, err := first.UpdateProcessInstance(ctx, instance.ID, api.ProcessInstanceUpdate{Name: &instanceName, BusinessStatus: &businessStatus, DueDate: &due, ClaimUserID: &instanceUser})
+	if err != nil || updatedInstance.ClaimTime == nil {
+		t.Fatalf("实例签收元数据更新失败: %+v %v", updatedInstance, err)
+	}
+
 	standalone, err := first.CreateTask(ctx, api.CreateTaskRequest{Name: "独立任务", DueDate: &due})
 	if err != nil {
 		t.Fatal(err)
@@ -78,6 +84,16 @@ func TestIntegrationMySQLRows(t *testing.T) {
 	second, err := engine.New(engine.Config{RowRepository: repository, LoadRows: true})
 	if err != nil {
 		t.Fatal(err)
+	}
+
+	restoredInstance, err := second.GetProcessInstance(ctx, instance.ID)
+	if err != nil || restoredInstance.Name != instanceName || restoredInstance.StartUserID != "starter" || restoredInstance.BusinessStatus != businessStatus || restoredInstance.ClaimedBy != instanceUser || restoredInstance.DueDate == nil || !restoredInstance.DueDate.Equal(due) || restoredInstance.ClaimTime == nil || !restoredInstance.ClaimTime.Equal(*updatedInstance.ClaimTime) {
+		t.Fatalf("标准实例元数据重启后丢失: %+v %v", restoredInstance, err)
+	}
+	var storedName, storedUser, storedStatus, storedClaimedBy string
+	var storedDue, storedClaim time.Time
+	if err := db.QueryRowContext(ctx, "SELECT NAME_, START_USER_ID_, BUSINESS_STATUS_, CLAIMED_BY_, DUE_DATE_, CLAIM_TIME_ FROM ACT_RU_EXECUTION WHERE ID_=?", instance.ID).Scan(&storedName, &storedUser, &storedStatus, &storedClaimedBy, &storedDue, &storedClaim); err != nil || storedName != instanceName || storedUser != "starter" || storedStatus != businessStatus || storedClaimedBy != instanceUser || !storedDue.Equal(due) || !storedClaim.Equal(*updatedInstance.ClaimTime) {
+		t.Fatalf("标准实例行不是元数据真实来源: 名称=%s 用户=%s 状态=%s 签收人=%s 到期=%s 签收=%s 错误=%v", storedName, storedUser, storedStatus, storedClaimedBy, storedDue, storedClaim, err)
 	}
 	if task, err := second.GetTask(ctx, standalone.ID); err != nil || task.ClaimTime == nil || !task.ClaimTime.Equal(claimed.ClaimTime.Truncate(time.Millisecond)) {
 		t.Fatalf("MySQL 标准任务行丢失签收时间: %+v %v", task, err)

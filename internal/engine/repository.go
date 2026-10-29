@@ -60,7 +60,7 @@ func (e *Engine) deploy(cc *commandContext, req api.DeploymentRequest) (api.Depl
 		names = append(names, name)
 	}
 	sort.Strings(names)
-	// 版本号在同一部署内按 Key 递增
+	// 版本号按租户和 Key 递增，标准定义行优先于旧快照中的全局版本缓存。
 	localVersions := make(map[string]int)
 	for _, name := range names {
 		data := expanded[name]
@@ -76,7 +76,10 @@ func (e *Engine) deploy(cc *commandContext, req api.DeploymentRequest) (api.Depl
 			if process.ID == "" {
 				return api.Deployment{}, api.NewError("ENGINE-0202", "流程缺少 ID", nil)
 			}
-			version := e.state.Versions[process.ID] + 1 + localVersions[process.ID]
+			version := 1
+			if latest, exists := e.findTenantDefinition(cc.ctx, process.ID); exists {
+				version = latest.Info.Version + 1
+			}
 			localVersions[process.ID]++
 			definitionID := fmt.Sprintf("%s:%d:%s", process.ID, version, e.newID())
 			definition := &definitionState{
@@ -84,6 +87,7 @@ func (e *Engine) deploy(cc *commandContext, req api.DeploymentRequest) (api.Depl
 					ID:           definitionID,
 					Key:          process.ID,
 					Name:         process.Name,
+					Description:  process.Documentation,
 					Version:      version,
 					DeploymentID: deploymentID,
 					ResourceName: name,
@@ -126,7 +130,7 @@ func (e *Engine) ListProcessDefinitions(ctx context.Context) ([]api.ProcessDefin
 			if e.allowTenant(ctx, definition.Info.TenantID) != nil {
 				continue
 			}
-			out = append(out, definition.Info)
+			out = append(out, definitionDTO(definition))
 		}
 		sort.Slice(out, func(i, j int) bool {
 			if out[i].Key == out[j].Key {
@@ -156,7 +160,7 @@ func (e *Engine) GetProcessDefinition(ctx context.Context, id string) (api.Proce
 		if err := e.allowTenant(ctx, definition.Info.TenantID); err != nil {
 			return nil, err
 		}
-		return definition.Info, nil
+		return definitionDTO(definition), nil
 	})
 	if err != nil {
 		return api.ProcessDefinition{}, err
@@ -178,7 +182,7 @@ func (e *Engine) GetProcessDefinitionByKey(ctx context.Context, key string) (api
 		if err := e.allowTenant(ctx, definition.Info.TenantID); err != nil {
 			return nil, err
 		}
-		return definition.Info, nil
+		return definitionDTO(definition), nil
 	})
 	if err != nil {
 		return api.ProcessDefinition{}, err
@@ -280,4 +284,18 @@ func expandResources(resources map[string][]byte) (map[string][]byte, error) {
 func isArchiveResource(name string) bool {
 	lower := strings.ToLower(name)
 	return strings.HasSuffix(lower, ".zip") || strings.HasSuffix(lower, ".bar")
+}
+
+// definitionDTO 补全旧状态中未显式保存的流程说明，不修改已有持久状态。
+// @param definition 流程定义状态
+// @return 对外定义信息
+func definitionDTO(definition *definitionState) api.ProcessDefinition {
+	info := definition.Info
+	if info.Description == "" {
+		// 旧状态未保存说明列时，仅在对外快照补齐，避免读操作改写持久状态。
+		if process := processOfDefinition(definition); process != nil {
+			info.Description = process.Documentation
+		}
+	}
+	return info
 }

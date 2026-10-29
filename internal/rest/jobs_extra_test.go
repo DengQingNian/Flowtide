@@ -113,7 +113,7 @@ func TestREST_SuspendedAndHistoryJobs(t *testing.T) {
 	request, _ := http.NewRequest(http.MethodPut, server.URL+"/service/runtime/process-instances/"+instance.ID, bytes.NewReader(suspendBody))
 	request.Header.Set("Content-Type", "application/json")
 	response, _ = http.DefaultClient.Do(request)
-	if response.StatusCode != http.StatusNoContent {
+	if response.StatusCode != http.StatusOK {
 		t.Fatalf("挂起实例失败: %d", response.StatusCode)
 	}
 	_ = response.Body.Close()

@@ -479,12 +479,22 @@ func filterQueryExecutions(items []api.ExecutionInfo, body queryBody) ([]api.Exe
 	instanceID := body.str("processInstanceId")
 	definitionID := body.str("processDefinitionId")
 	activityID := body.str("activityId")
+	parentID := body.str("parentId")
+	definitionKey := body.str("processDefinitionKey")
+	tenantID := body.str("tenantId")
+	suspended, err := body.boolField("suspended")
+	if err != nil {
+		return nil, err
+	}
 	out := make([]api.ExecutionInfo, 0, len(items))
 	for _, item := range items {
 		if !matchQueryString(item.ID, id) ||
 			!matchQueryString(item.ProcessInstanceID, instanceID) ||
 			!matchQueryString(item.ProcessDefinitionID, definitionID) ||
-			!matchQueryString(item.ActivityID, activityID) {
+			!matchQueryString(item.ActivityID, activityID) ||
+			!matchQueryString(item.ParentID, parentID) ||
+			!matchQueryString(item.ProcessDefinitionKey, definitionKey) ||
+			!matchQueryString(item.TenantID, tenantID) {
 			continue
 		}
 		if ended != nil && item.Ended != *ended {
@@ -494,6 +504,9 @@ func filterQueryExecutions(items []api.ExecutionInfo, body queryBody) ([]api.Exe
 			continue
 		}
 		if waiting != nil && item.Waiting != *waiting {
+			continue
+		}
+		if suspended != nil && item.Suspended != *suspended {
 			continue
 		}
 		out = append(out, item)
@@ -945,6 +958,8 @@ func filterQueryHistoricActivities(items []api.HistoricActivityInstance, body qu
 // @return 是否支持
 func processInstanceSortKey(field string) (func(api.ProcessInstance) any, bool) {
 	switch field {
+	case "tenantId":
+		return func(item api.ProcessInstance) any { return item.TenantID }, true
 	case "id":
 		return func(item api.ProcessInstance) any { return item.ID }, true
 	case "processDefinitionId":
@@ -969,6 +984,10 @@ func processInstanceSortKey(field string) (func(api.ProcessInstance) any, bool) 
 // @return 是否支持
 func executionSortKey(field string) (func(api.ExecutionInfo) any, bool) {
 	switch field {
+	case "tenantId":
+		return func(item api.ExecutionInfo) any { return item.TenantID }, true
+	case "processDefinitionKey":
+		return func(item api.ExecutionInfo) any { return item.ProcessDefinitionKey }, true
 	case "id":
 		return func(item api.ExecutionInfo) any { return item.ID }, true
 	case "processInstanceId":
@@ -1074,73 +1093,37 @@ func historicActivitySortKey(field string) (func(api.HistoricActivityInstance) a
 // handleQueryProcessInstances 查询运行中流程实例。
 // @param w 响应
 // @param r 请求
+// @return 无
 func (s *Server) handleQueryProcessInstances(w http.ResponseWriter, r *http.Request) {
 	body, err := readQueryBody(r)
 	if err != nil {
 		writeError(w, err)
 		return
 	}
-	items, err := s.engine.RuntimeService().ListProcessInstances(r.Context())
+	body, err = runtimeQueryFromRequest(r, body, false)
 	if err != nil {
 		writeError(w, err)
 		return
 	}
-	items, err = filterQueryProcessInstances(items, body, requestTenant(r))
-	if err != nil {
-		writeError(w, err)
-		return
-	}
-	items, err = applyQueryVariableFilter(r.Context(), items, body, s.processInstanceVariables)
-	if err != nil {
-		writeError(w, err)
-		return
-	}
-	start, size, sortField, order, err := body.pagination()
-	if err != nil {
-		writeError(w, err)
-		return
-	}
-	if err := sortQueryItems(items, sortField, order, processInstanceSortKey); err != nil {
-		writeError(w, err)
-		return
-	}
-	writeQueryPage(w, items, start, size, sortField, order)
+	s.serveInstanceQuery(w, r, body)
 }
 
 // handleQueryExecutions 查询执行实例。
 // @param w 响应
 // @param r 请求
+// @return 无
 func (s *Server) handleQueryExecutions(w http.ResponseWriter, r *http.Request) {
 	body, err := readQueryBody(r)
 	if err != nil {
 		writeError(w, err)
 		return
 	}
-	items, err := s.engine.RuntimeService().ListExecutions(r.Context(), body.str("processInstanceId"))
+	body, err = runtimeQueryFromRequest(r, body, true)
 	if err != nil {
 		writeError(w, err)
 		return
 	}
-	items, err = filterQueryExecutions(items, body)
-	if err != nil {
-		writeError(w, err)
-		return
-	}
-	items, err = applyQueryVariableFilter(r.Context(), items, body, s.executionVariables)
-	if err != nil {
-		writeError(w, err)
-		return
-	}
-	start, size, sortField, order, err := body.pagination()
-	if err != nil {
-		writeError(w, err)
-		return
-	}
-	if err := sortQueryItems(items, sortField, order, executionSortKey); err != nil {
-		writeError(w, err)
-		return
-	}
-	writeQueryPage(w, items, start, size, sortField, order)
+	s.serveExecutionQuery(w, r, body)
 }
 
 // handleQueryTasks 查询运行中任务。

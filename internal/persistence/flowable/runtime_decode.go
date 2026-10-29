@@ -10,20 +10,32 @@ import (
 
 // RuntimeExecution 是运行时执行行。
 type RuntimeExecution struct {
-	ID                string    // 执行 ID
-	ProcessInstanceID string    // 流程实例 ID
-	DefinitionID      string    // 流程定义 ID
-	ParentID          string    // 父执行 ID
-	ActivityID        string    // 当前活动 ID
-	BusinessKey       string    // 业务键
-	TenantID          string    // 租户
-	StartTime         time.Time // 开始时间
-	Active            bool      // 是否活跃
-	Concurrent        bool      // 是否并发
-	Scope             bool      // 是否作用域
-	EventScope        bool      // 是否事件作用域
-	MIRoot            bool      // 是否多实例根
-	Suspended         bool      // 是否挂起
+	Name                      string     // 实例根名称
+	StartUserID               string     // 实例发起人
+	BusinessStatus            string     // 业务状态
+	DueDate                   *time.Time // 实例截止时间
+	ClaimTime                 *time.Time // 实例签收时间
+	ClaimedBy                 string     // 实例签收人
+	SuperExecutionID          string     // 父调用执行标识
+	CallbackID                string     // 回调标识
+	CallbackType              string     // 回调类型
+	ReferenceID               string     // 关联标识
+	ReferenceType             string     // 关联类型
+	PropagatedStageInstanceID string     // 传播阶段标识
+	ID                        string     // 执行 ID
+	ProcessInstanceID         string     // 流程实例 ID
+	DefinitionID              string     // 流程定义 ID
+	ParentID                  string     // 父执行 ID
+	ActivityID                string     // 当前活动 ID
+	BusinessKey               string     // 业务键
+	TenantID                  string     // 租户
+	StartTime                 time.Time  // 开始时间
+	Active                    bool       // 是否活跃
+	Concurrent                bool       // 是否并发
+	Scope                     bool       // 是否作用域
+	EventScope                bool       // 是否事件作用域
+	MIRoot                    bool       // 是否多实例根
+	Suspended                 bool       // 是否挂起
 }
 
 // RuntimeTask 是运行时任务行。
@@ -256,7 +268,7 @@ func decodeExecution(row Row) (RuntimeExecution, error) {
 	if err != nil {
 		return RuntimeExecution{}, err
 	}
-	// Java 仅在流程根设置开始时间，子执行为空时交由实例恢复使用根元数据。
+	// 子执行开始时间可以为空，此时实例恢复必须使用根元数据。
 	started := time.Time{}
 	if startTime != nil {
 		started = *startTime
@@ -285,7 +297,24 @@ func decodeExecution(row Row) (RuntimeExecution, error) {
 	if err != nil {
 		return RuntimeExecution{}, err
 	}
+	metadata := map[string]string{}
+	for _, column := range []string{"NAME_", "START_USER_ID_", "BUSINESS_STATUS_", "CLAIMED_BY_", "SUPER_EXEC_", "CALLBACK_ID_", "CALLBACK_TYPE_", "REFERENCE_ID_", "REFERENCE_TYPE_", "PROPAGATED_STAGE_INST_ID_"} {
+		value, err := optionalStringValue(row, column)
+		if err != nil {
+			return RuntimeExecution{}, err
+		}
+		metadata[column] = value
+	}
+	due, err := optionalTime(row, "DUE_DATE_")
+	if err != nil {
+		return RuntimeExecution{}, err
+	}
+	claimed, err := optionalTime(row, "CLAIM_TIME_")
+	if err != nil {
+		return RuntimeExecution{}, err
+	}
 	return RuntimeExecution{
+		Name: metadata["NAME_"], StartUserID: metadata["START_USER_ID_"], BusinessStatus: metadata["BUSINESS_STATUS_"], ClaimedBy: metadata["CLAIMED_BY_"], SuperExecutionID: metadata["SUPER_EXEC_"], CallbackID: metadata["CALLBACK_ID_"], CallbackType: metadata["CALLBACK_TYPE_"], ReferenceID: metadata["REFERENCE_ID_"], ReferenceType: metadata["REFERENCE_TYPE_"], PropagatedStageInstanceID: metadata["PROPAGATED_STAGE_INST_ID_"], DueDate: due, ClaimTime: claimed,
 		ID: id, ProcessInstanceID: processInstanceID, DefinitionID: definitionID,
 		ParentID: parentID, ActivityID: activityID, BusinessKey: businessKey,
 		TenantID: tenant, StartTime: started, Active: active, Concurrent: concurrent,

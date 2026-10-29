@@ -22,7 +22,7 @@ func (e *Engine) ListExecutions(ctx context.Context, processInstanceID string) (
 			if processInstanceID != "" && execution.ProcessInstanceID != processInstanceID {
 				continue
 			}
-			out = append(out, toExecutionInfo(execution))
+			out = append(out, e.toExecutionInfo(execution))
 		}
 		sort.Slice(out, func(i, j int) bool { return out[i].ID < out[j].ID })
 		return out, nil
@@ -47,7 +47,7 @@ func (e *Engine) GetExecution(ctx context.Context, executionID string) (api.Exec
 		if err := e.allowInstance(ctx, execution.ProcessInstanceID); err != nil {
 			return nil, err
 		}
-		return toExecutionInfo(execution), nil
+		return e.toExecutionInfo(execution), nil
 	})
 	if err != nil {
 		return api.ExecutionInfo{}, err
@@ -102,8 +102,8 @@ func (e *Engine) GetHistoricTaskInstance(ctx context.Context, taskID string) (ap
 // toExecutionInfo 将执行状态转换为 DTO。
 // @param execution 执行
 // @return 执行信息
-func toExecutionInfo(execution *executionState) api.ExecutionInfo {
-	return api.ExecutionInfo{
+func (e *Engine) toExecutionInfo(execution *executionState) api.ExecutionInfo {
+	info := api.ExecutionInfo{
 		ID:                  execution.ID,
 		ProcessInstanceID:   execution.ProcessInstanceID,
 		ProcessDefinitionID: execution.DefinitionID,
@@ -113,6 +113,16 @@ func toExecutionInfo(execution *executionState) api.ExecutionInfo {
 		Ended:               execution.Ended,
 		Waiting:             execution.Waiting,
 	}
+	// 租户及挂起状态以实例为准，上级调用引用仅属于实例根。
+	if instance, ok := e.state.Instances[execution.ProcessInstanceID]; ok {
+		info.ProcessDefinitionKey = instance.ProcessDefinitionKey
+		info.TenantID = instance.TenantID
+		info.Suspended = instance.Suspended
+		if instance.RootExecutionID == execution.ID {
+			info.SuperExecutionID = instance.SuperExecutionID
+		}
+	}
+	return info
 }
 
 // GetExecutionVariables 返回执行可见变量。
