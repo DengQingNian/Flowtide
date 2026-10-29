@@ -488,6 +488,16 @@ func TestClientCertificateIdentityRBAC(t *testing.T) {
 	response, err := doMTLSRequest(client, withRBAC.URL+"/service/repository/deployments", nil)
 	expectStatus(t, response, err, http.StatusForbidden)
 
+	// 显式主体角色映射应放行只读请求，并继续拒绝管理端点。
+	mapped := startMTLSTestServer(t, pki, New(app,
+		WithClientCertificateIdentity(),
+		WithRBAC(map[string][]string{"alice": {"reader"}}, map[string][]string{"reader": {"read"}}),
+	).Handler(), tls.RequireAndVerifyClientCert)
+	response, err = doMTLSRequest(client, mapped.URL+"/service/repository/deployments", nil)
+	expectStatus(t, response, err, http.StatusOK)
+	response, err = doMTLSRequest(client, mapped.URL+"/service/management/engine", nil)
+	expectStatus(t, response, err, http.StatusForbidden)
+
 	// 未配置 rolePermissions 时放行证书身份
 	withoutRBAC := startMTLSTestServer(t, pki, New(app, WithClientCertificateIdentity()).Handler(), tls.RequireAndVerifyClientCert)
 	response, err = doMTLSRequest(client, withoutRBAC.URL+"/service/repository/deployments", nil)

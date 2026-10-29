@@ -37,7 +37,13 @@ func main() {
 	rateLimit := flag.Float64("rate-limit", 0, "每秒请求数，0 表示关闭限流")
 	rateBurst := flag.Int("rate-burst", 0, "限流桶容量")
 	bearerToken := flag.String("bearer-token", "", "Bearer Token")
+	securityPath := flag.String("security-config", "", "安全 JSON 配置文件，支持 JWT、RBAC、身份库、租户绑定、审计与指标")
 	flag.Parse()
+	options, err := loadSecurityOptions(*securityPath)
+	if err != nil {
+		slog.Error("安全配置非法", "error", err)
+		os.Exit(1)
+	}
 
 	initCtx, cancelInit := context.WithTimeout(context.Background(), 30*time.Second)
 	setup, err := newStorage(initCtx, *storage, *statePath, *envPath)
@@ -97,7 +103,6 @@ func main() {
 		}()
 	}
 
-	options := make([]rest.Option, 0)
 	if *basicAuth != "" {
 		parts := strings.SplitN(*basicAuth, ":", 2)
 		if len(parts) != 2 || parts[0] == "" || parts[1] == "" {

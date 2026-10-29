@@ -224,10 +224,20 @@ func (s *Server) permitted(r *http.Request) bool {
 			return false
 		}
 	}
-	// 证书身份没有角色映射：未配置 rolePermissions 时放行，配置后因无角色应拒绝
+	// 证书主体通过显式用户角色映射授权，不从证书组织或租户字段推导权限。
 	if s.clientCertIdentity && r.Header.Get("Authorization") == "" {
-		if _, ok := r.Context().Value(authIdentityKey{}).(jwtIdentity); ok {
-			return len(s.rolePermissions) == 0
+		if identity, ok := r.Context().Value(authIdentityKey{}).(jwtIdentity); ok {
+			if len(s.rolePermissions) == 0 {
+				return true
+			}
+			for _, role := range s.userRoles[identity.Subject] {
+				for _, permission := range s.rolePermissions[role] {
+					if permission == "admin" || permission == requiredPermission(r.Method, r.URL.Path) {
+						return true
+					}
+				}
+			}
+			return false
 		}
 	}
 	user, _, ok := r.BasicAuth()
@@ -265,7 +275,7 @@ func requiredPermission(method, path string) string {
 	if strings.HasPrefix(path, "/service/management/") || strings.HasPrefix(path, "/service/identity/") {
 		return "admin"
 	}
-	if method == http.MethodGet || method == http.MethodHead {
+	if method == http.MethodGet || method == http.MethodHead || (method == http.MethodPost && strings.HasPrefix(path, "/service/query/")) {
 		return "read"
 	}
 	return "write"
@@ -2702,12 +2712,7 @@ func variableResponse(variables map[string]any) []api.Variable {
 // @param target 目标对象
 // @return 解析错误
 func decodeJSON(r *http.Request, target any) error {
-	decoder := json.NewDecoder(io.LimitReader(r.Body, MaxUploadSize))
-	decoder.DisallowUnknownFields()
-	if err := decoder.Decode(target); err != nil {
-		return api.NewError("REST-0109", "请求体 JSON 非法", err)
-	}
-	return nil
+	return decodeSingleJSON(r, target, false, true)
 }
 
 // requestUserID 从请求中解析操作人。

@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
 	"sort"
 	"strings"
@@ -23,12 +22,8 @@ type queryBody map[string]json.RawMessage
 // @return 解析错误
 func readQueryBody(r *http.Request) (queryBody, error) {
 	body := make(queryBody)
-	decoder := json.NewDecoder(io.LimitReader(r.Body, MaxUploadSize))
-	if err := decoder.Decode(&body); err != nil {
-		if err == io.EOF {
-			return body, nil
-		}
-		return nil, api.NewError("REST-0120", "查询请求体 JSON 非法", api.ErrBadRequest)
+	if err := decodeSingleJSON(r, &body, true, false); err != nil {
+		return nil, err
 	}
 	return body, nil
 }

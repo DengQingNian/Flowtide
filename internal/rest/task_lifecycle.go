@@ -2,7 +2,6 @@ package rest
 
 import (
 	"encoding/json"
-	"io"
 	"net/http"
 	"strings"
 	"time"
@@ -29,11 +28,7 @@ type taskCreatePayload struct {
 // @param target 目标对象
 // @return 解析错误
 func decodeTaskJSON(r *http.Request, target any) error {
-	decoder := json.NewDecoder(io.LimitReader(r.Body, MaxUploadSize))
-	if err := decoder.Decode(target); err != nil {
-		return api.NewError("REST-0109", "请求体 JSON 非法", err)
-	}
-	return nil
+	return decodeSingleJSON(r, target, false, false)
 }
 
 // parseTaskTime 解析 ISO-8601 时间。
