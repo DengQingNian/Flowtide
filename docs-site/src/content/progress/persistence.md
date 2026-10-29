@@ -1,6 +1,6 @@
 ---
 title: 持久化与数据库进度
-description: 内存、JSON 状态文件、MySQL 快照与行仓储四种形态，以及单执行者、锁和恢复边界。
+description: 内存、JSON 状态文件、MySQL 快照及 MySQL/PostgreSQL 行仓储五种形态，以及单执行者、锁和恢复边界。
 order: 30
 section: progress
 status: prototype
@@ -8,14 +8,15 @@ since: v0.1.0
 tags: [持久化, MySQL, PostgreSQL, 行仓储]
 ---
 
-## 四种状态形态
+## 五种状态形态
 
 | 形态 | 启用方式 | 写入粒度 | 适用场景 | 状态 |
 | --- | --- | --- | --- | --- |
 | 内存 | 默认 | 无持久化 | 单测、演示 | 已验证 |
 | JSON 状态文件 | <code>-state ./data/engine.json</code> | 全量原子快照 | 开发、小规模单进程 | 已验证 |
 | SQL 快照 | <code>-storage mysql</code> | 全量快照写入 | 单执行者数据库部署 | 原型可用 |
-| 行仓储 | <code>-storage mysql-rows</code> | 命令后增量行写入 | 单执行者、需要 SQL 可查 | 原型可用 |
+| MySQL 行仓储 | <code>-storage mysql-rows</code> | 命令后增量行写入 | 单执行者、需要 SQL 可查 | 真实库验收通过 |
+| PostgreSQL 行仓储 | <code>-storage postgres-rows</code> | 同一持锁会话内的命令事务 | 单执行者、需要 SQL 可查 | 真实库验收通过 |
 
 快照与行仓储互斥：引擎只允许一个权威状态源。行仓储模式启动时从 <code>ACT_*</code> 行恢复，命令完成后增量写入；关闭时释放独占锁。
 
@@ -52,6 +53,7 @@ tags: [持久化, MySQL, PostgreSQL, 行仓储]
 - JSON 状态文件原子写入，启动时恢复；失败时回滚。
 - 行仓储启动时从行表恢复，行是唯一权威来源。
 - <code>flowable-migrate -verify-state</code> 在隔离内存引擎中独立恢复状态文件并输出实体计数，不连接数据库。
+- verify-state 配合 verify-source 可只读核对源库与准备状态的行数及内容指纹。
 - 没有自动备份、PITR 或在线迁移；生产备份仍依赖数据库自身能力。
 
 ## 未完成项

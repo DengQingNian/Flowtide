@@ -20,6 +20,7 @@ import {
   Workflow,
 } from '@lucide/vue'
 import factsRaw from '@/generated/facts.json'
+import { milestones } from '@/lib/milestones'
 
 interface Facts {
   version: string
@@ -45,15 +46,7 @@ const stats = computed(() => [
   { value: number.format(facts.stats.tests), label: '测试/基准', href: '/progress/quality' },
 ])
 
-const phases = [
-  { id: 'M0', title: '基线与契约', detail: 'OpenAPI、DDL、41 张 ACT 表', state: 'done' },
-  { id: 'M1', title: 'BPMN 模型', detail: '安全解析、部署、版本', state: 'done' },
-  { id: 'M2', title: '运行时', detail: 'Command、Agenda、执行树', state: 'done' },
-  { id: 'M3', title: '任务与事件', detail: '任务、网关、子流程、多实例', state: 'done' },
-  { id: 'M4', title: '持久化', detail: '文件、快照、行仓储、查询下推', state: 'partial' },
-  { id: 'M5', title: '兼容与迁移', detail: 'REST 路由、预检、转换、停写', state: 'partial' },
-  { id: 'M6', title: '生产验收', detail: 'Java 对照、回退、集群、容量', state: 'todo' },
-]
+const phases = milestones
 
 const features = [
   {

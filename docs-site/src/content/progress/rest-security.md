@@ -20,6 +20,13 @@ tags: [REST, 认证, mTLS, 租户]
 
 路径存在只说明路由已编码。请求体字段、响应模式、分页、错误码、副作用和并发行为仍需要逐项 Java 对照。对照表与可筛选清单见 [REST 浏览器](/rest-explorer)。
 
+## 本轮行为验收
+
+- 184 个官方方法逐项检查真实路由、401、只读角色写入 403、管理域权限及管理员空输入处理。
+- POST 查询接口使用 read 权限；拼接 JSON、尾部垃圾和 null 返回 400。
+- Java 黄金样本 approve/review/completed 通过 Go HTTP 链路核对任务字段、历史状态、变量数量和完成副作用；这不是全量 Java REST 原始响应逐字段验收。
+- 审计记录认证后的主体、有效租户及实际终态响应码，失败 Basic 凭据不能冒充操作人。
+
 ## 分域规模
 
 | 业务域 | 端点 | 官方 | 扩展 |
@@ -44,15 +51,15 @@ tags: [REST, 认证, mTLS, 租户]
 | 租户绑定 | 用户/证书到租户、越权拒绝 | 通过选项嵌入 |
 | 限流 | 令牌桶 | 服务端 <code>-rate-limit</code> |
 
-::: warning CLI 接入不完整
-JWT、RBAC、身份库认证、审计日志与 HTTP 指标目前主要通过 <code>rest.New</code> 选项接入；标准 <code>flowable-server</code> 命令行没有对应 flag。使用这些能力需要自行嵌入服务端，或等待后续 CLI 补齐。
+::: info 标准二进制安全接入
+标准 <code>flowable-server -security-config /受限目录/security.json</code> 已支持 JWT/JWKS、RBAC、身份库认证、租户绑定、内存审计及 HTTP 指标。配置文件支持 basicUsers、bearerToken、identityAuth、jwt、userRoles、rolePermissions、tenantBindings、tenantAdministrators、auditCapacity、metrics；解析失败不回显密钥。原 Basic/Bearer flag 在配置文件之后生效。
 :::
 
 ## mTLS 与证书身份
 
 <code>-tls-client-ca</code> 设置客户端 CA，<code>-tls-client-auth</code> 支持 <code>none/request/require-any/require-verify</code>。<code>-tls-client-identity</code> 只在 <code>require-verify</code> 下开启，且仅对 <code>/service/</code> 路径、未携带 <code>Authorization</code> 头的请求生效。
 
-主体映射规则：CN 作为用户，O 作为租户，O 为空时回退 OU。证书身份不映射 RBAC 角色；CRL/OCSP 未实现。
+主体映射规则：CN 作为用户，O 作为租户，O 为空时回退 OU。证书 CN 可通过 userRoles 显式映射 RBAC 角色；没有映射时拒绝访问受控端点。O/OU 只绑定租户，CRL/OCSP 未实现。
 
 ## 已实现的安全边界
 
@@ -64,11 +71,11 @@ JWT、RBAC、身份库认证、审计日志与 HTTP 指标目前主要通过 <co
 
 ## 未完成项
 
-- 全量权限矩阵与负向回放审计。
-- RBAC 与证书身份的完整映射。
+- 全域资源级权限组合与跨租户负向回放审计。
+- 更复杂的资源级权限组合与身份治理审计。
 - CRL/OCSP、密钥轮换与令牌吊销。
 - 逐字段 OpenAPI 契约测试与 Java 行为回放。
-- 标准二进制对 JWT/RBAC/审计/指标 flag 的接入。
+- 外部持久审计存储与安全配置的在线重载。
 
 ## 相关阅读
 

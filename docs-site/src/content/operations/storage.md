@@ -14,7 +14,7 @@ tags: [运维, 存储, 容量, MySQL]
 | --- | --- | --- |
 | 单元测试/演示 | 内存 | 无外部依赖 |
 | 本地开发/小规模单进程 | JSON 状态文件 | 简单、可恢复 |
-| 单执行者数据库部署 | MySQL 行仓储 | SQL 可查、增量写 |
+| 单执行者数据库部署 | MySQL 或 PostgreSQL 行仓储 | SQL 可查、增量写 |
 | 快速数据库验证 | MySQL 快照 | 接入简单、全量写 |
 | 多节点/高可用 | 暂不支持 | 无集群租约 |
 
@@ -25,13 +25,18 @@ tags: [运维, 存储, 容量, MySQL]
 | <code>-state</code> | JSON 状态文件路径 |
 | <code>-storage mysql</code> | SQL 快照模式 |
 | <code>-storage mysql-rows</code> | 行仓储模式 |
-| <code>-env</code> | MySQL 连接配置文件 |
+| <code>-storage postgres-rows</code> | PostgreSQL 同会话独占行仓储 |
+| <code>-env</code> | 数据库连接配置文件 |
 | <code>-history</code> | 历史级别 |
 | <code>-jobs-interval</code> | 定时器扫描间隔，0 关闭 |
 | <code>-tenant</code> | 默认租户 |
 
 ~~~bash
 ./bin/flowable-server -storage mysql-rows -env .env -jobs-interval 1s
+
+# PostgreSQL 先显式初始化，服务启动只做版本与完整性校验
+./bin/flowable-migrate -dialect postgres -env .env -apply
+./bin/flowable-server -storage postgres-rows -env .env -jobs-interval 1s
 ~~~
 
 行仓储与快照互斥；同时配置 <code>-state</code> 与数据库模式会被拒绝。

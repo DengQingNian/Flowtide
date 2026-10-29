@@ -154,7 +154,7 @@ function main() {
   const files = walk(root)
   const goFiles = files.filter((file) => file.endsWith('.go'))
   const goLines = goFiles.reduce((sum, file) => sum + countLines(file), 0)
-  const docsFiles = files.filter((file) => file.startsWith(path.join(root, 'docs')) && file.endsWith('.md'))
+  const docsFiles = files.filter((file) => file.startsWith(path.join(root, 'docs') + path.sep) && file.endsWith('.md'))
   const docsLines = docsFiles.reduce((sum, file) => sum + countLines(file), 0)
   const tests = goFiles
     .filter((file) => file.endsWith('_test.go'))

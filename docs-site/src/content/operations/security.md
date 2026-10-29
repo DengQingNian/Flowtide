@@ -58,7 +58,7 @@ openssl req -x509 -newkey rsa:4096 -nodes \
 - O → 租户；O 为空时使用 OU。
 - 仅在 <code>/service/</code>、未携带 <code>Authorization</code> 头且证书链已验证时生效。
 - Basic/Bearer 优先，失败不回退证书。
-- 证书身份不映射 RBAC 角色。
+- 证书 CN 可以通过 userRoles 显式映射 RBAC 角色，O/OU 不授予权限。
 
 ## 客户端调用
 
@@ -72,9 +72,9 @@ curl --cacert ca.pem \
 
 - 无 CRL/OCSP。
 - 无自动证书轮换。
-- 无完整的证书主体到角色映射。
+- 无自动证书到角色同步；使用安全配置文件维护明确的主体映射。
 - 未配置认证时端点开放，只适合开发。
-- JWT/RBAC 等选项主要通过嵌入接入，标准 CLI 未全部暴露。
+- JWT/RBAC、身份库、审计与指标已通过 security-config 接入标准 CLI；没有在线配置重载。
 
 ## 相关阅读
 

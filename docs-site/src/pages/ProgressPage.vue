@@ -11,6 +11,7 @@ import {
   TriangleAlert,
 } from '@lucide/vue'
 import factsRaw from '@/generated/facts.json'
+import { milestones } from '@/lib/milestones'
 
 interface CapabilityRow {
   capability: string
@@ -45,16 +46,7 @@ const metrics = computed(() => [
   { label: '测试/基准', value: number.format(facts.stats.tests), note: '函数声明数', tone: 'neutral' },
 ])
 
-const stages = [
-  { id: 'M0', title: '基线与契约', detail: 'OpenAPI、双库 DDL、41 张 ACT 表、端点清单', state: 'done' },
-  { id: 'M1', title: 'BPMN 模型与部署', detail: '安全解析、版本、资源、模型仓库', state: 'done' },
-  { id: 'M2', title: '运行时与执行树', detail: 'Command、Agenda、作用域、回滚', state: 'done' },
-  { id: 'M3', title: '任务、事件与子流程', detail: '用户任务、网关、多实例、消息、补偿', state: 'done' },
-  { id: 'M4', title: '持久化与查询', detail: '行仓储、双库验收、默认租户任务下推', state: 'partial' },
-  { id: 'M5', title: 'REST 与安全', detail: '184 路由全覆盖、mTLS、DMN 命中策略', state: 'partial' },
-  { id: 'M6', title: '迁移工具链', detail: '预检、转换、静默检查、状态校验', state: 'partial' },
-  { id: 'M7', title: '生产验收', detail: 'Java 行为对照、停写/回退、集群、容量', state: 'todo' },
-]
+const stages = milestones
 
 const levelMeta: Record<string, { label: string; tone: string }> = {
   verified: { label: '已验证', tone: 'good' },
@@ -79,8 +71,8 @@ const distribution = computed(() => {
 const migrationStates = [
   { name: '新建库原型', status: '已有双库本地证据', tone: 'good', detail: '单执行者、新建 Schema、新流程' },
   { name: '只读预检', status: '保守子集已实现', tone: 'warn', detail: '无阻断不代表可转换或可切换' },
-  { name: '停写切换续跑', status: '工具就绪，演练未完成', tone: 'bad', detail: '停写、备份、数量核对、Java 对照仍为人工' },
-  { name: '可回退迁移', status: '未完成', tone: 'bad', detail: '反向转换与 Java 读 Go 数据续跑未演练' },
+  { name: '停写切换续跑', status: '临时库演练通过，生产待验收', tone: 'bad', detail: '双库黄金样本转换、核对、行模式续跑与重启通过' },
+  { name: '可回退迁移', status: '未完成', tone: 'bad', detail: '源快照还原通过；反向转换与 Java 增量接管未完成' },
 ]
 
 const gaps = [

@@ -39,8 +39,8 @@ curl -u alice:secret http://localhost:8080/service/management/engine
 - <code>TenantClaim</code>：从声明中提取租户。
 - <code>exp</code> 校验与 RSA/HS256 算法限制。
 
-::: warning 标准二进制未暴露 JWT 参数
-JWT、RBAC、身份库认证、审计与 HTTP 指标目前通过 <code>rest.New</code> 选项接入，命令行没有对应 flag。使用这些能力需要自行嵌入服务端。
+::: info 标准二进制配置
+使用 <code>-security-config /受限目录/security.json</code> 可配置 JWT/JWKS、RBAC、身份库、租户绑定、审计及 HTTP 指标，也可继续使用嵌入选项。配置说明见 [REST 与安全进度](/docs/progress/rest-security)。
 :::
 
 ## mTLS
@@ -74,11 +74,11 @@ JWT、RBAC、身份库认证、审计与 HTTP 指标目前通过 <code>rest.New<
 
 <code>WithRBAC(userRoles, rolePermissions)</code> 按端点所需权限校验：
 
-- <code>GET/HEAD</code> 需要 <code>read</code>。
+- <code>GET/HEAD</code> 及 <code>POST /service/query/*</code> 需要 <code>read</code>。
 - 写操作需要 <code>write</code>。
 - <code>/service/management/</code> 与 <code>/service/identity/</code> 需要 <code>admin</code>。
 
-证书身份暂不映射角色，因此 mTLS + RBAC 的组合需要额外接入。
+证书 CN 通过 userRoles 显式映射角色，角色权限来自 rolePermissions；O/OU 只绑定租户。启用 RBAC 后，无角色映射的证书返回 403。
 
 ## 相关阅读
 

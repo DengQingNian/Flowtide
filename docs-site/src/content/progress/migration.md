@@ -12,10 +12,10 @@ tags: [迁移, 预检, 停写, 回退]
 
 | 状态 | 当前结果 | 是否可宣称通过 |
 | --- | --- | --- |
-| 新建库原型 | 双库本地证据 | 仅限新建库原型 |
+| 新建库原型 | MySQL/PostgreSQL 行服务、独占、恢复及断线回滚证据 | 仅限单执行者范围 |
 | 既有库只读预检 | 保守分析子集已实现 | 否，预检无阻断不等于可切换 |
-| 停写切换续跑 | 工具已具备，实际停写/备份/演练未完成 | 否 |
-| 可回退迁移 | 反向转换与还原演练未完成 | 否 |
+| 停写切换续跑 | 双库临时库的 Java 黄金行转换、核对、行模式续跑及重启通过；生产停写未完成 | 否，不能替代生产切换 |
+| 可回退迁移 | 双库源快照还原与指纹核对通过；反向转换及 Java 增量接管未完成 | 否，不能宣称 Java 可接管 Go 增量 |
 
 这四种状态分别取证，不能相互推导。初始化 Schema、读取相同表名、空库部署或 JSON 快照重启都不会让后三种状态自动通过。
 
@@ -27,6 +27,7 @@ tags: [迁移, 预检, 停写, 回退]
 | <code>-convert</code> | 将简单用户任务执行树转换为 Go 状态文件 | 是，只读 | 新状态文件 | 0/1 |
 | <code>-cutover-check</code> | 观察窗口前后两次快照比较 | 是，只读 | 稳定性报告 | 0/2/1 |
 | <code>-verify-state</code> | 隔离内存引擎恢复状态并统计实体 | 否 | 校验报告 | 0/1 |
+| <code>-verify-state -verify-source</code> | 重新转换只读源快照，与状态逐表核对数量及内容指纹 | 是，只读 | 核对报告 | 0/2/1 |
 
 ## 能力边界
 
@@ -56,7 +57,7 @@ tags: [迁移, 预检, 停写, 回退]
 
 - 使用与服务相同的恢复入口，在隔离内存引擎中恢复。
 - 输出部署、定义、运行/结束实例、任务、历史实例/任务/变量计数。
-- 不证明源库与状态数量一致，不替代停写或回退。
+- 单独 verify-state 不证明源库与状态一致；增加 verify-source 后核对规范行投影的数量与内容，仍不替代停写或回退。
 
 ## 推荐执行顺序
 
@@ -70,12 +71,15 @@ tags: [迁移, 预检, 停写, 回退]
 # 3. 独立恢复校验
 ./bin/flowable-migrate -verify-state -state prepared-state.json -out verify-report.json
 
-# 4. 停写窗口内检查静默
+# 4. 在停写的源快照上核对准备状态
+./bin/flowable-migrate -verify-state -verify-source -dialect mysql -env .env -state prepared-state.json -out reconcile.json
+
+# 5. 停写窗口内检查静默
 ./bin/flowable-migrate -cutover-check -dialect mysql -env .env -quiesce-window 30s -out cutover.json
 ~~~
 
 ::: danger 不能省略的步骤
-实际停写、备份、数量核对、Java 对照续跑与回退演练尚未自动化，必须由迁移团队按运行手册执行。工具通过不能替代这些人工控制点。
+双库临时库已验证 Java 黄金行预检、转换、逐表核对、Go 行模式续跑、重启及源快照还原。实际 Java 执行者停写、生产物理备份、反向转换与 Java 增量接管仍由迁移团队另行验收。
 :::
 
 ## 相关阅读
