@@ -25,7 +25,7 @@ tags: [持久化, MySQL, PostgreSQL, 行仓储]
 - 复用 Flowable 8.1.0.3 的 41 张 <code>ACT_*</code> 表，MySQL 与 PostgreSQL 各一份 DDL。
 - <code>REV_</code> 乐观锁、主键、外键顺序、事务工作单元与行差异写入已实现。
 - 变量、部署资源、附件等二进制内容写入 <code>ACT_GE_BYTEARRAY</code>。
-- 仓库、运行时、作业/订阅/死信、历史/评论/附件/身份链接/变量明细/任务日志均已有行映射。
+- 仓库、运行时、作业/订阅/死信、历史/评论/附件/身份链接/变量明细/任务日志及五张身份标准表均已有行映射；成员表使用复合主键，身份资料以标准列为真实来源，Go 安全扩展存于独立控制行。
 - <code>make test-mysql</code> 在 MySQL 8.0.35、<code>make test-postgres</code> 在 PostgreSQL 16.3 的临时库上验证。
 
 ## 单执行者约束
