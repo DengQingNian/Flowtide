@@ -21,7 +21,7 @@ const commit = computed(() => content.commit)
         <p>用纯 Go 重构 Flowable BPMN 引擎。当前为新建库原型，生产使用前请阅读能力矩阵与已知问题。</p>
         <div class="footer-meta">
           <span>数据截至 <code>{{ commit }}</code></span>
-          <span>MIT License</span>
+          <span>Apache-2.0 License</span>
         </div>
       </div>
       <div class="footer-links">

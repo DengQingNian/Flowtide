@@ -4,6 +4,7 @@
   "version": "0.1.0",
   "type": "module",
   "description": "Flowable-go 重构进度文档站",
+  "license": "Apache-2.0",
   "scripts": {
     "gen": "node scripts/gen-facts.mjs && node scripts/gen-content.mjs",
     "predev": "npm run gen",

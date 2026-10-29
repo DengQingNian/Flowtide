@@ -70,4 +70,4 @@ go run ./cmd/flowable-migrate -dialect mysql -tables
 
 ## 6. 许可
 
-本项目自身代码遵循 MIT，但 SQL 资产来自 Flowable 参考仓库，仍遵循 Apache-2.0；文件头保留来源说明。分发时需保留根目录 LICENSE 与上游归属声明。
+本项目自身代码遵循 Apache-2.0；SQL 资产来自 Flowable 参考仓库，同样以 Apache-2.0 发布，文件头保留来源说明。分发时需保留根目录 LICENSE 与上游归属声明。
