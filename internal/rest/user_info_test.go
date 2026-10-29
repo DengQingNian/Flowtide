@@ -6,6 +6,7 @@ import (
 	"io"
 	"mime/multipart"
 	"net/http"
+	"net/textproto"
 	"testing"
 )
 
@@ -19,7 +20,7 @@ func putUserPicture(t *testing.T, url string, data []byte, mimeType string) *htt
 	t.Helper()
 	var buffer bytes.Buffer
 	writer := multipart.NewWriter(&buffer)
-	part, err := writer.CreateFormFile("file", "avatar.png")
+	part, err := writer.CreatePart(textproto.MIMEHeader{"Content-Disposition": {`form-data; name="file"; filename="avatar.png"`}, "Content-Type": {mimeType}})
 	if err != nil {
 		t.Fatalf("创建表单失败: %v", err)
 	}
@@ -78,7 +79,7 @@ func TestREST_UserInfoAndPicture(t *testing.T) {
 	response, _ = http.Get(server.URL + "/service/identity/users/alice/info")
 	_ = json.NewDecoder(response.Body).Decode(&info)
 	_ = response.Body.Close()
-	if len(info) != 1 || info[0]["value"] != "Engineer" || info[0]["url"] == "" {
+	if len(info) != 1 || info[0]["key"] != "title" || info[0]["value"] != nil || info[0]["url"] == "" {
 		t.Fatalf("用户信息列表错误: %+v", info)
 	}
 	response, _ = http.Get(server.URL + "/service/identity/users/alice/info/title")

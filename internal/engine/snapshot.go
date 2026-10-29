@@ -59,7 +59,7 @@ type snapshot struct {
 	Attachments        []*api.Attachment                  `json:"attachments"`           // 附件
 	AttachmentContents map[string]*attachmentContentState `json:"attachmentContents"`    // 附件内容
 	Users              []*api.User                        `json:"users"`                 // 用户
-	UserInfo           map[string]map[string]string       `json:"userInfo"`              // 用户信息
+	UserInfo           map[string]map[string]*string      `json:"userInfo"`              // 用户信息
 	UserPictures       map[string]*userPictureState       `json:"userPictures"`          // 用户头像
 	Groups             []*api.Group                       `json:"groups"`                // 组
 	Roles              []*api.Role                        `json:"roles"`                 // 角色

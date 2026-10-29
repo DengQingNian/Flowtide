@@ -68,6 +68,12 @@ type IdentityService interface {
 	// @return 信息映射
 	// @return 查询错误
 	GetUserInfo(ctx context.Context, userID string) (map[string]string, error)
+	// GetUserInfoEntries 返回包含原版空值键的用户信息，并复制可空值。
+	// @param ctx 上下文
+	// @param userID 用户标识
+	// @return 包含空值键的信息映射
+	// @return 查询错误
+	GetUserInfoEntries(ctx context.Context, userID string) (map[string]*string, error)
 	// GetUserInfoValue 返回单个用户信息。
 	// @param ctx 上下文
 	// @param userID 用户 ID

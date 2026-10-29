@@ -78,7 +78,7 @@ func TestUserInfoAndPicture(t *testing.T) {
 		t.Fatalf("设置用户信息失败: %v", err)
 	}
 	snapshot := engine.toSnapshot()
-	if snapshot.UserInfo["alice"]["dept"] != "R&D" {
+	if snapshot.UserInfo["alice"]["dept"] == nil || *snapshot.UserInfo["alice"]["dept"] != "R&D" {
 		t.Fatalf("快照用户信息错误: %+v", snapshot.UserInfo)
 	}
 	if snapshot.UserPictures["alice"] == nil || len(snapshot.UserPictures["alice"].Data) == 0 {

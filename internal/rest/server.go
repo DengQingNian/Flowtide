@@ -1399,61 +1399,50 @@ func (s *Server) handleDeleteRole(w http.ResponseWriter, r *http.Request) {
 // handleListUsers 返回用户列表。
 // @param w 响应
 // @param r 请求
-func (s *Server) handleListUsers(w http.ResponseWriter, r *http.Request) {
-	users, err := s.engine.IdentityService().ListUsers(r.Context())
-	if err != nil {
-		writeError(w, err)
-		return
-	}
-	start, size := pageParams(r)
-	writePage(w, users, start, size)
-}
+// @return 无
+func (s *Server) handleListUsers(w http.ResponseWriter, r *http.Request) { s.serveIdentityUsers(w, r) }
 
 // handleCreateUser 创建用户。
 // @param w 响应
 // @param r 请求
+// @return 无
 func (s *Server) handleCreateUser(w http.ResponseWriter, r *http.Request) {
 	var user api.User
-	if err := decodeJSON(r, &user); err != nil {
+	if err := decodeTaskJSON(r, &user); err != nil {
 		writeError(w, err)
 		return
 	}
 	created, err := s.engine.IdentityService().CreateUser(r.Context(), user)
-	if err != nil {
-		writeError(w, err)
+	if errors.Is(err, api.ErrConflict) {
+		writeRuntimeFailure(w, 409, fmt.Sprintf("A user with id '%s' already exists.", user.ID))
 		return
 	}
-	writeJSON(w, http.StatusCreated, created)
+	if err != nil {
+		writeIdentityError(w, r, err, false)
+		return
+	}
+	s.writeIdentityUser(w, r, http.StatusCreated, created)
 }
 
 // handleGetUser 查询用户。
 // @param w 响应
 // @param r 请求
+// @return 无
 func (s *Server) handleGetUser(w http.ResponseWriter, r *http.Request) {
 	user, err := s.engine.IdentityService().GetUser(r.Context(), r.PathValue("id"))
 	if err != nil {
-		writeError(w, err)
+		writeIdentityError(w, r, err, false)
 		return
 	}
-	writeJSON(w, http.StatusOK, user)
+	s.writeIdentityUser(w, r, http.StatusOK, user)
 }
 
 // handleUpdateUser 更新用户。
 // @param w 响应
 // @param r 请求
+// @return 无
 func (s *Server) handleUpdateUser(w http.ResponseWriter, r *http.Request) {
-	var user api.User
-	if err := decodeJSON(r, &user); err != nil {
-		writeError(w, err)
-		return
-	}
-	user.ID = r.PathValue("id")
-	updated, err := s.engine.IdentityService().UpdateUser(r.Context(), user)
-	if err != nil {
-		writeError(w, err)
-		return
-	}
-	writeJSON(w, http.StatusOK, updated)
+	s.updateIdentityUser(w, r)
 }
 
 // rolesPayload 是角色设置请求体。
@@ -1552,9 +1541,10 @@ func (s *Server) handleChangePassword(w http.ResponseWriter, r *http.Request) {
 // handleDeleteUser 删除用户。
 // @param w 响应
 // @param r 请求
+// @return 无
 func (s *Server) handleDeleteUser(w http.ResponseWriter, r *http.Request) {
 	if err := s.engine.IdentityService().DeleteUser(r.Context(), r.PathValue("id")); err != nil {
-		writeError(w, err)
+		writeIdentityError(w, r, err, false)
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
@@ -1563,51 +1553,53 @@ func (s *Server) handleDeleteUser(w http.ResponseWriter, r *http.Request) {
 // handleListGroups 返回组列表。
 // @param w 响应
 // @param r 请求
+// @return 无
 func (s *Server) handleListGroups(w http.ResponseWriter, r *http.Request) {
-	groups, err := s.engine.IdentityService().ListGroups(r.Context())
-	if err != nil {
-		writeError(w, err)
-		return
-	}
-	start, size := pageParams(r)
-	writePage(w, groups, start, size)
+	s.serveIdentityGroups(w, r)
 }
 
 // handleCreateGroup 创建组。
 // @param w 响应
 // @param r 请求
+// @return 无
 func (s *Server) handleCreateGroup(w http.ResponseWriter, r *http.Request) {
 	var group api.Group
-	if err := decodeJSON(r, &group); err != nil {
+	if err := decodeTaskJSON(r, &group); err != nil {
 		writeError(w, err)
 		return
 	}
 	created, err := s.engine.IdentityService().CreateGroup(r.Context(), group)
-	if err != nil {
-		writeError(w, err)
+	if errors.Is(err, api.ErrConflict) {
+		writeRuntimeFailure(w, 409, fmt.Sprintf("A group with id '%s' already exists.", group.ID))
 		return
 	}
-	writeJSON(w, http.StatusCreated, created)
+	if err != nil {
+		writeIdentityError(w, r, err, true)
+		return
+	}
+	writeJSON(w, http.StatusCreated, identityGroupResponse(r, created))
 }
 
 // handleGetGroup 查询组。
 // @param w 响应
 // @param r 请求
+// @return 无
 func (s *Server) handleGetGroup(w http.ResponseWriter, r *http.Request) {
 	group, err := s.engine.IdentityService().GetGroup(r.Context(), r.PathValue("id"))
 	if err != nil {
-		writeError(w, err)
+		writeIdentityError(w, r, err, true)
 		return
 	}
-	writeJSON(w, http.StatusOK, group)
+	writeJSON(w, http.StatusOK, identityGroupResponse(r, group))
 }
 
 // handleDeleteGroup 删除组。
 // @param w 响应
 // @param r 请求
+// @return 无
 func (s *Server) handleDeleteGroup(w http.ResponseWriter, r *http.Request) {
 	if err := s.engine.IdentityService().DeleteGroup(r.Context(), r.PathValue("id")); err != nil {
-		writeError(w, err)
+		writeIdentityError(w, r, err, true)
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
@@ -1633,28 +1625,17 @@ func (s *Server) handleListMembers(w http.ResponseWriter, r *http.Request) {
 // handleAddMember 添加成员。
 // @param w 响应
 // @param r 请求
+// @return 无
 func (s *Server) handleAddMember(w http.ResponseWriter, r *http.Request) {
-	var payload membershipPayload
-	if err := decodeJSON(r, &payload); err != nil {
-		writeError(w, err)
-		return
-	}
-	if err := s.engine.IdentityService().AddMembership(r.Context(), payload.UserID, r.PathValue("id")); err != nil {
-		writeError(w, err)
-		return
-	}
-	w.WriteHeader(http.StatusNoContent)
+	s.createIdentityMembership(w, r)
 }
 
 // handleRemoveMember 移除成员。
 // @param w 响应
 // @param r 请求
+// @return 无
 func (s *Server) handleRemoveMember(w http.ResponseWriter, r *http.Request) {
-	if err := s.engine.IdentityService().RemoveMembership(r.Context(), r.PathValue("userId"), r.PathValue("id")); err != nil {
-		writeError(w, err)
-		return
-	}
-	w.WriteHeader(http.StatusNoContent)
+	s.deleteIdentityMembership(w, r)
 }
 
 // handleMessage 投递消息。

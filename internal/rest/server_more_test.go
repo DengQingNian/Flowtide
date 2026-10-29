@@ -543,7 +543,7 @@ func TestREST_Identity(t *testing.T) {
 	}
 	_ = response.Body.Close()
 	response = postJSON(t, server.URL+"/service/identity/groups/dev/members", map[string]any{"userId": "alice"})
-	if response.StatusCode != http.StatusNoContent {
+	if response.StatusCode != http.StatusCreated {
 		t.Fatalf("添加成员失败: %d", response.StatusCode)
 	}
 	_ = response.Body.Close()

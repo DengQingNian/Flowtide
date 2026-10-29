@@ -10,23 +10,9 @@ import (
 // handleUpdateGroup 更新组。
 // @param w 响应
 // @param r 请求
+// @return 无
 func (s *Server) handleUpdateGroup(w http.ResponseWriter, r *http.Request) {
-	var group api.Group
-	if err := decodeJSON(r, &group); err != nil {
-		writeError(w, err)
-		return
-	}
-	if group.ID != "" && group.ID != r.PathValue("id") {
-		writeError(w, api.NewError("REST-0135", "请求体组 ID 与路径不一致", api.ErrBadRequest))
-		return
-	}
-	group.ID = r.PathValue("id")
-	updated, err := s.engine.IdentityService().UpdateGroup(r.Context(), group)
-	if err != nil {
-		writeError(w, err)
-		return
-	}
-	writeJSON(w, http.StatusOK, updated)
+	s.updateIdentityGroup(w, r)
 }
 
 // handleBulkUpdateTasks 批量更新任务。

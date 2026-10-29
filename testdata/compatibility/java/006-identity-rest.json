@@ -1,0 +1,2707 @@
+{
+  "baseline" : "f6017e32a4bdd3e59a8881f58b0ee181652d1d9e",
+  "transport" : "原版九个身份控制器与Spring MockMvc",
+  "cases" : [ {
+    "name" : "user-get",
+    "method" : "GET",
+    "path" : "/service/identity/users/alice",
+    "requestBody" : "",
+    "status" : 200,
+    "contentType" : "application/json",
+    "responseBody" : "{\"displayName\":\"用户甲\",\"email\":\"alice@example.test\",\"firstName\":\"甲\",\"id\":\"alice\",\"lastName\":\"测试\",\"pictureUrl\":\"http://localhost/service/identity/users/alice/picture\",\"url\":\"http://localhost/service/identity/users/alice\"}",
+    "afterUsers" : {
+      "alice" : {
+        "firstName" : "甲",
+        "lastName" : "测试",
+        "displayName" : "用户甲",
+        "email" : "alice@example.test",
+        "initialPasswordValid" : true,
+        "updatedPasswordValid" : false
+      },
+      "bob" : {
+        "firstName" : "乙",
+        "lastName" : "测试",
+        "displayName" : "用户乙",
+        "email" : "bob@example.test",
+        "initialPasswordValid" : true,
+        "updatedPasswordValid" : false
+      }
+    },
+    "afterGroups" : {
+      "ops" : {
+        "name" : "运维组",
+        "type" : "security-role"
+      },
+      "review" : {
+        "name" : "审批组",
+        "type" : "assignment"
+      }
+    },
+    "afterInfo" : {
+      "alice" : {
+        "team" : "原团队"
+      },
+      "bob" : { }
+    },
+    "afterPictures" : {
+      "alice" : {
+        "base64" : "AQIA/w==",
+        "mimeType" : "image/png"
+      }
+    },
+    "afterMemberships" : {
+      "alice" : [ "review" ],
+      "bob" : [ ]
+    }
+  }, {
+    "name" : "user-missing",
+    "method" : "GET",
+    "path" : "/service/identity/users/missing",
+    "requestBody" : "",
+    "status" : 404,
+    "contentType" : "application/json",
+    "responseBody" : "{\"message\":\"Not found\",\"exception\":\"Could not find a user with id 'missing'.\"}",
+    "afterUsers" : {
+      "alice" : {
+        "firstName" : "甲",
+        "lastName" : "测试",
+        "displayName" : "用户甲",
+        "email" : "alice@example.test",
+        "initialPasswordValid" : true,
+        "updatedPasswordValid" : false
+      },
+      "bob" : {
+        "firstName" : "乙",
+        "lastName" : "测试",
+        "displayName" : "用户乙",
+        "email" : "bob@example.test",
+        "initialPasswordValid" : true,
+        "updatedPasswordValid" : false
+      }
+    },
+    "afterGroups" : {
+      "ops" : {
+        "name" : "运维组",
+        "type" : "security-role"
+      },
+      "review" : {
+        "name" : "审批组",
+        "type" : "assignment"
+      }
+    },
+    "afterInfo" : {
+      "alice" : {
+        "team" : "原团队"
+      },
+      "bob" : { }
+    },
+    "afterPictures" : {
+      "alice" : {
+        "base64" : "AQIA/w==",
+        "mimeType" : "image/png"
+      }
+    },
+    "afterMemberships" : {
+      "alice" : [ "review" ],
+      "bob" : [ ]
+    }
+  }, {
+    "name" : "users-list",
+    "method" : "GET",
+    "path" : "/service/identity/users",
+    "requestBody" : "",
+    "status" : 200,
+    "contentType" : "application/json",
+    "responseBody" : "{\"data\":[{\"displayName\":\"用户甲\",\"email\":\"alice@example.test\",\"firstName\":\"甲\",\"id\":\"alice\",\"lastName\":\"测试\",\"pictureUrl\":\"http://localhost/service/identity/users/alice/picture\",\"url\":\"http://localhost/service/identity/users/alice\"},{\"displayName\":\"用户乙\",\"email\":\"bob@example.test\",\"firstName\":\"乙\",\"id\":\"bob\",\"lastName\":\"测试\",\"pictureUrl\":null,\"url\":\"http://localhost/service/identity/users/bob\"}],\"order\":\"asc\",\"size\":2,\"sort\":\"id\",\"start\":0,\"total\":2}",
+    "afterUsers" : {
+      "alice" : {
+        "firstName" : "甲",
+        "lastName" : "测试",
+        "displayName" : "用户甲",
+        "email" : "alice@example.test",
+        "initialPasswordValid" : true,
+        "updatedPasswordValid" : false
+      },
+      "bob" : {
+        "firstName" : "乙",
+        "lastName" : "测试",
+        "displayName" : "用户乙",
+        "email" : "bob@example.test",
+        "initialPasswordValid" : true,
+        "updatedPasswordValid" : false
+      }
+    },
+    "afterGroups" : {
+      "ops" : {
+        "name" : "运维组",
+        "type" : "security-role"
+      },
+      "review" : {
+        "name" : "审批组",
+        "type" : "assignment"
+      }
+    },
+    "afterInfo" : {
+      "alice" : {
+        "team" : "原团队"
+      },
+      "bob" : { }
+    },
+    "afterPictures" : {
+      "alice" : {
+        "base64" : "AQIA/w==",
+        "mimeType" : "image/png"
+      }
+    },
+    "afterMemberships" : {
+      "alice" : [ "review" ],
+      "bob" : [ ]
+    }
+  }, {
+    "name" : "users-page",
+    "method" : "GET",
+    "path" : "/service/identity/users?sort=firstName&order=desc&start=1&size=1",
+    "requestBody" : "",
+    "status" : 200,
+    "contentType" : "application/json",
+    "responseBody" : "{\"data\":[{\"displayName\":\"用户乙\",\"email\":\"bob@example.test\",\"firstName\":\"乙\",\"id\":\"bob\",\"lastName\":\"测试\",\"pictureUrl\":null,\"url\":\"http://localhost/service/identity/users/bob\"}],\"order\":\"desc\",\"size\":1,\"sort\":\"firstName\",\"start\":1,\"total\":2}",
+    "afterUsers" : {
+      "alice" : {
+        "firstName" : "甲",
+        "lastName" : "测试",
+        "displayName" : "用户甲",
+        "email" : "alice@example.test",
+        "initialPasswordValid" : true,
+        "updatedPasswordValid" : false
+      },
+      "bob" : {
+        "firstName" : "乙",
+        "lastName" : "测试",
+        "displayName" : "用户乙",
+        "email" : "bob@example.test",
+        "initialPasswordValid" : true,
+        "updatedPasswordValid" : false
+      }
+    },
+    "afterGroups" : {
+      "ops" : {
+        "name" : "运维组",
+        "type" : "security-role"
+      },
+      "review" : {
+        "name" : "审批组",
+        "type" : "assignment"
+      }
+    },
+    "afterInfo" : {
+      "alice" : {
+        "team" : "原团队"
+      },
+      "bob" : { }
+    },
+    "afterPictures" : {
+      "alice" : {
+        "base64" : "AQIA/w==",
+        "mimeType" : "image/png"
+      }
+    },
+    "afterMemberships" : {
+      "alice" : [ "review" ],
+      "bob" : [ ]
+    }
+  }, {
+    "name" : "users-zero",
+    "method" : "GET",
+    "path" : "/service/identity/users?size=0",
+    "requestBody" : "",
+    "status" : 200,
+    "contentType" : "application/json",
+    "responseBody" : "{\"data\":[],\"order\":\"asc\",\"size\":0,\"sort\":\"id\",\"start\":0,\"total\":2}",
+    "afterUsers" : {
+      "alice" : {
+        "firstName" : "甲",
+        "lastName" : "测试",
+        "displayName" : "用户甲",
+        "email" : "alice@example.test",
+        "initialPasswordValid" : true,
+        "updatedPasswordValid" : false
+      },
+      "bob" : {
+        "firstName" : "乙",
+        "lastName" : "测试",
+        "displayName" : "用户乙",
+        "email" : "bob@example.test",
+        "initialPasswordValid" : true,
+        "updatedPasswordValid" : false
+      }
+    },
+    "afterGroups" : {
+      "ops" : {
+        "name" : "运维组",
+        "type" : "security-role"
+      },
+      "review" : {
+        "name" : "审批组",
+        "type" : "assignment"
+      }
+    },
+    "afterInfo" : {
+      "alice" : {
+        "team" : "原团队"
+      },
+      "bob" : { }
+    },
+    "afterPictures" : {
+      "alice" : {
+        "base64" : "AQIA/w==",
+        "mimeType" : "image/png"
+      }
+    },
+    "afterMemberships" : {
+      "alice" : [ "review" ],
+      "bob" : [ ]
+    }
+  }, {
+    "name" : "users-filter",
+    "method" : "GET",
+    "path" : "/service/identity/users?firstName=甲",
+    "requestBody" : "",
+    "status" : 200,
+    "contentType" : "application/json",
+    "responseBody" : "{\"data\":[{\"displayName\":\"用户甲\",\"email\":\"alice@example.test\",\"firstName\":\"甲\",\"id\":\"alice\",\"lastName\":\"测试\",\"pictureUrl\":\"http://localhost/service/identity/users/alice/picture\",\"url\":\"http://localhost/service/identity/users/alice\"}],\"order\":\"asc\",\"size\":1,\"sort\":\"id\",\"start\":0,\"total\":1}",
+    "afterUsers" : {
+      "alice" : {
+        "firstName" : "甲",
+        "lastName" : "测试",
+        "displayName" : "用户甲",
+        "email" : "alice@example.test",
+        "initialPasswordValid" : true,
+        "updatedPasswordValid" : false
+      },
+      "bob" : {
+        "firstName" : "乙",
+        "lastName" : "测试",
+        "displayName" : "用户乙",
+        "email" : "bob@example.test",
+        "initialPasswordValid" : true,
+        "updatedPasswordValid" : false
+      }
+    },
+    "afterGroups" : {
+      "ops" : {
+        "name" : "运维组",
+        "type" : "security-role"
+      },
+      "review" : {
+        "name" : "审批组",
+        "type" : "assignment"
+      }
+    },
+    "afterInfo" : {
+      "alice" : {
+        "team" : "原团队"
+      },
+      "bob" : { }
+    },
+    "afterPictures" : {
+      "alice" : {
+        "base64" : "AQIA/w==",
+        "mimeType" : "image/png"
+      }
+    },
+    "afterMemberships" : {
+      "alice" : [ "review" ],
+      "bob" : [ ]
+    }
+  }, {
+    "name" : "users-like-pattern",
+    "method" : "GET",
+    "path" : "/service/identity/users?displayNameLike=用_甲",
+    "requestBody" : "",
+    "status" : 200,
+    "contentType" : "application/json",
+    "responseBody" : "{\"data\":[{\"displayName\":\"用户甲\",\"email\":\"alice@example.test\",\"firstName\":\"甲\",\"id\":\"alice\",\"lastName\":\"测试\",\"pictureUrl\":\"http://localhost/service/identity/users/alice/picture\",\"url\":\"http://localhost/service/identity/users/alice\"}],\"order\":\"asc\",\"size\":1,\"sort\":\"id\",\"start\":0,\"total\":1}",
+    "afterUsers" : {
+      "alice" : {
+        "firstName" : "甲",
+        "lastName" : "测试",
+        "displayName" : "用户甲",
+        "email" : "alice@example.test",
+        "initialPasswordValid" : true,
+        "updatedPasswordValid" : false
+      },
+      "bob" : {
+        "firstName" : "乙",
+        "lastName" : "测试",
+        "displayName" : "用户乙",
+        "email" : "bob@example.test",
+        "initialPasswordValid" : true,
+        "updatedPasswordValid" : false
+      }
+    },
+    "afterGroups" : {
+      "ops" : {
+        "name" : "运维组",
+        "type" : "security-role"
+      },
+      "review" : {
+        "name" : "审批组",
+        "type" : "assignment"
+      }
+    },
+    "afterInfo" : {
+      "alice" : {
+        "team" : "原团队"
+      },
+      "bob" : { }
+    },
+    "afterPictures" : {
+      "alice" : {
+        "base64" : "AQIA/w==",
+        "mimeType" : "image/png"
+      }
+    },
+    "afterMemberships" : {
+      "alice" : [ "review" ],
+      "bob" : [ ]
+    }
+  }, {
+    "name" : "users-like-exact",
+    "method" : "GET",
+    "path" : "/service/identity/users?displayNameLike=用户",
+    "requestBody" : "",
+    "status" : 200,
+    "contentType" : "application/json",
+    "responseBody" : "{\"data\":[],\"order\":\"asc\",\"size\":0,\"sort\":\"id\",\"start\":0,\"total\":0}",
+    "afterUsers" : {
+      "alice" : {
+        "firstName" : "甲",
+        "lastName" : "测试",
+        "displayName" : "用户甲",
+        "email" : "alice@example.test",
+        "initialPasswordValid" : true,
+        "updatedPasswordValid" : false
+      },
+      "bob" : {
+        "firstName" : "乙",
+        "lastName" : "测试",
+        "displayName" : "用户乙",
+        "email" : "bob@example.test",
+        "initialPasswordValid" : true,
+        "updatedPasswordValid" : false
+      }
+    },
+    "afterGroups" : {
+      "ops" : {
+        "name" : "运维组",
+        "type" : "security-role"
+      },
+      "review" : {
+        "name" : "审批组",
+        "type" : "assignment"
+      }
+    },
+    "afterInfo" : {
+      "alice" : {
+        "team" : "原团队"
+      },
+      "bob" : { }
+    },
+    "afterPictures" : {
+      "alice" : {
+        "base64" : "AQIA/w==",
+        "mimeType" : "image/png"
+      }
+    },
+    "afterMemberships" : {
+      "alice" : [ "review" ],
+      "bob" : [ ]
+    }
+  }, {
+    "name" : "users-member",
+    "method" : "GET",
+    "path" : "/service/identity/users?memberOfGroup=review",
+    "requestBody" : "",
+    "status" : 200,
+    "contentType" : "application/json",
+    "responseBody" : "{\"data\":[{\"displayName\":\"用户甲\",\"email\":\"alice@example.test\",\"firstName\":\"甲\",\"id\":\"alice\",\"lastName\":\"测试\",\"pictureUrl\":\"http://localhost/service/identity/users/alice/picture\",\"url\":\"http://localhost/service/identity/users/alice\"}],\"order\":\"asc\",\"size\":1,\"sort\":\"id\",\"start\":0,\"total\":1}",
+    "afterUsers" : {
+      "alice" : {
+        "firstName" : "甲",
+        "lastName" : "测试",
+        "displayName" : "用户甲",
+        "email" : "alice@example.test",
+        "initialPasswordValid" : true,
+        "updatedPasswordValid" : false
+      },
+      "bob" : {
+        "firstName" : "乙",
+        "lastName" : "测试",
+        "displayName" : "用户乙",
+        "email" : "bob@example.test",
+        "initialPasswordValid" : true,
+        "updatedPasswordValid" : false
+      }
+    },
+    "afterGroups" : {
+      "ops" : {
+        "name" : "运维组",
+        "type" : "security-role"
+      },
+      "review" : {
+        "name" : "审批组",
+        "type" : "assignment"
+      }
+    },
+    "afterInfo" : {
+      "alice" : {
+        "team" : "原团队"
+      },
+      "bob" : { }
+    },
+    "afterPictures" : {
+      "alice" : {
+        "base64" : "AQIA/w==",
+        "mimeType" : "image/png"
+      }
+    },
+    "afterMemberships" : {
+      "alice" : [ "review" ],
+      "bob" : [ ]
+    }
+  }, {
+    "name" : "users-sort-invalid",
+    "method" : "GET",
+    "path" : "/service/identity/users?sort=missing",
+    "requestBody" : "",
+    "status" : 400,
+    "contentType" : "application/json",
+    "responseBody" : "{\"message\":\"Bad request\",\"exception\":\"Value for param 'sort' is not valid, 'missing' is not a valid property\"}",
+    "afterUsers" : {
+      "alice" : {
+        "firstName" : "甲",
+        "lastName" : "测试",
+        "displayName" : "用户甲",
+        "email" : "alice@example.test",
+        "initialPasswordValid" : true,
+        "updatedPasswordValid" : false
+      },
+      "bob" : {
+        "firstName" : "乙",
+        "lastName" : "测试",
+        "displayName" : "用户乙",
+        "email" : "bob@example.test",
+        "initialPasswordValid" : true,
+        "updatedPasswordValid" : false
+      }
+    },
+    "afterGroups" : {
+      "ops" : {
+        "name" : "运维组",
+        "type" : "security-role"
+      },
+      "review" : {
+        "name" : "审批组",
+        "type" : "assignment"
+      }
+    },
+    "afterInfo" : {
+      "alice" : {
+        "team" : "原团队"
+      },
+      "bob" : { }
+    },
+    "afterPictures" : {
+      "alice" : {
+        "base64" : "AQIA/w==",
+        "mimeType" : "image/png"
+      }
+    },
+    "afterMemberships" : {
+      "alice" : [ "review" ],
+      "bob" : [ ]
+    }
+  }, {
+    "name" : "user-create",
+    "method" : "POST",
+    "path" : "/service/identity/users",
+    "requestBody" : "{\"id\":\"carol\",\"firstName\":\"新用户\",\"lastName\":\"丙\",\"displayName\":\"用户丙\",\"email\":\"carol@example.test\"}",
+    "status" : 201,
+    "contentType" : "application/json",
+    "responseBody" : "{\"displayName\":\"用户丙\",\"email\":\"carol@example.test\",\"firstName\":\"新用户\",\"id\":\"carol\",\"lastName\":\"丙\",\"pictureUrl\":null,\"url\":\"http://localhost/service/identity/users/carol\"}",
+    "afterUsers" : {
+      "alice" : {
+        "firstName" : "甲",
+        "lastName" : "测试",
+        "displayName" : "用户甲",
+        "email" : "alice@example.test",
+        "initialPasswordValid" : true,
+        "updatedPasswordValid" : false
+      },
+      "bob" : {
+        "firstName" : "乙",
+        "lastName" : "测试",
+        "displayName" : "用户乙",
+        "email" : "bob@example.test",
+        "initialPasswordValid" : true,
+        "updatedPasswordValid" : false
+      },
+      "carol" : {
+        "firstName" : "新用户",
+        "lastName" : "丙",
+        "displayName" : "用户丙",
+        "email" : "carol@example.test",
+        "initialPasswordValid" : false,
+        "updatedPasswordValid" : false
+      }
+    },
+    "afterGroups" : {
+      "ops" : {
+        "name" : "运维组",
+        "type" : "security-role"
+      },
+      "review" : {
+        "name" : "审批组",
+        "type" : "assignment"
+      }
+    },
+    "afterInfo" : {
+      "alice" : {
+        "team" : "原团队"
+      },
+      "bob" : { },
+      "carol" : { }
+    },
+    "afterPictures" : {
+      "alice" : {
+        "base64" : "AQIA/w==",
+        "mimeType" : "image/png"
+      }
+    },
+    "afterMemberships" : {
+      "alice" : [ "review" ],
+      "bob" : [ ],
+      "carol" : [ ]
+    }
+  }, {
+    "name" : "user-create-missing-id",
+    "method" : "POST",
+    "path" : "/service/identity/users",
+    "requestBody" : "{}",
+    "status" : 400,
+    "contentType" : "application/json",
+    "responseBody" : "{\"message\":\"Bad request\",\"exception\":\"Id cannot be null.\"}",
+    "afterUsers" : {
+      "alice" : {
+        "firstName" : "甲",
+        "lastName" : "测试",
+        "displayName" : "用户甲",
+        "email" : "alice@example.test",
+        "initialPasswordValid" : true,
+        "updatedPasswordValid" : false
+      },
+      "bob" : {
+        "firstName" : "乙",
+        "lastName" : "测试",
+        "displayName" : "用户乙",
+        "email" : "bob@example.test",
+        "initialPasswordValid" : true,
+        "updatedPasswordValid" : false
+      }
+    },
+    "afterGroups" : {
+      "ops" : {
+        "name" : "运维组",
+        "type" : "security-role"
+      },
+      "review" : {
+        "name" : "审批组",
+        "type" : "assignment"
+      }
+    },
+    "afterInfo" : {
+      "alice" : {
+        "team" : "原团队"
+      },
+      "bob" : { }
+    },
+    "afterPictures" : {
+      "alice" : {
+        "base64" : "AQIA/w==",
+        "mimeType" : "image/png"
+      }
+    },
+    "afterMemberships" : {
+      "alice" : [ "review" ],
+      "bob" : [ ]
+    }
+  }, {
+    "name" : "user-create-conflict",
+    "method" : "POST",
+    "path" : "/service/identity/users",
+    "requestBody" : "{\"id\":\"alice\"}",
+    "status" : 409,
+    "contentType" : "application/json",
+    "responseBody" : "{\"message\":\"Conflict\",\"exception\":\"A user with id 'alice' already exists.\"}",
+    "afterUsers" : {
+      "alice" : {
+        "firstName" : "甲",
+        "lastName" : "测试",
+        "displayName" : "用户甲",
+        "email" : "alice@example.test",
+        "initialPasswordValid" : true,
+        "updatedPasswordValid" : false
+      },
+      "bob" : {
+        "firstName" : "乙",
+        "lastName" : "测试",
+        "displayName" : "用户乙",
+        "email" : "bob@example.test",
+        "initialPasswordValid" : true,
+        "updatedPasswordValid" : false
+      }
+    },
+    "afterGroups" : {
+      "ops" : {
+        "name" : "运维组",
+        "type" : "security-role"
+      },
+      "review" : {
+        "name" : "审批组",
+        "type" : "assignment"
+      }
+    },
+    "afterInfo" : {
+      "alice" : {
+        "team" : "原团队"
+      },
+      "bob" : { }
+    },
+    "afterPictures" : {
+      "alice" : {
+        "base64" : "AQIA/w==",
+        "mimeType" : "image/png"
+      }
+    },
+    "afterMemberships" : {
+      "alice" : [ "review" ],
+      "bob" : [ ]
+    }
+  }, {
+    "name" : "user-update",
+    "method" : "PUT",
+    "path" : "/service/identity/users/alice",
+    "requestBody" : "{\"firstName\":\"更新\",\"email\":null,\"displayName\":\"更新用户\"}",
+    "status" : 200,
+    "contentType" : "application/json",
+    "responseBody" : "{\"displayName\":\"更新用户\",\"email\":null,\"firstName\":\"更新\",\"id\":\"alice\",\"lastName\":\"测试\",\"pictureUrl\":\"http://localhost/service/identity/users/alice/picture\",\"url\":\"http://localhost/service/identity/users/alice\"}",
+    "afterUsers" : {
+      "alice" : {
+        "firstName" : "更新",
+        "lastName" : "测试",
+        "displayName" : "更新用户",
+        "email" : null,
+        "initialPasswordValid" : true,
+        "updatedPasswordValid" : false
+      },
+      "bob" : {
+        "firstName" : "乙",
+        "lastName" : "测试",
+        "displayName" : "用户乙",
+        "email" : "bob@example.test",
+        "initialPasswordValid" : true,
+        "updatedPasswordValid" : false
+      }
+    },
+    "afterGroups" : {
+      "ops" : {
+        "name" : "运维组",
+        "type" : "security-role"
+      },
+      "review" : {
+        "name" : "审批组",
+        "type" : "assignment"
+      }
+    },
+    "afterInfo" : {
+      "alice" : {
+        "team" : "原团队"
+      },
+      "bob" : { }
+    },
+    "afterPictures" : {
+      "alice" : {
+        "base64" : "AQIA/w==",
+        "mimeType" : "image/png"
+      }
+    },
+    "afterMemberships" : {
+      "alice" : [ "review" ],
+      "bob" : [ ]
+    }
+  }, {
+    "name" : "user-update-empty",
+    "method" : "PUT",
+    "path" : "/service/identity/users/alice",
+    "requestBody" : "{}",
+    "status" : 200,
+    "contentType" : "application/json",
+    "responseBody" : "{\"displayName\":\"用户甲\",\"email\":\"alice@example.test\",\"firstName\":\"甲\",\"id\":\"alice\",\"lastName\":\"测试\",\"pictureUrl\":\"http://localhost/service/identity/users/alice/picture\",\"url\":\"http://localhost/service/identity/users/alice\"}",
+    "afterUsers" : {
+      "alice" : {
+        "firstName" : "甲",
+        "lastName" : "测试",
+        "displayName" : "用户甲",
+        "email" : "alice@example.test",
+        "initialPasswordValid" : true,
+        "updatedPasswordValid" : false
+      },
+      "bob" : {
+        "firstName" : "乙",
+        "lastName" : "测试",
+        "displayName" : "用户乙",
+        "email" : "bob@example.test",
+        "initialPasswordValid" : true,
+        "updatedPasswordValid" : false
+      }
+    },
+    "afterGroups" : {
+      "ops" : {
+        "name" : "运维组",
+        "type" : "security-role"
+      },
+      "review" : {
+        "name" : "审批组",
+        "type" : "assignment"
+      }
+    },
+    "afterInfo" : {
+      "alice" : {
+        "team" : "原团队"
+      },
+      "bob" : { }
+    },
+    "afterPictures" : {
+      "alice" : {
+        "base64" : "AQIA/w==",
+        "mimeType" : "image/png"
+      }
+    },
+    "afterMemberships" : {
+      "alice" : [ "review" ],
+      "bob" : [ ]
+    }
+  }, {
+    "name" : "user-update-password",
+    "method" : "PUT",
+    "path" : "/service/identity/users/alice",
+    "requestBody" : "{\"password\":\"updated-reference\"}",
+    "status" : 200,
+    "contentType" : "application/json",
+    "responseBody" : "{\"displayName\":\"用户甲\",\"email\":\"alice@example.test\",\"firstName\":\"甲\",\"id\":\"alice\",\"lastName\":\"测试\",\"pictureUrl\":\"http://localhost/service/identity/users/alice/picture\",\"url\":\"http://localhost/service/identity/users/alice\"}",
+    "afterUsers" : {
+      "alice" : {
+        "firstName" : "甲",
+        "lastName" : "测试",
+        "displayName" : "用户甲",
+        "email" : "alice@example.test",
+        "initialPasswordValid" : false,
+        "updatedPasswordValid" : true
+      },
+      "bob" : {
+        "firstName" : "乙",
+        "lastName" : "测试",
+        "displayName" : "用户乙",
+        "email" : "bob@example.test",
+        "initialPasswordValid" : true,
+        "updatedPasswordValid" : false
+      }
+    },
+    "afterGroups" : {
+      "ops" : {
+        "name" : "运维组",
+        "type" : "security-role"
+      },
+      "review" : {
+        "name" : "审批组",
+        "type" : "assignment"
+      }
+    },
+    "afterInfo" : {
+      "alice" : {
+        "team" : "原团队"
+      },
+      "bob" : { }
+    },
+    "afterPictures" : {
+      "alice" : {
+        "base64" : "AQIA/w==",
+        "mimeType" : "image/png"
+      }
+    },
+    "afterMemberships" : {
+      "alice" : [ "review" ],
+      "bob" : [ ]
+    }
+  }, {
+    "name" : "user-delete",
+    "method" : "DELETE",
+    "path" : "/service/identity/users/alice",
+    "requestBody" : "",
+    "status" : 204,
+    "contentType" : null,
+    "responseBody" : "",
+    "afterUsers" : {
+      "bob" : {
+        "firstName" : "乙",
+        "lastName" : "测试",
+        "displayName" : "用户乙",
+        "email" : "bob@example.test",
+        "initialPasswordValid" : true,
+        "updatedPasswordValid" : false
+      }
+    },
+    "afterGroups" : {
+      "ops" : {
+        "name" : "运维组",
+        "type" : "security-role"
+      },
+      "review" : {
+        "name" : "审批组",
+        "type" : "assignment"
+      }
+    },
+    "afterInfo" : {
+      "bob" : { }
+    },
+    "afterPictures" : { },
+    "afterMemberships" : {
+      "bob" : [ ]
+    }
+  }, {
+    "name" : "groups-list",
+    "method" : "GET",
+    "path" : "/service/identity/groups",
+    "requestBody" : "",
+    "status" : 200,
+    "contentType" : "application/json",
+    "responseBody" : "{\"data\":[{\"id\":\"ops\",\"name\":\"运维组\",\"type\":\"security-role\",\"url\":\"http://localhost/service/identity/groups/ops\"},{\"id\":\"review\",\"name\":\"审批组\",\"type\":\"assignment\",\"url\":\"http://localhost/service/identity/groups/review\"}],\"order\":\"asc\",\"size\":2,\"sort\":\"id\",\"start\":0,\"total\":2}",
+    "afterUsers" : {
+      "alice" : {
+        "firstName" : "甲",
+        "lastName" : "测试",
+        "displayName" : "用户甲",
+        "email" : "alice@example.test",
+        "initialPasswordValid" : true,
+        "updatedPasswordValid" : false
+      },
+      "bob" : {
+        "firstName" : "乙",
+        "lastName" : "测试",
+        "displayName" : "用户乙",
+        "email" : "bob@example.test",
+        "initialPasswordValid" : true,
+        "updatedPasswordValid" : false
+      }
+    },
+    "afterGroups" : {
+      "ops" : {
+        "name" : "运维组",
+        "type" : "security-role"
+      },
+      "review" : {
+        "name" : "审批组",
+        "type" : "assignment"
+      }
+    },
+    "afterInfo" : {
+      "alice" : {
+        "team" : "原团队"
+      },
+      "bob" : { }
+    },
+    "afterPictures" : {
+      "alice" : {
+        "base64" : "AQIA/w==",
+        "mimeType" : "image/png"
+      }
+    },
+    "afterMemberships" : {
+      "alice" : [ "review" ],
+      "bob" : [ ]
+    }
+  }, {
+    "name" : "groups-filter",
+    "method" : "GET",
+    "path" : "/service/identity/groups?type=assignment",
+    "requestBody" : "",
+    "status" : 200,
+    "contentType" : "application/json",
+    "responseBody" : "{\"data\":[{\"id\":\"review\",\"name\":\"审批组\",\"type\":\"assignment\",\"url\":\"http://localhost/service/identity/groups/review\"}],\"order\":\"asc\",\"size\":1,\"sort\":\"id\",\"start\":0,\"total\":1}",
+    "afterUsers" : {
+      "alice" : {
+        "firstName" : "甲",
+        "lastName" : "测试",
+        "displayName" : "用户甲",
+        "email" : "alice@example.test",
+        "initialPasswordValid" : true,
+        "updatedPasswordValid" : false
+      },
+      "bob" : {
+        "firstName" : "乙",
+        "lastName" : "测试",
+        "displayName" : "用户乙",
+        "email" : "bob@example.test",
+        "initialPasswordValid" : true,
+        "updatedPasswordValid" : false
+      }
+    },
+    "afterGroups" : {
+      "ops" : {
+        "name" : "运维组",
+        "type" : "security-role"
+      },
+      "review" : {
+        "name" : "审批组",
+        "type" : "assignment"
+      }
+    },
+    "afterInfo" : {
+      "alice" : {
+        "team" : "原团队"
+      },
+      "bob" : { }
+    },
+    "afterPictures" : {
+      "alice" : {
+        "base64" : "AQIA/w==",
+        "mimeType" : "image/png"
+      }
+    },
+    "afterMemberships" : {
+      "alice" : [ "review" ],
+      "bob" : [ ]
+    }
+  }, {
+    "name" : "groups-like-pattern",
+    "method" : "GET",
+    "path" : "/service/identity/groups?nameLike=审%25组",
+    "requestBody" : "",
+    "status" : 200,
+    "contentType" : "application/json",
+    "responseBody" : "{\"data\":[{\"id\":\"review\",\"name\":\"审批组\",\"type\":\"assignment\",\"url\":\"http://localhost/service/identity/groups/review\"}],\"order\":\"asc\",\"size\":1,\"sort\":\"id\",\"start\":0,\"total\":1}",
+    "afterUsers" : {
+      "alice" : {
+        "firstName" : "甲",
+        "lastName" : "测试",
+        "displayName" : "用户甲",
+        "email" : "alice@example.test",
+        "initialPasswordValid" : true,
+        "updatedPasswordValid" : false
+      },
+      "bob" : {
+        "firstName" : "乙",
+        "lastName" : "测试",
+        "displayName" : "用户乙",
+        "email" : "bob@example.test",
+        "initialPasswordValid" : true,
+        "updatedPasswordValid" : false
+      }
+    },
+    "afterGroups" : {
+      "ops" : {
+        "name" : "运维组",
+        "type" : "security-role"
+      },
+      "review" : {
+        "name" : "审批组",
+        "type" : "assignment"
+      }
+    },
+    "afterInfo" : {
+      "alice" : {
+        "team" : "原团队"
+      },
+      "bob" : { }
+    },
+    "afterPictures" : {
+      "alice" : {
+        "base64" : "AQIA/w==",
+        "mimeType" : "image/png"
+      }
+    },
+    "afterMemberships" : {
+      "alice" : [ "review" ],
+      "bob" : [ ]
+    }
+  }, {
+    "name" : "groups-like-exact",
+    "method" : "GET",
+    "path" : "/service/identity/groups?nameLike=审批",
+    "requestBody" : "",
+    "status" : 200,
+    "contentType" : "application/json",
+    "responseBody" : "{\"data\":[],\"order\":\"asc\",\"size\":0,\"sort\":\"id\",\"start\":0,\"total\":0}",
+    "afterUsers" : {
+      "alice" : {
+        "firstName" : "甲",
+        "lastName" : "测试",
+        "displayName" : "用户甲",
+        "email" : "alice@example.test",
+        "initialPasswordValid" : true,
+        "updatedPasswordValid" : false
+      },
+      "bob" : {
+        "firstName" : "乙",
+        "lastName" : "测试",
+        "displayName" : "用户乙",
+        "email" : "bob@example.test",
+        "initialPasswordValid" : true,
+        "updatedPasswordValid" : false
+      }
+    },
+    "afterGroups" : {
+      "ops" : {
+        "name" : "运维组",
+        "type" : "security-role"
+      },
+      "review" : {
+        "name" : "审批组",
+        "type" : "assignment"
+      }
+    },
+    "afterInfo" : {
+      "alice" : {
+        "team" : "原团队"
+      },
+      "bob" : { }
+    },
+    "afterPictures" : {
+      "alice" : {
+        "base64" : "AQIA/w==",
+        "mimeType" : "image/png"
+      }
+    },
+    "afterMemberships" : {
+      "alice" : [ "review" ],
+      "bob" : [ ]
+    }
+  }, {
+    "name" : "groups-page",
+    "method" : "GET",
+    "path" : "/service/identity/groups?sort=name&order=desc&size=1",
+    "requestBody" : "",
+    "status" : 200,
+    "contentType" : "application/json",
+    "responseBody" : "{\"data\":[{\"id\":\"ops\",\"name\":\"运维组\",\"type\":\"security-role\",\"url\":\"http://localhost/service/identity/groups/ops\"}],\"order\":\"desc\",\"size\":1,\"sort\":\"name\",\"start\":0,\"total\":2}",
+    "afterUsers" : {
+      "alice" : {
+        "firstName" : "甲",
+        "lastName" : "测试",
+        "displayName" : "用户甲",
+        "email" : "alice@example.test",
+        "initialPasswordValid" : true,
+        "updatedPasswordValid" : false
+      },
+      "bob" : {
+        "firstName" : "乙",
+        "lastName" : "测试",
+        "displayName" : "用户乙",
+        "email" : "bob@example.test",
+        "initialPasswordValid" : true,
+        "updatedPasswordValid" : false
+      }
+    },
+    "afterGroups" : {
+      "ops" : {
+        "name" : "运维组",
+        "type" : "security-role"
+      },
+      "review" : {
+        "name" : "审批组",
+        "type" : "assignment"
+      }
+    },
+    "afterInfo" : {
+      "alice" : {
+        "team" : "原团队"
+      },
+      "bob" : { }
+    },
+    "afterPictures" : {
+      "alice" : {
+        "base64" : "AQIA/w==",
+        "mimeType" : "image/png"
+      }
+    },
+    "afterMemberships" : {
+      "alice" : [ "review" ],
+      "bob" : [ ]
+    }
+  }, {
+    "name" : "groups-zero",
+    "method" : "GET",
+    "path" : "/service/identity/groups?size=0",
+    "requestBody" : "",
+    "status" : 200,
+    "contentType" : "application/json",
+    "responseBody" : "{\"data\":[],\"order\":\"asc\",\"size\":0,\"sort\":\"id\",\"start\":0,\"total\":2}",
+    "afterUsers" : {
+      "alice" : {
+        "firstName" : "甲",
+        "lastName" : "测试",
+        "displayName" : "用户甲",
+        "email" : "alice@example.test",
+        "initialPasswordValid" : true,
+        "updatedPasswordValid" : false
+      },
+      "bob" : {
+        "firstName" : "乙",
+        "lastName" : "测试",
+        "displayName" : "用户乙",
+        "email" : "bob@example.test",
+        "initialPasswordValid" : true,
+        "updatedPasswordValid" : false
+      }
+    },
+    "afterGroups" : {
+      "ops" : {
+        "name" : "运维组",
+        "type" : "security-role"
+      },
+      "review" : {
+        "name" : "审批组",
+        "type" : "assignment"
+      }
+    },
+    "afterInfo" : {
+      "alice" : {
+        "team" : "原团队"
+      },
+      "bob" : { }
+    },
+    "afterPictures" : {
+      "alice" : {
+        "base64" : "AQIA/w==",
+        "mimeType" : "image/png"
+      }
+    },
+    "afterMemberships" : {
+      "alice" : [ "review" ],
+      "bob" : [ ]
+    }
+  }, {
+    "name" : "groups-member",
+    "method" : "GET",
+    "path" : "/service/identity/groups?member=alice",
+    "requestBody" : "",
+    "status" : 200,
+    "contentType" : "application/json",
+    "responseBody" : "{\"data\":[{\"id\":\"review\",\"name\":\"审批组\",\"type\":\"assignment\",\"url\":\"http://localhost/service/identity/groups/review\"}],\"order\":\"asc\",\"size\":1,\"sort\":\"id\",\"start\":0,\"total\":1}",
+    "afterUsers" : {
+      "alice" : {
+        "firstName" : "甲",
+        "lastName" : "测试",
+        "displayName" : "用户甲",
+        "email" : "alice@example.test",
+        "initialPasswordValid" : true,
+        "updatedPasswordValid" : false
+      },
+      "bob" : {
+        "firstName" : "乙",
+        "lastName" : "测试",
+        "displayName" : "用户乙",
+        "email" : "bob@example.test",
+        "initialPasswordValid" : true,
+        "updatedPasswordValid" : false
+      }
+    },
+    "afterGroups" : {
+      "ops" : {
+        "name" : "运维组",
+        "type" : "security-role"
+      },
+      "review" : {
+        "name" : "审批组",
+        "type" : "assignment"
+      }
+    },
+    "afterInfo" : {
+      "alice" : {
+        "team" : "原团队"
+      },
+      "bob" : { }
+    },
+    "afterPictures" : {
+      "alice" : {
+        "base64" : "AQIA/w==",
+        "mimeType" : "image/png"
+      }
+    },
+    "afterMemberships" : {
+      "alice" : [ "review" ],
+      "bob" : [ ]
+    }
+  }, {
+    "name" : "group-get",
+    "method" : "GET",
+    "path" : "/service/identity/groups/review",
+    "requestBody" : "",
+    "status" : 200,
+    "contentType" : "application/json",
+    "responseBody" : "{\"id\":\"review\",\"name\":\"审批组\",\"type\":\"assignment\",\"url\":\"http://localhost/service/identity/groups/review\"}",
+    "afterUsers" : {
+      "alice" : {
+        "firstName" : "甲",
+        "lastName" : "测试",
+        "displayName" : "用户甲",
+        "email" : "alice@example.test",
+        "initialPasswordValid" : true,
+        "updatedPasswordValid" : false
+      },
+      "bob" : {
+        "firstName" : "乙",
+        "lastName" : "测试",
+        "displayName" : "用户乙",
+        "email" : "bob@example.test",
+        "initialPasswordValid" : true,
+        "updatedPasswordValid" : false
+      }
+    },
+    "afterGroups" : {
+      "ops" : {
+        "name" : "运维组",
+        "type" : "security-role"
+      },
+      "review" : {
+        "name" : "审批组",
+        "type" : "assignment"
+      }
+    },
+    "afterInfo" : {
+      "alice" : {
+        "team" : "原团队"
+      },
+      "bob" : { }
+    },
+    "afterPictures" : {
+      "alice" : {
+        "base64" : "AQIA/w==",
+        "mimeType" : "image/png"
+      }
+    },
+    "afterMemberships" : {
+      "alice" : [ "review" ],
+      "bob" : [ ]
+    }
+  }, {
+    "name" : "group-missing",
+    "method" : "GET",
+    "path" : "/service/identity/groups/missing",
+    "requestBody" : "",
+    "status" : 404,
+    "contentType" : "application/json",
+    "responseBody" : "{\"message\":\"Not found\",\"exception\":\"Could not find a group with id 'missing'.\"}",
+    "afterUsers" : {
+      "alice" : {
+        "firstName" : "甲",
+        "lastName" : "测试",
+        "displayName" : "用户甲",
+        "email" : "alice@example.test",
+        "initialPasswordValid" : true,
+        "updatedPasswordValid" : false
+      },
+      "bob" : {
+        "firstName" : "乙",
+        "lastName" : "测试",
+        "displayName" : "用户乙",
+        "email" : "bob@example.test",
+        "initialPasswordValid" : true,
+        "updatedPasswordValid" : false
+      }
+    },
+    "afterGroups" : {
+      "ops" : {
+        "name" : "运维组",
+        "type" : "security-role"
+      },
+      "review" : {
+        "name" : "审批组",
+        "type" : "assignment"
+      }
+    },
+    "afterInfo" : {
+      "alice" : {
+        "team" : "原团队"
+      },
+      "bob" : { }
+    },
+    "afterPictures" : {
+      "alice" : {
+        "base64" : "AQIA/w==",
+        "mimeType" : "image/png"
+      }
+    },
+    "afterMemberships" : {
+      "alice" : [ "review" ],
+      "bob" : [ ]
+    }
+  }, {
+    "name" : "group-create",
+    "method" : "POST",
+    "path" : "/service/identity/groups",
+    "requestBody" : "{\"id\":\"new\",\"name\":\"新组\",\"type\":\"assignment\"}",
+    "status" : 201,
+    "contentType" : "application/json",
+    "responseBody" : "{\"id\":\"new\",\"name\":\"新组\",\"type\":\"assignment\",\"url\":\"http://localhost/service/identity/groups/new\"}",
+    "afterUsers" : {
+      "alice" : {
+        "firstName" : "甲",
+        "lastName" : "测试",
+        "displayName" : "用户甲",
+        "email" : "alice@example.test",
+        "initialPasswordValid" : true,
+        "updatedPasswordValid" : false
+      },
+      "bob" : {
+        "firstName" : "乙",
+        "lastName" : "测试",
+        "displayName" : "用户乙",
+        "email" : "bob@example.test",
+        "initialPasswordValid" : true,
+        "updatedPasswordValid" : false
+      }
+    },
+    "afterGroups" : {
+      "new" : {
+        "name" : "新组",
+        "type" : "assignment"
+      },
+      "ops" : {
+        "name" : "运维组",
+        "type" : "security-role"
+      },
+      "review" : {
+        "name" : "审批组",
+        "type" : "assignment"
+      }
+    },
+    "afterInfo" : {
+      "alice" : {
+        "team" : "原团队"
+      },
+      "bob" : { }
+    },
+    "afterPictures" : {
+      "alice" : {
+        "base64" : "AQIA/w==",
+        "mimeType" : "image/png"
+      }
+    },
+    "afterMemberships" : {
+      "alice" : [ "review" ],
+      "bob" : [ ]
+    }
+  }, {
+    "name" : "group-create-missing-id",
+    "method" : "POST",
+    "path" : "/service/identity/groups",
+    "requestBody" : "{}",
+    "status" : 400,
+    "contentType" : "application/json",
+    "responseBody" : "{\"message\":\"Bad request\",\"exception\":\"Id cannot be null.\"}",
+    "afterUsers" : {
+      "alice" : {
+        "firstName" : "甲",
+        "lastName" : "测试",
+        "displayName" : "用户甲",
+        "email" : "alice@example.test",
+        "initialPasswordValid" : true,
+        "updatedPasswordValid" : false
+      },
+      "bob" : {
+        "firstName" : "乙",
+        "lastName" : "测试",
+        "displayName" : "用户乙",
+        "email" : "bob@example.test",
+        "initialPasswordValid" : true,
+        "updatedPasswordValid" : false
+      }
+    },
+    "afterGroups" : {
+      "ops" : {
+        "name" : "运维组",
+        "type" : "security-role"
+      },
+      "review" : {
+        "name" : "审批组",
+        "type" : "assignment"
+      }
+    },
+    "afterInfo" : {
+      "alice" : {
+        "team" : "原团队"
+      },
+      "bob" : { }
+    },
+    "afterPictures" : {
+      "alice" : {
+        "base64" : "AQIA/w==",
+        "mimeType" : "image/png"
+      }
+    },
+    "afterMemberships" : {
+      "alice" : [ "review" ],
+      "bob" : [ ]
+    }
+  }, {
+    "name" : "group-create-conflict",
+    "method" : "POST",
+    "path" : "/service/identity/groups",
+    "requestBody" : "{\"id\":\"review\"}",
+    "status" : 409,
+    "contentType" : "application/json",
+    "responseBody" : "{\"message\":\"Conflict\",\"exception\":\"A group with id 'review' already exists.\"}",
+    "afterUsers" : {
+      "alice" : {
+        "firstName" : "甲",
+        "lastName" : "测试",
+        "displayName" : "用户甲",
+        "email" : "alice@example.test",
+        "initialPasswordValid" : true,
+        "updatedPasswordValid" : false
+      },
+      "bob" : {
+        "firstName" : "乙",
+        "lastName" : "测试",
+        "displayName" : "用户乙",
+        "email" : "bob@example.test",
+        "initialPasswordValid" : true,
+        "updatedPasswordValid" : false
+      }
+    },
+    "afterGroups" : {
+      "ops" : {
+        "name" : "运维组",
+        "type" : "security-role"
+      },
+      "review" : {
+        "name" : "审批组",
+        "type" : "assignment"
+      }
+    },
+    "afterInfo" : {
+      "alice" : {
+        "team" : "原团队"
+      },
+      "bob" : { }
+    },
+    "afterPictures" : {
+      "alice" : {
+        "base64" : "AQIA/w==",
+        "mimeType" : "image/png"
+      }
+    },
+    "afterMemberships" : {
+      "alice" : [ "review" ],
+      "bob" : [ ]
+    }
+  }, {
+    "name" : "group-update",
+    "method" : "PUT",
+    "path" : "/service/identity/groups/review",
+    "requestBody" : "{\"name\":\"更新组\",\"type\":null}",
+    "status" : 200,
+    "contentType" : "application/json",
+    "responseBody" : "{\"id\":\"review\",\"name\":\"更新组\",\"type\":null,\"url\":\"http://localhost/service/identity/groups/review\"}",
+    "afterUsers" : {
+      "alice" : {
+        "firstName" : "甲",
+        "lastName" : "测试",
+        "displayName" : "用户甲",
+        "email" : "alice@example.test",
+        "initialPasswordValid" : true,
+        "updatedPasswordValid" : false
+      },
+      "bob" : {
+        "firstName" : "乙",
+        "lastName" : "测试",
+        "displayName" : "用户乙",
+        "email" : "bob@example.test",
+        "initialPasswordValid" : true,
+        "updatedPasswordValid" : false
+      }
+    },
+    "afterGroups" : {
+      "ops" : {
+        "name" : "运维组",
+        "type" : "security-role"
+      },
+      "review" : {
+        "name" : "更新组",
+        "type" : null
+      }
+    },
+    "afterInfo" : {
+      "alice" : {
+        "team" : "原团队"
+      },
+      "bob" : { }
+    },
+    "afterPictures" : {
+      "alice" : {
+        "base64" : "AQIA/w==",
+        "mimeType" : "image/png"
+      }
+    },
+    "afterMemberships" : {
+      "alice" : [ "review" ],
+      "bob" : [ ]
+    }
+  }, {
+    "name" : "group-update-empty",
+    "method" : "PUT",
+    "path" : "/service/identity/groups/review",
+    "requestBody" : "{}",
+    "status" : 200,
+    "contentType" : "application/json",
+    "responseBody" : "{\"id\":\"review\",\"name\":\"审批组\",\"type\":\"assignment\",\"url\":\"http://localhost/service/identity/groups/review\"}",
+    "afterUsers" : {
+      "alice" : {
+        "firstName" : "甲",
+        "lastName" : "测试",
+        "displayName" : "用户甲",
+        "email" : "alice@example.test",
+        "initialPasswordValid" : true,
+        "updatedPasswordValid" : false
+      },
+      "bob" : {
+        "firstName" : "乙",
+        "lastName" : "测试",
+        "displayName" : "用户乙",
+        "email" : "bob@example.test",
+        "initialPasswordValid" : true,
+        "updatedPasswordValid" : false
+      }
+    },
+    "afterGroups" : {
+      "ops" : {
+        "name" : "运维组",
+        "type" : "security-role"
+      },
+      "review" : {
+        "name" : "审批组",
+        "type" : "assignment"
+      }
+    },
+    "afterInfo" : {
+      "alice" : {
+        "team" : "原团队"
+      },
+      "bob" : { }
+    },
+    "afterPictures" : {
+      "alice" : {
+        "base64" : "AQIA/w==",
+        "mimeType" : "image/png"
+      }
+    },
+    "afterMemberships" : {
+      "alice" : [ "review" ],
+      "bob" : [ ]
+    }
+  }, {
+    "name" : "group-delete",
+    "method" : "DELETE",
+    "path" : "/service/identity/groups/review",
+    "requestBody" : "",
+    "status" : 204,
+    "contentType" : null,
+    "responseBody" : "",
+    "afterUsers" : {
+      "alice" : {
+        "firstName" : "甲",
+        "lastName" : "测试",
+        "displayName" : "用户甲",
+        "email" : "alice@example.test",
+        "initialPasswordValid" : true,
+        "updatedPasswordValid" : false
+      },
+      "bob" : {
+        "firstName" : "乙",
+        "lastName" : "测试",
+        "displayName" : "用户乙",
+        "email" : "bob@example.test",
+        "initialPasswordValid" : true,
+        "updatedPasswordValid" : false
+      }
+    },
+    "afterGroups" : {
+      "ops" : {
+        "name" : "运维组",
+        "type" : "security-role"
+      }
+    },
+    "afterInfo" : {
+      "alice" : {
+        "team" : "原团队"
+      },
+      "bob" : { }
+    },
+    "afterPictures" : {
+      "alice" : {
+        "base64" : "AQIA/w==",
+        "mimeType" : "image/png"
+      }
+    },
+    "afterMemberships" : {
+      "alice" : [ ],
+      "bob" : [ ]
+    }
+  }, {
+    "name" : "member-create",
+    "method" : "POST",
+    "path" : "/service/identity/groups/review/members",
+    "requestBody" : "{\"userId\":\"bob\"}",
+    "status" : 201,
+    "contentType" : "application/json",
+    "responseBody" : "{\"groupId\":\"review\",\"url\":\"http://localhost/service/identity/groups/review/members/bob\",\"userId\":\"bob\"}",
+    "afterUsers" : {
+      "alice" : {
+        "firstName" : "甲",
+        "lastName" : "测试",
+        "displayName" : "用户甲",
+        "email" : "alice@example.test",
+        "initialPasswordValid" : true,
+        "updatedPasswordValid" : false
+      },
+      "bob" : {
+        "firstName" : "乙",
+        "lastName" : "测试",
+        "displayName" : "用户乙",
+        "email" : "bob@example.test",
+        "initialPasswordValid" : true,
+        "updatedPasswordValid" : false
+      }
+    },
+    "afterGroups" : {
+      "ops" : {
+        "name" : "运维组",
+        "type" : "security-role"
+      },
+      "review" : {
+        "name" : "审批组",
+        "type" : "assignment"
+      }
+    },
+    "afterInfo" : {
+      "alice" : {
+        "team" : "原团队"
+      },
+      "bob" : { }
+    },
+    "afterPictures" : {
+      "alice" : {
+        "base64" : "AQIA/w==",
+        "mimeType" : "image/png"
+      }
+    },
+    "afterMemberships" : {
+      "alice" : [ "review" ],
+      "bob" : [ "review" ]
+    }
+  }, {
+    "name" : "member-conflict",
+    "method" : "POST",
+    "path" : "/service/identity/groups/review/members",
+    "requestBody" : "{\"userId\":\"alice\"}",
+    "status" : 409,
+    "contentType" : "application/json",
+    "responseBody" : "{\"message\":\"Conflict\",\"exception\":\"User 'alice' is already part of group 'review'.\"}",
+    "afterUsers" : {
+      "alice" : {
+        "firstName" : "甲",
+        "lastName" : "测试",
+        "displayName" : "用户甲",
+        "email" : "alice@example.test",
+        "initialPasswordValid" : true,
+        "updatedPasswordValid" : false
+      },
+      "bob" : {
+        "firstName" : "乙",
+        "lastName" : "测试",
+        "displayName" : "用户乙",
+        "email" : "bob@example.test",
+        "initialPasswordValid" : true,
+        "updatedPasswordValid" : false
+      }
+    },
+    "afterGroups" : {
+      "ops" : {
+        "name" : "运维组",
+        "type" : "security-role"
+      },
+      "review" : {
+        "name" : "审批组",
+        "type" : "assignment"
+      }
+    },
+    "afterInfo" : {
+      "alice" : {
+        "team" : "原团队"
+      },
+      "bob" : { }
+    },
+    "afterPictures" : {
+      "alice" : {
+        "base64" : "AQIA/w==",
+        "mimeType" : "image/png"
+      }
+    },
+    "afterMemberships" : {
+      "alice" : [ "review" ],
+      "bob" : [ ]
+    }
+  }, {
+    "name" : "member-missing-user-id",
+    "method" : "POST",
+    "path" : "/service/identity/groups/review/members",
+    "requestBody" : "{}",
+    "status" : 400,
+    "contentType" : "application/json",
+    "responseBody" : "{\"message\":\"Bad request\",\"exception\":\"UserId cannot be null.\"}",
+    "afterUsers" : {
+      "alice" : {
+        "firstName" : "甲",
+        "lastName" : "测试",
+        "displayName" : "用户甲",
+        "email" : "alice@example.test",
+        "initialPasswordValid" : true,
+        "updatedPasswordValid" : false
+      },
+      "bob" : {
+        "firstName" : "乙",
+        "lastName" : "测试",
+        "displayName" : "用户乙",
+        "email" : "bob@example.test",
+        "initialPasswordValid" : true,
+        "updatedPasswordValid" : false
+      }
+    },
+    "afterGroups" : {
+      "ops" : {
+        "name" : "运维组",
+        "type" : "security-role"
+      },
+      "review" : {
+        "name" : "审批组",
+        "type" : "assignment"
+      }
+    },
+    "afterInfo" : {
+      "alice" : {
+        "team" : "原团队"
+      },
+      "bob" : { }
+    },
+    "afterPictures" : {
+      "alice" : {
+        "base64" : "AQIA/w==",
+        "mimeType" : "image/png"
+      }
+    },
+    "afterMemberships" : {
+      "alice" : [ "review" ],
+      "bob" : [ ]
+    }
+  }, {
+    "name" : "member-delete",
+    "method" : "DELETE",
+    "path" : "/service/identity/groups/review/members/alice",
+    "requestBody" : "",
+    "status" : 204,
+    "contentType" : null,
+    "responseBody" : "",
+    "afterUsers" : {
+      "alice" : {
+        "firstName" : "甲",
+        "lastName" : "测试",
+        "displayName" : "用户甲",
+        "email" : "alice@example.test",
+        "initialPasswordValid" : true,
+        "updatedPasswordValid" : false
+      },
+      "bob" : {
+        "firstName" : "乙",
+        "lastName" : "测试",
+        "displayName" : "用户乙",
+        "email" : "bob@example.test",
+        "initialPasswordValid" : true,
+        "updatedPasswordValid" : false
+      }
+    },
+    "afterGroups" : {
+      "ops" : {
+        "name" : "运维组",
+        "type" : "security-role"
+      },
+      "review" : {
+        "name" : "审批组",
+        "type" : "assignment"
+      }
+    },
+    "afterInfo" : {
+      "alice" : {
+        "team" : "原团队"
+      },
+      "bob" : { }
+    },
+    "afterPictures" : {
+      "alice" : {
+        "base64" : "AQIA/w==",
+        "mimeType" : "image/png"
+      }
+    },
+    "afterMemberships" : {
+      "alice" : [ ],
+      "bob" : [ ]
+    }
+  }, {
+    "name" : "member-delete-absent",
+    "method" : "DELETE",
+    "path" : "/service/identity/groups/review/members/bob",
+    "requestBody" : "",
+    "status" : 404,
+    "contentType" : "application/json",
+    "responseBody" : "{\"message\":\"Not found\",\"exception\":\"User 'bob' is not part of group 'review'.\"}",
+    "afterUsers" : {
+      "alice" : {
+        "firstName" : "甲",
+        "lastName" : "测试",
+        "displayName" : "用户甲",
+        "email" : "alice@example.test",
+        "initialPasswordValid" : true,
+        "updatedPasswordValid" : false
+      },
+      "bob" : {
+        "firstName" : "乙",
+        "lastName" : "测试",
+        "displayName" : "用户乙",
+        "email" : "bob@example.test",
+        "initialPasswordValid" : true,
+        "updatedPasswordValid" : false
+      }
+    },
+    "afterGroups" : {
+      "ops" : {
+        "name" : "运维组",
+        "type" : "security-role"
+      },
+      "review" : {
+        "name" : "审批组",
+        "type" : "assignment"
+      }
+    },
+    "afterInfo" : {
+      "alice" : {
+        "team" : "原团队"
+      },
+      "bob" : { }
+    },
+    "afterPictures" : {
+      "alice" : {
+        "base64" : "AQIA/w==",
+        "mimeType" : "image/png"
+      }
+    },
+    "afterMemberships" : {
+      "alice" : [ "review" ],
+      "bob" : [ ]
+    }
+  }, {
+    "name" : "info-list",
+    "method" : "GET",
+    "path" : "/service/identity/users/alice/info",
+    "requestBody" : "",
+    "status" : 200,
+    "contentType" : "application/json",
+    "responseBody" : "[{\"key\":\"team\",\"url\":\"http://localhost/service/identity/users/alice/info/team\"}]",
+    "afterUsers" : {
+      "alice" : {
+        "firstName" : "甲",
+        "lastName" : "测试",
+        "displayName" : "用户甲",
+        "email" : "alice@example.test",
+        "initialPasswordValid" : true,
+        "updatedPasswordValid" : false
+      },
+      "bob" : {
+        "firstName" : "乙",
+        "lastName" : "测试",
+        "displayName" : "用户乙",
+        "email" : "bob@example.test",
+        "initialPasswordValid" : true,
+        "updatedPasswordValid" : false
+      }
+    },
+    "afterGroups" : {
+      "ops" : {
+        "name" : "运维组",
+        "type" : "security-role"
+      },
+      "review" : {
+        "name" : "审批组",
+        "type" : "assignment"
+      }
+    },
+    "afterInfo" : {
+      "alice" : {
+        "team" : "原团队"
+      },
+      "bob" : { }
+    },
+    "afterPictures" : {
+      "alice" : {
+        "base64" : "AQIA/w==",
+        "mimeType" : "image/png"
+      }
+    },
+    "afterMemberships" : {
+      "alice" : [ "review" ],
+      "bob" : [ ]
+    }
+  }, {
+    "name" : "info-get",
+    "method" : "GET",
+    "path" : "/service/identity/users/alice/info/team",
+    "requestBody" : "",
+    "status" : 200,
+    "contentType" : "application/json",
+    "responseBody" : "{\"key\":\"team\",\"url\":\"http://localhost/service/identity/users/alice/info/team\",\"value\":\"原团队\"}",
+    "afterUsers" : {
+      "alice" : {
+        "firstName" : "甲",
+        "lastName" : "测试",
+        "displayName" : "用户甲",
+        "email" : "alice@example.test",
+        "initialPasswordValid" : true,
+        "updatedPasswordValid" : false
+      },
+      "bob" : {
+        "firstName" : "乙",
+        "lastName" : "测试",
+        "displayName" : "用户乙",
+        "email" : "bob@example.test",
+        "initialPasswordValid" : true,
+        "updatedPasswordValid" : false
+      }
+    },
+    "afterGroups" : {
+      "ops" : {
+        "name" : "运维组",
+        "type" : "security-role"
+      },
+      "review" : {
+        "name" : "审批组",
+        "type" : "assignment"
+      }
+    },
+    "afterInfo" : {
+      "alice" : {
+        "team" : "原团队"
+      },
+      "bob" : { }
+    },
+    "afterPictures" : {
+      "alice" : {
+        "base64" : "AQIA/w==",
+        "mimeType" : "image/png"
+      }
+    },
+    "afterMemberships" : {
+      "alice" : [ "review" ],
+      "bob" : [ ]
+    }
+  }, {
+    "name" : "info-missing",
+    "method" : "GET",
+    "path" : "/service/identity/users/alice/info/missing",
+    "requestBody" : "",
+    "status" : 404,
+    "contentType" : "application/json",
+    "responseBody" : "{\"message\":\"Not found\",\"exception\":\"User info with key 'missing' does not exists for user 'alice'.\"}",
+    "afterUsers" : {
+      "alice" : {
+        "firstName" : "甲",
+        "lastName" : "测试",
+        "displayName" : "用户甲",
+        "email" : "alice@example.test",
+        "initialPasswordValid" : true,
+        "updatedPasswordValid" : false
+      },
+      "bob" : {
+        "firstName" : "乙",
+        "lastName" : "测试",
+        "displayName" : "用户乙",
+        "email" : "bob@example.test",
+        "initialPasswordValid" : true,
+        "updatedPasswordValid" : false
+      }
+    },
+    "afterGroups" : {
+      "ops" : {
+        "name" : "运维组",
+        "type" : "security-role"
+      },
+      "review" : {
+        "name" : "审批组",
+        "type" : "assignment"
+      }
+    },
+    "afterInfo" : {
+      "alice" : {
+        "team" : "原团队"
+      },
+      "bob" : { }
+    },
+    "afterPictures" : {
+      "alice" : {
+        "base64" : "AQIA/w==",
+        "mimeType" : "image/png"
+      }
+    },
+    "afterMemberships" : {
+      "alice" : [ "review" ],
+      "bob" : [ ]
+    }
+  }, {
+    "name" : "info-create",
+    "method" : "POST",
+    "path" : "/service/identity/users/alice/info",
+    "requestBody" : "{\"key\":\"region\",\"value\":\"华东\"}",
+    "status" : 201,
+    "contentType" : "application/json",
+    "responseBody" : "{\"key\":\"region\",\"url\":\"http://localhost/service/identity/users/alice/info/region\",\"value\":\"华东\"}",
+    "afterUsers" : {
+      "alice" : {
+        "firstName" : "甲",
+        "lastName" : "测试",
+        "displayName" : "用户甲",
+        "email" : "alice@example.test",
+        "initialPasswordValid" : true,
+        "updatedPasswordValid" : false
+      },
+      "bob" : {
+        "firstName" : "乙",
+        "lastName" : "测试",
+        "displayName" : "用户乙",
+        "email" : "bob@example.test",
+        "initialPasswordValid" : true,
+        "updatedPasswordValid" : false
+      }
+    },
+    "afterGroups" : {
+      "ops" : {
+        "name" : "运维组",
+        "type" : "security-role"
+      },
+      "review" : {
+        "name" : "审批组",
+        "type" : "assignment"
+      }
+    },
+    "afterInfo" : {
+      "alice" : {
+        "region" : "华东",
+        "team" : "原团队"
+      },
+      "bob" : { }
+    },
+    "afterPictures" : {
+      "alice" : {
+        "base64" : "AQIA/w==",
+        "mimeType" : "image/png"
+      }
+    },
+    "afterMemberships" : {
+      "alice" : [ "review" ],
+      "bob" : [ ]
+    }
+  }, {
+    "name" : "info-create-conflict",
+    "method" : "POST",
+    "path" : "/service/identity/users/alice/info",
+    "requestBody" : "{\"key\":\"team\",\"value\":\"重复\"}",
+    "status" : 409,
+    "contentType" : "application/json",
+    "responseBody" : "{\"message\":\"Conflict\",\"exception\":\"User info with key 'team' already exists for this user.\"}",
+    "afterUsers" : {
+      "alice" : {
+        "firstName" : "甲",
+        "lastName" : "测试",
+        "displayName" : "用户甲",
+        "email" : "alice@example.test",
+        "initialPasswordValid" : true,
+        "updatedPasswordValid" : false
+      },
+      "bob" : {
+        "firstName" : "乙",
+        "lastName" : "测试",
+        "displayName" : "用户乙",
+        "email" : "bob@example.test",
+        "initialPasswordValid" : true,
+        "updatedPasswordValid" : false
+      }
+    },
+    "afterGroups" : {
+      "ops" : {
+        "name" : "运维组",
+        "type" : "security-role"
+      },
+      "review" : {
+        "name" : "审批组",
+        "type" : "assignment"
+      }
+    },
+    "afterInfo" : {
+      "alice" : {
+        "team" : "原团队"
+      },
+      "bob" : { }
+    },
+    "afterPictures" : {
+      "alice" : {
+        "base64" : "AQIA/w==",
+        "mimeType" : "image/png"
+      }
+    },
+    "afterMemberships" : {
+      "alice" : [ "review" ],
+      "bob" : [ ]
+    }
+  }, {
+    "name" : "info-create-missing-key",
+    "method" : "POST",
+    "path" : "/service/identity/users/alice/info",
+    "requestBody" : "{\"value\":\"无键\"}",
+    "status" : 400,
+    "contentType" : "application/json",
+    "responseBody" : "{\"message\":\"Bad request\",\"exception\":\"The key cannot be null.\"}",
+    "afterUsers" : {
+      "alice" : {
+        "firstName" : "甲",
+        "lastName" : "测试",
+        "displayName" : "用户甲",
+        "email" : "alice@example.test",
+        "initialPasswordValid" : true,
+        "updatedPasswordValid" : false
+      },
+      "bob" : {
+        "firstName" : "乙",
+        "lastName" : "测试",
+        "displayName" : "用户乙",
+        "email" : "bob@example.test",
+        "initialPasswordValid" : true,
+        "updatedPasswordValid" : false
+      }
+    },
+    "afterGroups" : {
+      "ops" : {
+        "name" : "运维组",
+        "type" : "security-role"
+      },
+      "review" : {
+        "name" : "审批组",
+        "type" : "assignment"
+      }
+    },
+    "afterInfo" : {
+      "alice" : {
+        "team" : "原团队"
+      },
+      "bob" : { }
+    },
+    "afterPictures" : {
+      "alice" : {
+        "base64" : "AQIA/w==",
+        "mimeType" : "image/png"
+      }
+    },
+    "afterMemberships" : {
+      "alice" : [ "review" ],
+      "bob" : [ ]
+    }
+  }, {
+    "name" : "info-create-missing-value",
+    "method" : "POST",
+    "path" : "/service/identity/users/alice/info",
+    "requestBody" : "{\"key\":\"empty\"}",
+    "status" : 400,
+    "contentType" : "application/json",
+    "responseBody" : "{\"message\":\"Bad request\",\"exception\":\"The value cannot be null.\"}",
+    "afterUsers" : {
+      "alice" : {
+        "firstName" : "甲",
+        "lastName" : "测试",
+        "displayName" : "用户甲",
+        "email" : "alice@example.test",
+        "initialPasswordValid" : true,
+        "updatedPasswordValid" : false
+      },
+      "bob" : {
+        "firstName" : "乙",
+        "lastName" : "测试",
+        "displayName" : "用户乙",
+        "email" : "bob@example.test",
+        "initialPasswordValid" : true,
+        "updatedPasswordValid" : false
+      }
+    },
+    "afterGroups" : {
+      "ops" : {
+        "name" : "运维组",
+        "type" : "security-role"
+      },
+      "review" : {
+        "name" : "审批组",
+        "type" : "assignment"
+      }
+    },
+    "afterInfo" : {
+      "alice" : {
+        "team" : "原团队"
+      },
+      "bob" : { }
+    },
+    "afterPictures" : {
+      "alice" : {
+        "base64" : "AQIA/w==",
+        "mimeType" : "image/png"
+      }
+    },
+    "afterMemberships" : {
+      "alice" : [ "review" ],
+      "bob" : [ ]
+    }
+  }, {
+    "name" : "info-update",
+    "method" : "PUT",
+    "path" : "/service/identity/users/alice/info/team",
+    "requestBody" : "{\"value\":\"新团队\"}",
+    "status" : 200,
+    "contentType" : "application/json",
+    "responseBody" : "{\"key\":\"team\",\"url\":\"http://localhost/service/identity/users/alice/info/team\",\"value\":\"新团队\"}",
+    "afterUsers" : {
+      "alice" : {
+        "firstName" : "甲",
+        "lastName" : "测试",
+        "displayName" : "用户甲",
+        "email" : "alice@example.test",
+        "initialPasswordValid" : true,
+        "updatedPasswordValid" : false
+      },
+      "bob" : {
+        "firstName" : "乙",
+        "lastName" : "测试",
+        "displayName" : "用户乙",
+        "email" : "bob@example.test",
+        "initialPasswordValid" : true,
+        "updatedPasswordValid" : false
+      }
+    },
+    "afterGroups" : {
+      "ops" : {
+        "name" : "运维组",
+        "type" : "security-role"
+      },
+      "review" : {
+        "name" : "审批组",
+        "type" : "assignment"
+      }
+    },
+    "afterInfo" : {
+      "alice" : {
+        "team" : "新团队"
+      },
+      "bob" : { }
+    },
+    "afterPictures" : {
+      "alice" : {
+        "base64" : "AQIA/w==",
+        "mimeType" : "image/png"
+      }
+    },
+    "afterMemberships" : {
+      "alice" : [ "review" ],
+      "bob" : [ ]
+    }
+  }, {
+    "name" : "info-update-mismatch",
+    "method" : "PUT",
+    "path" : "/service/identity/users/alice/info/team",
+    "requestBody" : "{\"key\":\"other\",\"value\":\"新团队\"}",
+    "status" : 400,
+    "contentType" : "application/json",
+    "responseBody" : "{\"message\":\"Bad request\",\"exception\":\"Key provided in request body does not match the key in the resource URL.\"}",
+    "afterUsers" : {
+      "alice" : {
+        "firstName" : "甲",
+        "lastName" : "测试",
+        "displayName" : "用户甲",
+        "email" : "alice@example.test",
+        "initialPasswordValid" : true,
+        "updatedPasswordValid" : false
+      },
+      "bob" : {
+        "firstName" : "乙",
+        "lastName" : "测试",
+        "displayName" : "用户乙",
+        "email" : "bob@example.test",
+        "initialPasswordValid" : true,
+        "updatedPasswordValid" : false
+      }
+    },
+    "afterGroups" : {
+      "ops" : {
+        "name" : "运维组",
+        "type" : "security-role"
+      },
+      "review" : {
+        "name" : "审批组",
+        "type" : "assignment"
+      }
+    },
+    "afterInfo" : {
+      "alice" : {
+        "team" : "原团队"
+      },
+      "bob" : { }
+    },
+    "afterPictures" : {
+      "alice" : {
+        "base64" : "AQIA/w==",
+        "mimeType" : "image/png"
+      }
+    },
+    "afterMemberships" : {
+      "alice" : [ "review" ],
+      "bob" : [ ]
+    }
+  }, {
+    "name" : "info-update-missing-value",
+    "method" : "PUT",
+    "path" : "/service/identity/users/alice/info/team",
+    "requestBody" : "{}",
+    "status" : 400,
+    "contentType" : "application/json",
+    "responseBody" : "{\"message\":\"Bad request\",\"exception\":\"The value cannot be null.\"}",
+    "afterUsers" : {
+      "alice" : {
+        "firstName" : "甲",
+        "lastName" : "测试",
+        "displayName" : "用户甲",
+        "email" : "alice@example.test",
+        "initialPasswordValid" : true,
+        "updatedPasswordValid" : false
+      },
+      "bob" : {
+        "firstName" : "乙",
+        "lastName" : "测试",
+        "displayName" : "用户乙",
+        "email" : "bob@example.test",
+        "initialPasswordValid" : true,
+        "updatedPasswordValid" : false
+      }
+    },
+    "afterGroups" : {
+      "ops" : {
+        "name" : "运维组",
+        "type" : "security-role"
+      },
+      "review" : {
+        "name" : "审批组",
+        "type" : "assignment"
+      }
+    },
+    "afterInfo" : {
+      "alice" : {
+        "team" : "原团队"
+      },
+      "bob" : { }
+    },
+    "afterPictures" : {
+      "alice" : {
+        "base64" : "AQIA/w==",
+        "mimeType" : "image/png"
+      }
+    },
+    "afterMemberships" : {
+      "alice" : [ "review" ],
+      "bob" : [ ]
+    }
+  }, {
+    "name" : "info-delete",
+    "method" : "DELETE",
+    "path" : "/service/identity/users/alice/info/team",
+    "requestBody" : "",
+    "status" : 204,
+    "contentType" : null,
+    "responseBody" : "",
+    "afterUsers" : {
+      "alice" : {
+        "firstName" : "甲",
+        "lastName" : "测试",
+        "displayName" : "用户甲",
+        "email" : "alice@example.test",
+        "initialPasswordValid" : true,
+        "updatedPasswordValid" : false
+      },
+      "bob" : {
+        "firstName" : "乙",
+        "lastName" : "测试",
+        "displayName" : "用户乙",
+        "email" : "bob@example.test",
+        "initialPasswordValid" : true,
+        "updatedPasswordValid" : false
+      }
+    },
+    "afterGroups" : {
+      "ops" : {
+        "name" : "运维组",
+        "type" : "security-role"
+      },
+      "review" : {
+        "name" : "审批组",
+        "type" : "assignment"
+      }
+    },
+    "afterInfo" : {
+      "alice" : {
+        "team" : null
+      },
+      "bob" : { }
+    },
+    "afterPictures" : {
+      "alice" : {
+        "base64" : "AQIA/w==",
+        "mimeType" : "image/png"
+      }
+    },
+    "afterMemberships" : {
+      "alice" : [ "review" ],
+      "bob" : [ ]
+    }
+  }, {
+    "name" : "info-delete-missing",
+    "method" : "DELETE",
+    "path" : "/service/identity/users/alice/info/missing",
+    "requestBody" : "",
+    "status" : 404,
+    "contentType" : "application/json",
+    "responseBody" : "{\"message\":\"Not found\",\"exception\":\"User info with key 'missing' does not exists for user 'alice'.\"}",
+    "afterUsers" : {
+      "alice" : {
+        "firstName" : "甲",
+        "lastName" : "测试",
+        "displayName" : "用户甲",
+        "email" : "alice@example.test",
+        "initialPasswordValid" : true,
+        "updatedPasswordValid" : false
+      },
+      "bob" : {
+        "firstName" : "乙",
+        "lastName" : "测试",
+        "displayName" : "用户乙",
+        "email" : "bob@example.test",
+        "initialPasswordValid" : true,
+        "updatedPasswordValid" : false
+      }
+    },
+    "afterGroups" : {
+      "ops" : {
+        "name" : "运维组",
+        "type" : "security-role"
+      },
+      "review" : {
+        "name" : "审批组",
+        "type" : "assignment"
+      }
+    },
+    "afterInfo" : {
+      "alice" : {
+        "team" : "原团队"
+      },
+      "bob" : { }
+    },
+    "afterPictures" : {
+      "alice" : {
+        "base64" : "AQIA/w==",
+        "mimeType" : "image/png"
+      }
+    },
+    "afterMemberships" : {
+      "alice" : [ "review" ],
+      "bob" : [ ]
+    }
+  }, {
+    "name" : "picture-get",
+    "method" : "GET",
+    "path" : "/service/identity/users/alice/picture",
+    "requestBody" : "",
+    "status" : 200,
+    "contentType" : "image/png",
+    "responseBase64" : "AQIA/w==",
+    "afterUsers" : {
+      "alice" : {
+        "firstName" : "甲",
+        "lastName" : "测试",
+        "displayName" : "用户甲",
+        "email" : "alice@example.test",
+        "initialPasswordValid" : true,
+        "updatedPasswordValid" : false
+      },
+      "bob" : {
+        "firstName" : "乙",
+        "lastName" : "测试",
+        "displayName" : "用户乙",
+        "email" : "bob@example.test",
+        "initialPasswordValid" : true,
+        "updatedPasswordValid" : false
+      }
+    },
+    "afterGroups" : {
+      "ops" : {
+        "name" : "运维组",
+        "type" : "security-role"
+      },
+      "review" : {
+        "name" : "审批组",
+        "type" : "assignment"
+      }
+    },
+    "afterInfo" : {
+      "alice" : {
+        "team" : "原团队"
+      },
+      "bob" : { }
+    },
+    "afterPictures" : {
+      "alice" : {
+        "base64" : "AQIA/w==",
+        "mimeType" : "image/png"
+      }
+    },
+    "afterMemberships" : {
+      "alice" : [ "review" ],
+      "bob" : [ ]
+    }
+  }, {
+    "name" : "picture-missing",
+    "method" : "GET",
+    "path" : "/service/identity/users/bob/picture",
+    "requestBody" : "",
+    "status" : 404,
+    "contentType" : "application/json",
+    "responseBody" : "{\"message\":\"Not found\",\"exception\":\"The user with id 'bob' does not have a picture.\"}",
+    "afterUsers" : {
+      "alice" : {
+        "firstName" : "甲",
+        "lastName" : "测试",
+        "displayName" : "用户甲",
+        "email" : "alice@example.test",
+        "initialPasswordValid" : true,
+        "updatedPasswordValid" : false
+      },
+      "bob" : {
+        "firstName" : "乙",
+        "lastName" : "测试",
+        "displayName" : "用户乙",
+        "email" : "bob@example.test",
+        "initialPasswordValid" : true,
+        "updatedPasswordValid" : false
+      }
+    },
+    "afterGroups" : {
+      "ops" : {
+        "name" : "运维组",
+        "type" : "security-role"
+      },
+      "review" : {
+        "name" : "审批组",
+        "type" : "assignment"
+      }
+    },
+    "afterInfo" : {
+      "alice" : {
+        "team" : "原团队"
+      },
+      "bob" : { }
+    },
+    "afterPictures" : {
+      "alice" : {
+        "base64" : "AQIA/w==",
+        "mimeType" : "image/png"
+      }
+    },
+    "afterMemberships" : {
+      "alice" : [ "review" ],
+      "bob" : [ ]
+    }
+  }, {
+    "name" : "picture-update",
+    "method" : "PUT",
+    "path" : "/service/identity/users/bob/picture",
+    "requestBody" : "multipart",
+    "status" : 204,
+    "contentType" : null,
+    "responseBody" : "",
+    "afterUsers" : {
+      "alice" : {
+        "firstName" : "甲",
+        "lastName" : "测试",
+        "displayName" : "用户甲",
+        "email" : "alice@example.test",
+        "initialPasswordValid" : true,
+        "updatedPasswordValid" : false
+      },
+      "bob" : {
+        "firstName" : "乙",
+        "lastName" : "测试",
+        "displayName" : "用户乙",
+        "email" : "bob@example.test",
+        "initialPasswordValid" : true,
+        "updatedPasswordValid" : false
+      }
+    },
+    "afterGroups" : {
+      "ops" : {
+        "name" : "运维组",
+        "type" : "security-role"
+      },
+      "review" : {
+        "name" : "审批组",
+        "type" : "assignment"
+      }
+    },
+    "afterInfo" : {
+      "alice" : {
+        "team" : "原团队"
+      },
+      "bob" : { }
+    },
+    "afterPictures" : {
+      "alice" : {
+        "base64" : "AQIA/w==",
+        "mimeType" : "image/png"
+      },
+      "bob" : {
+        "base64" : "AwQA/w==",
+        "mimeType" : "image/png"
+      }
+    },
+    "afterMemberships" : {
+      "alice" : [ "review" ],
+      "bob" : [ ]
+    }
+  } ]
+}

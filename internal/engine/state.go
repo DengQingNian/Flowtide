@@ -192,7 +192,7 @@ type state struct {
 	Attachments        map[string]*api.Attachment               // 附件
 	AttachmentContents map[string]*attachmentContentState       // 附件内容
 	Users              map[string]*api.User                     // 用户
-	UserInfo           map[string]map[string]string             // 用户信息
+	UserInfo           map[string]map[string]*string            // 用户信息
 	UserPictures       map[string]*userPictureState             // 用户头像
 	Groups             map[string]*api.Group                    // 组
 	Roles              map[string]*api.Role                     // 角色
@@ -230,7 +230,7 @@ func newState() *state {
 		Attachments:        make(map[string]*api.Attachment),
 		AttachmentContents: make(map[string]*attachmentContentState),
 		Users:              make(map[string]*api.User),
-		UserInfo:           make(map[string]map[string]string),
+		UserInfo:           make(map[string]map[string]*string),
 		UserPictures:       make(map[string]*userPictureState),
 		Groups:             make(map[string]*api.Group),
 		Roles:              make(map[string]*api.Role),
@@ -359,10 +359,15 @@ func cloneState(source *state) *state {
 		copied := *user
 		target.Users[id] = &copied
 	}
+	// 信息值指针逐项复制，同时保留原版清空后仍存在的键。
 	for userID, info := range source.UserInfo {
-		copied := make(map[string]string, len(info))
+		copied := make(map[string]*string, len(info))
 		for key, value := range info {
-			copied[key] = value
+			copied[key] = nil
+			if value != nil {
+				text := *value
+				copied[key] = &text
+			}
 		}
 		target.UserInfo[userID] = copied
 	}

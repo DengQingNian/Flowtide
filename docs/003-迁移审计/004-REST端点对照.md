@@ -11,12 +11,12 @@
 | `DELETE /history/historic-task-instances/{}` | `/history/historic-task-instances/{taskId}` | `/history/historic-task-instances/{id}` | 已编码；待契约与 Java 行为验收 |
 | `DELETE /history/historic-task-log-entries/{}` | `` | `/history/historic-task-log-entries/{id}` | 实现扩展；不计入官方覆盖 |
 | `DELETE /history/historic-variable-instances/{}` | `` | `/history/historic-variable-instances/{id}` | 实现扩展；不计入官方覆盖 |
-| `DELETE /identity/groups/{}` | `/identity/groups/{groupId}` | `/identity/groups/{id}` | 已编码；待契约与 Java 行为验收 |
-| `DELETE /identity/groups/{}/members/{}` | `/identity/groups/{groupId}/members/{userId}` | `/identity/groups/{id}/members/{userId}` | 已编码；待契约与 Java 行为验收 |
+| `DELETE /identity/groups/{}` | `/identity/groups/{groupId}` | `/identity/groups/{id}` | 原版身份HTTP场景通过：完整DTO、分页、局部更新及真实副作用；完整字段组合待验收 |
+| `DELETE /identity/groups/{}/members/{}` | `/identity/groups/{groupId}/members/{userId}` | `/identity/groups/{id}/members/{userId}` | 原版身份HTTP场景通过：完整DTO、分页、局部更新及真实副作用；完整字段组合待验收 |
 | `DELETE /identity/roles/{}` | `` | `/identity/roles/{id}` | 实现扩展；不计入官方覆盖 |
-| `DELETE /identity/users/{}` | `/identity/users/{userId}` | `/identity/users/{id}` | 已编码；待契约与 Java 行为验收 |
+| `DELETE /identity/users/{}` | `/identity/users/{userId}` | `/identity/users/{id}` | 原版身份HTTP场景通过：完整DTO、分页、局部更新及真实副作用；完整字段组合待验收 |
 | `DELETE /identity/users/{}/groups/{}` | `` | `/identity/users/{id}/groups/{groupId}` | 实现扩展；不计入官方覆盖 |
-| `DELETE /identity/users/{}/info/{}` | `/identity/users/{userId}/info/{key}` | `/identity/users/{id}/info/{key}` | 已编码；待契约与 Java 行为验收 |
+| `DELETE /identity/users/{}/info/{}` | `/identity/users/{userId}/info/{key}` | `/identity/users/{id}/info/{key}` | 原版身份HTTP场景通过：完整DTO、分页、局部更新及真实副作用；完整字段组合待验收 |
 | `DELETE /management/batches/{}` | `/management/batches/{batchId}` | `/management/batches/{id}` | 已编码；待契约与 Java 行为验收 |
 | `DELETE /management/deadletter-jobs/{}` | `/management/deadletter-jobs/{jobId}` | `/management/deadletter-jobs/{id}` | 已编码；待契约与 Java 行为验收 |
 | `DELETE /management/engine-properties/{}` | `` | `/management/engine-properties/{name}` | 实现扩展；不计入官方覆盖 |
@@ -65,17 +65,17 @@
 | `GET /history/historic-variable-instances` | `/history/historic-variable-instances` | `/history/historic-variable-instances` | 已编码；待契约与 Java 行为验收 |
 | `GET /history/historic-variable-instances/{}` | `` | `/history/historic-variable-instances/{id}` | 实现扩展；不计入官方覆盖 |
 | `GET /history/historic-variable-instances/{}/data` | `/history/historic-variable-instances/{varInstanceId}/data` | `/history/historic-variable-instances/{id}/data` | 已编码；待契约与 Java 行为验收 |
-| `GET /identity/groups` | `/identity/groups` | `/identity/groups` | 已编码；待契约与 Java 行为验收 |
-| `GET /identity/groups/{}` | `/identity/groups/{groupId}` | `/identity/groups/{id}` | 已编码；待契约与 Java 行为验收 |
+| `GET /identity/groups` | `/identity/groups` | `/identity/groups` | 原版身份HTTP场景通过：完整DTO、分页、局部更新及真实副作用；完整字段组合待验收 |
+| `GET /identity/groups/{}` | `/identity/groups/{groupId}` | `/identity/groups/{id}` | 原版身份HTTP场景通过：完整DTO、分页、局部更新及真实副作用；完整字段组合待验收 |
 | `GET /identity/groups/{}/members` | `` | `/identity/groups/{id}/members` | 实现扩展；不计入官方覆盖 |
 | `GET /identity/roles` | `` | `/identity/roles` | 实现扩展；不计入官方覆盖 |
 | `GET /identity/roles/{}` | `` | `/identity/roles/{id}` | 实现扩展；不计入官方覆盖 |
-| `GET /identity/users` | `/identity/users` | `/identity/users` | 已编码；待契约与 Java 行为验收 |
-| `GET /identity/users/{}` | `/identity/users/{userId}` | `/identity/users/{id}` | 已编码；待契约与 Java 行为验收 |
+| `GET /identity/users` | `/identity/users` | `/identity/users` | 原版身份HTTP场景通过：完整DTO、分页、局部更新及真实副作用；完整字段组合待验收 |
+| `GET /identity/users/{}` | `/identity/users/{userId}` | `/identity/users/{id}` | 原版身份HTTP场景通过：完整DTO、分页、局部更新及真实副作用；完整字段组合待验收 |
 | `GET /identity/users/{}/groups` | `` | `/identity/users/{id}/groups` | 实现扩展；不计入官方覆盖 |
-| `GET /identity/users/{}/info` | `/identity/users/{userId}/info` | `/identity/users/{id}/info` | 已编码；待契约与 Java 行为验收 |
-| `GET /identity/users/{}/info/{}` | `/identity/users/{userId}/info/{key}` | `/identity/users/{id}/info/{key}` | 已编码；待契约与 Java 行为验收 |
-| `GET /identity/users/{}/picture` | `/identity/users/{userId}/picture` | `/identity/users/{id}/picture` | 已编码；待契约与 Java 行为验收 |
+| `GET /identity/users/{}/info` | `/identity/users/{userId}/info` | `/identity/users/{id}/info` | 原版身份HTTP场景通过：完整DTO、分页、局部更新及真实副作用；完整字段组合待验收 |
+| `GET /identity/users/{}/info/{}` | `/identity/users/{userId}/info/{key}` | `/identity/users/{id}/info/{key}` | 原版身份HTTP场景通过：完整DTO、分页、局部更新及真实副作用；完整字段组合待验收 |
+| `GET /identity/users/{}/picture` | `/identity/users/{userId}/picture` | `/identity/users/{id}/picture` | 原版身份HTTP场景通过：完整DTO、分页、局部更新及真实副作用；完整字段组合待验收 |
 | `GET /management/audit-logs` | `` | `/management/audit-logs` | 实现扩展；不计入官方覆盖 |
 | `GET /management/batch-parts/{}` | `/management/batch-parts/{batchPartId}` | `/management/batch-parts/{id}` | 已编码；待契约与 Java 行为验收 |
 | `GET /management/batch-parts/{}/batch-part-document` | `/management/batch-parts/{batchPartId}/batch-part-document` | `/management/batch-parts/{id}/batch-part-document` | 已编码；待契约与 Java 行为验收 |
@@ -171,12 +171,12 @@
 | `POST /form/form-data` | `/form/form-data` | `/form/form-data` | 已编码；待契约与 Java 行为验收 |
 | `POST /history/historic-process-instances/delete` | `` | `/history/historic-process-instances/delete` | 实现扩展；不计入官方覆盖 |
 | `POST /history/historic-process-instances/{}/comments` | `/history/historic-process-instances/{processInstanceId}/comments` | `/history/historic-process-instances/{id}/comments` | 已编码；待契约与 Java 行为验收 |
-| `POST /identity/groups` | `/identity/groups` | `/identity/groups` | 已编码；待契约与 Java 行为验收 |
-| `POST /identity/groups/{}/members` | `/identity/groups/{groupId}/members` | `/identity/groups/{id}/members` | 已编码；待契约与 Java 行为验收 |
+| `POST /identity/groups` | `/identity/groups` | `/identity/groups` | 原版身份HTTP场景通过：完整DTO、分页、局部更新及真实副作用；完整字段组合待验收 |
+| `POST /identity/groups/{}/members` | `/identity/groups/{groupId}/members` | `/identity/groups/{id}/members` | 原版身份HTTP场景通过：完整DTO、分页、局部更新及真实副作用；完整字段组合待验收 |
 | `POST /identity/roles` | `` | `/identity/roles` | 实现扩展；不计入官方覆盖 |
-| `POST /identity/users` | `/identity/users` | `/identity/users` | 已编码；待契约与 Java 行为验收 |
+| `POST /identity/users` | `/identity/users` | `/identity/users` | 原版身份HTTP场景通过：完整DTO、分页、局部更新及真实副作用；完整字段组合待验收 |
 | `POST /identity/users/{}/groups` | `` | `/identity/users/{id}/groups` | 实现扩展；不计入官方覆盖 |
-| `POST /identity/users/{}/info` | `/identity/users/{userId}/info` | `/identity/users/{id}/info` | 已编码；待契约与 Java 行为验收 |
+| `POST /identity/users/{}/info` | `/identity/users/{userId}/info` | `/identity/users/{id}/info` | 原版身份HTTP场景通过：完整DTO、分页、局部更新及真实副作用；完整字段组合待验收 |
 | `POST /management/deadletter-jobs/{}` | `/management/deadletter-jobs/{jobId}` | `/management/deadletter-jobs/{id}` | 已编码；待契约与 Java 行为验收 |
 | `POST /management/engine-properties` | `` | `/management/engine-properties` | 实现扩展；不计入官方覆盖 |
 | `POST /management/jobs/run` | `` | `/management/jobs/run` | 实现扩展；不计入官方覆盖 |
@@ -221,12 +221,12 @@
 | `POST /runtime/tasks/{}/comments` | `/runtime/tasks/{taskId}/comments` | `/runtime/tasks/{id}/comments` | 已编码；待契约与 Java 行为验收 |
 | `POST /runtime/tasks/{}/identitylinks` | `/runtime/tasks/{taskId}/identitylinks` | `/runtime/tasks/{id}/identitylinks` | 已编码；待契约与 Java 行为验收 |
 | `POST /runtime/tasks/{}/variables` | `/runtime/tasks/{taskId}/variables` | `/runtime/tasks/{id}/variables` | 已编码；待契约与 Java 行为验收 |
-| `PUT /identity/groups/{}` | `/identity/groups/{groupId}` | `/identity/groups/{id}` | 已编码；待契约与 Java 行为验收 |
+| `PUT /identity/groups/{}` | `/identity/groups/{groupId}` | `/identity/groups/{id}` | 原版身份HTTP场景通过：完整DTO、分页、局部更新及真实副作用；完整字段组合待验收 |
 | `PUT /identity/roles/{}` | `` | `/identity/roles/{id}` | 实现扩展；不计入官方覆盖 |
-| `PUT /identity/users/{}` | `/identity/users/{userId}` | `/identity/users/{id}` | 已编码；待契约与 Java 行为验收 |
-| `PUT /identity/users/{}/info/{}` | `/identity/users/{userId}/info/{key}` | `/identity/users/{id}/info/{key}` | 已编码；待契约与 Java 行为验收 |
+| `PUT /identity/users/{}` | `/identity/users/{userId}` | `/identity/users/{id}` | 原版身份HTTP场景通过：完整DTO、分页、局部更新及真实副作用；完整字段组合待验收 |
+| `PUT /identity/users/{}/info/{}` | `/identity/users/{userId}/info/{key}` | `/identity/users/{id}/info/{key}` | 原版身份HTTP场景通过：完整DTO、分页、局部更新及真实副作用；完整字段组合待验收 |
 | `PUT /identity/users/{}/password` | `` | `/identity/users/{id}/password` | 实现扩展；不计入官方覆盖 |
-| `PUT /identity/users/{}/picture` | `/identity/users/{userId}/picture` | `/identity/users/{id}/picture` | 已编码；待契约与 Java 行为验收 |
+| `PUT /identity/users/{}/picture` | `/identity/users/{userId}/picture` | `/identity/users/{id}/picture` | 原版身份HTTP场景通过：完整DTO、分页、局部更新及真实副作用；完整字段组合待验收 |
 | `PUT /identity/users/{}/roles` | `` | `/identity/users/{id}/roles` | 实现扩展；不计入官方覆盖 |
 | `PUT /management/engine-properties/{}` | `` | `/management/engine-properties/{name}` | 实现扩展；不计入官方覆盖 |
 | `PUT /repository/models/{}` | `/repository/models/{modelId}` | `/repository/models/{id}` | 已编码；待契约与 Java 行为验收 |

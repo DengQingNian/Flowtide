@@ -107,6 +107,14 @@
     {
       "path": "testdata/compatibility/java/runtime-provenance.json",
       "sha256": "c4ef5cd9d9d708132a32881e3737ef7c4273601d861858fa64fdf14b8df653a3"
+    },
+    {
+      "path": "testdata/compatibility/java/006-identity-rest.json",
+      "sha256": "f09b559385ad33ea0f93256a8773ae42037febde47041652b5203a2f44425c32"
+    },
+    {
+      "path": "testdata/compatibility/java/identity-provenance.json",
+      "sha256": "7546bedcfeedc5e127d00cdc09b13282dbc1188aac10ec7aa12ef97c48f0f344"
     }
   ]
 }

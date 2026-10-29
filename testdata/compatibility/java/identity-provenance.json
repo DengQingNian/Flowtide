@@ -1,0 +1,29 @@
+{
+  "javaRepository": "https://github.com/flowable/flowable-engine",
+  "javaCommit": "f6017e32a4bdd3e59a8881f58b0ee181652d1d9e",
+  "javaVersion": "17.0.21.0.2",
+  "database": "h2",
+  "h2Version": "2.4.240",
+  "springVersion": "7.0.7",
+  "transport": "原版九个身份控制器与Spring MockMvc",
+  "cases": 52,
+  "controllerClassSha256": {
+    "UserCollectionResource": "13636f98d028609ce191aeb6f40331fb12b19ec57df738a484c6529cb5d1dc6b",
+    "UserResource": "5651a64a70968bb03f13c43cc13abbd4f87df1dda6fcea803dfab52f105bf1a2",
+    "UserInfoCollectionResource": "2530a52fd152d9de915ca8563ad2976209dad7dd1e561394d674a3c5741369dc",
+    "UserInfoResource": "f0b8b2dc38c6603f4b253117f8a13eaa8f6e76bf49db1552f8932418ee82e1de",
+    "UserPictureResource": "3e082c0c3901f898851d4d5e720dbf87c41460faae7b43833f62101004cd0306",
+    "GroupCollectionResource": "ae6f6fc1b8ead27e4074033f394508d0566a9bbacc481c537581629e44c4d57e",
+    "GroupResource": "82b75a7aeea502d9e34377fa3aeddd3c302abc9d81ab099e15cb52851162dbce",
+    "GroupMembershipCollectionResource": "f63e7e811b18fac6e00422e6b41bdf9769f140623a0b255773b955b59e59a6da",
+    "GroupMembershipResource": "99abac8fb50560ee2cf5e4509996f6f48bebb85eb7edb159664df8909dc6754e"
+  },
+  "generatorSourceCommitted": false,
+  "generatorSourceSha256": "98de32fa47662b96395c237500ee278d8308cebd666bc1f31ffc69d8ffd52fcd",
+  "independentRuns": 2,
+  "independentJSONIdentical": true,
+  "independentBytesIdentical": false,
+  "comparison": "JSON对象键顺序不参与比较；数组、字段、显式空值、状态码和二进制内容均保留；媒体类型按HTTP解析后的类型比较，允许UTF-8的JSON字符集参数",
+  "artifact": "006-identity-rest.json",
+  "artifactSha256": "f09b559385ad33ea0f93256a8773ae42037febde47041652b5203a2f44425c32"
+}

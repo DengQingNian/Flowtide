@@ -116,8 +116,11 @@ func (e *Engine) GetUserInfo(ctx context.Context, userID string) (map[string]str
 			return nil, api.NewError("ENGINE-0404", "用户不存在", api.ErrNotFound)
 		}
 		out := make(map[string]string)
+		// 既有字符串接口只返回非空值，原版键集合由可空接口读取。
 		for key, value := range e.state.UserInfo[userID] {
-			out[key] = value
+			if value != nil {
+				out[key] = *value
+			}
 		}
 		return out, nil
 	})
@@ -125,6 +128,33 @@ func (e *Engine) GetUserInfo(ctx context.Context, userID string) (map[string]str
 		return nil, err
 	}
 	return result.(map[string]string), nil
+}
+
+// GetUserInfoEntries 返回可空信息集合，调用方修改返回指针不会污染状态。
+// @param ctx 上下文
+// @param userID 用户标识
+// @return 包含空值键的独立映射
+// @return 查询错误
+func (e *Engine) GetUserInfoEntries(ctx context.Context, userID string) (map[string]*string, error) {
+	result, err := e.read(func() (any, error) {
+		if _, ok := e.state.Users[userID]; !ok {
+			return nil, api.NewError("ENGINE-0404", "用户不存在", api.ErrNotFound)
+		}
+		out := make(map[string]*string)
+		// 保留已清空的键，非空字符串则逐项复制，不能暴露可写状态指针。
+		for key, value := range e.state.UserInfo[userID] {
+			out[key] = nil
+			if value != nil {
+				text := *value
+				out[key] = &text
+			}
+		}
+		return out, nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(map[string]*string), nil
 }
 
 // GetUserInfoValue 返回单个用户信息。
@@ -139,10 +169,10 @@ func (e *Engine) GetUserInfoValue(ctx context.Context, userID, key string) (stri
 			return nil, api.NewError("ENGINE-0404", "用户不存在", api.ErrNotFound)
 		}
 		value, ok := e.state.UserInfo[userID][key]
-		if !ok {
+		if !ok || value == nil {
 			return nil, api.NewError("ENGINE-1701", "用户信息不存在", api.ErrNotFound)
 		}
-		return value, nil
+		return *value, nil
 	})
 	if err != nil {
 		return "", err
@@ -165,9 +195,9 @@ func (e *Engine) SetUserInfo(ctx context.Context, userID, key, value string) err
 			return nil, api.NewError("ENGINE-1702", "用户信息键不能为空", api.ErrBadRequest)
 		}
 		if e.state.UserInfo[userID] == nil {
-			e.state.UserInfo[userID] = make(map[string]string)
+			e.state.UserInfo[userID] = make(map[string]*string)
 		}
-		e.state.UserInfo[userID][key] = value
+		e.state.UserInfo[userID][key] = &value
 		return nil, nil
 	})
 	return err
@@ -183,10 +213,11 @@ func (e *Engine) DeleteUserInfo(ctx context.Context, userID, key string) error {
 		if _, ok := e.state.Users[userID]; !ok {
 			return nil, api.NewError("ENGINE-0404", "用户不存在", api.ErrNotFound)
 		}
-		if _, ok := e.state.UserInfo[userID][key]; !ok {
+		if value, ok := e.state.UserInfo[userID][key]; !ok || value == nil {
 			return nil, api.NewError("ENGINE-1701", "用户信息不存在", api.ErrNotFound)
 		}
-		delete(e.state.UserInfo[userID], key)
+		// 原版删除仅把值设为空，列表仍能列出该键，但单值查询按不存在处理。
+		e.state.UserInfo[userID][key] = nil
 		return nil, nil
 	})
 	return err
