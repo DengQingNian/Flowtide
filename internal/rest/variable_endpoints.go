@@ -2,6 +2,8 @@ package rest
 
 import (
 	"encoding/json"
+	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"strings"
@@ -174,6 +176,10 @@ func (s *Server) handleGetHistoricVariableData(w http.ResponseWriter, r *http.Re
 func (s *Server) handleGetHistoricProcessVariableData(w http.ResponseWriter, r *http.Request) {
 	variable, err := s.engine.HistoryService().GetHistoricVariableByName(r.Context(), r.PathValue("id"), r.PathValue("name"))
 	if err != nil {
+		if errors.Is(err, api.ErrNotFound) {
+			writeRuntimeFailure(w, 404, fmt.Sprintf("Historic process instance '%s' variable value for %s could not be found.", r.PathValue("id"), r.PathValue("name")))
+			return
+		}
 		writeError(w, err)
 		return
 	}
@@ -222,7 +228,7 @@ func (s *Server) handleCreateHistoricProcessComment(w http.ResponseWriter, r *ht
 		writeError(w, err)
 		return
 	}
-	writeJSON(w, http.StatusCreated, comment)
+	writeJSON(w, http.StatusCreated, historicCommentRESTResponse(r, comment))
 }
 
 // handleDeleteHistoricProcessComment 删除历史实例评论。

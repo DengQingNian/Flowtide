@@ -188,7 +188,9 @@ func TestREST_TaskAndHistoricVariableData(t *testing.T) {
 	page = decodeQueryPage[map[string]any](t, response)
 	var target string
 	for _, item := range page.Data {
-		if item["name"] == "y" {
+		// 原版变量名嵌套在 variable 对象中。
+		variable, _ := item["variable"].(map[string]any)
+		if variable["name"] == "y" {
 			target, _ = item["id"].(string)
 		}
 	}
@@ -270,9 +272,11 @@ func TestREST_HistoricProcessComments(t *testing.T) {
 	}
 	commentID, _ := comment["id"].(string)
 	response, _ = http.Get(server.URL + "/service/history/historic-process-instances/" + instanceID + "/comments")
-	page := decodeQueryPage[map[string]any](t, response)
-	if page.Total != 1 {
-		t.Fatalf("历史评论列表错误: %+v", page)
+	var commentList []map[string]any
+	_ = json.NewDecoder(response.Body).Decode(&commentList)
+	_ = response.Body.Close()
+	if len(commentList) != 1 {
+		t.Fatalf("历史评论列表错误: %+v", commentList)
 	}
 	request, _ := http.NewRequest(http.MethodDelete, server.URL+"/service/history/historic-process-instances/"+instanceID+"/comments/"+commentID, nil)
 	response, _ = http.DefaultClient.Do(request)
@@ -281,9 +285,11 @@ func TestREST_HistoricProcessComments(t *testing.T) {
 	}
 	_ = response.Body.Close()
 	response, _ = http.Get(server.URL + "/service/history/historic-process-instances/" + instanceID + "/comments")
-	page = decodeQueryPage[map[string]any](t, response)
-	if page.Total != 0 {
-		t.Fatalf("删除后评论应为空: %+v", page)
+	commentList = nil
+	_ = json.NewDecoder(response.Body).Decode(&commentList)
+	_ = response.Body.Close()
+	if len(commentList) != 0 {
+		t.Fatalf("删除后评论应为空: %+v", commentList)
 	}
 	response, _ = http.Get(server.URL + "/service/history/historic-process-instances/missing/comments")
 	_ = response.Body.Close()

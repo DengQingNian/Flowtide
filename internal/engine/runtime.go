@@ -117,17 +117,16 @@ func (e *Engine) startProcess(cc *commandContext, req api.StartRequest) (api.Pro
 	for name, value := range variables {
 		e.recordHistoricVariable(root, name, value)
 	}
-	// 记录发起人参与者链接
+	// 原版为发起人写入运行时 starter 身份链接。
 	if req.UserID != "" {
 		link := &api.IdentityLink{
 			ID:                e.newID(),
-			Type:              "participant",
+			Type:              "starter",
 			UserID:            req.UserID,
 			ProcessInstanceID: instanceID,
 			CreateTime:        cc.now,
 		}
 		e.state.InstanceLinks[link.ID] = link
-		e.recordInstanceHistoricLink(cc, link)
 	}
 	e.recordProcessStart(cc, instance)
 	// 流程开始监听器在实例创建后、进入开始事件前执行
@@ -615,13 +614,13 @@ func (e *Engine) dispatchFlows(cc *commandContext, execution *executionState, fl
 	return nil
 }
 
-// recordSequenceFlowHistory 在 Java 迁移续跑模式补记顺序流活动，普通 Go 实例保持原有历史。
+// recordSequenceFlowHistory 按原版语义记录经过的顺序流活动历史。
 // @param cc 命令上下文
 // @param execution 经过顺序流的执行
 // @param flows 选中的顺序流
 // @return 无
 func (e *Engine) recordSequenceFlowHistory(cc *commandContext, execution *executionState, flows []*model.SequenceFlow) {
-	if !e.state.RecordSequenceFlowHistory || !e.historyAtLeast(HistoryActivity) {
+	if !e.historyAtLeast(HistoryActivity) {
 		return
 	}
 	instance, _ := e.findInstance(execution.ProcessInstanceID)

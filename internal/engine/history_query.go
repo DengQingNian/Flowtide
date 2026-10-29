@@ -170,7 +170,8 @@ func (e *Engine) ListHistoricProcessIdentityLinks(ctx context.Context, processIn
 			if e.allowHistoricResource(ctx, link.ProcessInstanceID, link.TaskID) != nil {
 				continue
 			}
-			if link.ProcessInstanceID != processInstanceID {
+			// 原版流程实例历史链接只包含流程级条目，任务链接经任务端点返回。
+			if link.ProcessInstanceID != processInstanceID || link.TaskID != "" {
 				continue
 			}
 			out = append(out, *link)

@@ -198,8 +198,9 @@ func TestREST_History(t *testing.T) {
 	}
 	_ = json.NewDecoder(response.Body).Decode(&page)
 	_ = response.Body.Close()
-	if page.Total != 2 {
-		t.Fatalf("期望 2 条历史活动（开始事件与用户任务），实际 %d", page.Total)
+	// 原版把顺序流也记为历史活动。
+	if page.Total != 3 {
+		t.Fatalf("期望 3 条历史活动（开始、顺序流、任务），实际 %d", page.Total)
 	}
 	response, _ = http.Get(server.URL + "/service/runtime/tasks?processInstanceId=" + instanceID)
 	var tasks struct {

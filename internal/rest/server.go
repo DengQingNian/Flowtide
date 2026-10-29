@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/flowable-go/flowable/api"
+	"github.com/flowable-go/flowable/internal/engine"
 	"github.com/flowable-go/flowable/internal/tenant"
 )
 
@@ -175,6 +176,8 @@ func (s *Server) authenticate(next http.Handler) http.Handler {
 			return
 		}
 		r = r.WithContext(context.WithValue(r.Context(), authIdentityKey{}, identity))
+		// 可信操作人传入命令上下文，供引擎记录原版行为中的事件作者。
+		r = r.WithContext(engine.WithActor(r.Context(), identity.Subject))
 		if audit, ok := r.Context().Value(auditIdentityKey{}).(*auditIdentity); ok {
 			audit.user = identity.Subject
 			audit.tenant = identity.Tenant
@@ -689,8 +692,7 @@ func (s *Server) handleHistoricProcessLinks(w http.ResponseWriter, r *http.Reque
 		writeError(w, err)
 		return
 	}
-	start, size := pageParams(r)
-	writePage(w, links, start, size)
+	writeJSON(w, http.StatusOK, historicLinkMaps(r, links))
 }
 
 // handleHistoricProcessComments 返回历史流程实例评论。
@@ -706,8 +708,7 @@ func (s *Server) handleHistoricProcessComments(w http.ResponseWriter, r *http.Re
 		writeError(w, err)
 		return
 	}
-	start, size := pageParams(r)
-	writePage(w, comments, start, size)
+	writeJSON(w, http.StatusOK, historicCommentMaps(r, comments))
 }
 
 // handleHealth 返回存活状态。
@@ -2417,8 +2418,24 @@ func (s *Server) handleHistoricProcesses(w http.ResponseWriter, r *http.Request)
 		}
 		items = filtered
 	}
+	// 原版查询参数为 finished，与内部 ended 语义一致。
+	if finished := r.URL.Query().Get("finished"); finished != "" {
+		want := finished == "true"
+		filtered := make([]api.HistoricProcessInstance, 0, len(items))
+		for _, item := range items {
+			if item.Ended == want {
+				filtered = append(filtered, item)
+			}
+		}
+		items = filtered
+	}
 	start, size := pageParams(r)
-	writePage(w, items, start, size)
+	maps, err := historicProcessMaps(s, r, items, false)
+	if err != nil {
+		writeError(w, err)
+		return
+	}
+	writeHistoricPage(w, r, maps, start, size, "processInstanceId")
 }
 
 // handleHistoricActivity 返回历史活动详情。
@@ -2430,7 +2447,7 @@ func (s *Server) handleHistoricActivity(w http.ResponseWriter, r *http.Request) 
 		writeError(w, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, item)
+	writeJSON(w, http.StatusOK, historicActivityRESTResponse(r, item))
 }
 
 // handleHistoricVariable 返回历史变量详情。
@@ -2442,7 +2459,7 @@ func (s *Server) handleHistoricVariable(w http.ResponseWriter, r *http.Request) 
 		writeError(w, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, item)
+	writeJSON(w, http.StatusOK, historicVariableRESTResponse(r, item))
 }
 
 // handleDeleteHistoricVariable 删除历史变量。
@@ -2462,10 +2479,19 @@ func (s *Server) handleDeleteHistoricVariable(w http.ResponseWriter, r *http.Req
 func (s *Server) handleHistoricProcess(w http.ResponseWriter, r *http.Request) {
 	item, err := s.engine.HistoryService().GetHistoricProcessInstance(r.Context(), r.PathValue("id"))
 	if err != nil {
+		if errors.Is(err, api.ErrNotFound) {
+			writeRuntimeFailure(w, 404, fmt.Sprintf("Could not find a process instance with id '%s'.", r.PathValue("id")))
+			return
+		}
 		writeError(w, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, item)
+	response, err := historicProcessResponseMap(s, r, item)
+	if err != nil {
+		writeError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, response)
 }
 
 // handleHistoricTask 返回历史任务详情。
@@ -2474,10 +2500,14 @@ func (s *Server) handleHistoricProcess(w http.ResponseWriter, r *http.Request) {
 func (s *Server) handleHistoricTask(w http.ResponseWriter, r *http.Request) {
 	item, err := s.engine.HistoryService().GetHistoricTaskInstance(r.Context(), r.PathValue("id"))
 	if err != nil {
+		if errors.Is(err, api.ErrNotFound) {
+			writeRuntimeFailure(w, 404, fmt.Sprintf("Could not find a task instance with id '%s'.", r.PathValue("id")))
+			return
+		}
 		writeError(w, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, item)
+	writeJSON(w, http.StatusOK, historicTaskRESTResponse(r, item, nil))
 }
 
 // handleHistoricTaskLinks 返回历史任务身份链接。
@@ -2489,14 +2519,22 @@ func (s *Server) handleHistoricTaskLinks(w http.ResponseWriter, r *http.Request)
 		writeError(w, err)
 		return
 	}
-	start, size := pageParams(r)
-	writePage(w, links, start, size)
+	writeJSON(w, http.StatusOK, historicTaskLinkMaps(r, links))
 }
 
 // handleDeleteHistoricProcess 删除历史流程实例。
 // @param w 响应
 // @param r 请求
 func (s *Server) handleDeleteHistoricProcess(w http.ResponseWriter, r *http.Request) {
+	// 原版拒绝删除仍存在运行时实例的历史。
+	if instance, instanceErr := s.engine.RuntimeService().GetProcessInstance(r.Context(), r.PathValue("id")); instanceErr == nil && !instance.Ended {
+		definition := ""
+		if historic, lookupErr := s.engine.HistoryService().GetHistoricProcessInstance(r.Context(), r.PathValue("id")); lookupErr == nil {
+			definition = historic.ProcessDefinitionID
+		}
+		writeRuntimeFailure(w, 500, fmt.Sprintf("Process instance is still running, cannot delete HistoricProcessInstanceEntity[id=%s, definition=%s]", r.PathValue("id"), definition))
+		return
+	}
 	if err := s.engine.HistoryService().DeleteHistoricProcessInstance(r.Context(), r.PathValue("id")); err != nil {
 		writeError(w, err)
 		return
@@ -2552,7 +2590,7 @@ func (s *Server) handleHistoricActivities(w http.ResponseWriter, r *http.Request
 		return
 	}
 	start, size := pageParams(r)
-	writePage(w, items, start, size)
+	writeHistoricPage(w, r, historicActivityMaps(r, items), start, size, "startTime")
 }
 
 // handleHistoricTasks 返回历史任务。
@@ -2564,8 +2602,24 @@ func (s *Server) handleHistoricTasks(w http.ResponseWriter, r *http.Request) {
 		writeError(w, err)
 		return
 	}
+	// 原版查询参数为 finished，与内部结束状态一致。
+	if finished := r.URL.Query().Get("finished"); finished != "" {
+		want := finished == "true"
+		filtered := make([]api.HistoricTaskInstance, 0, len(items))
+		for _, item := range items {
+			if (item.EndTime != nil) == want {
+				filtered = append(filtered, item)
+			}
+		}
+		items = filtered
+	}
 	start, size := pageParams(r)
-	writePage(w, items, start, size)
+	taskMaps, err := historicTaskRESTList(r, s, items)
+	if err != nil {
+		writeError(w, err)
+		return
+	}
+	writeHistoricPage(w, r, taskMaps, start, size, "taskInstanceId")
 }
 
 // handleHistoricTaskLogs 返回任务生命周期日志。
@@ -2616,7 +2670,7 @@ func (s *Server) handleHistoricTaskLogs(w http.ResponseWriter, r *http.Request) 
 		filtered = append(filtered, log)
 	}
 	start, size := pageParams(r)
-	writePage(w, filtered, start, size)
+	writeHistoricPage(w, r, historicTaskLogMaps(filtered), start, size, "logNumber")
 }
 
 // handleHistoricDetails 返回历史变量明细。
@@ -2629,7 +2683,7 @@ func (s *Server) handleHistoricDetails(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	start, size := pageParams(r)
-	writePage(w, details, start, size)
+	writeHistoricPage(w, r, historicDetailMaps(r, details), start, size, "processInstanceId")
 }
 
 // handleHistoricIdentityLinks 返回历史身份链接。
@@ -2642,7 +2696,7 @@ func (s *Server) handleHistoricIdentityLinks(w http.ResponseWriter, r *http.Requ
 		return
 	}
 	start, size := pageParams(r)
-	writePage(w, links, start, size)
+	writePage(w, historicLinkMaps(r, links), start, size)
 }
 
 // handleHistoricVariables 返回历史变量。
@@ -2655,7 +2709,7 @@ func (s *Server) handleHistoricVariables(w http.ResponseWriter, r *http.Request)
 		return
 	}
 	start, size := pageParams(r)
-	writePage(w, items, start, size)
+	writeHistoricPage(w, r, historicVariableMaps(r, items), start, size, "variableName")
 }
 
 // parseVariables 解析变量数组或对象。
@@ -2765,6 +2819,14 @@ func writePage(w http.ResponseWriter, items any, start, size int) {
 // @param items 切片
 // @return 元素列表
 func reflectSlice(items any) []any {
+	// 映射后的历史响应对象切片直接透出。
+	if maps, ok := items.([]map[string]any); ok {
+		out := make([]any, len(maps))
+		for i, item := range maps {
+			out[i] = item
+		}
+		return out
+	}
 	switch typed := items.(type) {
 	case []api.Deployment:
 		out := make([]any, len(typed))

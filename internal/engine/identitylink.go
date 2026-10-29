@@ -2,6 +2,7 @@ package engine
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/flowable-go/flowable/api"
 )
@@ -111,6 +112,16 @@ func (e *Engine) modifyCandidates(ctx context.Context, taskID, userID, groupID s
 			task.Task.CandidateGroups = task.CandidateGroups
 		}
 		e.recordTaskIdentityLinks(cc, task)
+		// 原版在候选成员加入时写独立任务日志；移除使用对应 REMOVED 事件。
+		if add {
+			data := ""
+			if userID != "" {
+				data = fmt.Sprintf(`{"userId":%q,"type":"candidate"}`, userID)
+			} else {
+				data = fmt.Sprintf(`{"groupId":%q,"type":"candidate"}`, groupID)
+			}
+			e.recordTaskLog(cc, task, "USER_TASK_IDENTITY_LINK_ADDED", actorFromContext(cc.ctx), data)
+		}
 		return nil, nil
 	})
 	return err

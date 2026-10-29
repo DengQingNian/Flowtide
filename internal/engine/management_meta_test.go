@@ -155,6 +155,7 @@ func TestInstanceCommentsAndLinks(t *testing.T) {
 	deployXML(t, engine, simpleProcess)
 	instance, err := engine.StartProcessInstance(context.Background(), api.StartRequest{
 		ProcessDefinitionKey: "simple",
+		UserID:               "alice",
 		Variables:            []api.Variable{{Name: "initiator", Value: "alice"}},
 	})
 	if err != nil {

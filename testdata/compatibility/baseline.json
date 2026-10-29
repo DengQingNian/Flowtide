@@ -115,6 +115,14 @@
     {
       "path": "testdata/compatibility/java/identity-provenance.json",
       "sha256": "7546bedcfeedc5e127d00cdc09b13282dbc1188aac10ec7aa12ef97c48f0f344"
+    },
+    {
+      "path": "testdata/compatibility/java/007-history-rest.json",
+      "sha256": "d7f4419fcaae36ace15c3ac4a121f424eb62ee6cf1e376e7c4c9b9f3aed2cf84"
+    },
+    {
+      "path": "testdata/compatibility/java/history-provenance.json",
+      "sha256": "7e404570f2d686e799ed754a6f6add5246b90fe82e4159a2cc108d6ec7484ee6"
     }
   ]
 }

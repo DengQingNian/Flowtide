@@ -21,6 +21,33 @@ func (e *Engine) recordTaskIdentityLinks(cc *commandContext, task *taskState) {
 	}
 }
 
+// promoteTaskParticipants 在任务完成时把候选用户与处理人升级为流程参与者历史链接。
+// @param cc 命令上下文
+// @param task 任务
+func (e *Engine) promoteTaskParticipants(cc *commandContext, task *taskState) {
+	if !e.historyAtLeast(HistoryActivity) || task.Task.ProcessInstanceID == "" {
+		return
+	}
+	// 原版在完成时升级候选用户与完成操作人；处理人已在变更时升级。
+	actor := actorFromContext(cc.ctx)
+	for _, userID := range append([]string{actor}, task.CandidateUsers...) {
+		if userID == "" {
+			continue
+		}
+		e.promoteProcessParticipant(cc, task.Task.ProcessInstanceID, userID, cc.now)
+	}
+}
+
+// promoteProcessParticipant 记录流程参与者历史链接；历史链接是变更流水，允许重复。
+// @param cc 命令上下文
+// @param processInstanceID 实例 ID
+// @param userID 用户 ID
+// @param now 记录时间
+func (e *Engine) promoteProcessParticipant(cc *commandContext, processInstanceID, userID string, now time.Time) {
+	promoted := &api.IdentityLink{ID: e.newID(), Type: "participant", UserID: userID, ProcessInstanceID: processInstanceID, CreateTime: now}
+	e.state.HistoricLinks[promoted.ID] = promoted
+}
+
 // removeHistoricLinks 删除任务已有历史链接。
 // @param taskID 任务 ID
 func (e *Engine) removeHistoricLinks(taskID string) {

@@ -207,7 +207,8 @@ func TestHistoryQueries(t *testing.T) {
 		t.Fatalf("历史任务错误: %v %d", err, len(historicTasks))
 	}
 	activities, err := engine.ListHistoricActivityInstances(context.Background(), instance.ID)
-	if err != nil || len(activities) != 2 {
+	// 原版把顺序流也记为历史活动：开始、顺序流、用户任务。
+	if err != nil || len(activities) != 3 {
 		t.Fatalf("历史活动错误: %v %d", err, len(activities))
 	}
 }

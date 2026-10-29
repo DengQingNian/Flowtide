@@ -2,6 +2,7 @@ package engine
 
 import (
 	"context"
+	"fmt"
 	"sort"
 	"strings"
 
@@ -66,7 +67,7 @@ func (e *Engine) CreateTask(ctx context.Context, req api.CreateTaskRequest) (api
 		}
 		task.HistoricTaskID = e.recordTaskStart(cc, task)
 		e.state.Tasks[task.Task.ID] = task
-		e.recordTaskLog(cc, task, "create", req.Assignee, "")
+		e.recordTaskLog(cc, task, "create", actorFromContext(cc.ctx), "")
 		return task.Task, nil
 	})
 	if err != nil {
@@ -96,6 +97,7 @@ func (e *Engine) UpdateTask(ctx context.Context, taskID string, update api.TaskU
 		if update.Description != nil {
 			task.Task.Description = *update.Description
 		}
+		previousAssignee := task.Task.Assignee
 		if update.Assignee != nil {
 			task.Task.Assignee = *update.Assignee
 			if *update.Assignee == "" {
@@ -124,8 +126,23 @@ func (e *Engine) UpdateTask(ctx context.Context, taskID string, update api.TaskU
 			historic.Name = task.Task.Name
 			historic.Assignee = task.Task.Assignee
 		}
+		// 原版同步更新活动历史行上的处理人。
+		for _, activity := range e.state.HistoricActivities {
+			if activity.TaskID == task.Task.ID {
+				activity.Assignee = task.Task.Assignee
+			}
+		}
 		e.recordTaskIdentityLinks(cc, task)
-		e.recordTaskLog(cc, task, "update", update.UserID, "")
+		// 原版把处理人变化记录为独立事件并升级流程参与者。
+		if update.Assignee != nil && *update.Assignee != previousAssignee {
+			if *update.Assignee != "" {
+				e.promoteProcessParticipant(cc, task.Task.ProcessInstanceID, *update.Assignee, cc.now)
+			}
+			data := fmt.Sprintf(`{"newAssigneeId":%q,"previousAssigneeId":%s}`, *update.Assignee, jsonNullableString(previousAssignee))
+			e.recordTaskLog(cc, task, "USER_TASK_ASSIGNEE_CHANGED", actorFromContext(cc.ctx), data)
+		} else {
+			e.recordTaskLog(cc, task, "update", update.UserID, "")
+		}
 		return e.toTaskDTO(task), nil
 	})
 	if err != nil {

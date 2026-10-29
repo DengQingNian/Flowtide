@@ -94,14 +94,16 @@ func TestREST_HistoricTaskForm(t *testing.T) {
 	var form map[string]any
 	_ = json.NewDecoder(response.Body).Decode(&form)
 	_ = response.Body.Close()
-	if response.StatusCode != http.StatusOK || form["formKey"] != "task" {
+	// 原版流程引擎未内置表单引擎，历史表单按原版返回 400。
+	if response.StatusCode != http.StatusBadRequest || form["exception"] != "Form engine is not initialized" {
 		t.Fatalf("历史任务表单错误: %d %+v", response.StatusCode, form)
 	}
 	response = postJSON(t, server.URL+"/service/runtime/tasks/"+taskID, map[string]any{"action": "complete"})
 	_ = response.Body.Close()
 	response, _ = http.Get(server.URL + "/service/history/historic-task-instances/" + taskID + "/form")
-	if response.StatusCode != http.StatusOK {
-		t.Fatalf("完成后历史表单应 200: %d", response.StatusCode)
+	// 原版引擎未内置表单引擎，完成后历史表单同样 400。
+	if response.StatusCode != http.StatusBadRequest {
+		t.Fatalf("完成后历史表单应 400: %d", response.StatusCode)
 	}
 	_ = response.Body.Close()
 	response, _ = http.Get(server.URL + "/service/history/historic-task-instances/missing/form")

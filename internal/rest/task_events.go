@@ -95,12 +95,17 @@ func parseEventID(raw string) (int64, error) {
 // @param w 响应
 // @param r 请求
 func (s *Server) handleHistoricTaskForm(w http.ResponseWriter, r *http.Request) {
-	form, err := s.engine.HistoryService().GetHistoricTaskFormData(r.Context(), r.PathValue("id"))
+	item, err := s.engine.HistoryService().GetHistoricTaskInstance(r.Context(), r.PathValue("id"))
 	if err != nil {
 		writeError(w, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, form)
+	// 原版流程引擎未内置表单引擎：有表单键返回初始化失败，缺表单键返回未定义。
+	if item.FormKey == "" {
+		writeRuntimeFailure(w, 400, "Task has no form defined")
+		return
+	}
+	writeRuntimeFailure(w, 400, "Form engine is not initialized")
 }
 
 // handleGetHistoricProcessComment 返回单条历史实例评论。
@@ -120,5 +125,5 @@ func (s *Server) handleGetHistoricProcessComment(w http.ResponseWriter, r *http.
 		writeError(w, api.NewError("ENGINE-0404", "评论不存在", api.ErrNotFound))
 		return
 	}
-	writeJSON(w, http.StatusOK, comment)
+	writeJSON(w, http.StatusOK, historicCommentRESTResponse(r, comment))
 }

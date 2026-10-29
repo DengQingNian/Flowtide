@@ -1,0 +1,767 @@
+{
+  "baseline" : "f6017e32a4bdd3e59a8881f58b0ee181652d1d9e",
+  "clock" : "2026-10-30T01:02:03.123456789Z",
+  "startUserId" : "starter",
+  "idStrategy" : "单调二十位序号，用于核对跨语言默认排序",
+  "transport" : "原版历史控制器与Spring MockMvc",
+  "models" : {
+    "history.bpmn20.xml" : "<definitions xmlns=\"http://www.omg.org/spec/BPMN/20100524/MODEL\" xmlns:flowable=\"http://flowable.org/bpmn\" targetNamespace=\"urn:history-reference\"><process id=\"history_reference\" name=\"历史验收\" isExecutable=\"true\"><documentation>历史说明</documentation><startEvent id=\"s\"/><sequenceFlow id=\"a\" sourceRef=\"s\" targetRef=\"approve\"/><userTask id=\"approve\" name=\"审批\" flowable:formKey=\"approve-form\"/><sequenceFlow id=\"b\" sourceRef=\"approve\" targetRef=\"review\"/><userTask id=\"review\" name=\"复核\"/><sequenceFlow id=\"c\" sourceRef=\"review\" targetRef=\"end\"/><endEvent id=\"end\"/></process></definitions>"
+  },
+  "cases" : [ {
+    "name" : "proc-list",
+    "method" : "GET",
+    "path" : "/service/history/historic-process-instances",
+    "requestBody" : "",
+    "status" : 200,
+    "responseBody" : "{\"data\":[{\"businessKey\":\"alpha\",\"businessStatus\":null,\"callbackId\":null,\"callbackType\":null,\"claimTime\":null,\"claimedBy\":null,\"deleteReason\":null,\"dueDate\":null,\"durationInMillis\":10800000,\"endActivityId\":\"end\",\"endTime\":\"2026-10-30T04:02:03.123Z\",\"endUserId\":\"starter\",\"id\":\"{endedId}\",\"name\":\"历史甲\",\"processDefinitionDescription\":\"历史说明\",\"processDefinitionId\":\"{definitionId}\",\"processDefinitionName\":\"历史验收\",\"processDefinitionUrl\":\"http://localhost/service/repository/process-definitions/{definitionId}\",\"propagatedStageInstanceId\":null,\"referenceId\":null,\"referenceType\":null,\"startActivityId\":\"s\",\"startTime\":\"2026-10-30T01:02:03.123Z\",\"startUserId\":\"starter\",\"state\":\"completed\",\"superProcessInstanceId\":null,\"tenantId\":\"\",\"url\":\"http://localhost/service/history/historic-process-instances/{endedId}\",\"variables\":[]},{\"businessKey\":\"beta\",\"businessStatus\":null,\"callbackId\":null,\"callbackType\":null,\"claimTime\":null,\"claimedBy\":null,\"deleteReason\":null,\"dueDate\":null,\"durationInMillis\":null,\"endActivityId\":null,\"endTime\":null,\"endUserId\":null,\"id\":\"{runningId}\",\"name\":\"历史乙\",\"processDefinitionDescription\":\"历史说明\",\"processDefinitionId\":\"{definitionId}\",\"processDefinitionName\":\"历史验收\",\"processDefinitionUrl\":\"http://localhost/service/repository/process-definitions/{definitionId}\",\"propagatedStageInstanceId\":null,\"referenceId\":null,\"referenceType\":null,\"startActivityId\":\"s\",\"startTime\":\"2026-10-30T05:02:03.123Z\",\"startUserId\":\"starter\",\"state\":\"running\",\"superProcessInstanceId\":null,\"tenantId\":\"\",\"url\":\"http://localhost/service/history/historic-process-instances/{runningId}\",\"variables\":[]}],\"order\":\"asc\",\"size\":2,\"sort\":\"processInstanceId\",\"start\":0,\"total\":2}",
+    "afterCounts" : {
+      "processInstances" : 2,
+      "tasks" : 3,
+      "activities" : 10,
+      "details" : 10,
+      "variables" : 8,
+      "comments" : 3,
+      "identityLinks" : 6,
+      "taskLogs" : 9
+    }
+  }, {
+    "name" : "proc-list-page",
+    "method" : "GET",
+    "path" : "/service/history/historic-process-instances?sort=startTime&order=asc&start=1&size=1",
+    "requestBody" : "",
+    "status" : 200,
+    "responseBody" : "{\"data\":[{\"businessKey\":\"beta\",\"businessStatus\":null,\"callbackId\":null,\"callbackType\":null,\"claimTime\":null,\"claimedBy\":null,\"deleteReason\":null,\"dueDate\":null,\"durationInMillis\":null,\"endActivityId\":null,\"endTime\":null,\"endUserId\":null,\"id\":\"{runningId}\",\"name\":\"历史乙\",\"processDefinitionDescription\":\"历史说明\",\"processDefinitionId\":\"{definitionId}\",\"processDefinitionName\":\"历史验收\",\"processDefinitionUrl\":\"http://localhost/service/repository/process-definitions/{definitionId}\",\"propagatedStageInstanceId\":null,\"referenceId\":null,\"referenceType\":null,\"startActivityId\":\"s\",\"startTime\":\"2026-10-30T05:02:03.123Z\",\"startUserId\":\"starter\",\"state\":\"running\",\"superProcessInstanceId\":null,\"tenantId\":\"\",\"url\":\"http://localhost/service/history/historic-process-instances/{runningId}\",\"variables\":[]}],\"order\":\"asc\",\"size\":1,\"sort\":\"startTime\",\"start\":1,\"total\":2}",
+    "afterCounts" : {
+      "processInstances" : 2,
+      "tasks" : 3,
+      "activities" : 10,
+      "details" : 10,
+      "variables" : 8,
+      "comments" : 3,
+      "identityLinks" : 6,
+      "taskLogs" : 9
+    }
+  }, {
+    "name" : "proc-list-finished",
+    "method" : "GET",
+    "path" : "/service/history/historic-process-instances?finished=true",
+    "requestBody" : "",
+    "status" : 200,
+    "responseBody" : "{\"data\":[{\"businessKey\":\"alpha\",\"businessStatus\":null,\"callbackId\":null,\"callbackType\":null,\"claimTime\":null,\"claimedBy\":null,\"deleteReason\":null,\"dueDate\":null,\"durationInMillis\":10800000,\"endActivityId\":\"end\",\"endTime\":\"2026-10-30T04:02:03.123Z\",\"endUserId\":\"starter\",\"id\":\"{endedId}\",\"name\":\"历史甲\",\"processDefinitionDescription\":\"历史说明\",\"processDefinitionId\":\"{definitionId}\",\"processDefinitionName\":\"历史验收\",\"processDefinitionUrl\":\"http://localhost/service/repository/process-definitions/{definitionId}\",\"propagatedStageInstanceId\":null,\"referenceId\":null,\"referenceType\":null,\"startActivityId\":\"s\",\"startTime\":\"2026-10-30T01:02:03.123Z\",\"startUserId\":\"starter\",\"state\":\"completed\",\"superProcessInstanceId\":null,\"tenantId\":\"\",\"url\":\"http://localhost/service/history/historic-process-instances/{endedId}\",\"variables\":[]}],\"order\":\"asc\",\"size\":1,\"sort\":\"processInstanceId\",\"start\":0,\"total\":1}",
+    "afterCounts" : {
+      "processInstances" : 2,
+      "tasks" : 3,
+      "activities" : 10,
+      "details" : 10,
+      "variables" : 8,
+      "comments" : 3,
+      "identityLinks" : 6,
+      "taskLogs" : 9
+    }
+  }, {
+    "name" : "proc-list-key",
+    "method" : "GET",
+    "path" : "/service/history/historic-process-instances?businessKey=alpha",
+    "requestBody" : "",
+    "status" : 200,
+    "responseBody" : "{\"data\":[{\"businessKey\":\"alpha\",\"businessStatus\":null,\"callbackId\":null,\"callbackType\":null,\"claimTime\":null,\"claimedBy\":null,\"deleteReason\":null,\"dueDate\":null,\"durationInMillis\":10800000,\"endActivityId\":\"end\",\"endTime\":\"2026-10-30T04:02:03.123Z\",\"endUserId\":\"starter\",\"id\":\"{endedId}\",\"name\":\"历史甲\",\"processDefinitionDescription\":\"历史说明\",\"processDefinitionId\":\"{definitionId}\",\"processDefinitionName\":\"历史验收\",\"processDefinitionUrl\":\"http://localhost/service/repository/process-definitions/{definitionId}\",\"propagatedStageInstanceId\":null,\"referenceId\":null,\"referenceType\":null,\"startActivityId\":\"s\",\"startTime\":\"2026-10-30T01:02:03.123Z\",\"startUserId\":\"starter\",\"state\":\"completed\",\"superProcessInstanceId\":null,\"tenantId\":\"\",\"url\":\"http://localhost/service/history/historic-process-instances/{endedId}\",\"variables\":[]}],\"order\":\"asc\",\"size\":1,\"sort\":\"processInstanceId\",\"start\":0,\"total\":1}",
+    "afterCounts" : {
+      "processInstances" : 2,
+      "tasks" : 3,
+      "activities" : 10,
+      "details" : 10,
+      "variables" : 8,
+      "comments" : 3,
+      "identityLinks" : 6,
+      "taskLogs" : 9
+    }
+  }, {
+    "name" : "proc-get-ended",
+    "method" : "GET",
+    "path" : "/service/history/historic-process-instances/{endedId}",
+    "requestBody" : "",
+    "status" : 200,
+    "responseBody" : "{\"businessKey\":\"alpha\",\"businessStatus\":null,\"callbackId\":null,\"callbackType\":null,\"claimTime\":null,\"claimedBy\":null,\"deleteReason\":null,\"dueDate\":null,\"durationInMillis\":10800000,\"endActivityId\":\"end\",\"endTime\":\"2026-10-30T04:02:03.123Z\",\"endUserId\":\"starter\",\"id\":\"{endedId}\",\"name\":\"历史甲\",\"processDefinitionDescription\":\"历史说明\",\"processDefinitionId\":\"{definitionId}\",\"processDefinitionName\":\"历史验收\",\"processDefinitionUrl\":\"http://localhost/service/repository/process-definitions/{definitionId}\",\"propagatedStageInstanceId\":null,\"referenceId\":null,\"referenceType\":null,\"startActivityId\":\"s\",\"startTime\":\"2026-10-30T01:02:03.123Z\",\"startUserId\":\"starter\",\"state\":\"completed\",\"superProcessInstanceId\":null,\"tenantId\":\"\",\"url\":\"http://localhost/service/history/historic-process-instances/{endedId}\",\"variables\":[]}",
+    "afterCounts" : {
+      "processInstances" : 2,
+      "tasks" : 3,
+      "activities" : 10,
+      "details" : 10,
+      "variables" : 8,
+      "comments" : 3,
+      "identityLinks" : 6,
+      "taskLogs" : 9
+    }
+  }, {
+    "name" : "proc-get-running",
+    "method" : "GET",
+    "path" : "/service/history/historic-process-instances/{runningId}",
+    "requestBody" : "",
+    "status" : 200,
+    "responseBody" : "{\"businessKey\":\"beta\",\"businessStatus\":null,\"callbackId\":null,\"callbackType\":null,\"claimTime\":null,\"claimedBy\":null,\"deleteReason\":null,\"dueDate\":null,\"durationInMillis\":null,\"endActivityId\":null,\"endTime\":null,\"endUserId\":null,\"id\":\"{runningId}\",\"name\":\"历史乙\",\"processDefinitionDescription\":\"历史说明\",\"processDefinitionId\":\"{definitionId}\",\"processDefinitionName\":\"历史验收\",\"processDefinitionUrl\":\"http://localhost/service/repository/process-definitions/{definitionId}\",\"propagatedStageInstanceId\":null,\"referenceId\":null,\"referenceType\":null,\"startActivityId\":\"s\",\"startTime\":\"2026-10-30T05:02:03.123Z\",\"startUserId\":\"starter\",\"state\":\"running\",\"superProcessInstanceId\":null,\"tenantId\":\"\",\"url\":\"http://localhost/service/history/historic-process-instances/{runningId}\",\"variables\":[]}",
+    "afterCounts" : {
+      "processInstances" : 2,
+      "tasks" : 3,
+      "activities" : 10,
+      "details" : 10,
+      "variables" : 8,
+      "comments" : 3,
+      "identityLinks" : 6,
+      "taskLogs" : 9
+    }
+  }, {
+    "name" : "proc-missing",
+    "method" : "GET",
+    "path" : "/service/history/historic-process-instances/missing",
+    "requestBody" : "",
+    "status" : 404,
+    "responseBody" : "{\"message\":\"Not found\",\"exception\":\"Could not find a process instance with id 'missing'.\"}",
+    "afterCounts" : {
+      "processInstances" : 2,
+      "tasks" : 3,
+      "activities" : 10,
+      "details" : 10,
+      "variables" : 8,
+      "comments" : 3,
+      "identityLinks" : 6,
+      "taskLogs" : 9
+    }
+  }, {
+    "name" : "proc-query",
+    "method" : "POST",
+    "path" : "/service/query/historic-process-instances",
+    "requestBody" : "{\"finished\":true}",
+    "status" : 200,
+    "responseBody" : "{\"data\":[{\"businessKey\":\"alpha\",\"businessStatus\":null,\"callbackId\":null,\"callbackType\":null,\"claimTime\":null,\"claimedBy\":null,\"deleteReason\":null,\"dueDate\":null,\"durationInMillis\":10800000,\"endActivityId\":\"end\",\"endTime\":\"2026-10-30T04:02:03.123Z\",\"endUserId\":\"starter\",\"id\":\"{endedId}\",\"name\":\"历史甲\",\"processDefinitionDescription\":\"历史说明\",\"processDefinitionId\":\"{definitionId}\",\"processDefinitionName\":\"历史验收\",\"processDefinitionUrl\":\"http://localhost/service/repository/process-definitions/{definitionId}\",\"propagatedStageInstanceId\":null,\"referenceId\":null,\"referenceType\":null,\"startActivityId\":\"s\",\"startTime\":\"2026-10-30T01:02:03.123Z\",\"startUserId\":\"starter\",\"state\":\"completed\",\"superProcessInstanceId\":null,\"tenantId\":\"\",\"url\":\"http://localhost/service/history/historic-process-instances/{endedId}\",\"variables\":[]}],\"order\":\"asc\",\"size\":1,\"sort\":\"processInstanceId\",\"start\":0,\"total\":1}",
+    "afterCounts" : {
+      "processInstances" : 2,
+      "tasks" : 3,
+      "activities" : 10,
+      "details" : 10,
+      "variables" : 8,
+      "comments" : 3,
+      "identityLinks" : 6,
+      "taskLogs" : 9
+    }
+  }, {
+    "name" : "proc-query-variables",
+    "method" : "POST",
+    "path" : "/service/query/historic-process-instances",
+    "requestBody" : "{\"processInstanceId\":\"{runningId}\",\"includeVariables\":true}",
+    "status" : 200,
+    "responseBody" : "{\"data\":[{\"businessKey\":\"beta\",\"businessStatus\":null,\"callbackId\":null,\"callbackType\":null,\"claimTime\":null,\"claimedBy\":null,\"deleteReason\":null,\"dueDate\":null,\"durationInMillis\":null,\"endActivityId\":null,\"endTime\":null,\"endUserId\":null,\"id\":\"{runningId}\",\"name\":\"历史乙\",\"processDefinitionDescription\":\"历史说明\",\"processDefinitionId\":\"{definitionId}\",\"processDefinitionName\":\"历史验收\",\"processDefinitionUrl\":\"http://localhost/service/repository/process-definitions/{definitionId}\",\"propagatedStageInstanceId\":null,\"referenceId\":null,\"referenceType\":null,\"startActivityId\":\"s\",\"startTime\":\"2026-10-30T05:02:03.123Z\",\"startUserId\":\"starter\",\"state\":\"running\",\"superProcessInstanceId\":null,\"tenantId\":\"\",\"url\":\"http://localhost/service/history/historic-process-instances/{runningId}\",\"variables\":[]}],\"order\":\"asc\",\"size\":1,\"sort\":\"processInstanceId\",\"start\":0,\"total\":1}",
+    "afterCounts" : {
+      "processInstances" : 2,
+      "tasks" : 3,
+      "activities" : 10,
+      "details" : 10,
+      "variables" : 8,
+      "comments" : 3,
+      "identityLinks" : 6,
+      "taskLogs" : 9
+    }
+  }, {
+    "name" : "proc-query-zero",
+    "method" : "POST",
+    "path" : "/service/query/historic-process-instances",
+    "requestBody" : "{\"size\":0}",
+    "status" : 200,
+    "responseBody" : "{\"data\":[],\"order\":\"asc\",\"size\":0,\"sort\":\"processInstanceId\",\"start\":0,\"total\":2}",
+    "afterCounts" : {
+      "processInstances" : 2,
+      "tasks" : 3,
+      "activities" : 10,
+      "details" : 10,
+      "variables" : 8,
+      "comments" : 3,
+      "identityLinks" : 6,
+      "taskLogs" : 9
+    }
+  }, {
+    "name" : "proc-comments",
+    "method" : "GET",
+    "path" : "/service/history/historic-process-instances/{endedId}/comments",
+    "requestBody" : "",
+    "status" : 200,
+    "responseBody" : "[{\"author\":\"starter\",\"id\":\"{endedComment1}\",\"message\":null,\"processInstanceId\":\"{endedId}\",\"processInstanceUrl\":\"http://localhost/service/history/historic-process-instances/{endedId}/comments/{endedComment1}\",\"taskId\":null,\"taskUrl\":null,\"time\":\"2026-10-30T02:02:03.123Z\"},{\"author\":\"starter\",\"id\":\"{endedComment2}\",\"message\":\"评审意见一\",\"processInstanceId\":\"{endedId}\",\"processInstanceUrl\":\"http://localhost/service/history/historic-process-instances/{endedId}/comments/{endedComment2}\",\"taskId\":null,\"taskUrl\":null,\"time\":\"2026-10-30T02:02:03.123Z\"},{\"author\":\"starter\",\"id\":\"{commentId}\",\"message\":\"评审意见二\",\"processInstanceId\":\"{endedId}\",\"processInstanceUrl\":\"http://localhost/service/history/historic-process-instances/{endedId}/comments/{commentId}\",\"taskId\":null,\"taskUrl\":null,\"time\":\"2026-10-30T02:02:03.123Z\"}]",
+    "afterCounts" : {
+      "processInstances" : 2,
+      "tasks" : 3,
+      "activities" : 10,
+      "details" : 10,
+      "variables" : 8,
+      "comments" : 3,
+      "identityLinks" : 6,
+      "taskLogs" : 9
+    }
+  }, {
+    "name" : "proc-comment-new",
+    "method" : "POST",
+    "path" : "/service/history/historic-process-instances/{runningId}/comments",
+    "requestBody" : "{\"message\":\"新增评审意见\",\"saveProcessInstanceId\":true}",
+    "status" : 201,
+    "responseBody" : "{\"author\":\"starter\",\"id\":\"{createdCommentId}\",\"message\":\"新增评审意见\",\"processInstanceId\":\"{runningId}\",\"processInstanceUrl\":\"http://localhost/service/history/historic-process-instances/{runningId}/comments/{createdCommentId}\",\"taskId\":null,\"taskUrl\":null,\"time\":\"2026-10-30T05:02:03.123Z\"}",
+    "afterCounts" : {
+      "processInstances" : 2,
+      "tasks" : 3,
+      "activities" : 10,
+      "details" : 10,
+      "variables" : 8,
+      "comments" : 3,
+      "identityLinks" : 6,
+      "taskLogs" : 9
+    }
+  }, {
+    "name" : "proc-comment-get",
+    "method" : "GET",
+    "path" : "/service/history/historic-process-instances/{endedId}/comments/{commentId}",
+    "requestBody" : "",
+    "status" : 200,
+    "responseBody" : "{\"author\":\"starter\",\"id\":\"{commentId}\",\"message\":\"评审意见二\",\"processInstanceId\":\"{endedId}\",\"processInstanceUrl\":\"http://localhost/service/history/historic-process-instances/{endedId}/comments/{commentId}\",\"taskId\":null,\"taskUrl\":null,\"time\":\"2026-10-30T02:02:03.123Z\"}",
+    "afterCounts" : {
+      "processInstances" : 2,
+      "tasks" : 3,
+      "activities" : 10,
+      "details" : 10,
+      "variables" : 8,
+      "comments" : 3,
+      "identityLinks" : 6,
+      "taskLogs" : 9
+    }
+  }, {
+    "name" : "proc-comment-del",
+    "method" : "DELETE",
+    "path" : "/service/history/historic-process-instances/{endedId}/comments/{commentId}",
+    "requestBody" : "",
+    "status" : 204,
+    "responseBody" : "",
+    "afterCounts" : {
+      "processInstances" : 2,
+      "tasks" : 3,
+      "activities" : 10,
+      "details" : 10,
+      "variables" : 8,
+      "comments" : 2,
+      "identityLinks" : 6,
+      "taskLogs" : 9
+    }
+  }, {
+    "name" : "proc-links-ended",
+    "method" : "GET",
+    "path" : "/service/history/historic-process-instances/{endedId}/identitylinks",
+    "requestBody" : "",
+    "status" : 200,
+    "responseBody" : "[{\"groupId\":null,\"processInstanceId\":\"{endedId}\",\"processInstanceUrl\":\"http://localhost/service/history/historic-process-instances/{endedId}\",\"taskId\":null,\"taskUrl\":null,\"type\":\"participant\",\"userId\":\"carol\"},{\"groupId\":null,\"processInstanceId\":\"{endedId}\",\"processInstanceUrl\":\"http://localhost/service/history/historic-process-instances/{endedId}\",\"taskId\":null,\"taskUrl\":null,\"type\":\"participant\",\"userId\":\"starter\"},{\"groupId\":null,\"processInstanceId\":\"{endedId}\",\"processInstanceUrl\":\"http://localhost/service/history/historic-process-instances/{endedId}\",\"taskId\":null,\"taskUrl\":null,\"type\":\"participant\",\"userId\":\"bob\"},{\"groupId\":null,\"processInstanceId\":\"{endedId}\",\"processInstanceUrl\":\"http://localhost/service/history/historic-process-instances/{endedId}\",\"taskId\":null,\"taskUrl\":null,\"type\":\"starter\",\"userId\":\"starter\"},{\"groupId\":null,\"processInstanceId\":\"{endedId}\",\"processInstanceUrl\":\"http://localhost/service/history/historic-process-instances/{endedId}\",\"taskId\":null,\"taskUrl\":null,\"type\":\"participant\",\"userId\":\"alice\"},{\"groupId\":null,\"processInstanceId\":\"{endedId}\",\"processInstanceUrl\":\"http://localhost/service/history/historic-process-instances/{endedId}\",\"taskId\":null,\"taskUrl\":null,\"type\":\"participant\",\"userId\":\"starter\"}]",
+    "afterCounts" : {
+      "processInstances" : 2,
+      "tasks" : 3,
+      "activities" : 10,
+      "details" : 10,
+      "variables" : 8,
+      "comments" : 3,
+      "identityLinks" : 6,
+      "taskLogs" : 9
+    }
+  }, {
+    "name" : "proc-links-running",
+    "method" : "GET",
+    "path" : "/service/history/historic-process-instances/{runningId}/identitylinks",
+    "requestBody" : "",
+    "status" : 200,
+    "responseBody" : "[{\"groupId\":null,\"processInstanceId\":\"{runningId}\",\"processInstanceUrl\":\"http://localhost/service/history/historic-process-instances/{runningId}\",\"taskId\":null,\"taskUrl\":null,\"type\":\"starter\",\"userId\":\"starter\"},{\"groupId\":null,\"processInstanceId\":\"{runningId}\",\"processInstanceUrl\":\"http://localhost/service/history/historic-process-instances/{runningId}\",\"taskId\":null,\"taskUrl\":null,\"type\":\"participant\",\"userId\":\"alice\"}]",
+    "afterCounts" : {
+      "processInstances" : 2,
+      "tasks" : 3,
+      "activities" : 10,
+      "details" : 10,
+      "variables" : 8,
+      "comments" : 3,
+      "identityLinks" : 6,
+      "taskLogs" : 9
+    }
+  }, {
+    "name" : "proc-var-data",
+    "method" : "GET",
+    "path" : "/service/history/historic-process-instances/{endedId}/variables/payload/data",
+    "requestBody" : "",
+    "status" : 200,
+    "responseBody" : {
+      "$bytes" : "AQIA/w=="
+    },
+    "afterCounts" : {
+      "processInstances" : 2,
+      "tasks" : 3,
+      "activities" : 10,
+      "details" : 10,
+      "variables" : 8,
+      "comments" : 3,
+      "identityLinks" : 6,
+      "taskLogs" : 9
+    }
+  }, {
+    "name" : "proc-var-missing",
+    "method" : "GET",
+    "path" : "/service/history/historic-process-instances/{endedId}/variables/missing/data",
+    "requestBody" : "",
+    "status" : 404,
+    "responseBody" : "{\"message\":\"Not found\",\"exception\":\"Historic process instance '{endedId}' variable value for missing could not be found.\"}",
+    "afterCounts" : {
+      "processInstances" : 2,
+      "tasks" : 3,
+      "activities" : 10,
+      "details" : 10,
+      "variables" : 8,
+      "comments" : 3,
+      "identityLinks" : 6,
+      "taskLogs" : 9
+    }
+  }, {
+    "name" : "proc-delete",
+    "method" : "DELETE",
+    "path" : "/service/history/historic-process-instances/{endedId}",
+    "requestBody" : "",
+    "status" : 204,
+    "responseBody" : "",
+    "afterCounts" : {
+      "processInstances" : 1,
+      "tasks" : 1,
+      "activities" : 3,
+      "details" : 2,
+      "variables" : 2,
+      "comments" : 0,
+      "identityLinks" : 0,
+      "taskLogs" : 2
+    }
+  }, {
+    "name" : "proc-delete-running",
+    "method" : "DELETE",
+    "path" : "/service/history/historic-process-instances/{runningId}",
+    "requestBody" : "",
+    "status" : 500,
+    "responseBody" : "{\"message\":\"Internal server error\",\"exception\":\"Process instance is still running, cannot delete HistoricProcessInstanceEntity[id={runningId}, definition={definitionId}]\"}",
+    "afterCounts" : {
+      "processInstances" : 2,
+      "tasks" : 3,
+      "activities" : 10,
+      "details" : 10,
+      "variables" : 8,
+      "comments" : 3,
+      "identityLinks" : 6,
+      "taskLogs" : 9
+    }
+  }, {
+    "name" : "task-list",
+    "method" : "GET",
+    "path" : "/service/history/historic-task-instances",
+    "requestBody" : "",
+    "status" : 200,
+    "responseBody" : "{\"data\":[{\"assignee\":\"alice\",\"category\":null,\"claimTime\":null,\"deleteReason\":null,\"description\":null,\"dueDate\":null,\"durationInMillis\":7260000,\"endTime\":\"2026-10-30T03:03:03.123Z\",\"executionId\":\"{endedExecutionId}\",\"formKey\":\"approve-form\",\"id\":\"{endedApproveTaskId}\",\"name\":\"审批\",\"owner\":null,\"parentTaskId\":null,\"priority\":50,\"processDefinitionId\":\"{definitionId}\",\"processDefinitionUrl\":\"http://localhost/service/repository/process-definitions/{definitionId}\",\"processInstanceId\":\"{endedId}\",\"processInstanceUrl\":\"http://localhost/service/history/historic-process-instances/{endedId}\",\"propagatedStageInstanceId\":null,\"scopeDefinitionId\":null,\"scopeId\":null,\"scopeType\":null,\"startTime\":\"2026-10-30T01:02:03.123Z\",\"subScopeId\":null,\"taskDefinitionKey\":\"approve\",\"tenantId\":\"\",\"url\":\"http://localhost/service/history/historic-task-instances/{endedApproveTaskId}\",\"variables\":[],\"workTimeInMillis\":null},{\"assignee\":null,\"category\":null,\"claimTime\":null,\"deleteReason\":null,\"description\":null,\"dueDate\":null,\"durationInMillis\":3540000,\"endTime\":\"2026-10-30T04:02:03.123Z\",\"executionId\":\"{endedExecutionId}\",\"formKey\":null,\"id\":\"{endedReviewTaskId}\",\"name\":\"复核\",\"owner\":null,\"parentTaskId\":null,\"priority\":50,\"processDefinitionId\":\"{definitionId}\",\"processDefinitionUrl\":\"http://localhost/service/repository/process-definitions/{definitionId}\",\"processInstanceId\":\"{endedId}\",\"processInstanceUrl\":\"http://localhost/service/history/historic-process-instances/{endedId}\",\"propagatedStageInstanceId\":null,\"scopeDefinitionId\":null,\"scopeId\":null,\"scopeType\":null,\"startTime\":\"2026-10-30T03:03:03.123Z\",\"subScopeId\":null,\"taskDefinitionKey\":\"review\",\"tenantId\":\"\",\"url\":\"http://localhost/service/history/historic-task-instances/{endedReviewTaskId}\",\"variables\":[],\"workTimeInMillis\":null},{\"assignee\":\"alice\",\"category\":null,\"claimTime\":null,\"deleteReason\":null,\"description\":null,\"dueDate\":null,\"durationInMillis\":null,\"endTime\":null,\"executionId\":\"{runningExecutionId}\",\"formKey\":\"approve-form\",\"id\":\"{runningApproveTaskId}\",\"name\":\"审批\",\"owner\":null,\"parentTaskId\":null,\"priority\":50,\"processDefinitionId\":\"{definitionId}\",\"processDefinitionUrl\":\"http://localhost/service/repository/process-definitions/{definitionId}\",\"processInstanceId\":\"{runningId}\",\"processInstanceUrl\":\"http://localhost/service/history/historic-process-instances/{runningId}\",\"propagatedStageInstanceId\":null,\"scopeDefinitionId\":null,\"scopeId\":null,\"scopeType\":null,\"startTime\":\"2026-10-30T05:02:03.123Z\",\"subScopeId\":null,\"taskDefinitionKey\":\"approve\",\"tenantId\":\"\",\"url\":\"http://localhost/service/history/historic-task-instances/{runningApproveTaskId}\",\"variables\":[],\"workTimeInMillis\":null}],\"order\":\"asc\",\"size\":3,\"sort\":\"taskInstanceId\",\"start\":0,\"total\":3}",
+    "afterCounts" : {
+      "processInstances" : 2,
+      "tasks" : 3,
+      "activities" : 10,
+      "details" : 10,
+      "variables" : 8,
+      "comments" : 3,
+      "identityLinks" : 6,
+      "taskLogs" : 9
+    }
+  }, {
+    "name" : "task-list-page",
+    "method" : "GET",
+    "path" : "/service/history/historic-task-instances?sort=startTime&order=asc&size=2",
+    "requestBody" : "",
+    "status" : 200,
+    "responseBody" : "{\"data\":[{\"assignee\":\"alice\",\"category\":null,\"claimTime\":null,\"deleteReason\":null,\"description\":null,\"dueDate\":null,\"durationInMillis\":7260000,\"endTime\":\"2026-10-30T03:03:03.123Z\",\"executionId\":\"{endedExecutionId}\",\"formKey\":\"approve-form\",\"id\":\"{endedApproveTaskId}\",\"name\":\"审批\",\"owner\":null,\"parentTaskId\":null,\"priority\":50,\"processDefinitionId\":\"{definitionId}\",\"processDefinitionUrl\":\"http://localhost/service/repository/process-definitions/{definitionId}\",\"processInstanceId\":\"{endedId}\",\"processInstanceUrl\":\"http://localhost/service/history/historic-process-instances/{endedId}\",\"propagatedStageInstanceId\":null,\"scopeDefinitionId\":null,\"scopeId\":null,\"scopeType\":null,\"startTime\":\"2026-10-30T01:02:03.123Z\",\"subScopeId\":null,\"taskDefinitionKey\":\"approve\",\"tenantId\":\"\",\"url\":\"http://localhost/service/history/historic-task-instances/{endedApproveTaskId}\",\"variables\":[],\"workTimeInMillis\":null},{\"assignee\":null,\"category\":null,\"claimTime\":null,\"deleteReason\":null,\"description\":null,\"dueDate\":null,\"durationInMillis\":3540000,\"endTime\":\"2026-10-30T04:02:03.123Z\",\"executionId\":\"{endedExecutionId}\",\"formKey\":null,\"id\":\"{endedReviewTaskId}\",\"name\":\"复核\",\"owner\":null,\"parentTaskId\":null,\"priority\":50,\"processDefinitionId\":\"{definitionId}\",\"processDefinitionUrl\":\"http://localhost/service/repository/process-definitions/{definitionId}\",\"processInstanceId\":\"{endedId}\",\"processInstanceUrl\":\"http://localhost/service/history/historic-process-instances/{endedId}\",\"propagatedStageInstanceId\":null,\"scopeDefinitionId\":null,\"scopeId\":null,\"scopeType\":null,\"startTime\":\"2026-10-30T03:03:03.123Z\",\"subScopeId\":null,\"taskDefinitionKey\":\"review\",\"tenantId\":\"\",\"url\":\"http://localhost/service/history/historic-task-instances/{endedReviewTaskId}\",\"variables\":[],\"workTimeInMillis\":null}],\"order\":\"asc\",\"size\":2,\"sort\":\"startTime\",\"start\":0,\"total\":3}",
+    "afterCounts" : {
+      "processInstances" : 2,
+      "tasks" : 3,
+      "activities" : 10,
+      "details" : 10,
+      "variables" : 8,
+      "comments" : 3,
+      "identityLinks" : 6,
+      "taskLogs" : 9
+    }
+  }, {
+    "name" : "task-list-finished",
+    "method" : "GET",
+    "path" : "/service/history/historic-task-instances?finished=true",
+    "requestBody" : "",
+    "status" : 200,
+    "responseBody" : "{\"data\":[{\"assignee\":\"alice\",\"category\":null,\"claimTime\":null,\"deleteReason\":null,\"description\":null,\"dueDate\":null,\"durationInMillis\":7260000,\"endTime\":\"2026-10-30T03:03:03.123Z\",\"executionId\":\"{endedExecutionId}\",\"formKey\":\"approve-form\",\"id\":\"{endedApproveTaskId}\",\"name\":\"审批\",\"owner\":null,\"parentTaskId\":null,\"priority\":50,\"processDefinitionId\":\"{definitionId}\",\"processDefinitionUrl\":\"http://localhost/service/repository/process-definitions/{definitionId}\",\"processInstanceId\":\"{endedId}\",\"processInstanceUrl\":\"http://localhost/service/history/historic-process-instances/{endedId}\",\"propagatedStageInstanceId\":null,\"scopeDefinitionId\":null,\"scopeId\":null,\"scopeType\":null,\"startTime\":\"2026-10-30T01:02:03.123Z\",\"subScopeId\":null,\"taskDefinitionKey\":\"approve\",\"tenantId\":\"\",\"url\":\"http://localhost/service/history/historic-task-instances/{endedApproveTaskId}\",\"variables\":[],\"workTimeInMillis\":null},{\"assignee\":null,\"category\":null,\"claimTime\":null,\"deleteReason\":null,\"description\":null,\"dueDate\":null,\"durationInMillis\":3540000,\"endTime\":\"2026-10-30T04:02:03.123Z\",\"executionId\":\"{endedExecutionId}\",\"formKey\":null,\"id\":\"{endedReviewTaskId}\",\"name\":\"复核\",\"owner\":null,\"parentTaskId\":null,\"priority\":50,\"processDefinitionId\":\"{definitionId}\",\"processDefinitionUrl\":\"http://localhost/service/repository/process-definitions/{definitionId}\",\"processInstanceId\":\"{endedId}\",\"processInstanceUrl\":\"http://localhost/service/history/historic-process-instances/{endedId}\",\"propagatedStageInstanceId\":null,\"scopeDefinitionId\":null,\"scopeId\":null,\"scopeType\":null,\"startTime\":\"2026-10-30T03:03:03.123Z\",\"subScopeId\":null,\"taskDefinitionKey\":\"review\",\"tenantId\":\"\",\"url\":\"http://localhost/service/history/historic-task-instances/{endedReviewTaskId}\",\"variables\":[],\"workTimeInMillis\":null}],\"order\":\"asc\",\"size\":2,\"sort\":\"taskInstanceId\",\"start\":0,\"total\":2}",
+    "afterCounts" : {
+      "processInstances" : 2,
+      "tasks" : 3,
+      "activities" : 10,
+      "details" : 10,
+      "variables" : 8,
+      "comments" : 3,
+      "identityLinks" : 6,
+      "taskLogs" : 9
+    }
+  }, {
+    "name" : "task-get-ended",
+    "method" : "GET",
+    "path" : "/service/history/historic-task-instances/{endedApproveTaskId}",
+    "requestBody" : "",
+    "status" : 200,
+    "responseBody" : "{\"assignee\":\"alice\",\"category\":null,\"claimTime\":null,\"deleteReason\":null,\"description\":null,\"dueDate\":null,\"durationInMillis\":7260000,\"endTime\":\"2026-10-30T03:03:03.123Z\",\"executionId\":\"{endedExecutionId}\",\"formKey\":\"approve-form\",\"id\":\"{endedApproveTaskId}\",\"name\":\"审批\",\"owner\":null,\"parentTaskId\":null,\"priority\":50,\"processDefinitionId\":\"{definitionId}\",\"processDefinitionUrl\":\"http://localhost/service/repository/process-definitions/{definitionId}\",\"processInstanceId\":\"{endedId}\",\"processInstanceUrl\":\"http://localhost/service/history/historic-process-instances/{endedId}\",\"propagatedStageInstanceId\":null,\"scopeDefinitionId\":null,\"scopeId\":null,\"scopeType\":null,\"startTime\":\"2026-10-30T01:02:03.123Z\",\"subScopeId\":null,\"taskDefinitionKey\":\"approve\",\"tenantId\":\"\",\"url\":\"http://localhost/service/history/historic-task-instances/{endedApproveTaskId}\",\"variables\":[],\"workTimeInMillis\":null}",
+    "afterCounts" : {
+      "processInstances" : 2,
+      "tasks" : 3,
+      "activities" : 10,
+      "details" : 10,
+      "variables" : 8,
+      "comments" : 3,
+      "identityLinks" : 6,
+      "taskLogs" : 9
+    }
+  }, {
+    "name" : "task-get-running",
+    "method" : "GET",
+    "path" : "/service/history/historic-task-instances/{runningApproveTaskId}",
+    "requestBody" : "",
+    "status" : 200,
+    "responseBody" : "{\"assignee\":\"alice\",\"category\":null,\"claimTime\":null,\"deleteReason\":null,\"description\":null,\"dueDate\":null,\"durationInMillis\":null,\"endTime\":null,\"executionId\":\"{runningExecutionId}\",\"formKey\":\"approve-form\",\"id\":\"{runningApproveTaskId}\",\"name\":\"审批\",\"owner\":null,\"parentTaskId\":null,\"priority\":50,\"processDefinitionId\":\"{definitionId}\",\"processDefinitionUrl\":\"http://localhost/service/repository/process-definitions/{definitionId}\",\"processInstanceId\":\"{runningId}\",\"processInstanceUrl\":\"http://localhost/service/history/historic-process-instances/{runningId}\",\"propagatedStageInstanceId\":null,\"scopeDefinitionId\":null,\"scopeId\":null,\"scopeType\":null,\"startTime\":\"2026-10-30T05:02:03.123Z\",\"subScopeId\":null,\"taskDefinitionKey\":\"approve\",\"tenantId\":\"\",\"url\":\"http://localhost/service/history/historic-task-instances/{runningApproveTaskId}\",\"variables\":[],\"workTimeInMillis\":null}",
+    "afterCounts" : {
+      "processInstances" : 2,
+      "tasks" : 3,
+      "activities" : 10,
+      "details" : 10,
+      "variables" : 8,
+      "comments" : 3,
+      "identityLinks" : 6,
+      "taskLogs" : 9
+    }
+  }, {
+    "name" : "task-form",
+    "method" : "GET",
+    "path" : "/service/history/historic-task-instances/{endedApproveTaskId}/form",
+    "requestBody" : "",
+    "status" : 400,
+    "responseBody" : "{\"message\":\"Bad request\",\"exception\":\"Form engine is not initialized\"}",
+    "afterCounts" : {
+      "processInstances" : 2,
+      "tasks" : 3,
+      "activities" : 10,
+      "details" : 10,
+      "variables" : 8,
+      "comments" : 3,
+      "identityLinks" : 6,
+      "taskLogs" : 9
+    }
+  }, {
+    "name" : "task-form-no-formkey",
+    "method" : "GET",
+    "path" : "/service/history/historic-task-instances/{endedReviewTaskId}/form",
+    "requestBody" : "",
+    "status" : 400,
+    "responseBody" : "{\"message\":\"Bad request\",\"exception\":\"Task has no form defined\"}",
+    "afterCounts" : {
+      "processInstances" : 2,
+      "tasks" : 3,
+      "activities" : 10,
+      "details" : 10,
+      "variables" : 8,
+      "comments" : 3,
+      "identityLinks" : 6,
+      "taskLogs" : 9
+    }
+  }, {
+    "name" : "task-links",
+    "method" : "GET",
+    "path" : "/service/history/historic-task-instances/{endedApproveTaskId}/identitylinks",
+    "requestBody" : "",
+    "status" : 200,
+    "responseBody" : "[{\"groupId\":null,\"processInstanceId\":null,\"processInstanceUrl\":null,\"taskId\":\"{endedApproveTaskId}\",\"taskUrl\":\"http://localhost/service/history/historic-task-instances/{endedApproveTaskId}\",\"type\":\"candidate\",\"userId\":\"carol\"},{\"groupId\":\"review\",\"processInstanceId\":null,\"processInstanceUrl\":null,\"taskId\":\"{endedApproveTaskId}\",\"taskUrl\":\"http://localhost/service/history/historic-task-instances/{endedApproveTaskId}\",\"type\":\"candidate\",\"userId\":null},{\"groupId\":null,\"processInstanceId\":null,\"processInstanceUrl\":null,\"taskId\":\"{endedApproveTaskId}\",\"taskUrl\":\"http://localhost/service/history/historic-task-instances/{endedApproveTaskId}\",\"type\":\"assignee\",\"userId\":\"alice\"}]",
+    "afterCounts" : {
+      "processInstances" : 2,
+      "tasks" : 3,
+      "activities" : 10,
+      "details" : 10,
+      "variables" : 8,
+      "comments" : 3,
+      "identityLinks" : 6,
+      "taskLogs" : 9
+    }
+  }, {
+    "name" : "task-var-data",
+    "method" : "GET",
+    "path" : "/service/history/historic-task-instances/{endedApproveTaskId}/variables/localPayload/data",
+    "requestBody" : "",
+    "status" : 200,
+    "responseBody" : {
+      "$bytes" : "CQD6"
+    },
+    "afterCounts" : {
+      "processInstances" : 2,
+      "tasks" : 3,
+      "activities" : 10,
+      "details" : 10,
+      "variables" : 8,
+      "comments" : 3,
+      "identityLinks" : 6,
+      "taskLogs" : 9
+    }
+  }, {
+    "name" : "task-missing",
+    "method" : "GET",
+    "path" : "/service/history/historic-task-instances/missing",
+    "requestBody" : "",
+    "status" : 404,
+    "responseBody" : "{\"message\":\"Not found\",\"exception\":\"Could not find a task instance with id 'missing'.\"}",
+    "afterCounts" : {
+      "processInstances" : 2,
+      "tasks" : 3,
+      "activities" : 10,
+      "details" : 10,
+      "variables" : 8,
+      "comments" : 3,
+      "identityLinks" : 6,
+      "taskLogs" : 9
+    }
+  }, {
+    "name" : "task-query",
+    "method" : "POST",
+    "path" : "/service/query/historic-task-instances",
+    "requestBody" : "{\"finished\":true,\"taskDefinitionKey\":\"approve\"}",
+    "status" : 200,
+    "responseBody" : "{\"data\":[{\"assignee\":\"alice\",\"category\":null,\"claimTime\":null,\"deleteReason\":null,\"description\":null,\"dueDate\":null,\"durationInMillis\":7260000,\"endTime\":\"2026-10-30T03:03:03.123Z\",\"executionId\":\"{endedExecutionId}\",\"formKey\":\"approve-form\",\"id\":\"{endedApproveTaskId}\",\"name\":\"审批\",\"owner\":null,\"parentTaskId\":null,\"priority\":50,\"processDefinitionId\":\"{definitionId}\",\"processDefinitionUrl\":\"http://localhost/service/repository/process-definitions/{definitionId}\",\"processInstanceId\":\"{endedId}\",\"processInstanceUrl\":\"http://localhost/service/history/historic-process-instances/{endedId}\",\"propagatedStageInstanceId\":null,\"scopeDefinitionId\":null,\"scopeId\":null,\"scopeType\":null,\"startTime\":\"2026-10-30T01:02:03.123Z\",\"subScopeId\":null,\"taskDefinitionKey\":\"approve\",\"tenantId\":\"\",\"url\":\"http://localhost/service/history/historic-task-instances/{endedApproveTaskId}\",\"variables\":[],\"workTimeInMillis\":null}],\"order\":\"asc\",\"size\":1,\"sort\":\"taskInstanceId\",\"start\":0,\"total\":1}",
+    "afterCounts" : {
+      "processInstances" : 2,
+      "tasks" : 3,
+      "activities" : 10,
+      "details" : 10,
+      "variables" : 8,
+      "comments" : 3,
+      "identityLinks" : 6,
+      "taskLogs" : 9
+    }
+  }, {
+    "name" : "task-query-running",
+    "method" : "POST",
+    "path" : "/service/query/historic-task-instances",
+    "requestBody" : "{\"finished\":false,\"includeTaskLocalVariables\":true,\"includeProcessVariables\":true}",
+    "status" : 200,
+    "responseBody" : "{\"data\":[{\"assignee\":\"alice\",\"category\":null,\"claimTime\":null,\"deleteReason\":null,\"description\":null,\"dueDate\":null,\"durationInMillis\":null,\"endTime\":null,\"executionId\":\"{runningExecutionId}\",\"formKey\":\"approve-form\",\"id\":\"{runningApproveTaskId}\",\"name\":\"审批\",\"owner\":null,\"parentTaskId\":null,\"priority\":50,\"processDefinitionId\":\"{definitionId}\",\"processDefinitionUrl\":\"http://localhost/service/repository/process-definitions/{definitionId}\",\"processInstanceId\":\"{runningId}\",\"processInstanceUrl\":\"http://localhost/service/history/historic-process-instances/{runningId}\",\"propagatedStageInstanceId\":null,\"scopeDefinitionId\":null,\"scopeId\":null,\"scopeType\":null,\"startTime\":\"2026-10-30T05:02:03.123Z\",\"subScopeId\":null,\"taskDefinitionKey\":\"approve\",\"tenantId\":\"\",\"url\":\"http://localhost/service/history/historic-task-instances/{runningApproveTaskId}\",\"variables\":[{\"name\":\"amount\",\"scope\":\"global\",\"type\":\"long\",\"value\":42},{\"name\":\"flag\",\"scope\":\"global\",\"type\":\"string\",\"value\":\"before\"}],\"workTimeInMillis\":null}],\"order\":\"asc\",\"size\":1,\"sort\":\"taskInstanceId\",\"start\":0,\"total\":1}",
+    "afterCounts" : {
+      "processInstances" : 2,
+      "tasks" : 3,
+      "activities" : 10,
+      "details" : 10,
+      "variables" : 8,
+      "comments" : 3,
+      "identityLinks" : 6,
+      "taskLogs" : 9
+    }
+  }, {
+    "name" : "task-delete",
+    "method" : "DELETE",
+    "path" : "/service/history/historic-task-instances/{endedReviewTaskId}",
+    "requestBody" : "",
+    "status" : 204,
+    "responseBody" : "",
+    "afterCounts" : {
+      "processInstances" : 2,
+      "tasks" : 2,
+      "activities" : 10,
+      "details" : 10,
+      "variables" : 8,
+      "comments" : 3,
+      "identityLinks" : 6,
+      "taskLogs" : 7
+    }
+  }, {
+    "name" : "activity-list",
+    "method" : "GET",
+    "path" : "/service/history/historic-activity-instances",
+    "requestBody" : "",
+    "status" : 200,
+    "responseBody" : "{\"data\":[{\"activityId\":\"s\",\"activityName\":null,\"activityType\":\"startEvent\",\"assignee\":null,\"calledProcessInstanceId\":null,\"durationInMillis\":0,\"endTime\":\"2026-10-30T01:02:03.123Z\",\"executionId\":\"{endedExecutionId}\",\"id\":\"{endedActivity1}\",\"processDefinitionId\":\"{definitionId}\",\"processDefinitionUrl\":\"http://localhost/service/repository/process-definitions/{definitionId}\",\"processInstanceId\":\"{endedId}\",\"processInstanceUrl\":\"http://localhost/service/history/historic-process-instances/{endedId}\",\"startTime\":\"2026-10-30T01:02:03.123Z\",\"taskId\":null,\"tenantId\":\"\"},{\"activityId\":\"a\",\"activityName\":null,\"activityType\":\"sequenceFlow\",\"assignee\":null,\"calledProcessInstanceId\":null,\"durationInMillis\":0,\"endTime\":\"2026-10-30T01:02:03.123Z\",\"executionId\":\"{endedExecutionId}\",\"id\":\"{endedActivity2}\",\"processDefinitionId\":\"{definitionId}\",\"processDefinitionUrl\":\"http://localhost/service/repository/process-definitions/{definitionId}\",\"processInstanceId\":\"{endedId}\",\"processInstanceUrl\":\"http://localhost/service/history/historic-process-instances/{endedId}\",\"startTime\":\"2026-10-30T01:02:03.123Z\",\"taskId\":null,\"tenantId\":\"\"},{\"activityId\":\"approve\",\"activityName\":\"审批\",\"activityType\":\"userTask\",\"assignee\":\"alice\",\"calledProcessInstanceId\":null,\"durationInMillis\":7260000,\"endTime\":\"2026-10-30T03:03:03.123Z\",\"executionId\":\"{endedExecutionId}\",\"id\":\"{endedActivity3}\",\"processDefinitionId\":\"{definitionId}\",\"processDefinitionUrl\":\"http://localhost/service/repository/process-definitions/{definitionId}\",\"processInstanceId\":\"{endedId}\",\"processInstanceUrl\":\"http://localhost/service/history/historic-process-instances/{endedId}\",\"startTime\":\"2026-10-30T01:02:03.123Z\",\"taskId\":\"{endedApproveTaskId}\",\"tenantId\":\"\"},{\"activityId\":\"b\",\"activityName\":null,\"activityType\":\"sequenceFlow\",\"assignee\":null,\"calledProcessInstanceId\":null,\"durationInMillis\":0,\"endTime\":\"2026-10-30T03:03:03.123Z\",\"executionId\":\"{endedExecutionId}\",\"id\":\"{endedActivity4}\",\"processDefinitionId\":\"{definitionId}\",\"processDefinitionUrl\":\"http://localhost/service/repository/process-definitions/{definitionId}\",\"processInstanceId\":\"{endedId}\",\"processInstanceUrl\":\"http://localhost/service/history/historic-process-instances/{endedId}\",\"startTime\":\"2026-10-30T03:03:03.123Z\",\"taskId\":null,\"tenantId\":\"\"},{\"activityId\":\"review\",\"activityName\":\"复核\",\"activityType\":\"userTask\",\"assignee\":null,\"calledProcessInstanceId\":null,\"durationInMillis\":3540000,\"endTime\":\"2026-10-30T04:02:03.123Z\",\"executionId\":\"{endedExecutionId}\",\"id\":\"{endedActivity5}\",\"processDefinitionId\":\"{definitionId}\",\"processDefinitionUrl\":\"http://localhost/service/repository/process-definitions/{definitionId}\",\"processInstanceId\":\"{endedId}\",\"processInstanceUrl\":\"http://localhost/service/history/historic-process-instances/{endedId}\",\"startTime\":\"2026-10-30T03:03:03.123Z\",\"taskId\":\"{endedReviewTaskId}\",\"tenantId\":\"\"},{\"activityId\":\"c\",\"activityName\":null,\"activityType\":\"sequenceFlow\",\"assignee\":null,\"calledProcessInstanceId\":null,\"durationInMillis\":0,\"endTime\":\"2026-10-30T04:02:03.123Z\",\"executionId\":\"{endedExecutionId}\",\"id\":\"{endedActivity6}\",\"processDefinitionId\":\"{definitionId}\",\"processDefinitionUrl\":\"http://localhost/service/repository/process-definitions/{definitionId}\",\"processInstanceId\":\"{endedId}\",\"processInstanceUrl\":\"http://localhost/service/history/historic-process-instances/{endedId}\",\"startTime\":\"2026-10-30T04:02:03.123Z\",\"taskId\":null,\"tenantId\":\"\"},{\"activityId\":\"end\",\"activityName\":null,\"activityType\":\"endEvent\",\"assignee\":null,\"calledProcessInstanceId\":null,\"durationInMillis\":0,\"endTime\":\"2026-10-30T04:02:03.123Z\",\"executionId\":\"{endedExecutionId}\",\"id\":\"{endedActivity7}\",\"processDefinitionId\":\"{definitionId}\",\"processDefinitionUrl\":\"http://localhost/service/repository/process-definitions/{definitionId}\",\"processInstanceId\":\"{endedId}\",\"processInstanceUrl\":\"http://localhost/service/history/historic-process-instances/{endedId}\",\"startTime\":\"2026-10-30T04:02:03.123Z\",\"taskId\":null,\"tenantId\":\"\"},{\"activityId\":\"s\",\"activityName\":null,\"activityType\":\"startEvent\",\"assignee\":null,\"calledProcessInstanceId\":null,\"durationInMillis\":0,\"endTime\":\"2026-10-30T05:02:03.123Z\",\"executionId\":\"{runningExecutionId}\",\"id\":\"{runningActivity1}\",\"processDefinitionId\":\"{definitionId}\",\"processDefinitionUrl\":\"http://localhost/service/repository/process-definitions/{definitionId}\",\"processInstanceId\":\"{runningId}\",\"processInstanceUrl\":\"http://localhost/service/history/historic-process-instances/{runningId}\",\"startTime\":\"2026-10-30T05:02:03.123Z\",\"taskId\":null,\"tenantId\":\"\"},{\"activityId\":\"a\",\"activityName\":null,\"activityType\":\"sequenceFlow\",\"assignee\":null,\"calledProcessInstanceId\":null,\"durationInMillis\":0,\"endTime\":\"2026-10-30T05:02:03.123Z\",\"executionId\":\"{runningExecutionId}\",\"id\":\"{runningActivity2}\",\"processDefinitionId\":\"{definitionId}\",\"processDefinitionUrl\":\"http://localhost/service/repository/process-definitions/{definitionId}\",\"processInstanceId\":\"{runningId}\",\"processInstanceUrl\":\"http://localhost/service/history/historic-process-instances/{runningId}\",\"startTime\":\"2026-10-30T05:02:03.123Z\",\"taskId\":null,\"tenantId\":\"\"},{\"activityId\":\"approve\",\"activityName\":\"审批\",\"activityType\":\"userTask\",\"assignee\":\"alice\",\"calledProcessInstanceId\":null,\"durationInMillis\":null,\"endTime\":null,\"executionId\":\"{runningExecutionId}\",\"id\":\"{runningActivity3}\",\"processDefinitionId\":\"{definitionId}\",\"processDefinitionUrl\":\"http://localhost/service/repository/process-definitions/{definitionId}\",\"processInstanceId\":\"{runningId}\",\"processInstanceUrl\":\"http://localhost/service/history/historic-process-instances/{runningId}\",\"startTime\":\"2026-10-30T05:02:03.123Z\",\"taskId\":\"{runningApproveTaskId}\",\"tenantId\":\"\"}],\"order\":\"asc\",\"size\":10,\"sort\":\"startTime\",\"start\":0,\"total\":10}",
+    "afterCounts" : {
+      "processInstances" : 2,
+      "tasks" : 3,
+      "activities" : 10,
+      "details" : 10,
+      "variables" : 8,
+      "comments" : 3,
+      "identityLinks" : 6,
+      "taskLogs" : 9
+    }
+  }, {
+    "name" : "activity-page",
+    "method" : "GET",
+    "path" : "/service/history/historic-activity-instances?size=3",
+    "requestBody" : "",
+    "status" : 200,
+    "responseBody" : "{\"data\":[{\"activityId\":\"s\",\"activityName\":null,\"activityType\":\"startEvent\",\"assignee\":null,\"calledProcessInstanceId\":null,\"durationInMillis\":0,\"endTime\":\"2026-10-30T01:02:03.123Z\",\"executionId\":\"{endedExecutionId}\",\"id\":\"{endedActivity1}\",\"processDefinitionId\":\"{definitionId}\",\"processDefinitionUrl\":\"http://localhost/service/repository/process-definitions/{definitionId}\",\"processInstanceId\":\"{endedId}\",\"processInstanceUrl\":\"http://localhost/service/history/historic-process-instances/{endedId}\",\"startTime\":\"2026-10-30T01:02:03.123Z\",\"taskId\":null,\"tenantId\":\"\"},{\"activityId\":\"a\",\"activityName\":null,\"activityType\":\"sequenceFlow\",\"assignee\":null,\"calledProcessInstanceId\":null,\"durationInMillis\":0,\"endTime\":\"2026-10-30T01:02:03.123Z\",\"executionId\":\"{endedExecutionId}\",\"id\":\"{endedActivity2}\",\"processDefinitionId\":\"{definitionId}\",\"processDefinitionUrl\":\"http://localhost/service/repository/process-definitions/{definitionId}\",\"processInstanceId\":\"{endedId}\",\"processInstanceUrl\":\"http://localhost/service/history/historic-process-instances/{endedId}\",\"startTime\":\"2026-10-30T01:02:03.123Z\",\"taskId\":null,\"tenantId\":\"\"},{\"activityId\":\"approve\",\"activityName\":\"审批\",\"activityType\":\"userTask\",\"assignee\":\"alice\",\"calledProcessInstanceId\":null,\"durationInMillis\":7260000,\"endTime\":\"2026-10-30T03:03:03.123Z\",\"executionId\":\"{endedExecutionId}\",\"id\":\"{endedActivity3}\",\"processDefinitionId\":\"{definitionId}\",\"processDefinitionUrl\":\"http://localhost/service/repository/process-definitions/{definitionId}\",\"processInstanceId\":\"{endedId}\",\"processInstanceUrl\":\"http://localhost/service/history/historic-process-instances/{endedId}\",\"startTime\":\"2026-10-30T01:02:03.123Z\",\"taskId\":\"{endedApproveTaskId}\",\"tenantId\":\"\"}],\"order\":\"asc\",\"size\":3,\"sort\":\"startTime\",\"start\":0,\"total\":10}",
+    "afterCounts" : {
+      "processInstances" : 2,
+      "tasks" : 3,
+      "activities" : 10,
+      "details" : 10,
+      "variables" : 8,
+      "comments" : 3,
+      "identityLinks" : 6,
+      "taskLogs" : 9
+    }
+  }, {
+    "name" : "activity-query",
+    "method" : "POST",
+    "path" : "/service/query/historic-activity-instances",
+    "requestBody" : "{\"activityId\":\"approve\",\"finished\":true}",
+    "status" : 200,
+    "responseBody" : "{\"data\":[{\"activityId\":\"approve\",\"activityName\":\"审批\",\"activityType\":\"userTask\",\"assignee\":\"alice\",\"calledProcessInstanceId\":null,\"durationInMillis\":7260000,\"endTime\":\"2026-10-30T03:03:03.123Z\",\"executionId\":\"{endedExecutionId}\",\"id\":\"{endedActivity3}\",\"processDefinitionId\":\"{definitionId}\",\"processDefinitionUrl\":\"http://localhost/service/repository/process-definitions/{definitionId}\",\"processInstanceId\":\"{endedId}\",\"processInstanceUrl\":\"http://localhost/service/history/historic-process-instances/{endedId}\",\"startTime\":\"2026-10-30T01:02:03.123Z\",\"taskId\":\"{endedApproveTaskId}\",\"tenantId\":\"\"}],\"order\":\"asc\",\"size\":1,\"sort\":\"startTime\",\"start\":0,\"total\":1}",
+    "afterCounts" : {
+      "processInstances" : 2,
+      "tasks" : 3,
+      "activities" : 10,
+      "details" : 10,
+      "variables" : 8,
+      "comments" : 3,
+      "identityLinks" : 6,
+      "taskLogs" : 9
+    }
+  }, {
+    "name" : "detail-list",
+    "method" : "GET",
+    "path" : "/service/history/historic-detail",
+    "requestBody" : "",
+    "status" : 200,
+    "responseBody" : "{\"data\":[{\"activityInstanceId\":null,\"detailType\":\"variableUpdate\",\"executionId\":\"{endedId}\",\"id\":\"{detail-createdAt-1}\",\"processInstanceId\":\"{endedId}\",\"processInstanceUrl\":\"http://localhost/service/history/historic-process-instances/{endedId}\",\"propertyId\":null,\"propertyValue\":null,\"revision\":0,\"taskId\":null,\"taskUrl\":null,\"time\":\"2026-10-30T01:02:03.123Z\",\"variable\":{\"name\":\"createdAt\",\"scope\":null,\"type\":\"date\",\"value\":\"2026-02-03T04:05:06.789Z\"}},{\"activityInstanceId\":null,\"detailType\":\"variableUpdate\",\"executionId\":\"{endedId}\",\"id\":\"{detail-amount-1}\",\"processInstanceId\":\"{endedId}\",\"processInstanceUrl\":\"http://localhost/service/history/historic-process-instances/{endedId}\",\"propertyId\":null,\"propertyValue\":null,\"revision\":0,\"taskId\":null,\"taskUrl\":null,\"time\":\"2026-10-30T01:02:03.123Z\",\"variable\":{\"name\":\"amount\",\"scope\":null,\"type\":\"long\",\"value\":9007199254740993}},{\"activityInstanceId\":null,\"detailType\":\"variableUpdate\",\"executionId\":\"{endedId}\",\"id\":\"{detail-flag-1}\",\"processInstanceId\":\"{endedId}\",\"processInstanceUrl\":\"http://localhost/service/history/historic-process-instances/{endedId}\",\"propertyId\":null,\"propertyValue\":null,\"revision\":0,\"taskId\":null,\"taskUrl\":null,\"time\":\"2026-10-30T01:02:03.123Z\",\"variable\":{\"name\":\"flag\",\"scope\":null,\"type\":\"string\",\"value\":\"before\"}},{\"activityInstanceId\":null,\"detailType\":\"variableUpdate\",\"executionId\":\"{endedId}\",\"id\":\"{detailId}\",\"processInstanceId\":\"{endedId}\",\"processInstanceUrl\":\"http://localhost/service/history/historic-process-instances/{endedId}\",\"propertyId\":null,\"propertyValue\":null,\"revision\":0,\"taskId\":null,\"taskUrl\":null,\"time\":\"2026-10-30T01:02:03.123Z\",\"variable\":{\"name\":\"payload\",\"scope\":null,\"type\":\"binary\",\"value\":null,\"valueUrl\":\"http://localhost/service/history/historic-detail/{detailId}/data\"}},{\"activityInstanceId\":null,\"detailType\":\"variableUpdate\",\"executionId\":\"{endedExecutionId}\",\"id\":\"{detail-localPayload-1}\",\"processInstanceId\":\"{endedId}\",\"processInstanceUrl\":\"http://localhost/service/history/historic-process-instances/{endedId}\",\"propertyId\":null,\"propertyValue\":null,\"revision\":0,\"taskId\":\"{endedApproveTaskId}\",\"taskUrl\":\"http://localhost/service/history/historic-task-instances/{endedApproveTaskId}\",\"time\":\"2026-10-30T02:02:03.123Z\",\"variable\":{\"name\":\"localPayload\",\"scope\":null,\"type\":\"binary\",\"value\":null,\"valueUrl\":\"http://localhost/service/history/historic-detail/{detail-localPayload-1}/data\"}},{\"activityInstanceId\":null,\"detailType\":\"variableUpdate\",\"executionId\":\"{endedExecutionId}\",\"id\":\"{detail-localNote-1}\",\"processInstanceId\":\"{endedId}\",\"processInstanceUrl\":\"http://localhost/service/history/historic-process-instances/{endedId}\",\"propertyId\":null,\"propertyValue\":null,\"revision\":0,\"taskId\":\"{endedApproveTaskId}\",\"taskUrl\":\"http://localhost/service/history/historic-task-instances/{endedApproveTaskId}\",\"time\":\"2026-10-30T02:02:03.123Z\",\"variable\":{\"name\":\"localNote\",\"scope\":null,\"type\":\"string\",\"value\":\"局部备注\"}},{\"activityInstanceId\":null,\"detailType\":\"variableUpdate\",\"executionId\":\"{endedId}\",\"id\":\"{detail-flag-2}\",\"processInstanceId\":\"{endedId}\",\"processInstanceUrl\":\"http://localhost/service/history/historic-process-instances/{endedId}\",\"propertyId\":null,\"propertyValue\":null,\"revision\":1,\"taskId\":null,\"taskUrl\":null,\"time\":\"2026-10-30T03:02:03.123Z\",\"variable\":{\"name\":\"flag\",\"scope\":null,\"type\":\"string\",\"value\":\"after\"}},{\"activityInstanceId\":null,\"detailType\":\"variableUpdate\",\"executionId\":\"{endedId}\",\"id\":\"{detail-amount-2}\",\"processInstanceId\":\"{endedId}\",\"processInstanceUrl\":\"http://localhost/service/history/historic-process-instances/{endedId}\",\"propertyId\":null,\"propertyValue\":null,\"revision\":1,\"taskId\":null,\"taskUrl\":null,\"time\":\"2026-10-30T03:02:04.123Z\",\"variable\":{\"name\":\"amount\",\"scope\":null,\"type\":\"long\",\"value\":43}},{\"activityInstanceId\":null,\"detailType\":\"variableUpdate\",\"executionId\":\"{runningId}\",\"id\":\"{detail-amount-3}\",\"processInstanceId\":\"{runningId}\",\"processInstanceUrl\":\"http://localhost/service/history/historic-process-instances/{runningId}\",\"propertyId\":null,\"propertyValue\":null,\"revision\":0,\"taskId\":null,\"taskUrl\":null,\"time\":\"2026-10-30T05:02:03.123Z\",\"variable\":{\"name\":\"amount\",\"scope\":null,\"type\":\"long\",\"value\":42}},{\"activityInstanceId\":null,\"detailType\":\"variableUpdate\",\"executionId\":\"{runningId}\",\"id\":\"{detail-flag-3}\",\"processInstanceId\":\"{runningId}\",\"processInstanceUrl\":\"http://localhost/service/history/historic-process-instances/{runningId}\",\"propertyId\":null,\"propertyValue\":null,\"revision\":0,\"taskId\":null,\"taskUrl\":null,\"time\":\"2026-10-30T05:02:03.123Z\",\"variable\":{\"name\":\"flag\",\"scope\":null,\"type\":\"string\",\"value\":\"before\"}}],\"order\":\"asc\",\"size\":10,\"sort\":\"processInstanceId\",\"start\":0,\"total\":10}",
+    "afterCounts" : {
+      "processInstances" : 2,
+      "tasks" : 3,
+      "activities" : 10,
+      "details" : 10,
+      "variables" : 8,
+      "comments" : 3,
+      "identityLinks" : 6,
+      "taskLogs" : 9
+    }
+  }, {
+    "name" : "detail-query",
+    "method" : "POST",
+    "path" : "/service/query/historic-detail",
+    "requestBody" : "{\"processInstanceId\":\"{endedId}\",\"selectOnlyVariableUpdates\":true}",
+    "status" : 200,
+    "responseBody" : "{\"data\":[{\"activityInstanceId\":null,\"detailType\":\"variableUpdate\",\"executionId\":\"{endedId}\",\"id\":\"{detail-createdAt-1}\",\"processInstanceId\":\"{endedId}\",\"processInstanceUrl\":\"http://localhost/service/history/historic-process-instances/{endedId}\",\"propertyId\":null,\"propertyValue\":null,\"revision\":0,\"taskId\":null,\"taskUrl\":null,\"time\":\"2026-10-30T01:02:03.123Z\",\"variable\":{\"name\":\"createdAt\",\"scope\":null,\"type\":\"date\",\"value\":\"2026-02-03T04:05:06.789Z\"}},{\"activityInstanceId\":null,\"detailType\":\"variableUpdate\",\"executionId\":\"{endedId}\",\"id\":\"{detail-amount-1}\",\"processInstanceId\":\"{endedId}\",\"processInstanceUrl\":\"http://localhost/service/history/historic-process-instances/{endedId}\",\"propertyId\":null,\"propertyValue\":null,\"revision\":0,\"taskId\":null,\"taskUrl\":null,\"time\":\"2026-10-30T01:02:03.123Z\",\"variable\":{\"name\":\"amount\",\"scope\":null,\"type\":\"long\",\"value\":9007199254740993}},{\"activityInstanceId\":null,\"detailType\":\"variableUpdate\",\"executionId\":\"{endedId}\",\"id\":\"{detail-flag-1}\",\"processInstanceId\":\"{endedId}\",\"processInstanceUrl\":\"http://localhost/service/history/historic-process-instances/{endedId}\",\"propertyId\":null,\"propertyValue\":null,\"revision\":0,\"taskId\":null,\"taskUrl\":null,\"time\":\"2026-10-30T01:02:03.123Z\",\"variable\":{\"name\":\"flag\",\"scope\":null,\"type\":\"string\",\"value\":\"before\"}},{\"activityInstanceId\":null,\"detailType\":\"variableUpdate\",\"executionId\":\"{endedId}\",\"id\":\"{detailId}\",\"processInstanceId\":\"{endedId}\",\"processInstanceUrl\":\"http://localhost/service/history/historic-process-instances/{endedId}\",\"propertyId\":null,\"propertyValue\":null,\"revision\":0,\"taskId\":null,\"taskUrl\":null,\"time\":\"2026-10-30T01:02:03.123Z\",\"variable\":{\"name\":\"payload\",\"scope\":null,\"type\":\"binary\",\"value\":null,\"valueUrl\":\"http://localhost/service/history/historic-detail/{detailId}/data\"}},{\"activityInstanceId\":null,\"detailType\":\"variableUpdate\",\"executionId\":\"{endedExecutionId}\",\"id\":\"{detail-localPayload-1}\",\"processInstanceId\":\"{endedId}\",\"processInstanceUrl\":\"http://localhost/service/history/historic-process-instances/{endedId}\",\"propertyId\":null,\"propertyValue\":null,\"revision\":0,\"taskId\":\"{endedApproveTaskId}\",\"taskUrl\":\"http://localhost/service/history/historic-task-instances/{endedApproveTaskId}\",\"time\":\"2026-10-30T02:02:03.123Z\",\"variable\":{\"name\":\"localPayload\",\"scope\":null,\"type\":\"binary\",\"value\":null,\"valueUrl\":\"http://localhost/service/history/historic-detail/{detail-localPayload-1}/data\"}},{\"activityInstanceId\":null,\"detailType\":\"variableUpdate\",\"executionId\":\"{endedExecutionId}\",\"id\":\"{detail-localNote-1}\",\"processInstanceId\":\"{endedId}\",\"processInstanceUrl\":\"http://localhost/service/history/historic-process-instances/{endedId}\",\"propertyId\":null,\"propertyValue\":null,\"revision\":0,\"taskId\":\"{endedApproveTaskId}\",\"taskUrl\":\"http://localhost/service/history/historic-task-instances/{endedApproveTaskId}\",\"time\":\"2026-10-30T02:02:03.123Z\",\"variable\":{\"name\":\"localNote\",\"scope\":null,\"type\":\"string\",\"value\":\"局部备注\"}},{\"activityInstanceId\":null,\"detailType\":\"variableUpdate\",\"executionId\":\"{endedId}\",\"id\":\"{detail-flag-2}\",\"processInstanceId\":\"{endedId}\",\"processInstanceUrl\":\"http://localhost/service/history/historic-process-instances/{endedId}\",\"propertyId\":null,\"propertyValue\":null,\"revision\":1,\"taskId\":null,\"taskUrl\":null,\"time\":\"2026-10-30T03:02:03.123Z\",\"variable\":{\"name\":\"flag\",\"scope\":null,\"type\":\"string\",\"value\":\"after\"}},{\"activityInstanceId\":null,\"detailType\":\"variableUpdate\",\"executionId\":\"{endedId}\",\"id\":\"{detail-amount-2}\",\"processInstanceId\":\"{endedId}\",\"processInstanceUrl\":\"http://localhost/service/history/historic-process-instances/{endedId}\",\"propertyId\":null,\"propertyValue\":null,\"revision\":1,\"taskId\":null,\"taskUrl\":null,\"time\":\"2026-10-30T03:02:04.123Z\",\"variable\":{\"name\":\"amount\",\"scope\":null,\"type\":\"long\",\"value\":43}}],\"order\":\"asc\",\"size\":8,\"sort\":\"processInstanceId\",\"start\":0,\"total\":8}",
+    "afterCounts" : {
+      "processInstances" : 2,
+      "tasks" : 3,
+      "activities" : 10,
+      "details" : 10,
+      "variables" : 8,
+      "comments" : 3,
+      "identityLinks" : 6,
+      "taskLogs" : 9
+    }
+  }, {
+    "name" : "detail-data",
+    "method" : "GET",
+    "path" : "/service/history/historic-detail/{detailId}/data",
+    "requestBody" : "",
+    "status" : 200,
+    "responseBody" : {
+      "$bytes" : "AQIA/w=="
+    },
+    "afterCounts" : {
+      "processInstances" : 2,
+      "tasks" : 3,
+      "activities" : 10,
+      "details" : 10,
+      "variables" : 8,
+      "comments" : 3,
+      "identityLinks" : 6,
+      "taskLogs" : 9
+    }
+  }, {
+    "name" : "varinst-list",
+    "method" : "GET",
+    "path" : "/service/history/historic-variable-instances",
+    "requestBody" : "",
+    "status" : 200,
+    "responseBody" : "{\"data\":[{\"executionId\":\"{endedId}\",\"id\":\"{endedVar-amount-global}\",\"processInstanceId\":\"{endedId}\",\"processInstanceUrl\":\"http://localhost/service/history/historic-process-instances/{endedId}\",\"taskId\":null,\"variable\":{\"name\":\"amount\",\"scope\":\"global\",\"type\":\"long\",\"value\":43}},{\"executionId\":\"{runningId}\",\"id\":\"{runningVar-amount-global}\",\"processInstanceId\":\"{runningId}\",\"processInstanceUrl\":\"http://localhost/service/history/historic-process-instances/{runningId}\",\"taskId\":null,\"variable\":{\"name\":\"amount\",\"scope\":\"global\",\"type\":\"long\",\"value\":42}},{\"executionId\":\"{endedId}\",\"id\":\"{endedVar-createdAt-global}\",\"processInstanceId\":\"{endedId}\",\"processInstanceUrl\":\"http://localhost/service/history/historic-process-instances/{endedId}\",\"taskId\":null,\"variable\":{\"name\":\"createdAt\",\"scope\":\"global\",\"type\":\"date\",\"value\":\"2026-02-03T04:05:06.789Z\"}},{\"executionId\":\"{endedId}\",\"id\":\"{endedVar-flag-global}\",\"processInstanceId\":\"{endedId}\",\"processInstanceUrl\":\"http://localhost/service/history/historic-process-instances/{endedId}\",\"taskId\":null,\"variable\":{\"name\":\"flag\",\"scope\":\"global\",\"type\":\"string\",\"value\":\"after\"}},{\"executionId\":\"{runningId}\",\"id\":\"{runningVar-flag-global}\",\"processInstanceId\":\"{runningId}\",\"processInstanceUrl\":\"http://localhost/service/history/historic-process-instances/{runningId}\",\"taskId\":null,\"variable\":{\"name\":\"flag\",\"scope\":\"global\",\"type\":\"string\",\"value\":\"before\"}},{\"executionId\":\"{endedExecutionId}\",\"id\":\"{endedVar-localNote-local}\",\"processInstanceId\":\"{endedId}\",\"processInstanceUrl\":\"http://localhost/service/history/historic-process-instances/{endedId}\",\"taskId\":\"{endedApproveTaskId}\",\"variable\":{\"name\":\"localNote\",\"scope\":\"local\",\"type\":\"string\",\"value\":\"局部备注\"}},{\"executionId\":\"{endedExecutionId}\",\"id\":\"{endedVar-localPayload-local}\",\"processInstanceId\":\"{endedId}\",\"processInstanceUrl\":\"http://localhost/service/history/historic-process-instances/{endedId}\",\"taskId\":\"{endedApproveTaskId}\",\"variable\":{\"name\":\"localPayload\",\"scope\":\"local\",\"type\":\"binary\",\"value\":null,\"valueUrl\":\"http://localhost/service/history/historic-variable-instances/{endedVar-localPayload-local}/data\"}},{\"executionId\":\"{endedId}\",\"id\":\"{varInstanceId}\",\"processInstanceId\":\"{endedId}\",\"processInstanceUrl\":\"http://localhost/service/history/historic-process-instances/{endedId}\",\"taskId\":null,\"variable\":{\"name\":\"payload\",\"scope\":\"global\",\"type\":\"binary\",\"value\":null,\"valueUrl\":\"http://localhost/service/history/historic-variable-instances/{varInstanceId}/data\"}}],\"order\":\"asc\",\"size\":8,\"sort\":\"variableName\",\"start\":0,\"total\":8}",
+    "afterCounts" : {
+      "processInstances" : 2,
+      "tasks" : 3,
+      "activities" : 10,
+      "details" : 10,
+      "variables" : 8,
+      "comments" : 3,
+      "identityLinks" : 6,
+      "taskLogs" : 9
+    }
+  }, {
+    "name" : "varinst-query",
+    "method" : "POST",
+    "path" : "/service/query/historic-variable-instances",
+    "requestBody" : "{\"variableName\":\"amount\"}",
+    "status" : 200,
+    "responseBody" : "{\"data\":[{\"executionId\":\"{endedId}\",\"id\":\"{endedVar-amount-global}\",\"processInstanceId\":\"{endedId}\",\"processInstanceUrl\":\"http://localhost/service/history/historic-process-instances/{endedId}\",\"taskId\":null,\"variable\":{\"name\":\"amount\",\"scope\":\"global\",\"type\":\"long\",\"value\":43}},{\"executionId\":\"{runningId}\",\"id\":\"{runningVar-amount-global}\",\"processInstanceId\":\"{runningId}\",\"processInstanceUrl\":\"http://localhost/service/history/historic-process-instances/{runningId}\",\"taskId\":null,\"variable\":{\"name\":\"amount\",\"scope\":\"global\",\"type\":\"long\",\"value\":42}}],\"order\":\"asc\",\"size\":2,\"sort\":\"variableName\",\"start\":0,\"total\":2}",
+    "afterCounts" : {
+      "processInstances" : 2,
+      "tasks" : 3,
+      "activities" : 10,
+      "details" : 10,
+      "variables" : 8,
+      "comments" : 3,
+      "identityLinks" : 6,
+      "taskLogs" : 9
+    }
+  }, {
+    "name" : "varinst-data",
+    "method" : "GET",
+    "path" : "/service/history/historic-variable-instances/{varInstanceId}/data",
+    "requestBody" : "",
+    "status" : 200,
+    "responseBody" : {
+      "$bytes" : "AQIA/w=="
+    },
+    "afterCounts" : {
+      "processInstances" : 2,
+      "tasks" : 3,
+      "activities" : 10,
+      "details" : 10,
+      "variables" : 8,
+      "comments" : 3,
+      "identityLinks" : 6,
+      "taskLogs" : 9
+    }
+  }, {
+    "name" : "tasklog-list",
+    "method" : "GET",
+    "path" : "/service/history/historic-task-log-entries",
+    "requestBody" : "",
+    "status" : 200,
+    "responseBody" : "{\"data\":[{\"data\":null,\"executionId\":\"{endedExecutionId}\",\"logNumber\":379,\"processDefinitionId\":\"{definitionId}\",\"processInstanceId\":\"{endedId}\",\"scopeDefinitionId\":null,\"scopeId\":null,\"scopeType\":null,\"subScopeId\":null,\"taskId\":\"{endedApproveTaskId}\",\"tenantId\":\"\",\"timeStamp\":\"2026-10-30T01:02:03.123Z\",\"type\":\"USER_TASK_CREATED\",\"userId\":\"starter\"},{\"data\":\"{\\\"userId\\\":\\\"carol\\\",\\\"type\\\":\\\"candidate\\\"}\",\"executionId\":\"{endedExecutionId}\",\"logNumber\":380,\"processDefinitionId\":\"{definitionId}\",\"processInstanceId\":\"{endedId}\",\"scopeDefinitionId\":null,\"scopeId\":null,\"scopeType\":null,\"subScopeId\":null,\"taskId\":\"{endedApproveTaskId}\",\"tenantId\":\"\",\"timeStamp\":\"2026-10-30T02:02:03.123Z\",\"type\":\"USER_TASK_IDENTITY_LINK_ADDED\",\"userId\":\"starter\"},{\"data\":\"{\\\"groupId\\\":\\\"review\\\",\\\"type\\\":\\\"candidate\\\"}\",\"executionId\":\"{endedExecutionId}\",\"logNumber\":381,\"processDefinitionId\":\"{definitionId}\",\"processInstanceId\":\"{endedId}\",\"scopeDefinitionId\":null,\"scopeId\":null,\"scopeType\":null,\"subScopeId\":null,\"taskId\":\"{endedApproveTaskId}\",\"tenantId\":\"\",\"timeStamp\":\"2026-10-30T02:02:03.123Z\",\"type\":\"USER_TASK_IDENTITY_LINK_ADDED\",\"userId\":\"starter\"},{\"data\":\"{\\\"newAssigneeId\\\":\\\"alice\\\",\\\"previousAssigneeId\\\":null}\",\"executionId\":\"{endedExecutionId}\",\"logNumber\":382,\"processDefinitionId\":\"{definitionId}\",\"processInstanceId\":\"{endedId}\",\"scopeDefinitionId\":null,\"scopeId\":null,\"scopeType\":null,\"subScopeId\":null,\"taskId\":\"{endedApproveTaskId}\",\"tenantId\":\"\",\"timeStamp\":\"2026-10-30T02:02:03.123Z\",\"type\":\"USER_TASK_ASSIGNEE_CHANGED\",\"userId\":\"starter\"},{\"data\":\"{}\",\"executionId\":\"{endedExecutionId}\",\"logNumber\":383,\"processDefinitionId\":\"{definitionId}\",\"processInstanceId\":\"{endedId}\",\"scopeDefinitionId\":null,\"scopeId\":null,\"scopeType\":null,\"subScopeId\":null,\"taskId\":\"{endedApproveTaskId}\",\"tenantId\":\"\",\"timeStamp\":\"2026-10-30T03:03:03.123Z\",\"type\":\"USER_TASK_COMPLETED\",\"userId\":\"starter\"},{\"data\":null,\"executionId\":\"{endedExecutionId}\",\"logNumber\":384,\"processDefinitionId\":\"{definitionId}\",\"processInstanceId\":\"{endedId}\",\"scopeDefinitionId\":null,\"scopeId\":null,\"scopeType\":null,\"subScopeId\":null,\"taskId\":\"{endedReviewTaskId}\",\"tenantId\":\"\",\"timeStamp\":\"2026-10-30T03:03:03.123Z\",\"type\":\"USER_TASK_CREATED\",\"userId\":\"starter\"},{\"data\":\"{}\",\"executionId\":\"{endedExecutionId}\",\"logNumber\":385,\"processDefinitionId\":\"{definitionId}\",\"processInstanceId\":\"{endedId}\",\"scopeDefinitionId\":null,\"scopeId\":null,\"scopeType\":null,\"subScopeId\":null,\"taskId\":\"{endedReviewTaskId}\",\"tenantId\":\"\",\"timeStamp\":\"2026-10-30T04:02:03.123Z\",\"type\":\"USER_TASK_COMPLETED\",\"userId\":\"starter\"},{\"data\":null,\"executionId\":\"{runningExecutionId}\",\"logNumber\":386,\"processDefinitionId\":\"{definitionId}\",\"processInstanceId\":\"{runningId}\",\"scopeDefinitionId\":null,\"scopeId\":null,\"scopeType\":null,\"subScopeId\":null,\"taskId\":\"{runningApproveTaskId}\",\"tenantId\":\"\",\"timeStamp\":\"2026-10-30T05:02:03.123Z\",\"type\":\"USER_TASK_CREATED\",\"userId\":\"starter\"},{\"data\":\"{\\\"newAssigneeId\\\":\\\"alice\\\",\\\"previousAssigneeId\\\":null}\",\"executionId\":\"{runningExecutionId}\",\"logNumber\":387,\"processDefinitionId\":\"{definitionId}\",\"processInstanceId\":\"{runningId}\",\"scopeDefinitionId\":null,\"scopeId\":null,\"scopeType\":null,\"subScopeId\":null,\"taskId\":\"{runningApproveTaskId}\",\"tenantId\":\"\",\"timeStamp\":\"2026-10-30T05:02:03.123Z\",\"type\":\"USER_TASK_ASSIGNEE_CHANGED\",\"userId\":\"starter\"}],\"order\":\"asc\",\"size\":9,\"sort\":\"logNumber\",\"start\":0,\"total\":9}",
+    "afterCounts" : {
+      "processInstances" : 2,
+      "tasks" : 3,
+      "activities" : 10,
+      "details" : 10,
+      "variables" : 8,
+      "comments" : 3,
+      "identityLinks" : 6,
+      "taskLogs" : 9
+    }
+  }, {
+    "name" : "tasklog-task",
+    "method" : "GET",
+    "path" : "/service/history/historic-task-log-entries?taskId={endedApproveTaskId}",
+    "requestBody" : "",
+    "status" : 200,
+    "responseBody" : "{\"data\":[{\"data\":null,\"executionId\":\"{endedExecutionId}\",\"logNumber\":388,\"processDefinitionId\":\"{definitionId}\",\"processInstanceId\":\"{endedId}\",\"scopeDefinitionId\":null,\"scopeId\":null,\"scopeType\":null,\"subScopeId\":null,\"taskId\":\"{endedApproveTaskId}\",\"tenantId\":\"\",\"timeStamp\":\"2026-10-30T01:02:03.123Z\",\"type\":\"USER_TASK_CREATED\",\"userId\":\"starter\"},{\"data\":\"{\\\"userId\\\":\\\"carol\\\",\\\"type\\\":\\\"candidate\\\"}\",\"executionId\":\"{endedExecutionId}\",\"logNumber\":389,\"processDefinitionId\":\"{definitionId}\",\"processInstanceId\":\"{endedId}\",\"scopeDefinitionId\":null,\"scopeId\":null,\"scopeType\":null,\"subScopeId\":null,\"taskId\":\"{endedApproveTaskId}\",\"tenantId\":\"\",\"timeStamp\":\"2026-10-30T02:02:03.123Z\",\"type\":\"USER_TASK_IDENTITY_LINK_ADDED\",\"userId\":\"starter\"},{\"data\":\"{\\\"groupId\\\":\\\"review\\\",\\\"type\\\":\\\"candidate\\\"}\",\"executionId\":\"{endedExecutionId}\",\"logNumber\":390,\"processDefinitionId\":\"{definitionId}\",\"processInstanceId\":\"{endedId}\",\"scopeDefinitionId\":null,\"scopeId\":null,\"scopeType\":null,\"subScopeId\":null,\"taskId\":\"{endedApproveTaskId}\",\"tenantId\":\"\",\"timeStamp\":\"2026-10-30T02:02:03.123Z\",\"type\":\"USER_TASK_IDENTITY_LINK_ADDED\",\"userId\":\"starter\"},{\"data\":\"{\\\"newAssigneeId\\\":\\\"alice\\\",\\\"previousAssigneeId\\\":null}\",\"executionId\":\"{endedExecutionId}\",\"logNumber\":391,\"processDefinitionId\":\"{definitionId}\",\"processInstanceId\":\"{endedId}\",\"scopeDefinitionId\":null,\"scopeId\":null,\"scopeType\":null,\"subScopeId\":null,\"taskId\":\"{endedApproveTaskId}\",\"tenantId\":\"\",\"timeStamp\":\"2026-10-30T02:02:03.123Z\",\"type\":\"USER_TASK_ASSIGNEE_CHANGED\",\"userId\":\"starter\"},{\"data\":\"{}\",\"executionId\":\"{endedExecutionId}\",\"logNumber\":392,\"processDefinitionId\":\"{definitionId}\",\"processInstanceId\":\"{endedId}\",\"scopeDefinitionId\":null,\"scopeId\":null,\"scopeType\":null,\"subScopeId\":null,\"taskId\":\"{endedApproveTaskId}\",\"tenantId\":\"\",\"timeStamp\":\"2026-10-30T03:03:03.123Z\",\"type\":\"USER_TASK_COMPLETED\",\"userId\":\"starter\"}],\"order\":\"asc\",\"size\":5,\"sort\":\"logNumber\",\"start\":0,\"total\":5}",
+    "afterCounts" : {
+      "processInstances" : 2,
+      "tasks" : 3,
+      "activities" : 10,
+      "details" : 10,
+      "variables" : 8,
+      "comments" : 3,
+      "identityLinks" : 6,
+      "taskLogs" : 9
+    }
+  } ]
+}

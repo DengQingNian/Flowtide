@@ -78,7 +78,7 @@ func (s *Server) handleQueryHistoricVariables(w http.ResponseWriter, r *http.Req
 		}
 		filtered = append(filtered, item)
 	}
-	start, size, sortField, order, err := body.pagination()
+	start, size, sortField, order, err := body.rawPagination()
 	if err != nil {
 		writeError(w, err)
 		return
@@ -87,7 +87,7 @@ func (s *Server) handleQueryHistoricVariables(w http.ResponseWriter, r *http.Req
 		writeError(w, err)
 		return
 	}
-	writeQueryPage(w, filtered, start, size, sortField, order)
+	writeHistoricQueryPage(w, r, historicVariableMaps(r, filtered), start, size, sortField, order, "variableName")
 }
 
 // handleQueryHistoricDetails 按请求体查询历史变量明细。
@@ -138,7 +138,7 @@ func (s *Server) handleQueryHistoricDetails(w http.ResponseWriter, r *http.Reque
 		}
 		filtered = append(filtered, item)
 	}
-	start, size, sortField, order, err := body.pagination()
+	start, size, sortField, order, err := body.rawPagination()
 	if err != nil {
 		writeError(w, err)
 		return
@@ -147,5 +147,5 @@ func (s *Server) handleQueryHistoricDetails(w http.ResponseWriter, r *http.Reque
 		writeError(w, err)
 		return
 	}
-	writeQueryPage(w, filtered, start, size, sortField, order)
+	writeHistoricQueryPage(w, r, historicDetailMaps(r, filtered), start, size, sortField, order, "processInstanceId")
 }

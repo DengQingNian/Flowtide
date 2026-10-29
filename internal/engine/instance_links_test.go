@@ -24,7 +24,8 @@ func TestInstanceIdentityLinks(t *testing.T) {
 		t.Fatalf("启动失败: %v", err)
 	}
 	links, err := engine.ListInstanceIdentityLinks(ctx, instance.ID)
-	if err != nil || len(links) != 1 || links[0].Type != "participant" || links[0].UserID != "alice" {
+	// 原版发起人在运行时身份链接中类型为 starter。
+	if err != nil || len(links) != 1 || links[0].Type != "starter" || links[0].UserID != "alice" {
 		t.Fatalf("发起人链接错误: %v %+v", err, links)
 	}
 	created, err := engine.AddInstanceIdentityLink(ctx, instance.ID, api.IdentityLink{Type: "candidate", GroupID: "g1"})
@@ -108,7 +109,7 @@ func TestInstanceIdentityLinkTenantAndPersistence(t *testing.T) {
 	for _, row := range rows {
 		if row.Table == "ACT_RU_IDENTITYLINK" {
 			found = true
-			if row.Values["USER_ID_"] != "alice" || row.Values["TYPE_"] != "participant" {
+			if row.Values["USER_ID_"] != "alice" || row.Values["TYPE_"] != "starter" {
 				t.Fatalf("身份链接行错误: %+v", row.Values)
 			}
 		}

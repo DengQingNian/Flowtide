@@ -29,7 +29,8 @@ func TestREST_InstanceIdentityLinks(t *testing.T) {
 	var links []map[string]any
 	_ = json.NewDecoder(response.Body).Decode(&links)
 	_ = response.Body.Close()
-	if response.StatusCode != http.StatusOK || len(links) != 1 || links[0]["type"] != "participant" || links[0]["userId"] != "alice" {
+	// 原版发起人在运行时身份链接中类型为 starter。
+	if response.StatusCode != http.StatusOK || len(links) != 1 || links[0]["type"] != "starter" || links[0]["userId"] != "alice" {
 		t.Fatalf("发起人链接错误: %d %+v", response.StatusCode, links)
 	}
 
@@ -81,8 +82,11 @@ func TestREST_InstanceIdentityLinks(t *testing.T) {
 	_ = response.Body.Close()
 
 	response, _ = http.Get(server.URL + "/service/history/historic-process-instances/" + instance.ID + "/identitylinks")
-	page := decodeQueryPage[map[string]any](t, response)
-	if page.Total == 0 {
+	// 原版返回裸数组而非分页对象。
+	var historicLinks []map[string]any
+	_ = json.NewDecoder(response.Body).Decode(&historicLinks)
+	_ = response.Body.Close()
+	if len(historicLinks) == 0 {
 		t.Fatalf("历史身份链接为空")
 	}
 

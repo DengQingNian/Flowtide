@@ -25,6 +25,13 @@ func (e *Engine) recordProcessStart(cc *commandContext, instance *instanceState)
 		State:                "running",
 	}
 	e.state.HistoricProcesses[historic.ID] = historic
+	// 原版为发起人写入 starter 类型历史身份链接。
+	if instance.StartUserID != "" {
+		for _, linkType := range []string{"starter"} {
+			link := &api.IdentityLink{ID: e.newID(), Type: linkType, UserID: instance.StartUserID, ProcessInstanceID: instance.ID, CreateTime: instance.StartTime}
+			e.state.HistoricLinks[link.ID] = link
+		}
+	}
 }
 
 // recordProcessEnd 更新历史流程实例结束信息。
@@ -43,6 +50,21 @@ func (e *Engine) recordProcessEnd(cc *commandContext, instance *instanceState) {
 	historic.State = "completed"
 	historic.DeleteReason = instance.DeleteReason
 	historic.DurationMillis = cc.now.Sub(historic.StartTime).Milliseconds()
+	// 原版在结束时记录结束活动与结束操作人；结束活动取最后开始的历史活动。
+	historic.EndUserID = actorFromContext(cc.ctx)
+	var lastActivity *api.HistoricActivityInstance
+	for _, activity := range e.state.HistoricActivities {
+		if activity.ProcessInstanceID != instance.ID {
+			continue
+		}
+		if lastActivity == nil || activity.StartTime.After(lastActivity.StartTime) ||
+			(activity.StartTime.Equal(lastActivity.StartTime) && activity.TransactionOrder > lastActivity.TransactionOrder) {
+			lastActivity = activity
+		}
+	}
+	if lastActivity != nil {
+		historic.EndActivityID = lastActivity.ActivityID
+	}
 }
 
 // recordActivityStart 写入历史活动实例并触发活动开始监听器。
@@ -76,6 +98,10 @@ func (e *Engine) recordActivityStart(cc *commandContext, execution *executionSta
 		TenantID:            tenant,
 	}
 	e.state.HistoricActivities[id] = historic
+	// 原版把实例首个活动记为 startActivityId。
+	if instance, ok := e.state.HistoricProcesses[execution.ProcessInstanceID]; ok && instance.StartActivityID == "" {
+		instance.StartActivityID = element.GetID()
+	}
 	e.invokeActivityStartExecutionListeners(cc, execution, element)
 	return id
 }
@@ -115,10 +141,23 @@ func (e *Engine) recordTaskStart(cc *commandContext, task *taskState) string {
 		TaskDefinitionKey:   task.Task.TaskDefinitionKey,
 		Assignee:            task.Task.Assignee,
 		FormKey:             task.Task.FormKey,
+		Priority:            task.Task.Priority,
+		Category:            task.Task.Category,
+		Description:         task.Task.Description,
+		Owner:               task.Task.Owner,
+		ParentTaskID:        task.Task.ParentTaskID,
+		DueDate:             cloneTime(task.Task.DueDate),
 		TenantID:            task.Task.TenantID,
 		StartTime:           task.Task.CreateTime,
 	}
 	e.state.HistoricTasks[id] = historic
+	// 原版把任务标识与处理人回填到对应活动历史行。
+	for _, activity := range e.state.HistoricActivities {
+		if activity.ProcessInstanceID == task.Task.ProcessInstanceID && activity.ActivityID == task.Task.TaskDefinitionKey && activity.TaskID == "" {
+			activity.TaskID = id
+			activity.Assignee = task.Task.Assignee
+		}
+	}
 	e.recordTaskIdentityLinks(cc, task)
 	return id
 }
@@ -160,7 +199,7 @@ func (e *Engine) recordHistoricVariable(execution *executionState, name string, 
 		existing.Value = copyValue(value)
 		existing.Type = variableTypeName(value)
 		existing.LastUpdatedTime = now
-		e.recordHistoricDetail(execution.ProcessInstanceID, execution.ID, "", execution.ActivityID, name, value, now)
+		e.recordHistoricDetail(execution.ProcessInstanceID, execution.ID, "", "", name, value, now)
 		return
 	}
 	historic := &api.HistoricVariableInstance{
@@ -174,7 +213,23 @@ func (e *Engine) recordHistoricVariable(execution *executionState, name string, 
 		LastUpdatedTime:   now,
 	}
 	e.state.HistoricVariables[key] = historic
-	e.recordHistoricDetail(execution.ProcessInstanceID, execution.ID, "", execution.ActivityID, name, value, now)
+	e.recordHistoricDetail(execution.ProcessInstanceID, execution.ID, "", "", name, value, now)
+}
+
+// variableDetailRevision 统计同归属变量的已有明细数作为修订号。
+// @param processInstanceID 实例 ID
+// @param executionID 执行 ID
+// @param taskID 任务 ID
+// @param name 变量名
+// @return 修订号
+func (e *Engine) variableDetailRevision(processInstanceID, executionID, taskID, name string) int {
+	revision := 0
+	for _, detail := range e.state.HistoricDetails {
+		if detail.ProcessInstanceID == processInstanceID && detail.ExecutionID == executionID && detail.TaskID == taskID && detail.Name == name {
+			revision++
+		}
+	}
+	return revision
 }
 
 // recordTaskHistoricVariable 记录流程任务或独立任务的局部变量历史。
@@ -254,6 +309,7 @@ func (e *Engine) recordHistoricDetail(processInstanceID, executionID, taskID, ac
 		VariableType:      variableTypeName(value),
 		Value:             copyValue(value),
 		Time:              now,
+		Revision:          e.variableDetailRevision(processInstanceID, executionID, taskID, name),
 	}
 	e.state.HistoricDetails[detail.ID] = detail
 }

@@ -296,7 +296,7 @@ func TestREST_DeleteHistoric(t *testing.T) {
 	if len(logs.Data) == 0 {
 		t.Fatalf("任务日志为空")
 	}
-	logID, _ := logs.Data[0]["id"].(float64)
+	logID, _ := logs.Data[0]["logNumber"].(float64)
 	request, _ := http.NewRequest(http.MethodDelete, server.URL+"/service/history/historic-task-log-entries/"+strconv.FormatInt(int64(logID), 10), nil)
 	response, _ = http.DefaultClient.Do(request)
 	if response.StatusCode != http.StatusNoContent {
@@ -617,23 +617,22 @@ func TestREST_TaskFormAndHistoricSubresources(t *testing.T) {
 	_ = response.Body.Close()
 
 	response, _ = http.Get(server.URL + "/service/history/historic-process-instances/" + instance.ID + "/comments")
-	var comments struct {
-		Total int `json:"total"`
-	}
+	var comments []map[string]any
 	_ = json.NewDecoder(response.Body).Decode(&comments)
 	_ = response.Body.Close()
-	if response.StatusCode != http.StatusOK || comments.Total != 1 {
+	if response.StatusCode != http.StatusOK || len(comments) != 1 {
 		t.Fatalf("历史评论错误: %d %+v", response.StatusCode, comments)
 	}
 
-	response, _ = http.Get(server.URL + "/service/history/historic-process-instances/" + instance.ID + "/identitylinks")
-	var links struct {
-		Total int `json:"total"`
-	}
-	_ = json.NewDecoder(response.Body).Decode(&links)
+	// 先经运行时接口添加参与者，原版历史链接由其派生。
+	response = postJSON(t, server.URL+"/service/runtime/process-instances/"+instance.ID+"/identitylinks", map[string]any{"type": "participant", "userId": "alice"})
 	_ = response.Body.Close()
-	if response.StatusCode != http.StatusOK || links.Total == 0 {
-		t.Fatalf("历史身份链接错误: %d %+v", response.StatusCode, links)
+	response, _ = http.Get(server.URL + "/service/history/historic-process-instances/" + instance.ID + "/identitylinks")
+	var historicLinks []map[string]any
+	_ = json.NewDecoder(response.Body).Decode(&historicLinks)
+	_ = response.Body.Close()
+	if response.StatusCode != http.StatusOK || len(historicLinks) == 0 {
+		t.Fatalf("历史身份链接错误: %d %+v", response.StatusCode, historicLinks)
 	}
 
 	response, _ = http.Get(server.URL + "/service/history/historic-process-instances/" + instance.ID + "/variables")

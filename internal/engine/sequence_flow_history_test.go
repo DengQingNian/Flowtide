@@ -46,8 +46,9 @@ func TestMigrationSequenceFlowHistory(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if count := sequenceFlowActivities(t, plain, plainInstance.ID); count != 0 {
-		t.Fatalf("普通实例不应补记顺序流：%d", count)
+	// 原版语义：顺序流历史随普通执行记录，迁移标记仅兼容旧状态读取。
+	if count := sequenceFlowActivities(t, plain, plainInstance.ID); count != 1 {
+		t.Fatalf("普通实例应记录顺序流：%d", count)
 	}
 }
 

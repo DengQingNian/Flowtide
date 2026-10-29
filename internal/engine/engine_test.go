@@ -129,8 +129,9 @@ func TestCompleteTask_EndsProcess(t *testing.T) {
 	if err != nil {
 		t.Fatalf("查询历史失败: %v", err)
 	}
-	if len(historic) != 3 {
-		t.Fatalf("期望 3 条历史活动，实际 %d: %+v", len(historic), historic)
+	// 原版把顺序流也记为历史活动：开始、顺序流、任务、顺序流、结束。
+	if len(historic) != 5 {
+		t.Fatalf("期望 5 条历史活动，实际 %d: %+v", len(historic), historic)
 	}
 }
 

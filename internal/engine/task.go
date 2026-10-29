@@ -73,7 +73,7 @@ func (e *Engine) createUserTask(cc *commandContext, execution *executionState, n
 	task.HistoricTaskID = e.recordTaskStart(cc, task)
 	e.state.Tasks[task.Task.ID] = task
 	e.recordTaskIdentityLinks(cc, task)
-	e.recordTaskLog(cc, task, "create", task.Task.Assignee, "")
+	e.recordTaskLog(cc, task, "create", actorFromContext(cc.ctx), "")
 	if err := e.invokeTaskListeners(cc, task, "create"); err != nil {
 		return err
 	}
@@ -489,7 +489,7 @@ func (e *Engine) completeTask(cc *commandContext, taskID string, req api.Complet
 			task.LocalVariables[variable.Name] = copyValue(variable.Value)
 			e.recordTaskHistoricVariable(task, variable.Name, variable.Value, cc.now)
 		}
-		e.recordTaskLog(cc, task, "complete", req.UserID, "")
+		e.recordTaskLog(cc, task, "complete", actorOrValue(cc.ctx, req.UserID), "{}")
 		e.recordTaskEnd(cc, task)
 		delete(e.state.Tasks, taskID)
 		return nil
@@ -514,8 +514,9 @@ func (e *Engine) completeTask(cc *commandContext, taskID string, req api.Complet
 	if err := e.invokeTaskListeners(cc, task, "complete"); err != nil {
 		return err
 	}
-	e.recordTaskLog(cc, task, "complete", req.UserID, "")
+	e.recordTaskLog(cc, task, "complete", actorFromContext(cc.ctx), "{}")
 	e.recordTaskEnd(cc, task)
+	e.promoteTaskParticipants(cc, task)
 	delete(e.state.Tasks, taskID)
 	e.cancelBoundaryTimers(execution.ID)
 	e.cancelBoundarySubscriptions(execution.ID)

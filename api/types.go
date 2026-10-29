@@ -433,6 +433,7 @@ type HistoricDetail struct {
 	TaskID            string    `json:"taskId,omitempty"`            // 任务 ID
 	ActivityID        string    `json:"activityId,omitempty"`        // 活动 ID
 	Name              string    `json:"name"`                        // 变量名
+	Revision          int       `json:"revision"`                    // 变量修订号
 	VariableType      string    `json:"variableType,omitempty"`      // 变量类型
 	Value             any       `json:"value,omitempty"`             // 变量值
 	Time              time.Time `json:"time"`                        // 记录时间

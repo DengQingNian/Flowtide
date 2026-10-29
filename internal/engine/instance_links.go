@@ -73,6 +73,15 @@ func (e *Engine) AddInstanceIdentityLink(ctx context.Context, processInstanceID 
 		}
 		e.state.InstanceLinks[created.ID] = &created
 		e.recordInstanceHistoricLink(cc, &created)
+		// 原版在流程身份链接变更时写入 message 为空的事件评论，评论列表因此包含该事件。
+		event := &api.Comment{
+			ID:                e.newID(),
+			ProcessInstanceID: processInstanceID,
+			Type:              "event",
+			UserID:            actorFromContext(cc.ctx),
+			Time:              cc.now,
+		}
+		e.state.Comments[event.ID] = event
 		return created, nil
 	})
 	if err != nil {

@@ -290,6 +290,7 @@ func assertRuntimeJSON(t *testing.T, actual, expected []byte) {
 			t.Fatal(err)
 		}
 		canonicalRuntimeVariables(value)
+		canonicalHistoryArrays(value)
 		out, err := json.Marshal(value)
 		if err != nil {
 			t.Fatal(err)

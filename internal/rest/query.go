@@ -1143,6 +1143,15 @@ func (s *Server) handleQueryTasks(w http.ResponseWriter, r *http.Request) {
 	s.serveTaskQuery(w, r, body)
 }
 
+// bodyHasFlag 判断查询体中的布尔标记是否为真。
+// @param body 查询体
+// @param key 键名
+// @return 是否为真
+func bodyHasFlag(body queryBody, key string) bool {
+	value, err := body.boolField(key)
+	return err == nil && value != nil && *value
+}
+
 // handleQueryHistoricProcesses 查询历史流程实例。
 // @param w 响应
 // @param r 请求
@@ -1157,6 +1166,16 @@ func (s *Server) handleQueryHistoricProcesses(w http.ResponseWriter, r *http.Req
 		writeError(w, err)
 		return
 	}
+	// 原版支持按流程实例过滤历史查询。
+	if instanceID := body.str("processInstanceId"); instanceID != "" {
+		filtered := make([]api.HistoricProcessInstance, 0, len(items))
+		for _, item := range items {
+			if item.ID == instanceID {
+				filtered = append(filtered, item)
+			}
+		}
+		items = filtered
+	}
 	items, err = filterQueryHistoricProcesses(items, body, requestTenant(r))
 	if err != nil {
 		writeError(w, err)
@@ -1167,7 +1186,7 @@ func (s *Server) handleQueryHistoricProcesses(w http.ResponseWriter, r *http.Req
 		writeError(w, err)
 		return
 	}
-	start, size, sortField, order, err := body.pagination()
+	start, size, sortField, order, err := body.rawPagination()
 	if err != nil {
 		writeError(w, err)
 		return
@@ -1176,7 +1195,12 @@ func (s *Server) handleQueryHistoricProcesses(w http.ResponseWriter, r *http.Req
 		writeError(w, err)
 		return
 	}
-	writeQueryPage(w, items, start, size, sortField, order)
+	processMaps, err := historicProcessMaps(s, r, items, false)
+	if err != nil {
+		writeError(w, err)
+		return
+	}
+	writeHistoricQueryPage(w, r, processMaps, start, size, sortField, order, "processInstanceId")
 }
 
 // handleQueryHistoricTasks 查询历史任务。
@@ -1208,7 +1232,7 @@ func (s *Server) handleQueryHistoricTasks(w http.ResponseWriter, r *http.Request
 		writeError(w, err)
 		return
 	}
-	start, size, sortField, order, err := body.pagination()
+	start, size, sortField, order, err := body.rawPagination()
 	if err != nil {
 		writeError(w, err)
 		return
@@ -1217,7 +1241,20 @@ func (s *Server) handleQueryHistoricTasks(w http.ResponseWriter, r *http.Request
 		writeError(w, err)
 		return
 	}
-	writeQueryPage(w, items, start, size, sortField, order)
+	taskMaps, err := historicTaskRESTList(r, s, items)
+	if err != nil {
+		writeError(w, err)
+		return
+	}
+	// 查询体显式包含变量时填充任务变量集合。
+	if bodyHasFlag(body, "includeTaskLocalVariables") || bodyHasFlag(body, "includeProcessVariables") {
+		taskMaps, err = historicTaskMaps(s, r, items, true)
+		if err != nil {
+			writeError(w, err)
+			return
+		}
+	}
+	writeHistoricQueryPage(w, r, taskMaps, start, size, sortField, order, "taskInstanceId")
 }
 
 // handleQueryHistoricActivities 查询历史活动。
@@ -1249,7 +1286,7 @@ func (s *Server) handleQueryHistoricActivities(w http.ResponseWriter, r *http.Re
 		writeError(w, err)
 		return
 	}
-	start, size, sortField, order, err := body.pagination()
+	start, size, sortField, order, err := body.rawPagination()
 	if err != nil {
 		writeError(w, err)
 		return
@@ -1258,5 +1295,29 @@ func (s *Server) handleQueryHistoricActivities(w http.ResponseWriter, r *http.Re
 		writeError(w, err)
 		return
 	}
-	writeQueryPage(w, items, start, size, sortField, order)
+	activityMaps := historicActivityMaps(r, items)
+	writeHistoricQueryPage(w, r, activityMaps, start, size, sortField, order, "startTime")
+}
+
+// rawPagination 历史查询分页：显式 size（含 0）按请求生效，缺省为 10。
+// @return 起始位置
+// @return 每页数量
+// @return 排序字段
+// @return 排序方向
+// @return 解析错误
+func (b queryBody) rawPagination() (int, int, string, string, error) {
+	start, size, sortField, order, err := b.pagination()
+	if err != nil {
+		return 0, 0, "", "", err
+	}
+	if raw, ok := b["size"]; ok && string(raw) != "null" {
+		var value int
+		if err := json.Unmarshal(raw, &value); err != nil {
+			return 0, 0, "", "", api.NewError("REST-0121", "size 必须为整数", api.ErrBadRequest)
+		}
+		if value >= 0 {
+			size = value
+		}
+	}
+	return start, size, sortField, order, nil
 }
