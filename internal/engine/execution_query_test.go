@@ -48,6 +48,33 @@ func TestExecutionQueries(t *testing.T) {
 	}
 }
 
+// waitingActivityExecutionID 返回测试实例唯一的等待活动执行，禁止把流程根当作活动。
+// @param t 测试上下文
+// @param app 引擎
+// @param instanceID 实例标识
+// @return 等待活动执行标识
+func waitingActivityExecutionID(t *testing.T, app *Engine, instanceID string) string {
+	t.Helper()
+	executions, err := app.ListExecutions(context.Background(), instanceID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	id := ""
+	for _, execution := range executions {
+		if execution.Ended || !execution.Waiting || execution.ActivityID == "" {
+			continue
+		}
+		if id != "" {
+			t.Fatal("测试实例存在多个等待活动")
+		}
+		id = execution.ID
+	}
+	if id == "" {
+		t.Fatal("测试实例没有等待活动")
+	}
+	return id
+}
+
 // TestExecutionVariables 验证执行变量与租户。
 // @param t 测试上下文
 func TestExecutionVariables(t *testing.T) {

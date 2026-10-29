@@ -91,6 +91,14 @@
     {
       "path": "testdata/compatibility/java/task-provenance.json",
       "sha256": "59738f54cf389678d120abb30a89ac47fca6f0cd8d3ddc7bd252869c974ac1f6"
+    },
+    {
+      "path": "testdata/compatibility/go/001-single-root-state.json",
+      "sha256": "a55072183a6d2fddc33f270fad7ce5721179040faec4d916727aa257cdae93e7"
+    },
+    {
+      "path": "testdata/compatibility/go/provenance.json",
+      "sha256": "96cb478f65e46c3dc82d98e0725d1ff74a84bf5dfdb15f254eed33899f6e398a"
     }
   ]
 }

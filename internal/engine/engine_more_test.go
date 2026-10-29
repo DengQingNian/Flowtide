@@ -258,6 +258,7 @@ func TestEngineInvalidHistory(t *testing.T) {
 // @param t 测试上下文
 func TestExecutionAccessors(t *testing.T) {
 	engine := newTestEngine(t)
+	localExecutionID := ""
 	engine.RegisterDelegate("inspect", func(ctx context.Context, execution *Execution) error {
 		if execution.ProcessInstanceID() == "" || execution.ActivityID() != "svc" {
 			return api.NewError("TEST", "执行上下文错误", nil)
@@ -265,6 +266,7 @@ func TestExecutionAccessors(t *testing.T) {
 		if _, ok := execution.GetVariable("seed"); !ok {
 			return api.NewError("TEST", "未读取到 seed", nil)
 		}
+		localExecutionID = execution.state.ID
 		execution.SetVariableLocal("local", "v")
 		execution.SetVariable("global", "g")
 		return nil
@@ -279,8 +281,12 @@ func TestExecutionAccessors(t *testing.T) {
 		t.Fatalf("启动失败: %v", err)
 	}
 	variables, _ := engine.GetVariables(context.Background(), instance.ID)
-	if variables["local"] != "v" || variables["global"] != "g" {
+	if variables["local"] != nil || variables["global"] != "g" {
 		t.Fatalf("委托变量写入错误: %+v", variables)
+	}
+	local, err := engine.GetExecutionVariables(context.Background(), localExecutionID)
+	if err != nil || local["local"] != "v" {
+		t.Fatalf("活动局部变量丢失: %+v %v", local, err)
 	}
 }
 

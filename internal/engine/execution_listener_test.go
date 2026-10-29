@@ -91,7 +91,7 @@ func TestExecutionListenersLifecycle(t *testing.T) {
 		if execution.ProcessInstanceID() == "" {
 			t.Fatalf("流程开始监听器缺少实例 ID")
 		}
-		if execution.ActivityID() != "start" {
+		if execution.ActivityID() != "" {
 			t.Fatalf("流程开始监听器活动 ID 错误: %s", execution.ActivityID())
 		}
 		execution.SetVariable("processVar", "p")

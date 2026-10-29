@@ -54,7 +54,7 @@ func startActionInstance(t *testing.T, serverURL, xml, key string) string {
 	return instance.ID
 }
 
-// executionIDFor 返回实例根执行 ID。
+// executionIDFor 返回测试实例唯一活动执行 ID，实例根不承载接收任务或事件订阅。
 // @param t 测试上下文
 // @param serverURL 服务地址
 // @param instanceID 实例 ID
@@ -64,15 +64,27 @@ func executionIDFor(t *testing.T, serverURL, instanceID string) string {
 	response, _ := http.Get(serverURL + "/service/runtime/executions?processInstanceId=" + instanceID)
 	var executions struct {
 		Data []struct {
-			ID string `json:"id"`
+			ID         string `json:"id"`
+			ActivityID string `json:"activityId"`
 		} `json:"data"`
 	}
 	_ = json.NewDecoder(response.Body).Decode(&executions)
 	_ = response.Body.Close()
-	if len(executions.Data) == 0 {
-		t.Fatalf("执行树为空")
+	id := ""
+	// 通过资源字段定位活动，禁止依赖执行列表排序把第一项当作可触发对象。
+	for _, execution := range executions.Data {
+		if execution.ActivityID == "" {
+			continue
+		}
+		if id != "" {
+			t.Fatal("测试实例存在多个活动执行")
+		}
+		id = execution.ID
 	}
-	return executions.Data[0].ID
+	if id == "" {
+		t.Fatal("测试实例没有活动执行")
+	}
+	return id
 }
 
 // TestREST_ExecutionActions 验证执行动作端点。

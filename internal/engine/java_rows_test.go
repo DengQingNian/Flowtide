@@ -201,25 +201,21 @@ func javaShapeRows(t *testing.T) ([]flowablerow.Row, string, time.Time) {
 		t.Fatal(err)
 	}
 	result := make([]flowablerow.Row, 0, len(rows)+1)
-	// Java 只在流程根保存业务键和开始时间，叶执行的标识故意排在根之前。
+	// 模拟仅根保留业务键与开始时间的布局，并让叶执行排序早于根。
 	for _, row := range rows {
 		if row.Table == "ACT_GE_BYTEARRAY" && strings.HasPrefix(row.Values["NAME_"].(string), "flowable-go-control/") {
 			continue
 		}
 		switch row.Table {
 		case "ACT_RU_EXECUTION":
-			child := flowablerow.Row{Table: row.Table, Values: make(map[string]any, len(row.Values))}
-			for key, value := range row.Values {
-				child.Values[key] = value
+			if row.Values["ID_"] != instance.ID {
+				row.Values["ID_"] = "000-java-child"
+				row.Values["PARENT_ID_"] = instance.ID
+				row.Values["BUSINESS_KEY_"] = nil
+				row.Values["START_TIME_"] = nil
+				row.Values["IS_SCOPE_"] = false
 			}
-			child.Values["ID_"] = "000-java-child"
-			child.Values["PARENT_ID_"] = instance.ID
-			child.Values["BUSINESS_KEY_"] = nil
-			child.Values["START_TIME_"] = nil
-			child.Values["IS_SCOPE_"] = false
-			row.Values["ACT_ID_"] = nil
-			row.Values["IS_ACTIVE_"] = false
-			result = append(result, child)
+
 		case "ACT_RU_TASK", "ACT_HI_ACTINST":
 			row.Values["EXECUTION_ID_"] = "000-java-child"
 		}

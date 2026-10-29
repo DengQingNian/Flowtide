@@ -56,12 +56,21 @@ func (e *Engine) runtimeRowsLocked() ([]flowablerow.Row, error) {
 		_ = row.Set("ID_", execution.ID)
 		_ = row.Set("REV_", 1)
 		_ = row.Set("PROC_INST_ID_", execution.ProcessInstanceID)
-		_ = row.Set("BUSINESS_KEY_", businessKey)
+		// 业务键只属于流程根；子执行不能复制根元数据，无活动的根使用 SQL NULL。
+		if instance != nil && execution.ID == instance.RootExecutionID && businessKey != "" {
+			_ = row.Set("BUSINESS_KEY_", businessKey)
+		} else {
+			_ = row.Set("BUSINESS_KEY_", nil)
+		}
 		_ = row.Set("TENANT_ID_", tenant)
 		_ = row.Set("START_TIME_", startTime)
 		_ = row.Set("PARENT_ID_", execution.ParentID)
 		_ = row.Set("PROC_DEF_ID_", execution.DefinitionID)
-		_ = row.Set("ACT_ID_", execution.ActivityID)
+		if execution.ActivityID == "" {
+			_ = row.Set("ACT_ID_", nil)
+		} else {
+			_ = row.Set("ACT_ID_", execution.ActivityID)
+		}
 		_ = row.Set("IS_ACTIVE_", execution.Active)
 		_ = row.Set("IS_CONCURRENT_", execution.Concurrent)
 		_ = row.Set("IS_SCOPE_", execution.Scope)

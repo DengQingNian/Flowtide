@@ -1,0 +1,9 @@
+{
+  "sourceCommit": "e77f836c27c1f614c370f2968762df3fa23f9906",
+  "sourceStateFormatVersion": 2,
+  "purpose": "改造前真实Go版本的单根执行状态续跑回归",
+  "generatorSourceCommitted": false,
+  "generatorSourceSha256": "2088f5bb76097869b3a4b978150ecd47d935c38ea5d35001e0d9a2ac1ebce60c",
+  "artifact": "testdata/compatibility/go/001-single-root-state.json",
+  "artifactSha256": "a55072183a6d2fddc33f270fad7ce5721179040faec4d916727aa257cdae93e7"
+}

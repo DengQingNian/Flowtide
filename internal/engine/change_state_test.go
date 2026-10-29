@@ -51,6 +51,47 @@ func TestChangeActivityState(t *testing.T) {
 	}
 }
 
+// TestChangeRootCancelsActivityTree 验证实例级迁移保留根作用域并清理被替换活动容器的全部后代。
+// @param t 测试上下文
+// @return 无
+func TestChangeRootCancelsActivityTree(t *testing.T) {
+	ctx := context.Background()
+	app := newTestEngine(t)
+	xml := `<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"><process id="root_change" isExecutable="true"><startEvent id="s"/><sequenceFlow id="a" sourceRef="s" targetRef="fork"/><parallelGateway id="fork"/><sequenceFlow id="b" sourceRef="fork" targetRef="left"/><sequenceFlow id="c" sourceRef="fork" targetRef="right"/><userTask id="left"/><userTask id="right"/><sequenceFlow id="d" sourceRef="left" targetRef="join"/><sequenceFlow id="e" sourceRef="right" targetRef="join"/><parallelGateway id="join"/><sequenceFlow id="f" sourceRef="join" targetRef="target"/><userTask id="target"/><sequenceFlow id="g" sourceRef="target" targetRef="end"/><endEvent id="end"/></process></definitions>`
+	deployXML(t, app, xml)
+	instance, err := app.StartProcessInstance(ctx, api.StartRequest{ProcessDefinitionKey: "root_change", Variables: []api.Variable{{Name: "root", Value: "保留"}}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	before, err := app.ListTasks(ctx, api.TaskFilter{})
+	if err != nil || len(before.Data) != 2 {
+		t.Fatalf("并行等待未建立: %+v %v", before, err)
+	}
+	if err := app.ChangeProcessInstanceState(ctx, instance.ID, []string{"target"}); err != nil {
+		t.Fatal(err)
+	}
+	after, err := app.ListTasks(ctx, api.TaskFilter{})
+	if err != nil || len(after.Data) != 1 || after.Data[0].TaskDefinitionKey != "target" {
+		t.Fatalf("迁移遗留旧分支: %+v %v", after, err)
+	}
+	root := app.state.Executions[instance.ID]
+	if root.ActivityID != "" || !root.Scope || root.Variables["root"] != "保留" {
+		t.Fatalf("根作用域被活动覆盖: %+v", root)
+	}
+	for _, old := range before.Data {
+		history, err := app.GetHistoricTaskInstance(ctx, old.ID)
+		if err != nil || history.EndTime == nil || history.DeleteReason != "change-state" {
+			t.Fatalf("取消历史未闭合: %+v %v", history, err)
+		}
+	}
+	if err := app.Complete(ctx, after.Data[0].ID, api.CompleteTaskRequest{}); err != nil {
+		t.Fatal(err)
+	}
+	if result, err := app.GetProcessInstance(ctx, instance.ID); err != nil || !result.Ended {
+		t.Fatalf("迁移后的根作用域未结束: %+v %v", result, err)
+	}
+}
+
 // TestChangeProcessInstanceState 验证实例级活动迁移。
 // @param t 测试上下文
 func TestChangeProcessInstanceState(t *testing.T) {

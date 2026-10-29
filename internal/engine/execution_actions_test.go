@@ -17,8 +17,7 @@ func TestMessageEventReceivedForExecution(t *testing.T) {
 	if err != nil {
 		t.Fatalf("启动失败: %v", err)
 	}
-	executions, _ := engine.ListExecutions(context.Background(), instance.ID)
-	executionID := executions[0].ID
+	executionID := waitingActivityExecutionID(t, engine, instance.ID)
 	if err := engine.MessageEventReceivedForExecution(context.Background(), executionID, "other", nil); !errors.Is(err, api.ErrNotFound) {
 		t.Fatalf("错误消息名应 404: %v", err)
 	}
@@ -43,8 +42,7 @@ func TestSignalEventReceivedForExecution(t *testing.T) {
 	engine := newTestEngine(t)
 	deployXML(t, engine, signalCatchXML)
 	instance, _ := engine.StartProcessInstance(context.Background(), api.StartRequest{ProcessDefinitionKey: "signalCatch"})
-	executions, _ := engine.ListExecutions(context.Background(), instance.ID)
-	executionID := executions[0].ID
+	executionID := waitingActivityExecutionID(t, engine, instance.ID)
 	if err := engine.SignalEventReceivedForExecution(context.Background(), executionID, "wrong", nil); !errors.Is(err, api.ErrNotFound) {
 		t.Fatalf("错误信号名应 404: %v", err)
 	}

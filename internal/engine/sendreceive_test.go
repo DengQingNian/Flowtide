@@ -107,8 +107,7 @@ func TestSendReceive_Errors(t *testing.T) {
 	if err != nil {
 		t.Fatalf("无事件接收任务应等待而非报错: %v", err)
 	}
-	executions, _ := receiveEngine.ListExecutions(context.Background(), instance.ID)
-	if err := receiveEngine.TriggerExecution(context.Background(), executions[0].ID, nil); err != nil {
+	if err := receiveEngine.TriggerExecution(context.Background(), waitingActivityExecutionID(t, receiveEngine, instance.ID), nil); err != nil {
 		t.Fatalf("触发无事件接收任务失败: %v", err)
 	}
 	if got, _ := receiveEngine.GetProcessInstance(context.Background(), instance.ID); !got.Ended {

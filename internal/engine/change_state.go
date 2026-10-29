@@ -31,6 +31,23 @@ func (e *Engine) ChangeActivityState(ctx context.Context, executionID string, ac
 		if instance.Suspended {
 			return nil, api.NewError("ENGINE-0661", "流程实例已挂起", api.ErrConflict)
 		}
+		if execution.ID == instance.RootExecutionID && execution.ActivityID == "" {
+			// 根作用域不承载活动；单分支迁移沿用其唯一活动子执行，禁止任意选择并发分支。
+			var activity *executionState
+			for _, child := range e.state.Executions {
+				if child.ParentID != execution.ID || child.Ended {
+					continue
+				}
+				if activity != nil {
+					return nil, api.NewError("ENGINE-0663", "实例存在多个活动分支，不能单执行迁移", api.ErrConflict)
+				}
+				activity = child
+			}
+			if activity == nil {
+				return nil, api.NewError("ENGINE-0660", "实例没有可迁移的活动执行", api.ErrConflict)
+			}
+			execution = activity
+		}
 		if len(activityIDs) == 0 {
 			return nil, api.NewError("ENGINE-0662", "目标活动不能为空", api.ErrBadRequest)
 		}
@@ -55,16 +72,18 @@ func (e *Engine) ChangeActivityState(ctx context.Context, executionID string, ac
 			return nil, api.NewError("ENGINE-0664", "目标活动不是流程节点", api.ErrBadRequest)
 		}
 
-		// 取消当前活动上的任务、边界定时器与事件订阅
-		e.cancelExecutionTasks(cc, execution.ID, "change-state")
-		e.cancelBoundaryTimers(execution.ID)
-		for id, subscription := range e.state.Subscriptions {
-			if subscription.ExecutionID == execution.ID {
-				delete(e.state.Subscriptions, id)
+		// 活动容器可能仍有后代，迁移前统一清理整棵分支，不能留下原任务继续执行。
+		for _, current := range e.descendantsOf(execution) {
+			e.cancelExecutionTasks(cc, current.ID, "change-state")
+			e.cancelBoundaryTimers(current.ID)
+			e.removeSubscriptionsForExecution(current.ID)
+			e.recordActivityEnd(cc, current.CurrentHistActivityID)
+			current.CurrentHistActivityID = ""
+			current.PendingBranches = 0
+			if current.ID != execution.ID {
+				current.Ended, current.Active, current.Waiting = true, false, false
 			}
 		}
-		e.recordActivityEnd(cc, execution.CurrentHistActivityID)
-		execution.CurrentHistActivityID = ""
 		execution.Waiting = false
 		execution.Active = true
 		execution.ActivityID = targetID

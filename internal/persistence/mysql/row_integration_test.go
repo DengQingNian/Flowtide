@@ -2,6 +2,7 @@ package mysql_test
 
 import (
 	"bytes"
+	"database/sql"
 	"fmt"
 	"reflect"
 	"strings"
@@ -100,6 +101,17 @@ func TestIntegrationMySQLRows(t *testing.T) {
 	tasks, err := second.ListTasks(ctx, api.TaskFilter{ProcessInstanceID: instance.ID})
 	if err != nil || len(tasks.Data) != 1 {
 		t.Fatalf("任务恢复失败: %+v %v", tasks, err)
+	}
+	if tasks.Data[0].ExecutionID == "" || tasks.Data[0].ExecutionID == instance.ID {
+		t.Fatalf("MySQL 恢复后任务仍绑定实例根: %+v", tasks.Data[0])
+	}
+	var rootActivity, rootParent, childBusiness sql.NullString
+	var rootScope bool
+	if err := db.QueryRowContext(ctx, "SELECT ACT_ID_, PARENT_ID_, IS_SCOPE_ FROM ACT_RU_EXECUTION WHERE ID_=?", instance.ID).Scan(&rootActivity, &rootParent, &rootScope); err != nil || rootActivity.Valid || rootParent.Valid || !rootScope {
+		t.Fatalf("MySQL 实例根标准行不符合空活动作用域: 活动=%+v 父级=%+v 作用域=%v 错误=%v", rootActivity, rootParent, rootScope, err)
+	}
+	if err := db.QueryRowContext(ctx, "SELECT BUSINESS_KEY_ FROM ACT_RU_EXECUTION WHERE ID_=?", tasks.Data[0].ExecutionID).Scan(&childBusiness); err != nil || childBusiness.Valid {
+		t.Fatalf("MySQL 子执行重复存储根业务键: %+v %v", childBusiness, err)
 	}
 	if !reflect.DeepEqual(tasks.Data[0].CandidateUsers, []string{"alice"}) {
 		t.Fatal("候选人恢复失败")

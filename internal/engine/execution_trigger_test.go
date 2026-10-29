@@ -46,8 +46,7 @@ func TestTriggerReceiveTask(t *testing.T) {
 	if len(listTasks(t, engine)) != 0 {
 		t.Fatalf("触发前不应有任务")
 	}
-	executions, _ := engine.ListExecutions(context.Background(), instance.ID)
-	executionID := executions[0].ID
+	executionID := waitingActivityExecutionID(t, engine, instance.ID)
 	if err := engine.TriggerExecution(context.Background(), executionID, []api.Variable{{Name: "assignee", Value: "bob"}}); err != nil {
 		t.Fatalf("触发失败: %v", err)
 	}
@@ -69,8 +68,7 @@ func TestTriggerIntermediateCatch(t *testing.T) {
 	if err != nil {
 		t.Fatalf("启动失败: %v", err)
 	}
-	executions, _ := engine.ListExecutions(context.Background(), instance.ID)
-	if err := engine.TriggerExecution(context.Background(), executions[0].ID, nil); err != nil {
+	if err := engine.TriggerExecution(context.Background(), waitingActivityExecutionID(t, engine, instance.ID), nil); err != nil {
 		t.Fatalf("触发失败: %v", err)
 	}
 	if tasks := listTasks(t, engine); len(tasks) != 1 {
@@ -84,8 +82,7 @@ func TestTriggerErrors(t *testing.T) {
 	engine := newTestEngine(t)
 	deployXML(t, engine, changeStateXML)
 	instance, _ := engine.StartProcessInstance(context.Background(), api.StartRequest{ProcessDefinitionKey: "changeState"})
-	executions, _ := engine.ListExecutions(context.Background(), instance.ID)
-	executionID := executions[0].ID
+	executionID := waitingActivityExecutionID(t, engine, instance.ID)
 	if err := engine.TriggerExecution(context.Background(), "missing", nil); !errors.Is(err, api.ErrNotFound) {
 		t.Fatalf("缺失执行应 404: %v", err)
 	}
@@ -94,14 +91,14 @@ func TestTriggerErrors(t *testing.T) {
 	}
 	deployXML(t, engine, messageCatchXML)
 	messageInstance, _ := engine.StartProcessInstance(context.Background(), api.StartRequest{ProcessDefinitionKey: "msgCatch"})
-	messageExecutions, _ := engine.ListExecutions(context.Background(), messageInstance.ID)
-	if err := engine.TriggerExecution(context.Background(), messageExecutions[0].ID, nil); !errors.Is(err, api.ErrBadRequest) {
+	messageExecutionID := waitingActivityExecutionID(t, engine, messageInstance.ID)
+	if err := engine.TriggerExecution(context.Background(), messageExecutionID, nil); !errors.Is(err, api.ErrBadRequest) {
 		t.Fatalf("消息捕获触发应 400: %v", err)
 	}
 	if err := engine.SuspendProcessInstance(context.Background(), messageInstance.ID); err != nil {
 		t.Fatalf("挂起失败: %v", err)
 	}
-	if err := engine.TriggerExecution(context.Background(), messageExecutions[0].ID, nil); !errors.Is(err, api.ErrConflict) {
+	if err := engine.TriggerExecution(context.Background(), messageExecutionID, nil); !errors.Is(err, api.ErrConflict) {
 		t.Fatalf("挂起实例触发应 409: %v", err)
 	}
 }

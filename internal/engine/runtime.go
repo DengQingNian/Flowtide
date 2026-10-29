@@ -72,7 +72,7 @@ func (e *Engine) startProcess(cc *commandContext, req api.StartRequest) (api.Pro
 		return api.ProcessInstance{}, api.NewError("ENGINE-0404", "流程定义不存在", api.ErrNotFound)
 	}
 	instanceID := e.newID()
-	executionID := instanceID
+	executionID := e.newID()
 	variables := variablesToMap(req.Variables)
 	transient := variablesToMap(req.TransientVariables)
 	instance := &instanceState{
@@ -83,22 +83,27 @@ func (e *Engine) startProcess(cc *commandContext, req api.StartRequest) (api.Pro
 		Name:                 req.Name,
 		TenantID:             tenantID,
 		StartTime:            cc.now,
-		RootExecutionID:      executionID,
+		RootExecutionID:      instanceID,
+	}
+	// 实例根只承载流程作用域和全局变量；活动在独立子执行上运行，与原版 Java 行拓扑一致。
+	root := &executionState{
+		ID: instanceID, ProcessInstanceID: instanceID, DefinitionID: definition.Info.ID,
+		Active: true, Scope: true, Variables: variables, Transient: transient, PendingBranches: 1,
 	}
 	execution := &executionState{
 		ID:                executionID,
 		ProcessInstanceID: instanceID,
 		DefinitionID:      definition.Info.ID,
+		ParentID:          instanceID,
 		ActivityID:        startEvent.ID,
 		Active:            true,
-		Scope:             true,
-		Variables:         variables,
-		Transient:         transient,
+		Variables:         make(map[string]any),
 	}
 	e.state.Instances[instanceID] = instance
+	e.state.Executions[instanceID] = root
 	e.state.Executions[executionID] = execution
 	for name, value := range variables {
-		e.recordHistoricVariable(execution, name, value)
+		e.recordHistoricVariable(root, name, value)
 	}
 	// 记录发起人参与者链接
 	if req.UserID != "" {
@@ -117,7 +122,7 @@ func (e *Engine) startProcess(cc *commandContext, req api.StartRequest) (api.Pro
 	if err := e.invokeProcessExecutionListeners(cc, instance, "start"); err != nil {
 		return api.ProcessInstance{}, err
 	}
-	e.scheduleEventSubProcesses(cc, execution, process.Elements, process.Order, definition)
+	e.scheduleEventSubProcesses(cc, root, process.Elements, process.Order, definition)
 
 	cc.agenda.schedule(&continueOperation{executionID: executionID, activityID: startEvent.ID})
 	if err := cc.agenda.run(cc); err != nil {
@@ -706,13 +711,8 @@ func (e *Engine) endExecution(cc *commandContext, execution *executionState, ter
 			parent.PendingBranches--
 			if parent.PendingBranches == 0 {
 				parent.Active = true
-				if parent.ScopeRoot {
-					e.endExecution(cc, parent, false)
-					return
-				}
-				if parent.ID == instance.RootExecutionID {
-					e.endProcessInstance(cc, instance)
-				}
+				// 无剩余分支的容器继续向上结束，不能只处理实例根而遗留活动容器。
+				e.endExecution(cc, parent, false)
 			}
 		}
 	}

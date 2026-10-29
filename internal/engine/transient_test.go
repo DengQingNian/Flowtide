@@ -74,8 +74,7 @@ func TestTransientVariablesOnTrigger(t *testing.T) {
 	if err != nil {
 		t.Fatalf("启动失败: %v", err)
 	}
-	executions, _ := engine.ListExecutions(context.Background(), instance.ID)
-	if err := engine.TriggerExecutionWithTransient(context.Background(), executions[0].ID, nil,
+	if err := engine.TriggerExecutionWithTransient(context.Background(), waitingActivityExecutionID(t, engine, instance.ID), nil,
 		[]api.Variable{{Name: "assignee", Value: "bob"}}); err != nil {
 		t.Fatalf("触发失败: %v", err)
 	}
