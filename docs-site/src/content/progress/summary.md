@@ -20,14 +20,14 @@ tags: [进度, 重构, 基线]
 
 | 指标 | 数值 | 说明 |
 | --- | ---: | --- |
-| 验收代码提交 | 587468e | 当前分支 <code>master</code>，实现提交共 185 次 |
-| Go 源文件 | 424 | 含测试与内部包 |
-| Go 代码行 | 86,670 | 不含文档站与生成物 |
-| 测试/基准函数 | 1009 | 以 <code>*_test.go</code> 中声明统计 |
-| 全仓语句覆盖率 | 91.03% | <code>coverage.out</code> 采样，16,472 / 18,096；核心库门禁 92.15% |
+| 验收代码提交 | 2a33a4c | 当前分支 <code>master</code>，实现提交共 187 次 |
+| Go 源文件 | 429 | 含测试与内部包 |
+| Go 代码行 | 87,270 | 不含文档站与生成物 |
+| 测试/基准函数 | 1014 | 以 <code>*_test.go</code> 中声明统计 |
+| 全仓语句覆盖率 | 91.01% | <code>coverage.out</code> 采样，16,563 / 18,199；核心库门禁 92.12% |
 | REST 方法端点 | 242 | 官方 184 + 扩展 58 |
 | ACT 表 | 41 | Flowable 8.1.0.3 双库 DDL |
-| 中文文档 | 89 篇 | 设计、实施与审计 |
+| 中文文档 | 90 篇 | 设计、实施与审计 |
 | 可执行文件 | 2 | <code>flowable-server</code>、<code>flowable-migrate</code> |
 
 > 这些数字由仓库脚本生成，用于描述当前提交，不作为性能或生产容量承诺。
@@ -42,7 +42,7 @@ tags: [进度, 重构, 基线]
 | M3 | 用户任务、身份、表单、监听器 | 完成 | [任务与身份](/docs/progress/kernel) |
 | M4 | 作业、定时器、异步续跑、死信 | 完成 | [持久化与作业](/docs/progress/persistence) |
 | M5 | 历史、审计、变量明细 | 实现与回归验收完成 | [质量门禁](/docs/progress/quality) |
-| M6 | 官方 REST 方法级路由补齐 | 方法安全、6 个异步方法原版 HTTP 场景通过；全量 REST 待验收 | [REST 与安全](/docs/progress/rest-security) |
+| M6 | 官方 REST 方法级路由补齐 | 方法安全、14 个方法共 40 个原版 HTTP 场景通过；全量 REST 待验收 | [REST 与安全](/docs/progress/rest-security) |
 | M7 | 真实数据库、行仓储、迁移工具 | 双库单执行者及迁移工具闭环验收通过 | [迁移工具链](/docs/progress/migration) |
 | M8 | 集群、租约、故障转移、生产容量 | 未开始 | [差距与下一步](/docs/progress/gaps) |
 | M9 | 生产切换、反向转换与 Java 增量接管 | 待生产验收 | [停写与回退](/docs/migration/cutover) |
