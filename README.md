@@ -1,5 +1,9 @@
 # Flowtide
 
+<p align="center">
+  <img src="docs-site/public/tide-icon.png" width="160" height="160" alt="Flowtide 项目图标" />
+</p>
+
 > 用纯 Go 重构的 BPMN 2.0 工作流引擎，兼容 Flowable 8.x 数据模型与流程 REST 契约。
 
 [![Go](https://img.shields.io/badge/Go-1.27%2B-00ADD8?logo=go&logoColor=white)](go.mod)
