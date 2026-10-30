@@ -144,6 +144,30 @@ func TestREST_TenantFilterPushdown(t *testing.T) {
 	if page.Total != 0 {
 		t.Fatalf("GET t2 历史实例查询应无结果: %+v", page)
 	}
+
+	// 历史活动查询按请求体 tenantId 过滤，命中默认租户与陌生租户两侧
+	response = postQuery(t, server.URL, "/service/query/historic-activity-instances", map[string]any{"tenantId": "t1"}, "")
+	page = decodeQueryPage[map[string]any](t, response)
+	if response.StatusCode != http.StatusOK || page.Total != 6 {
+		t.Fatalf("t1 历史活动查询失败: %d %+v", response.StatusCode, page)
+	}
+	response = postQuery(t, server.URL, "/service/query/historic-activity-instances", map[string]any{"tenantId": "t2"}, "")
+	page = decodeQueryPage[map[string]any](t, response)
+	if page.Total != 0 {
+		t.Fatalf("t2 历史活动查询应无结果: %+v", page)
+	}
+
+	// 历史变量查询按请求租户过滤，默认租户可见而陌生租户为空
+	response = postQuery(t, server.URL, "/service/query/historic-variable-instances", map[string]any{}, "t1")
+	page = decodeQueryPage[map[string]any](t, response)
+	if response.StatusCode != http.StatusOK || page.Total != 2 {
+		t.Fatalf("t1 历史变量查询失败: %d %+v", response.StatusCode, page)
+	}
+	response = postQuery(t, server.URL, "/service/query/historic-variable-instances", map[string]any{}, "t2")
+	page = decodeQueryPage[map[string]any](t, response)
+	if page.Total != 0 {
+		t.Fatalf("t2 历史变量查询应无结果: %+v", page)
+	}
 }
 
 // TestREST_TenantFilterMultiTenant 验证无默认租户引擎下跨租户数据的 tenantId 过滤互不串扰。
@@ -227,4 +251,81 @@ func TestREST_TenantFilterMultiTenant(t *testing.T) {
 	if page.Total != 1 {
 		t.Fatalf("GET t1 历史实例查询失败: %+v", page)
 	}
+
+	// 历史活动查询按请求租户各自命中，跨租户条件在可见范围内为空
+	response = postQuery(t, server.URL, "/service/query/historic-activity-instances", map[string]any{"tenantId": "t1"}, "t1")
+	page = decodeQueryPage[map[string]any](t, response)
+	if response.StatusCode != http.StatusOK || page.Total != 3 {
+		t.Fatalf("t1 历史活动查询失败: %d %+v", response.StatusCode, page)
+	}
+	for _, item := range page.Data {
+		if item["processInstanceId"] != firstID {
+			t.Fatalf("t1 历史活动串入其他租户: %+v", item)
+		}
+	}
+	response = postQuery(t, server.URL, "/service/query/historic-activity-instances", map[string]any{"tenantId": "t2"}, "t2")
+	page = decodeQueryPage[map[string]any](t, response)
+	if page.Total != 3 {
+		t.Fatalf("t2 历史活动查询失败: %+v", page)
+	}
+	response = postQuery(t, server.URL, "/service/query/historic-activity-instances", map[string]any{"tenantId": "t2"}, "t1")
+	page = decodeQueryPage[map[string]any](t, response)
+	if page.Total != 0 {
+		t.Fatalf("t1 请求不应看到 t2 历史活动: %+v", page)
+	}
+
+	// 历史变量查询在租户作用域下回退内存过滤仍保持隔离
+	response = postQuery(t, server.URL, "/service/query/historic-variable-instances", map[string]any{}, "t1")
+	page = decodeQueryPage[map[string]any](t, response)
+	if page.Total != 1 || page.Data[0]["processInstanceId"] != firstID {
+		t.Fatalf("t1 历史变量查询失败: %+v", page)
+	}
+	response = postQuery(t, server.URL, "/service/query/historic-variable-instances", map[string]any{}, "t2")
+	page = decodeQueryPage[map[string]any](t, response)
+	if page.Total != 1 || page.Data[0]["processInstanceId"] != secondID {
+		t.Fatalf("t2 历史变量查询失败: %+v", page)
+	}
+
+	// GET 历史活动与历史变量同样按请求租户隔离
+	response = getHistoricWithTenant(t, server.URL+"/service/history/historic-activity-instances?processInstanceId="+secondID, "t2")
+	page = decodeQueryPage[map[string]any](t, response)
+	if page.Total != 3 {
+		t.Fatalf("GET t2 历史活动查询失败: %+v", page)
+	}
+	response = getHistoricWithTenant(t, server.URL+"/service/history/historic-activity-instances?processInstanceId="+secondID, "t1")
+	page = decodeQueryPage[map[string]any](t, response)
+	if page.Total != 0 {
+		t.Fatalf("GET t1 不应看到 t2 历史活动: %+v", page)
+	}
+	response = getHistoricWithTenant(t, server.URL+"/service/history/historic-variable-instances?processInstanceId="+firstID, "t1")
+	page = decodeQueryPage[map[string]any](t, response)
+	if page.Total != 1 {
+		t.Fatalf("GET t1 历史变量查询失败: %+v", page)
+	}
+	response = getHistoricWithTenant(t, server.URL+"/service/history/historic-variable-instances?processInstanceId="+firstID, "t2")
+	page = decodeQueryPage[map[string]any](t, response)
+	if page.Total != 0 {
+		t.Fatalf("GET t2 不应看到 t1 历史变量: %+v", page)
+	}
+}
+
+// getHistoricWithTenant 带请求租户发起历史查询 GET 请求。
+// @param t 测试上下文
+// @param target 完整请求地址
+// @param tenantID 请求租户
+// @return 响应
+func getHistoricWithTenant(t *testing.T, target, tenantID string) *http.Response {
+	t.Helper()
+	request, err := http.NewRequest(http.MethodGet, target, nil)
+	if err != nil {
+		t.Fatalf("构造历史查询请求失败: %v", err)
+	}
+	if tenantID != "" {
+		request.Header.Set("X-Tenant-Id", tenantID)
+	}
+	response, err := http.DefaultClient.Do(request)
+	if err != nil {
+		t.Fatalf("历史查询请求失败: %v", err)
+	}
+	return response
 }

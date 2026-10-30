@@ -2595,10 +2595,19 @@ func (s *Server) handleDeleteHistoricTaskLog(w http.ResponseWriter, r *http.Requ
 // @param w 响应
 // @param r 请求
 func (s *Server) handleHistoricActivities(w http.ResponseWriter, r *http.Request) {
-	items, err := s.engine.HistoryService().ListHistoricActivityInstances(r.Context(), r.URL.Query().Get("processInstanceId"))
-	if err != nil {
-		writeError(w, err)
-		return
+	items := make([]api.HistoricActivityInstance, 0)
+	// 引擎单页最多一千条，分页前必须读完，不能静默截断后续活动。
+	for start := 0; ; start += 1000 {
+		page, err := s.engine.HistoryService().QueryHistoricActivityInstances(r.Context(), api.HistoricActivityInstanceFilter{Start: start, Size: 1000,
+			ProcessInstanceID: r.URL.Query().Get("processInstanceId")})
+		if err != nil {
+			writeError(w, err)
+			return
+		}
+		items = append(items, page.Data...)
+		if len(page.Data) == 0 || int64(start+len(page.Data)) >= page.Total {
+			break
+		}
 	}
 	start, size := pageParams(r)
 	writeHistoricPage(w, r, historicActivityMaps(r, items), start, size, "startTime")
@@ -2729,10 +2738,19 @@ func (s *Server) handleHistoricIdentityLinks(w http.ResponseWriter, r *http.Requ
 // @param w 响应
 // @param r 请求
 func (s *Server) handleHistoricVariables(w http.ResponseWriter, r *http.Request) {
-	items, err := s.engine.HistoryService().ListHistoricVariableInstances(r.Context(), r.URL.Query().Get("processInstanceId"))
-	if err != nil {
-		writeError(w, err)
-		return
+	items := make([]api.HistoricVariableInstance, 0)
+	// 引擎单页最多一千条，分页前必须读完，不能静默截断后续变量。
+	for start := 0; ; start += 1000 {
+		page, err := s.engine.HistoryService().QueryHistoricVariableInstances(r.Context(), api.HistoricVariableInstanceFilter{Start: start, Size: 1000,
+			ProcessInstanceID: r.URL.Query().Get("processInstanceId")})
+		if err != nil {
+			writeError(w, err)
+			return
+		}
+		items = append(items, page.Data...)
+		if len(page.Data) == 0 || int64(start+len(page.Data)) >= page.Total {
+			break
+		}
 	}
 	start, size := pageParams(r)
 	writeHistoricPage(w, r, historicVariableMaps(r, items), start, size, "variableName")

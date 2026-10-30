@@ -1346,10 +1346,49 @@ func (s *Server) handleQueryHistoricActivities(w http.ResponseWriter, r *http.Re
 		writeError(w, err)
 		return
 	}
-	items, err := s.engine.HistoryService().ListHistoricActivityInstances(r.Context(), body.str("processInstanceId"))
+	finished, err := body.boolField("finished")
 	if err != nil {
 		writeError(w, err)
 		return
+	}
+	startedAfter, err := body.timeField("startedAfter")
+	if err != nil {
+		writeError(w, err)
+		return
+	}
+	startedBefore, err := body.timeField("startedBefore")
+	if err != nil {
+		writeError(w, err)
+		return
+	}
+	endedAfter, err := body.timeField("endedAfter")
+	if err != nil {
+		writeError(w, err)
+		return
+	}
+	endedBefore, err := body.timeField("endedBefore")
+	if err != nil {
+		writeError(w, err)
+		return
+	}
+	items := make([]api.HistoricActivityInstance, 0)
+	// 引擎单页最多一千条，过滤和总量计算前必须读完，不能静默截断后续匹配项。
+	for start := 0; ; start += 1000 {
+		page, err := s.engine.HistoryService().QueryHistoricActivityInstances(r.Context(), api.HistoricActivityInstanceFilter{Start: start, Size: 1000,
+			ID: body.str("id"), ProcessInstanceID: body.str("processInstanceId"), ProcessDefinitionKey: body.str("processDefinitionKey"),
+			ActivityID: body.str("activityId"), ActivityName: firstNonEmpty(body.str("activityName"), body.str("name")),
+			ActivityType: body.str("activityType"),
+			// 仅下推显式 tenantId 条件，请求租户仍由内存复核收敛。
+			TenantID: body.str("tenantId"), StartedAfter: startedAfter, StartedBefore: startedBefore,
+			FinishedAfter: endedAfter, FinishedBefore: endedBefore, Finished: finished})
+		if err != nil {
+			writeError(w, err)
+			return
+		}
+		items = append(items, page.Data...)
+		if len(page.Data) == 0 || int64(start+len(page.Data)) >= page.Total {
+			break
+		}
 	}
 	items, err = filterQueryHistoricActivities(items, body, requestTenant(r), lookup)
 	if err != nil {

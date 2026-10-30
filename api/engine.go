@@ -754,6 +754,18 @@ type HistoryService interface {
 	// @return 分页历史任务
 	// @return 查询错误
 	QueryHistoricTaskInstances(ctx context.Context, filter HistoricTaskInstanceFilter) (Page[HistoricTaskInstance], error)
+	// QueryHistoricActivityInstances 按条件分页查询历史活动；行模式下等值与时间条件可下推 SQL。
+	// @param ctx 上下文
+	// @param filter 查询条件
+	// @return 分页历史活动
+	// @return 查询错误
+	QueryHistoricActivityInstances(ctx context.Context, filter HistoricActivityInstanceFilter) (Page[HistoricActivityInstance], error)
+	// QueryHistoricVariableInstances 按条件分页查询历史变量；行模式下等值条件可下推 SQL。
+	// @param ctx 上下文
+	// @param filter 查询条件
+	// @return 分页历史变量
+	// @return 查询错误
+	QueryHistoricVariableInstances(ctx context.Context, filter HistoricVariableInstanceFilter) (Page[HistoricVariableInstance], error)
 	// ListHistoricActivityInstances 返回指定实例的历史活动。
 	// @param ctx 上下文
 	// @param processInstanceID 实例 ID

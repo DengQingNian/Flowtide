@@ -38,11 +38,13 @@ func TestIntegrationMySQLInstanceQueryPushdown(t *testing.T) {
 	if _, err := app.Deploy(ctx, api.DeploymentRequest{Name: "instance-query", Resources: map[string][]byte{"instance-query.bpmn20.xml": []byte(xml)}}); err != nil {
 		t.Fatal(err)
 	}
-	first, err := app.StartProcessInstance(ctx, api.StartRequest{ProcessDefinitionKey: "instance_push", BusinessKey: "bk-a"})
+	first, err := app.StartProcessInstance(ctx, api.StartRequest{ProcessDefinitionKey: "instance_push", BusinessKey: "bk-a",
+		Variables: []api.Variable{{Name: "amount", Value: 100}}})
 	if err != nil {
 		t.Fatal(err)
 	}
-	second, err := app.StartProcessInstance(ctx, api.StartRequest{ProcessDefinitionKey: "instance_push", BusinessKey: "bk-b"})
+	second, err := app.StartProcessInstance(ctx, api.StartRequest{ProcessDefinitionKey: "instance_push", BusinessKey: "bk-b",
+		Variables: []api.Variable{{Name: "amount", Value: 200}}})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -128,6 +130,32 @@ func TestIntegrationMySQLInstanceQueryPushdown(t *testing.T) {
 	finishedTasks, err = app.QueryHistoricTaskInstances(ctx, api.HistoricTaskInstanceFilter{Name: "Approve", Size: 10})
 	if err != nil || finishedTasks.Total != 2 {
 		t.Fatalf("历史任务名称过滤错误: %v %+v", err, finishedTasks)
+	}
+	// 历史活动下推：每个实例五个活动（开始、顺序流、用户任务、顺序流、结束）
+	finishedActivities, err := app.QueryHistoricActivityInstances(ctx, api.HistoricActivityInstanceFilter{Finished: &finished, Size: 20})
+	if err != nil || finishedActivities.Total != 10 || len(finishedActivities.Data) != 10 {
+		t.Fatalf("历史活动结束过滤错误: %v %+v", err, finishedActivities)
+	}
+	finishedActivities, err = app.QueryHistoricActivityInstances(ctx, api.HistoricActivityInstanceFilter{ActivityID: "approve", Size: 20})
+	if err != nil || finishedActivities.Total != 2 {
+		t.Fatalf("历史活动 ID 过滤错误: %v %+v", err, finishedActivities)
+	}
+	finishedActivities, err = app.QueryHistoricActivityInstances(ctx, api.HistoricActivityInstanceFilter{ActivityType: "userTask", ProcessDefinitionKey: "instance_push", Size: 20})
+	if err != nil || finishedActivities.Total != 2 {
+		t.Fatalf("历史活动类型与定义过滤错误: %v %+v", err, finishedActivities)
+	}
+	finishedActivities, err = app.QueryHistoricActivityInstances(ctx, api.HistoricActivityInstanceFilter{ProcessInstanceID: first.ID, StartedBefore: &before, Size: 20})
+	if err != nil || finishedActivities.Total != 5 {
+		t.Fatalf("历史活动实例与时间过滤错误: %v %+v", err, finishedActivities)
+	}
+	// 历史变量下推：启动写入的流程变量在实例结束后进入 ACT_HI_VARINST
+	historicVariables, err := app.QueryHistoricVariableInstances(ctx, api.HistoricVariableInstanceFilter{Name: "amount", VariableType: "long", Size: 10})
+	if err != nil || historicVariables.Total != 2 || len(historicVariables.Data) != 2 {
+		t.Fatalf("历史变量名称与类型过滤错误: %v %+v", err, historicVariables)
+	}
+	historicVariables, err = app.QueryHistoricVariableInstances(ctx, api.HistoricVariableInstanceFilter{ProcessInstanceID: first.ID, Size: 10})
+	if err != nil || historicVariables.Total != 1 || len(historicVariables.Data) != 1 || historicVariables.Data[0].ProcessInstanceID != first.ID {
+		t.Fatalf("历史变量实例过滤错误: %v %+v", err, historicVariables)
 	}
 	if err := app.Close(ctx); err != nil {
 		t.Fatal(err)

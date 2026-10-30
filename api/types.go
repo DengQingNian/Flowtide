@@ -476,6 +476,40 @@ type HistoricTaskLog struct {
 	TenantID            string    `json:"tenantId,omitempty"`            // 租户
 }
 
+// HistoricActivityInstanceFilter 是历史活动的查询条件。
+// 仅包含可下推 SQL 的字段；模糊匹配等仍由调用方在内存过滤。
+type HistoricActivityInstanceFilter struct {
+	ID                   string     // 历史活动 ID
+	ProcessInstanceID    string     // 流程实例 ID
+	ProcessDefinitionID  string     // 流程定义 ID
+	ProcessDefinitionKey string     // 流程定义 Key
+	ActivityID           string     // 活动 ID
+	ActivityName         string     // 活动名称
+	ActivityType         string     // 活动类型
+	Assignee             string     // 处理人
+	TenantID             string     // 租户，空表示不过滤
+	StartedAfter         *time.Time // 开始时间下界，含边界
+	StartedBefore        *time.Time // 开始时间上界，含边界
+	FinishedAfter        *time.Time // 结束时间下界，含边界
+	FinishedBefore       *time.Time // 结束时间上界，含边界
+	Finished             *bool      // 是否已结束，空表示不过滤
+	Start                int        // 偏移量
+	Size                 int        // 每页数量
+}
+
+// HistoricVariableInstanceFilter 是历史变量的查询条件。
+// 仅包含可下推 SQL 的字段；模糊匹配与租户等仍由调用方在内存过滤。
+type HistoricVariableInstanceFilter struct {
+	ID                string // 历史/变量 ID
+	Name              string // 变量名
+	ProcessInstanceID string // 流程实例 ID
+	ExecutionID       string // 执行 ID
+	TaskID            string // 任务 ID
+	VariableType      string // 变量类型
+	Start             int    // 偏移量
+	Size              int    // 每页数量
+}
+
 // HistoricDetail 是历史变量明细。
 type HistoricDetail struct {
 	ID                string    `json:"id"`                          // 明细 ID

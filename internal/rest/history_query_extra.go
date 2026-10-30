@@ -58,10 +58,21 @@ func (s *Server) handleQueryHistoricVariables(w http.ResponseWriter, r *http.Req
 		writeError(w, err)
 		return
 	}
-	items, err := s.engine.HistoryService().ListHistoricVariableInstances(r.Context(), body.str("processInstanceId"))
-	if err != nil {
-		writeError(w, err)
-		return
+	items := make([]api.HistoricVariableInstance, 0)
+	// 引擎单页最多一千条，过滤和总量计算前必须读完，不能静默截断后续匹配项。
+	for start := 0; ; start += 1000 {
+		page, err := s.engine.HistoryService().QueryHistoricVariableInstances(r.Context(), api.HistoricVariableInstanceFilter{Start: start, Size: 1000,
+			ProcessInstanceID: body.str("processInstanceId"), ExecutionID: body.str("executionId"), TaskID: body.str("taskId"),
+			Name:         firstNonEmpty(body.str("variableName"), body.str("name")),
+			VariableType: firstNonEmpty(body.str("variableType"), body.str("type"))})
+		if err != nil {
+			writeError(w, err)
+			return
+		}
+		items = append(items, page.Data...)
+		if len(page.Data) == 0 || int64(start+len(page.Data)) >= page.Total {
+			break
+		}
 	}
 	filtered := make([]api.HistoricVariableInstance, 0, len(items))
 	for _, item := range items {
