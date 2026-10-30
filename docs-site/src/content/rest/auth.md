@@ -23,7 +23,7 @@ tags: [REST, 认证, JWT, mTLS, 租户]
 ## Basic
 
 ~~~bash
-./bin/flowable-server -addr :8080 -basic-auth alice:secret
+./bin/flowtide-server -addr :8080 -basic-auth alice:secret
 curl -u alice:secret http://localhost:8080/service/management/engine
 ~~~
 
@@ -46,7 +46,7 @@ curl -u alice:secret http://localhost:8080/service/management/engine
 ## mTLS
 
 ~~~bash
-./bin/flowable-server -addr :8443 \
+./bin/flowtide-server -addr :8443 \
   -tls-cert server.crt -tls-key server.key \
   -tls-client-ca client-ca.pem \
   -tls-client-auth require-verify \

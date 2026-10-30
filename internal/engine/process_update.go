@@ -4,8 +4,8 @@ import (
 	"context"
 	"time"
 
-	"github.com/flowable-go/flowable/api"
-	"github.com/flowable-go/flowable/bpmn/model"
+	"github.com/DengQingNian/Flowtide/api"
+	"github.com/DengQingNian/Flowtide/bpmn/model"
 )
 
 // UpdateProcessInstance 在同一命令事务内修改实例元数据、签收身份链接及历史。

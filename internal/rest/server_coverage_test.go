@@ -10,8 +10,8 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/flowable-go/flowable/api"
-	"github.com/flowable-go/flowable/internal/engine"
+	"github.com/DengQingNian/Flowtide/api"
+	"github.com/DengQingNian/Flowtide/internal/engine"
 )
 
 // newClosedServer 创建已关闭引擎的服务。

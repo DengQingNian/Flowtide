@@ -88,7 +88,7 @@ func TestFileStoreErrors(t *testing.T) {
 	// Unix 依赖只读的 /proc 目录触发临时文件创建失败；Windows 会把根路径解析为
 	// 当前盘符并真实创建目录，父路径为文件的断言已覆盖同一错误分支。
 	if runtime.GOOS != "windows" {
-		if err := NewFile("/proc/flowable-go-state-test.json").Save(context.Background(), []byte("x")); err == nil {
+		if err := NewFile("/proc/flowtide-state-test.json").Save(context.Background(), []byte("x")); err == nil {
 			t.Fatalf("不可写目录保存应失败")
 		}
 	}

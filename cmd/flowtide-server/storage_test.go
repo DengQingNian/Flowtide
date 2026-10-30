@@ -105,7 +105,7 @@ func TestNewRowStorage(t *testing.T) {
 		t.Fatal(err)
 	}
 	mock.ExpectQuery("SELECT GET_LOCK").WithArgs(sqlmock.AnyArg()).WillReturnRows(sqlmock.NewRows([]string{"locked"}).AddRow(1))
-	mock.ExpectQuery("SELECT COUNT").WithArgs("flowable-go-state").WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(0))
+	mock.ExpectQuery("SELECT COUNT").WithArgs("flowtide-state").WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(0))
 	setup, err := newRowStorage(ctx, db, "测试库")
 	if err != nil {
 		t.Fatal(err)
@@ -127,7 +127,7 @@ func TestNewRowStorage(t *testing.T) {
 		t.Fatal(err)
 	}
 	snapshotMock.ExpectQuery("SELECT GET_LOCK").WithArgs(sqlmock.AnyArg()).WillReturnRows(sqlmock.NewRows([]string{"locked"}).AddRow(1))
-	snapshotMock.ExpectQuery("SELECT COUNT").WithArgs("flowable-go-state").WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(1))
+	snapshotMock.ExpectQuery("SELECT COUNT").WithArgs("flowtide-state").WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(1))
 	snapshotMock.ExpectQuery("SELECT RELEASE_LOCK").WithArgs(sqlmock.AnyArg()).WillReturnRows(sqlmock.NewRows([]string{"released"}).AddRow(1))
 	snapshotMock.ExpectClose() // 持锁连接
 	snapshotMock.ExpectClose() // 查询快照标记使用的连接池连接

@@ -7,10 +7,10 @@ import (
 	"encoding/hex"
 	"testing"
 
-	"github.com/flowable-go/flowable/api"
-	"github.com/flowable-go/flowable/internal/engine"
-	statestore "github.com/flowable-go/flowable/internal/persistence/state"
-	"github.com/flowable-go/flowable/internal/tenant"
+	"github.com/DengQingNian/Flowtide/api"
+	"github.com/DengQingNian/Flowtide/internal/engine"
+	statestore "github.com/DengQingNian/Flowtide/internal/persistence/state"
+	"github.com/DengQingNian/Flowtide/internal/tenant"
 )
 
 // verifyStateFixture 以实际引擎生成包含部署、定义、运行实例、任务与历史的离线状态。

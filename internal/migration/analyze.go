@@ -5,9 +5,9 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/flowable-go/flowable/bpmn/model"
-	"github.com/flowable-go/flowable/internal/persistence/flowable"
-	"github.com/flowable-go/flowable/internal/persistence/schema"
+	"github.com/DengQingNian/Flowtide/bpmn/model"
+	"github.com/DengQingNian/Flowtide/internal/persistence/flowable"
+	"github.com/DengQingNian/Flowtide/internal/persistence/schema"
 )
 
 // Options 指定预检范围，空指针表示全部租户，空字符串表示默认租户。

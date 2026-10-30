@@ -6,8 +6,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/flowable-go/flowable/api"
-	flowablerow "github.com/flowable-go/flowable/internal/persistence/flowable"
+	"github.com/DengQingNian/Flowtide/api"
+	flowablerow "github.com/DengQingNian/Flowtide/internal/persistence/flowable"
 )
 
 // TestAuditRowTaskRecovery 验证候选人、委派状态和完成监听器在恢复后仍能使用。

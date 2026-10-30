@@ -3,8 +3,8 @@ package diagram
 import (
 	"strings"
 
-	"github.com/flowable-go/flowable/bpmn/model"
-	bpmnxml "github.com/flowable-go/flowable/internal/bpmn/xml"
+	"github.com/DengQingNian/Flowtide/bpmn/model"
+	bpmnxml "github.com/DengQingNian/Flowtide/internal/bpmn/xml"
 )
 
 // Pool 表示 BPMN 中的泳池（Participant）。

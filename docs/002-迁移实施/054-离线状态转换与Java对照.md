@@ -6,7 +6,7 @@
 
 053 的只读预检只能说明来源是否存在已知阻断，不能生成 Go 可读取的状态，也没有真实 Java 引擎写入的样本证明恢复后的业务行为。本阶段新增：
 
-- `flowable-migrate -convert`：预检通过后把源行恢复到隔离内存引擎，序列化为带显式变量类型的 Go 状态文件；只创建新文件，不覆盖已有状态。
+- `flowtide-migrate -convert`：预检通过后把源行恢复到隔离内存引擎，序列化为带显式变量类型的 Go 状态文件；只创建新文件，不覆盖已有状态。
 - Java H2 黄金样本：从固定提交编译真实 Flowable 8.1.0-SNAPSHOT，以 audit 历史级别运行 `start → approve → review → end`，保存两个任务断点和完成后的原始 `ACT_*` 行及 Java 公共服务结果。
 - Java 列保留：`ACT_HI_PROCINST`、`ACT_HI_TASKINST`、`ACT_HI_ACTINST`、`ACT_HI_COMMENT` 的实际业务列进入 Go 状态，并在再次写出时恢复。
 - 类型保真：状态格式版本 2 使用侧表保存整数、浮点、时间、字节、JSON 数字和嵌套容器，避免经过 `float64` 丢失大整数精度。
@@ -18,16 +18,16 @@
 make build
 
 # 先做只读预检；存在阻断时不会生成状态文件。
-./bin/flowable-migrate -preflight -dialect mysql -env .env -out preflight.json
+./bin/flowtide-migrate -preflight -dialect mysql -env .env -out preflight.json
 
 # 预检通过后准备离线状态；-out 必须是当前不存在的路径。
-./bin/flowable-migrate -convert -dialect mysql -env .env -out prepared-state.json
+./bin/flowtide-migrate -convert -dialect mysql -env .env -out prepared-state.json
 
 # 服务端使用同一状态文件启动；切换前必须停止 Java 执行者与后台作业。
-./bin/flowable-server -state prepared-state.json
+./bin/flowtide-server -state prepared-state.json
 
 # PostgreSQL 源库沿用 FLOWABLE_POSTGRES_DSN。
-./bin/flowable-migrate -convert -dialect postgres -timeout 10m -out prepared-postgres.json
+./bin/flowtide-migrate -convert -dialect postgres -timeout 10m -out prepared-postgres.json
 ```
 
 `-convert` 必须与 `-preflight`、`-apply`、`-tables` 互斥，`-out` 必填；`-tenant` 和 `-timeout` 适用于预检与转换。报告写到标准输出，状态只写入 `-out` 指定的新文件，权限为 `0600`。已有文件、悬空链接、配置文件和目录均拒绝；发布使用同目录硬链接，避免检查与创建之间的覆盖竞争。

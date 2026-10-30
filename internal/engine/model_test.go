@@ -5,8 +5,8 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/flowable-go/flowable/api"
-	"github.com/flowable-go/flowable/internal/tenant"
+	"github.com/DengQingNian/Flowtide/api"
+	"github.com/DengQingNian/Flowtide/internal/tenant"
 )
 
 // TestModelLifecycle 验证模型创建、更新、源码与删除。

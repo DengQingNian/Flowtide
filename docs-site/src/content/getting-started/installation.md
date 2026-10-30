@@ -1,6 +1,6 @@
 ---
 title: 安装
-description: 从源码构建 flowable-server 与 flowable-migrate，验证二进制与健康检查，并了解可选数据库依赖。
+description: 从源码构建 flowtide-server 与 flowtide-migrate，验证二进制与健康检查，并了解可选数据库依赖。
 order: 10
 section: getting-started
 status: verified
@@ -22,8 +22,8 @@ tags: [安装, 构建, 快速开始]
 ## 从源码构建
 
 ~~~bash
-git clone https://git.dengqn.com/dqn/flowable-engine-go.git
-cd flowable-engine-go
+git clone https://github.com/DengQingNian/Flowtide.git
+cd Flowtide
 HOME=/root make build
 ls -lh bin/
 ~~~
@@ -32,15 +32,15 @@ ls -lh bin/
 
 | 文件 | 用途 |
 | --- | --- |
-| <code>bin/flowable-server</code> | REST 服务与内嵌引擎 |
-| <code>bin/flowable-migrate</code> | Schema 初始化、预检、转换、静默检查与状态校验 |
+| <code>bin/flowtide-server</code> | REST 服务与内嵌引擎 |
+| <code>bin/flowtide-migrate</code> | Schema 初始化、预检、转换、静默检查与状态校验 |
 
 <code>make build</code> 使用 <code>CGO_ENABLED=0</code>，不依赖 C 工具链。
 
 ## 启动
 
 ~~~bash
-./bin/flowable-server \
+./bin/flowtide-server \
   -addr :8080 \
   -history audit \
   -state ./data/engine.json \
@@ -58,7 +58,7 @@ curl -sS http://localhost:8080/healthz
 curl -sS http://localhost:8080/readyz
 # 就绪状态
 
-./bin/flowable-server -h
+./bin/flowtide-server -h
 ~~~
 
 <code>/healthz</code> 只表示进程存活；<code>/readyz</code> 用于检查引擎是否可接受请求。标准二进制还提供 <code>/metrics</code>，即使未启用 HTTP 指标也会输出引擎 gauge。
@@ -67,13 +67,13 @@ curl -sS http://localhost:8080/readyz
 
 ~~~bash
 # 建表与 Schema 校验；重复执行会校验版本与完成标记
-go run ./cmd/flowable-migrate -dialect mysql -apply -env .env
+go run ./cmd/flowtide-migrate -dialect mysql -apply -env .env
 
 # SQL 快照模式
-go run ./cmd/flowable-server -storage mysql -env .env
+go run ./cmd/flowtide-server -storage mysql -env .env
 
 # 行仓储模式（与快照互斥，单执行者独占）
-go run ./cmd/flowable-server -storage mysql-rows -env .env
+go run ./cmd/flowtide-server -storage mysql-rows -env .env
 ~~~
 
 <code>.env</code> 中的开发连接参数见仓库示例文件。数据库模式要求先完成 Schema 初始化；服务端启动时只校验，不执行 DDL。

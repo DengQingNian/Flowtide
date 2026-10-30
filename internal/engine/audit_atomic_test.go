@@ -6,9 +6,9 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/flowable-go/flowable/api"
-	flowablerow "github.com/flowable-go/flowable/internal/persistence/flowable"
-	statestore "github.com/flowable-go/flowable/internal/persistence/state"
+	"github.com/DengQingNian/Flowtide/api"
+	flowablerow "github.com/DengQingNian/Flowtide/internal/persistence/flowable"
+	statestore "github.com/DengQingNian/Flowtide/internal/persistence/state"
 )
 
 // TestAuditNestedRollback 验证失败命令隔离嵌套对象、切片及历史变量。

@@ -1,7 +1,7 @@
 package engine
 
 import (
-	"github.com/flowable-go/flowable/bpmn/model"
+	"github.com/DengQingNian/Flowtide/bpmn/model"
 )
 
 // throwError 抛出 BPMN 错误，沿作用域向上寻找错误边界。

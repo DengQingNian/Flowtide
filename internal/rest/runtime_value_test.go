@@ -4,8 +4,8 @@ import (
 	"context"
 	"testing"
 
-	"github.com/flowable-go/flowable/api"
-	"github.com/flowable-go/flowable/internal/engine"
+	"github.com/DengQingNian/Flowtide/api"
+	"github.com/DengQingNian/Flowtide/internal/engine"
 )
 
 // TestRuntimeTypedVariablesAtomicity 验证启动及触发先解析整组类型，非法变量不能产生实例或推进执行。

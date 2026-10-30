@@ -103,7 +103,7 @@ onBeforeUnmount(() => {
 
         <div class="docs-footer-actions">
           <router-link to="/compatibility" class="footer-action">查看能力矩阵</router-link>
-          <a href="https://git.dengqn.com/dqn/flowable-engine-go" target="_blank" rel="noopener" class="footer-action">报告问题</a>
+          <a href="https://github.com/DengQingNian/Flowtide" target="_blank" rel="noopener" class="footer-action">报告问题</a>
         </div>
       </div>
 

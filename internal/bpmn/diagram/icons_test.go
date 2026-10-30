@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/flowable-go/flowable/bpmn/model"
+	"github.com/DengQingNian/Flowtide/bpmn/model"
 )
 
 // TestEventIconMarkers 验证新增事件图标的判断逻辑与优先级。

@@ -6,10 +6,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/flowable-go/flowable/api"
-	flowablerow "github.com/flowable-go/flowable/internal/persistence/flowable"
-	"github.com/flowable-go/flowable/internal/persistence/schema"
-	"github.com/flowable-go/flowable/internal/tenant"
+	"github.com/DengQingNian/Flowtide/api"
+	flowablerow "github.com/DengQingNian/Flowtide/internal/persistence/flowable"
+	"github.com/DengQingNian/Flowtide/internal/persistence/schema"
+	"github.com/DengQingNian/Flowtide/internal/tenant"
 )
 
 // 管理端点使用的默认 Schema 方言，两种方言表结构一致

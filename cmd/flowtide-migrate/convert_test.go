@@ -11,7 +11,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/flowable-go/flowable/internal/migration"
+	"github.com/DengQingNian/Flowtide/internal/migration"
 )
 
 // TestRunConvertCreatesPrivateState 验证离线转换只发布私有状态文件且标准输出仅含报告。

@@ -7,8 +7,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/flowable-go/flowable/internal/engine"
-	"github.com/flowable-go/flowable/internal/rest"
+	"github.com/DengQingNian/Flowtide/internal/engine"
+	"github.com/DengQingNian/Flowtide/internal/rest"
 )
 
 // TestSecurityConfig 验证标准服务通过配置接入认证、租户、权限、审计和指标。

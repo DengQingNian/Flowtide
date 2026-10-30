@@ -5,7 +5,7 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/flowable-go/flowable/api"
+	"github.com/DengQingNian/Flowtide/api"
 )
 
 // TestUserInfoAndPicture 验证用户信息与头像。

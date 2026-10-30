@@ -11,9 +11,9 @@ tags: [SDK, 测试, 调试]
 ## 内存引擎
 
 ~~~go
-func newTestEngine(t *testing.T) *flowable.Engine {
+func newTestEngine(t *testing.T) *flowtide.Engine {
 	t.Helper()
-	app, err := flowable.New(flowable.Config{})
+	app, err := flowtide.New(flowtide.Config{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -28,7 +28,7 @@ func newTestEngine(t *testing.T) *flowable.Engine {
 
 ~~~go
 dir := t.TempDir()
-app, err := flowable.New(flowable.Config{StatePath: filepath.Join(dir, "engine.json")})
+app, err := flowtide.New(flowtide.Config{StatePath: filepath.Join(dir, "engine.json")})
 ~~~
 
 <code>t.TempDir()</code> 自动清理。需要验证恢复时，关闭引擎后用同一路径重新构造。

@@ -16,13 +16,13 @@ tags: [迁移, 转换, 状态文件]
 
 ~~~bash
 # 先做预检；存在阻断时不会生成状态文件
-./bin/flowable-migrate -preflight -dialect mysql -env .env -out preflight.json
+./bin/flowtide-migrate -preflight -dialect mysql -env .env -out preflight.json
 
 # 目标路径必须不存在
-./bin/flowable-migrate -convert -dialect mysql -env .env -out prepared-state.json
+./bin/flowtide-migrate -convert -dialect mysql -env .env -out prepared-state.json
 
 # 用同一状态文件启动服务
-./bin/flowable-server -state prepared-state.json
+./bin/flowtide-server -state prepared-state.json
 ~~~
 
 PostgreSQL 源库沿用 <code>FLOWABLE_POSTGRES_DSN</code>。
@@ -41,7 +41,7 @@ PostgreSQL 源库沿用 <code>FLOWABLE_POSTGRES_DSN</code>。
 
 ## 产物
 
-- 新状态文件，格式为 <code>flowable-go-state</code>。
+- 新状态文件，格式为 <code>flowtide-state</code>。
 - 文件包含业务值，权限 <code>0600</code>，不得提交。
 - 转换过程会做内存恢复，但不产出独立校验报告；建议再用 <code>-verify-state</code> 校验。
 

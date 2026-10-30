@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/flowable-go/flowable/api"
+	"github.com/DengQingNian/Flowtide/api"
 )
 
 // TestManagementProperties 验证引擎属性。

@@ -25,9 +25,9 @@
 - `LoadConfig` 读取 `.env`，不修改进程环境；进程环境变量优先于文件配置，支持引号和密码中的特殊字符。
 - 字符集为 `utf8mb4`；时间解析和连接会话统一使用 UTC。连接、读写均有超时。
 - 服务通过 `-storage mysql` 显式启用数据库；`-env` 指定配置文件，默认 `.env`。与 `-state` 互斥。
-- `flowable-migrate -apply` 在目标数据库尚无引擎表时执行内置完整 DDL，已有完整 Schema 时校验版本及脚本校验和。
+- `flowtide-migrate -apply` 在目标数据库尚无引擎表时执行内置完整 DDL，已有完整 Schema 时校验版本及脚本校验和。
 - `sqlstate.Store` 的 MySQL 保存改为单条 `INSERT ... ON DUPLICATE KEY UPDATE`，写入失败时保留旧快照。
-- 引擎继续通过已有 `StateStore` 命令提交/回滚机制写入 `ACT_GE_BYTEARRAY` 中的 `flowable-go-state`；服务启动自动恢复。
+- 引擎继续通过已有 `StateStore` 命令提交/回滚机制写入 `ACT_GE_BYTEARRAY` 中的 `flowtide-state`；服务启动自动恢复。
 - 补齐原快照遗漏的流程模型、编辑源、扩展编辑源和流程实例身份链接；旧快照缺少新增字段时仍可读取。
 - 关闭顺序为 HTTP 停止接收请求、引擎保存、数据库连接池释放，保存失败会记录错误。
 
@@ -47,20 +47,20 @@
 
 ```bash
 # 首次执行建表；重复执行会进行版本与初始化完成标记校验。
-go run ./cmd/flowable-migrate -dialect mysql -apply -env .env
+go run ./cmd/flowtide-migrate -dialect mysql -apply -env .env
 
 # 启动并从数据库恢复；服务本身仅校验 Schema，不执行 DDL。
-go run ./cmd/flowable-server -storage mysql -env .env -addr :8080
+go run ./cmd/flowtide-server -storage mysql -env .env -addr :8080
 
 # 原有内存与文件模式继续可用。
-go run ./cmd/flowable-server -state ./data/engine.json
+go run ./cmd/flowtide-server -state ./data/engine.json
 ```
 
 数据库需要预先创建；初始化需要建表、建索引、外键和插入权限。服务运行需要读取和更新相关表的权限。单独导出 SQL、列出表名的既有命令仍可使用，但手动导入原始 SQL 不会生成本工具的初始化完成标记。
 
 ## 4. Schema 校验与失败处理
 
-初始化检查内置 41 张表（包含 `ACT_*` 和 `FLW_*`）是否存在；已有部分表时拒绝自动补建。完成所有 DDL 后才向 `ACT_GE_PROPERTY` 写入 `flowable-go.schema.checksum` 标记。启动要求 `schema.version` 为 `8.1.0.3` 且标记与内置脚本校验和一致。
+初始化检查内置 41 张表（包含 `ACT_*` 和 `FLW_*`）是否存在；已有部分表时拒绝自动补建。完成所有 DDL 后才向 `ACT_GE_PROPERTY` 写入 `flowtide.schema.checksum` 标记。启动要求 `schema.version` 为 `8.1.0.3` 且标记与内置脚本校验和一致。
 
 MySQL DDL 会隐式提交，整个初始化不是原子事务。失败时保留现场并报告失败语句序号；需要人工检查或重建专用开发库后重试。部分表、缺失标记、版本或校验和不一致都会返回错误。初始化期间应只有一个迁移进程；本阶段未实现并发迁移锁。
 
@@ -100,7 +100,7 @@ FLOWABLE_MYSQL_INTEGRATION=1 go test -count=1 -v ./internal/persistence/mysql -r
 | 重复初始化与启动校验 | 通过，Schema 测试耗时约 16.31 秒 |
 | 真实快照保存与恢复 | 通过，耗时约 0.44 秒，包含失败写入保护、重建连接池、模型/编辑源/身份链接、中文与表情变量、任务及完成后的历史恢复 |
 | 全部 MySQL 包测试 | 通过，总耗时约 16.82 秒，无跳过的集成测试 |
-| 迁移命令 | 临时库首次执行 `flowable-migrate -apply` 与重复执行校验均通过 |
+| 迁移命令 | 临时库首次执行 `flowtide-migrate -apply` 与重复执行校验均通过 |
 | MySQL 模式服务启动 | 两次启动的 HTTP 健康检查、优雅退出及关闭后数据库快照检查均通过 |
 | 临时库清理 | 集成测试及命令行验收使用的临时库均正常删除 |
 
@@ -110,7 +110,7 @@ FLOWABLE_MYSQL_INTEGRATION=1 go test -count=1 -v ./internal/persistence/mysql -r
 FLOWABLE_MYSQL_INTEGRATION=1 go test -p 1 -count=1 -v ./internal/persistence/mysql
 ```
 
-命令行验收在单独创建的临时库中运行已构建的迁移和服务二进制，仅覆盖子进程的 `db_mysql_db_name`，凭据仍由 `.env` 读取。验证两次迁移命令以及两次 MySQL 服务启动，并确认 `ACT_GE_BYTEARRAY` 中保存了 `flowable-go-state`。本轮未在 `.env` 配置的开发库本身执行全量初始化。
+命令行验收在单独创建的临时库中运行已构建的迁移和服务二进制，仅覆盖子进程的 `db_mysql_db_name`，凭据仍由 `.env` 读取。验证两次迁移命令以及两次 MySQL 服务启动，并确认 `ACT_GE_BYTEARRAY` 中保存了 `flowtide-state`。本轮未在 `.env` 配置的开发库本身执行全量初始化。
 
 本轮只更换数据库并重跑数据库和命令行验收；常规质量检查沿用上一轮结果：全仓语句覆盖率 90.6%、MySQL 包 97.5%、SQL 状态存储 93.0%，全仓竞态检查和 `go vet` 均通过。
 

@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/flowable-go/flowable/internal/quality"
+	"github.com/DengQingNian/Flowtide/internal/quality"
 )
 
 // main 校验基线并检查或更新端点表，错误时返回非零退出码。

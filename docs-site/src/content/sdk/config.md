@@ -10,10 +10,10 @@ tags: [SDK, 配置, 持久化]
 
 ## 默认值
 
-<code>flowable.New(flowable.Config{})</code> 使用内存状态、<code>audit</code> 历史、真实时钟与 UUIDv7 ID 生成器。最小配置只需按需覆盖字段。
+<code>flowtide.New(flowtide.Config{})</code> 使用内存状态、<code>audit</code> 历史、真实时钟与 UUIDv7 ID 生成器。最小配置只需按需覆盖字段。
 
 ~~~go
-app, err := flowable.New(flowable.Config{
+app, err := flowtide.New(flowtide.Config{
 	HistoryLevel: "audit",
 	StatePath:    "./data/engine.json",
 	TenantID:     "default",
@@ -41,7 +41,7 @@ app, err := flowable.New(flowable.Config{
 ### 内存
 
 ~~~go
-app, err := flowable.New(flowable.Config{})
+app, err := flowtide.New(flowtide.Config{})
 ~~~
 
 适合单测与演示；进程退出即丢失。
@@ -49,7 +49,7 @@ app, err := flowable.New(flowable.Config{})
 ### JSON 状态文件
 
 ~~~go
-app, err := flowable.New(flowable.Config{StatePath: "./data/engine.json"})
+app, err := flowtide.New(flowtide.Config{StatePath: "./data/engine.json"})
 ~~~
 
 单进程、全量原子快照。父目录必须存在；文件包含业务数据，权限由进程 umask 决定。
@@ -60,7 +60,7 @@ app, err := flowable.New(flowable.Config{StatePath: "./data/engine.json"})
 
 ## 仓库外模块限制
 
-<code>flowable.Config</code> 是 <code>internal/engine.Config</code> 的类型别名，字段类型包含 <code>internal/clock</code>、<code>internal/idgen</code>、<code>internal/persistence/state</code> 与 <code>internal/persistence/flowable</code>。因此：
+<code>flowtide.Config</code> 是 <code>internal/engine.Config</code> 的类型别名，字段类型包含 <code>internal/clock</code>、<code>internal/idgen</code>、<code>internal/persistence/state</code> 与 <code>internal/persistence/flowable</code>。因此：
 
 - 仓库外可以设置 <code>HistoryLevel</code>、<code>TenantID</code>、<code>StatePath</code>、<code>MaxAgendaSteps</code>、<code>LoadTenant</code>、<code>LoadRows</code> 与 <code>RecordSequenceFlowHistory</code>。
 - 仓库外不能命名 <code>Clock</code>、<code>IDs</code>、<code>StateStore</code>、<code>RowRepository</code> 的类型来注入实现。

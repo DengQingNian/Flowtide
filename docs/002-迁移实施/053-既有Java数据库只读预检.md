@@ -4,7 +4,7 @@
 
 ## 1. 问题与结果
 
-此前 `flowable-migrate` 只提供 Schema 导出和 MySQL 初始化，无法在修改既有库之前识别 Java 运行时结构、序列化变量、作业、脚本及委托映射。本阶段新增 `internal/migration` 和 `-preflight` 命令模式，使这些检查可以通过纯 Go 二进制重复执行。
+此前 `flowtide-migrate` 只提供 Schema 导出和 MySQL 初始化，无法在修改既有库之前识别 Java 运行时结构、序列化变量、作业、脚本及委托映射。本阶段新增 `internal/migration` 和 `-preflight` 命令模式，使这些检查可以通过纯 Go 二进制重复执行。
 
 扫描器通过 `database/sql` 开始 `ReadOnly=true`、`RepeatableRead` 事务，查询当前数据库或模式中的 `ACT_*` 基础表。已知表读取实际列，表名和列名统一为大写供分析；未知表只统计行数。所有数据库操作均为元数据查询、`SELECT` 和事务回滚，不调用 Schema 初始化、引擎恢复或变量反序列化执行。
 
@@ -15,13 +15,13 @@
 ```bash
 make build
 # MySQL 配置与服务端沿用同一格式；此命令不初始化源库。
-./bin/flowable-migrate -preflight -dialect mysql -env .env -out preflight.json
+./bin/flowtide-migrate -preflight -dialect mysql -env .env -out preflight.json
 # 只选择指定租户的实体；全库结构风险仍会报告。
-./bin/flowable-migrate -preflight -dialect mysql -tenant=tenant-a -out tenant-a.json
+./bin/flowtide-migrate -preflight -dialect mysql -tenant=tenant-a -out tenant-a.json
 # 空字符串明确选择默认租户；不传 tenant 则分析全部租户。
-./bin/flowable-migrate -preflight -dialect mysql -tenant="" -out default.json
+./bin/flowtide-migrate -preflight -dialect mysql -tenant="" -out default.json
 # PostgreSQL 从 FLOWABLE_POSTGRES_DSN 环境读取凭据。
-./bin/flowable-migrate -preflight -dialect postgres -timeout 5m -out postgres.json
+./bin/flowtide-migrate -preflight -dialect postgres -timeout 5m -out postgres.json
 ```
 
 `-preflight` 与 `-apply`、`-tables` 互斥；显式 `-tenant` 和 `-timeout` 仅适用于预检。未指定 `-out` 时标准输出为 JSON；指定输出时，以 `0600` 权限的同目录临时文件完整写入后原子替换目标。配置文件及其链接不能作为报告目标。命令错误不打印数据库连接凭据。

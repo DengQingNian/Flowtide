@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	bpmnxml "github.com/flowable-go/flowable/internal/bpmn/xml"
+	bpmnxml "github.com/DengQingNian/Flowtide/internal/bpmn/xml"
 )
 
 const swimlaneXML = `<?xml version="1.0" encoding="UTF-8"?>

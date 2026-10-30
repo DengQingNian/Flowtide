@@ -3,8 +3,8 @@ package engine
 import (
 	"fmt"
 
-	"github.com/flowable-go/flowable/api"
-	flowablerow "github.com/flowable-go/flowable/internal/persistence/flowable"
+	"github.com/DengQingNian/Flowtide/api"
+	flowablerow "github.com/DengQingNian/Flowtide/internal/persistence/flowable"
 )
 
 // expandVariableRows 将二进制和超过文本列容量的值移至字节表。
@@ -42,7 +42,7 @@ func expandVariableRows(rows []flowablerow.Row) ([]flowablerow.Row, error) {
 			_ = bytesRow.Set("ID_", id)
 			_ = bytesRow.Set("REV_", 1)
 			_ = bytesRow.Set("DEPLOYMENT_ID_", nil)
-			_ = bytesRow.Set("NAME_", "flowable-go-variable")
+			_ = bytesRow.Set("NAME_", "flowtide-variable")
 			_ = bytesRow.Set("BYTES_", data)
 			_ = row.Set(typeColumn, kind)
 			_ = row.Set("TEXT_", nil)

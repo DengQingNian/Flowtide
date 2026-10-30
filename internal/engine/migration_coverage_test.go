@@ -4,8 +4,8 @@ import (
 	"context"
 	"testing"
 
-	"github.com/flowable-go/flowable/api"
-	"github.com/flowable-go/flowable/bpmn/model"
+	"github.com/DengQingNian/Flowtide/api"
+	"github.com/DengQingNian/Flowtide/bpmn/model"
 )
 
 // newMigrationFixture 创建迁移测试环境。

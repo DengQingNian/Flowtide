@@ -6,9 +6,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/flowable-go/flowable/api"
-	"github.com/flowable-go/flowable/internal/clock"
-	flowablerow "github.com/flowable-go/flowable/internal/persistence/flowable"
+	"github.com/DengQingNian/Flowtide/api"
+	"github.com/DengQingNian/Flowtide/internal/clock"
+	flowablerow "github.com/DengQingNian/Flowtide/internal/persistence/flowable"
 )
 
 // TestImportRuntimeRows 验证运行时行往返恢复。

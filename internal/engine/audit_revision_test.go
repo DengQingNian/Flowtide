@@ -7,8 +7,8 @@ import (
 	"testing"
 
 	"github.com/DATA-DOG/go-sqlmock"
-	"github.com/flowable-go/flowable/api"
-	flowablerow "github.com/flowable-go/flowable/internal/persistence/flowable"
+	"github.com/DengQingNian/Flowtide/api"
+	flowablerow "github.com/DengQingNian/Flowtide/internal/persistence/flowable"
 )
 
 // expectAuditModelUpdate 要求更新使用数据库当前修订号，并模拟提交成功或失败。

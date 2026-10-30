@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/flowable-go/flowable/api"
+	"github.com/DengQingNian/Flowtide/api"
 )
 
 const conditionalBoundaryXML = `<?xml version="1.0" encoding="UTF-8"?>

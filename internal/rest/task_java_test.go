@@ -9,9 +9,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/flowable-go/flowable/api"
-	"github.com/flowable-go/flowable/internal/clock"
-	"github.com/flowable-go/flowable/internal/engine"
+	"github.com/DengQingNian/Flowtide/api"
+	"github.com/DengQingNian/Flowtide/internal/clock"
+	"github.com/DengQingNian/Flowtide/internal/engine"
 )
 
 // TestJavaTaskRESTReference 对照原版任务控制器完整响应、空值、分页及动作副作用。

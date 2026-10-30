@@ -11,11 +11,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/flowable-go/flowable/api"
-	"github.com/flowable-go/flowable/internal/engine"
-	mysqlstore "github.com/flowable-go/flowable/internal/persistence/mysql"
-	"github.com/flowable-go/flowable/internal/persistence/schema"
-	"github.com/flowable-go/flowable/internal/persistence/sqlstate"
+	"github.com/DengQingNian/Flowtide/api"
+	"github.com/DengQingNian/Flowtide/internal/engine"
+	mysqlstore "github.com/DengQingNian/Flowtide/internal/persistence/mysql"
+	"github.com/DengQingNian/Flowtide/internal/persistence/schema"
+	"github.com/DengQingNian/Flowtide/internal/persistence/sqlstate"
 )
 
 // newIntegrationDB 创建独立测试库并注册连接与数据库清理。

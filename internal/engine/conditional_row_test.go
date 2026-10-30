@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/flowable-go/flowable/api"
+	"github.com/DengQingNian/Flowtide/api"
 )
 
 // TestConditionalSubscriptionRowRoundTrip 验证条件订阅行导出恢复。

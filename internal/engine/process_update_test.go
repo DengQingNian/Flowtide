@@ -8,9 +8,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/flowable-go/flowable/api"
-	flowablerow "github.com/flowable-go/flowable/internal/persistence/flowable"
-	"github.com/flowable-go/flowable/internal/tenant"
+	"github.com/DengQingNian/Flowtide/api"
+	flowablerow "github.com/DengQingNian/Flowtide/internal/persistence/flowable"
+	"github.com/DengQingNian/Flowtide/internal/tenant"
 )
 
 // TestProcessMetadataRows 验证实例属性、签收和发起人以标准行为准，不被续跑控制中的旧副本覆盖。
@@ -39,7 +39,7 @@ func TestProcessMetadataRows(t *testing.T) {
 		t.Run(map[bool]string{true: "含续跑控制", false: "仅标准行"}[control], func(t *testing.T) {
 			prepared := make([]flowablerow.Row, 0, len(rows))
 			for _, row := range rows {
-				if row.Table == "ACT_GE_BYTEARRAY" && strings.HasPrefix(row.Values["NAME_"].(string), "flowable-go-control/") && !control {
+				if row.Table == "ACT_GE_BYTEARRAY" && strings.HasPrefix(row.Values["NAME_"].(string), "flowtide-control/") && !control {
 					continue
 				}
 				if row.Table == "ACT_RU_EXECUTION" && row.Values["ID_"] == instance.ID {

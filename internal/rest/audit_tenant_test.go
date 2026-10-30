@@ -7,9 +7,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/flowable-go/flowable/api"
-	"github.com/flowable-go/flowable/internal/engine"
-	"github.com/flowable-go/flowable/internal/tenant"
+	"github.com/DengQingNian/Flowtide/api"
+	"github.com/DengQingNian/Flowtide/internal/engine"
+	"github.com/DengQingNian/Flowtide/internal/tenant"
 )
 
 // TestAuditJWTTenantBinding 验证 JWT 身份约束租户选择、查询和写入。

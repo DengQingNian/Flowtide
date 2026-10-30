@@ -10,9 +10,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/flowable-go/flowable/api"
-	"github.com/flowable-go/flowable/internal/engine"
-	tenantctx "github.com/flowable-go/flowable/internal/tenant"
+	"github.com/DengQingNian/Flowtide/api"
+	"github.com/DengQingNian/Flowtide/internal/engine"
+	tenantctx "github.com/DengQingNian/Flowtide/internal/tenant"
 )
 
 // newRepositoryExtraServer 创建仓储扩展测试服务。

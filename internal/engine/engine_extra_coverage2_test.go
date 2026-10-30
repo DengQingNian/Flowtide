@@ -5,9 +5,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/flowable-go/flowable/api"
-	"github.com/flowable-go/flowable/bpmn/model"
-	"github.com/flowable-go/flowable/internal/clock"
+	"github.com/DengQingNian/Flowtide/api"
+	"github.com/DengQingNian/Flowtide/bpmn/model"
+	"github.com/DengQingNian/Flowtide/internal/clock"
 )
 
 // TestDeployment_CascadeCleansJobsAndSubs 验证级联清理作业与订阅。

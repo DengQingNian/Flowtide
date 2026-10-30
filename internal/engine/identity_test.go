@@ -5,9 +5,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/flowable-go/flowable/internal/clock"
+	"github.com/DengQingNian/Flowtide/internal/clock"
 
-	"github.com/flowable-go/flowable/api"
+	"github.com/DengQingNian/Flowtide/api"
 )
 
 // TestIdentity_CRUD 验证用户与组管理。

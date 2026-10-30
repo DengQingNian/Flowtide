@@ -3,10 +3,10 @@ package mysql_test
 import (
 	"testing"
 
-	"github.com/flowable-go/flowable/api"
-	"github.com/flowable-go/flowable/internal/engine"
-	flowablerow "github.com/flowable-go/flowable/internal/persistence/flowable"
-	mysqlstore "github.com/flowable-go/flowable/internal/persistence/mysql"
+	"github.com/DengQingNian/Flowtide/api"
+	"github.com/DengQingNian/Flowtide/internal/engine"
+	flowablerow "github.com/DengQingNian/Flowtide/internal/persistence/flowable"
+	mysqlstore "github.com/DengQingNian/Flowtide/internal/persistence/mysql"
 )
 
 // TestIntegrationMySQLTaskQueryPushdown 验证行模式下任务查询下推的真实 SQL 路径。

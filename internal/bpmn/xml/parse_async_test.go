@@ -3,7 +3,7 @@ package xml
 import (
 	"testing"
 
-	"github.com/flowable-go/flowable/bpmn/model"
+	"github.com/DengQingNian/Flowtide/bpmn/model"
 )
 
 // TestParse_AsyncAttributes 验证异步属性解析。

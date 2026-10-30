@@ -6,8 +6,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/flowable-go/flowable/api"
-	"github.com/flowable-go/flowable/internal/tenant"
+	"github.com/DengQingNian/Flowtide/api"
+	"github.com/DengQingNian/Flowtide/internal/tenant"
 )
 
 // formDefinitionProcessXML 是带启动表单与任务表单的流程。

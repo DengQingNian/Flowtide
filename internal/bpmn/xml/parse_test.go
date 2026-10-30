@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/flowable-go/flowable/bpmn/model"
+	"github.com/DengQingNian/Flowtide/bpmn/model"
 )
 
 const sampleBPMN = `<?xml version="1.0" encoding="UTF-8"?>

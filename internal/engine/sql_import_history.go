@@ -3,8 +3,8 @@ package engine
 import (
 	"context"
 
-	"github.com/flowable-go/flowable/api"
-	flowablerow "github.com/flowable-go/flowable/internal/persistence/flowable"
+	"github.com/DengQingNian/Flowtide/api"
+	flowablerow "github.com/DengQingNian/Flowtide/internal/persistence/flowable"
 )
 
 // ImportHistoricRows 从历史行恢复历史流程、活动、任务与变量。

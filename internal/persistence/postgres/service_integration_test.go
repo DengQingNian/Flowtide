@@ -9,10 +9,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/flowable-go/flowable/api"
-	"github.com/flowable-go/flowable/internal/engine"
-	flowablerow "github.com/flowable-go/flowable/internal/persistence/flowable"
-	pgstore "github.com/flowable-go/flowable/internal/persistence/postgres"
+	"github.com/DengQingNian/Flowtide/api"
+	"github.com/DengQingNian/Flowtide/internal/engine"
+	flowablerow "github.com/DengQingNian/Flowtide/internal/persistence/flowable"
+	pgstore "github.com/DengQingNian/Flowtide/internal/persistence/postgres"
 )
 
 // postgresServiceDatabase 创建服务模式验收专用库，测试结束只删除该临时库。

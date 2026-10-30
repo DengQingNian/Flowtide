@@ -6,8 +6,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/flowable-go/flowable/api"
-	"github.com/flowable-go/flowable/internal/tenant"
+	"github.com/DengQingNian/Flowtide/api"
+	"github.com/DengQingNian/Flowtide/internal/tenant"
 )
 
 // TestStandaloneTaskLifecycle 验证独立任务创建、更新与完成。

@@ -5,7 +5,7 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/flowable-go/flowable/api"
+	"github.com/DengQingNian/Flowtide/api"
 )
 
 // TestAttachmentContent 验证附件二进制内容。

@@ -1,9 +1,9 @@
 {
-  "name": "flowable-go-docs",
+  "name": "flowtide-docs",
   "private": true,
   "version": "0.1.0",
   "type": "module",
-  "description": "Flowable-go 重构进度文档站",
+  "description": "Flowtide 重构进度文档站",
   "license": "Apache-2.0",
   "scripts": {
     "gen": "node scripts/gen-facts.mjs && node scripts/gen-content.mjs",

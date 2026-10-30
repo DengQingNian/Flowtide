@@ -3,7 +3,7 @@ package rest
 import (
 	"net/http"
 
-	"github.com/flowable-go/flowable/api"
+	"github.com/DengQingNian/Flowtide/api"
 )
 
 // definitionMigratePayload 是定义批量迁移请求。

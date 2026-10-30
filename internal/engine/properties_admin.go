@@ -4,14 +4,14 @@ import (
 	"context"
 	"strings"
 
-	"github.com/flowable-go/flowable/api"
+	"github.com/DengQingNian/Flowtide/api"
 )
 
 // isBuiltinProperty 判断是否为内置只读属性。
 // @param name 属性名
 // @return 是否内置
 func isBuiltinProperty(name string) bool {
-	if strings.HasPrefix(name, "flowable-go.schema.") {
+	if strings.HasPrefix(name, "flowtide.schema.") {
 		return true
 	}
 	switch name {

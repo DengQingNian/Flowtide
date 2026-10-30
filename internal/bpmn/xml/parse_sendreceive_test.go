@@ -3,7 +3,7 @@ package xml
 import (
 	"testing"
 
-	"github.com/flowable-go/flowable/bpmn/model"
+	"github.com/DengQingNian/Flowtide/bpmn/model"
 )
 
 // TestParse_SendReceiveTask 验证发送/接收任务解析。

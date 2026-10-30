@@ -3,8 +3,8 @@ package rest
 import (
 	"net/http"
 
-	"github.com/flowable-go/flowable/api"
-	"github.com/flowable-go/flowable/bpmn/model"
+	"github.com/DengQingNian/Flowtide/api"
+	"github.com/DengQingNian/Flowtide/bpmn/model"
 )
 
 // definitionModelDTO 是流程定义模型的 REST 表示。

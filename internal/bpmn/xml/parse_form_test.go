@@ -3,7 +3,7 @@ package xml
 import (
 	"testing"
 
-	"github.com/flowable-go/flowable/bpmn/model"
+	"github.com/DengQingNian/Flowtide/bpmn/model"
 )
 
 // TestParse_FormProperties 验证表单字段解析。

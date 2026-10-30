@@ -17,12 +17,12 @@ tags: [SDK, 持久化, 状态文件]
 | MySQL 快照 | 仓库外不可配置 | 全量 SQL 快照 | 启动恢复 | 禁止 |
 | MySQL 行仓储 | 仓库外不可配置 | 命令后增量行 | 启动恢复 | 禁止 |
 
-数据库模式当前通过 <code>cmd/flowable-server -storage mysql</code> 或 <code>mysql-rows</code> 使用。原因是 <code>Config</code> 中的 <code>StateStore</code> 与 <code>RowRepository</code> 引用内部包类型。
+数据库模式当前通过 <code>cmd/flowtide-server -storage mysql</code> 或 <code>mysql-rows</code> 使用。原因是 <code>Config</code> 中的 <code>StateStore</code> 与 <code>RowRepository</code> 引用内部包类型。
 
 ## JSON 状态文件
 
 ~~~go
-app, err := flowable.New(flowable.Config{StatePath: "./data/engine.json"})
+app, err := flowtide.New(flowtide.Config{StatePath: "./data/engine.json"})
 if err != nil {
 	log.Fatal(err)
 }
@@ -44,7 +44,7 @@ defer app.Close(ctx)
 状态文件可用迁移工具独立校验：
 
 ~~~bash
-./bin/flowable-migrate -verify-state -state ./data/engine.json
+./bin/flowtide-migrate -verify-state -state ./data/engine.json
 ~~~
 
 该命令在隔离内存引擎中恢复并输出实体计数，不修改状态文件，也不证明数据库与状态一致。

@@ -1,4 +1,4 @@
-// Command flowable-server 启动 Flowable Go REST 服务。
+// Command flowtide-server 启动 Flowtide REST 服务。
 package main
 
 import (
@@ -13,8 +13,8 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/flowable-go/flowable/internal/engine"
-	"github.com/flowable-go/flowable/internal/rest"
+	"github.com/DengQingNian/Flowtide/internal/engine"
+	"github.com/DengQingNian/Flowtide/internal/rest"
 )
 
 // main 解析参数并启动服务。
@@ -144,7 +144,7 @@ func main() {
 	}
 
 	go func() {
-		slog.Info("Flowable Go 服务启动", "addr", *addr)
+		slog.Info("Flowtide 服务启动", "addr", *addr)
 		var listenErr error
 		if *tlsCert != "" {
 			listenErr = server.ListenAndServeTLS(*tlsCert, *tlsKey)

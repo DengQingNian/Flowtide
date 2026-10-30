@@ -1,7 +1,7 @@
-module flowable-sdk-acceptance
+module flowtide-sdk-acceptance
 
 go 1.27
 
-require github.com/flowable-go/flowable v0.0.0
+require github.com/DengQingNian/Flowtide v0.0.0
 
-replace github.com/flowable-go/flowable => ../..
+replace github.com/DengQingNian/Flowtide => ../..

@@ -16,7 +16,7 @@ const commit = computed(() => content.commit)
               <circle cx="24" cy="16" r="3.5" fill="currentColor" />
             </svg>
           </span>
-          Flowable-go
+          Flowtide
         </div>
         <p>用纯 Go 重构 Flowable BPMN 引擎。当前为新建库原型，生产使用前请阅读能力矩阵与已知问题。</p>
         <div class="footer-meta">
@@ -49,9 +49,9 @@ const commit = computed(() => content.commit)
       </div>
     </div>
     <div class="footer-bottom">
-      <span>© 2026 Flowable-go 项目</span>
+      <span>© 2026 Flowtide 项目</span>
       <span>参考基线 Flowable 8.1.0 · Java 提交 f6017e3</span>
-      <a href="https://git.dengqn.com/dqn/flowable-engine-go" target="_blank" rel="noopener">源码仓库</a>
+      <a href="https://github.com/DengQingNian/Flowtide" target="_blank" rel="noopener">源码仓库</a>
     </div>
   </footer>
 </template>

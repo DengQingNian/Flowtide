@@ -3,7 +3,7 @@ package xml
 import (
 	"testing"
 
-	"github.com/flowable-go/flowable/bpmn/model"
+	"github.com/DengQingNian/Flowtide/bpmn/model"
 )
 
 // TestParse_CallActivity 验证调用活动解析。

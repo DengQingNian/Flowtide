@@ -5,12 +5,12 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"github.com/flowable-go/flowable/internal/engine"
+	"github.com/DengQingNian/Flowtide/internal/engine"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
-	"github.com/flowable-go/flowable/api"
+	"github.com/DengQingNian/Flowtide/api"
 )
 
 // TestREST_HistoricQueries 验证历史端点。

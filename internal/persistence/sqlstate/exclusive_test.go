@@ -14,7 +14,7 @@ import (
 // @param t 测试上下文
 // @return 无
 func TestLockName(t *testing.T) {
-	want := fmt.Sprintf("flowable-go:%x", sha256.Sum256([]byte("开发库")))[:64]
+	want := fmt.Sprintf("flowtide:%x", sha256.Sum256([]byte("开发库")))[:64]
 	if got := LockName("开发库"); got != want {
 		t.Fatalf("锁名=%s，期望=%s", got, want)
 	}

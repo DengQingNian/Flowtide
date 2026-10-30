@@ -5,8 +5,8 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/flowable-go/flowable/api"
-	"github.com/flowable-go/flowable/internal/tenant"
+	"github.com/DengQingNian/Flowtide/api"
+	"github.com/DengQingNian/Flowtide/internal/tenant"
 )
 
 // TestEventSubscriptionQueries 验证事件订阅查询与租户隔离。

@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/flowable-go/flowable/api"
+	"github.com/DengQingNian/Flowtide/api"
 )
 
 // Table 描述一张 ACT_* 表的列。

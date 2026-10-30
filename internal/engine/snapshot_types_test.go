@@ -8,8 +8,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/flowable-go/flowable/api"
-	statestore "github.com/flowable-go/flowable/internal/persistence/state"
+	"github.com/DengQingNian/Flowtide/api"
+	statestore "github.com/DengQingNian/Flowtide/internal/persistence/state"
 )
 
 // TestSnapshotTypedRoundTrip 验证所有变量位置与嵌套容器经过状态重启后保持原始类型。

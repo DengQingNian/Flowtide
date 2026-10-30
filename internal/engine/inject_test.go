@@ -5,7 +5,7 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/flowable-go/flowable/api"
+	"github.com/DengQingNian/Flowtide/api"
 )
 
 // TestInjectUserTask 验证动态用户任务注入。

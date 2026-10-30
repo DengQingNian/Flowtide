@@ -1,6 +1,6 @@
 ---
 title: Go SDK 概览
-description: 通过 flowable.New 嵌入引擎，理解公共包、服务接口与和 REST 的关系。
+description: 通过 flowtide.New 嵌入引擎，理解公共包、服务接口与和 REST 的关系。
 order: 10
 section: sdk
 status: prototype
@@ -14,15 +14,15 @@ tags: [SDK, Go, 服务接口]
 
 | 使用方式 | 适用场景 | 入口 |
 | --- | --- | --- |
-| 独立服务 | 多语言客户端、集中运维 | <code>cmd/flowable-server</code> |
-| Go 嵌入 | 单进程业务、测试、工具 | <code>flowable.New</code> + <code>api</code> |
-| 迁移 CLI | 存量库预检与状态准备 | <code>cmd/flowable-migrate</code> |
+| 独立服务 | 多语言客户端、集中运维 | <code>cmd/flowtide-server</code> |
+| Go 嵌入 | 单进程业务、测试、工具 | <code>flowtide.New</code> + <code>api</code> |
+| 迁移 CLI | 存量库预检与状态准备 | <code>cmd/flowtide-migrate</code> |
 
 ## 公共包
 
 | 包 | 内容 |
 | --- | --- |
-| <code>github.com/flowable-go/flowable</code> | <code>New</code>、<code>Config</code>、<code>Engine</code>、<code>Delegate</code>、<code>Execution</code> |
+| <code>github.com/DengQingNian/Flowtide</code> | <code>New</code>、<code>Config</code>、<code>Engine</code>、<code>Delegate</code>、<code>Execution</code> |
 | <code>.../api</code> | 请求/响应类型与服务接口 |
 | <code>.../bpmn/model</code> | BPMN 模型类型 |
 
@@ -37,13 +37,13 @@ import (
 	"context"
 	"log"
 
-	"github.com/flowable-go/flowable"
-	"github.com/flowable-go/flowable/api"
+	"github.com/DengQingNian/Flowtide"
+	"github.com/DengQingNian/Flowtide/api"
 )
 
 func main() {
 	ctx := context.Background()
-	app, err := flowable.New(flowable.Config{StatePath: "./data/engine.json"})
+	app, err := flowtide.New(flowtide.Config{StatePath: "./data/engine.json"})
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -74,7 +74,7 @@ func main() {
 
 ## 生命周期
 
-1. <code>flowable.New</code> 构造引擎；若配置了状态文件或行仓储，会在此恢复状态。
+1. <code>flowtide.New</code> 构造引擎；若配置了状态文件或行仓储，会在此恢复状态。
 2. 注册委托、任务监听器、执行监听器。
 3. 通过服务接口执行命令；每个命令串行提交。
 4. <code>Close</code> 刷盘并释放资源；行仓储模式还会释放数据库锁。

@@ -52,7 +52,7 @@ function goSearch(): void {
 <template>
   <div class="docs-index">
     <header class="index-hero">
-      <div class="index-hero__badge"><BookOpen :size="14" /> Flowable-go 文档</div>
+      <div class="index-hero__badge"><BookOpen :size="14" /> Flowtide 文档</div>
       <h1>从一个可验证的事实开始</h1>
       <p>50 篇文档围绕同一个问题组织：截至当前提交，这个 Flowable 兼容引擎能做什么、不能做什么、下一步是什么。</p>
       <button type="button" class="index-search" @click="goSearch">

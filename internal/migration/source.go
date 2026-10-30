@@ -9,7 +9,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/flowable-go/flowable/internal/persistence/flowable"
+	"github.com/DengQingNian/Flowtide/internal/persistence/flowable"
 )
 
 // SourceSnapshot 保存同一只读事务取得的源库结构和行数据；行数据不参与报告序列化。

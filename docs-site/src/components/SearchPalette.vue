@@ -112,7 +112,7 @@ onBeforeUnmount(() => {
             <span><kbd>↑</kbd><kbd>↓</kbd> 选择</span>
             <span><CornerDownLeft :size="12" /> 打开</span>
             <span><kbd>Esc</kbd> 关闭</span>
-            <span class="palette-footer__brand">Flowable-go 文档</span>
+            <span class="palette-footer__brand">Flowtide 文档</span>
           </div>
         </div>
       </div>

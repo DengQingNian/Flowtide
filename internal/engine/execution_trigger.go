@@ -3,8 +3,8 @@ package engine
 import (
 	"context"
 
-	"github.com/flowable-go/flowable/api"
-	"github.com/flowable-go/flowable/bpmn/model"
+	"github.com/DengQingNian/Flowtide/api"
+	"github.com/DengQingNian/Flowtide/bpmn/model"
 )
 
 // TriggerExecution 触发等待中的执行（无事件定义的接收任务/中间捕获事件）。

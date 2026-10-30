@@ -6,8 +6,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/flowable-go/flowable/api"
-	"github.com/flowable-go/flowable/bpmn/model"
+	"github.com/DengQingNian/Flowtide/api"
+	"github.com/DengQingNian/Flowtide/bpmn/model"
 )
 
 // buildStarterLinks 根据 BPMN 配置构建候选发起人链接。

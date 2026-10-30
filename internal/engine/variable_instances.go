@@ -5,8 +5,8 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/flowable-go/flowable/api"
-	"github.com/flowable-go/flowable/internal/tenant"
+	"github.com/DengQingNian/Flowtide/api"
+	"github.com/DengQingNian/Flowtide/internal/tenant"
 )
 
 // ListVariableInstances 返回运行时变量实例。

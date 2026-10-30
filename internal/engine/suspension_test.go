@@ -5,8 +5,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/flowable-go/flowable/api"
-	"github.com/flowable-go/flowable/internal/clock"
+	"github.com/DengQingNian/Flowtide/api"
+	"github.com/DengQingNian/Flowtide/internal/clock"
 )
 
 // TestSuspendProcessDefinition 验证定义挂起与激活。

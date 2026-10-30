@@ -9,11 +9,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/flowable-go/flowable/api"
-	"github.com/flowable-go/flowable/internal/engine"
-	flowablerow "github.com/flowable-go/flowable/internal/persistence/flowable"
-	mysqlstore "github.com/flowable-go/flowable/internal/persistence/mysql"
-	"github.com/flowable-go/flowable/internal/persistence/sqlstate"
+	"github.com/DengQingNian/Flowtide/api"
+	"github.com/DengQingNian/Flowtide/internal/engine"
+	flowablerow "github.com/DengQingNian/Flowtide/internal/persistence/flowable"
+	mysqlstore "github.com/DengQingNian/Flowtide/internal/persistence/mysql"
+	"github.com/DengQingNian/Flowtide/internal/persistence/sqlstate"
 )
 
 // TestIntegrationMySQLRows 验证真实外键下部署、模型源码、属性、变量及任务续跑。
@@ -148,7 +148,7 @@ func TestIntegrationMySQLRows(t *testing.T) {
 		t.Fatal(err)
 	}
 	var properties int
-	if err := db.QueryRowContext(ctx, "SELECT COUNT(*) FROM ACT_GE_PROPERTY WHERE NAME_ IN ('schema.version','flowable-go.schema.checksum')").Scan(&properties); err != nil || properties != 2 {
+	if err := db.QueryRowContext(ctx, "SELECT COUNT(*) FROM ACT_GE_PROPERTY WHERE NAME_ IN ('schema.version','flowtide.schema.checksum')").Scan(&properties); err != nil || properties != 2 {
 		t.Fatalf("系统属性被修改或删除: %d %v", properties, err)
 	}
 	t.Log("真实外键、连续更新、属性及字节变量恢复、任务完成和删除验证通过")
@@ -249,7 +249,7 @@ func TestIntegrationMySQLRowsServiceMode(t *testing.T) {
 		t.Fatal(err)
 	}
 	// 模拟数据库曾被快照模式使用，行模式必须拒绝启动而不是静默混用。
-	if _, err := reopened.ExecContext(ctx, "INSERT INTO ACT_GE_BYTEARRAY (ID_, REV_, NAME_, BYTES_, GENERATED_) VALUES (?, ?, ?, ?, ?)", "flowable-go-state", 1, "flowable-go-state", []byte("旧快照"), false); err != nil {
+	if _, err := reopened.ExecContext(ctx, "INSERT INTO ACT_GE_BYTEARRAY (ID_, REV_, NAME_, BYTES_, GENERATED_) VALUES (?, ?, ?, ?, ?)", "flowtide-state", 1, "flowtide-state", []byte("旧快照"), false); err != nil {
 		t.Fatal(err)
 	}
 	if err := mysqlstore.CheckNoSnapshot(ctx, reopened); err == nil {

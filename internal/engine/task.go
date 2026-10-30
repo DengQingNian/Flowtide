@@ -6,10 +6,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/flowable-go/flowable/api"
-	"github.com/flowable-go/flowable/bpmn/model"
-	"github.com/flowable-go/flowable/internal/expr"
-	flowablerow "github.com/flowable-go/flowable/internal/persistence/flowable"
+	"github.com/DengQingNian/Flowtide/api"
+	"github.com/DengQingNian/Flowtide/bpmn/model"
+	"github.com/DengQingNian/Flowtide/internal/expr"
+	flowablerow "github.com/DengQingNian/Flowtide/internal/persistence/flowable"
 )
 
 // createUserTask 创建用户任务并让执行进入等待。

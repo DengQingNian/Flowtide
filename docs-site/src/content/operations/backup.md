@@ -29,16 +29,16 @@ tags: [运维, 备份, 恢复, 校验]
 <code>-verify-state</code> 在隔离内存引擎中按服务相同入口恢复文件，输出计数与摘要，不修改状态文件：
 
 ~~~bash
-./bin/flowable-migrate -verify-state -state prepared-state.json
-./bin/flowable-migrate -verify-state -state prepared-state.json -out verify-report.json
-./bin/flowable-migrate -verify-state -state prepared-state.json -timeout 30s
+./bin/flowtide-migrate -verify-state -state prepared-state.json
+./bin/flowtide-migrate -verify-state -state prepared-state.json -out verify-report.json
+./bin/flowtide-migrate -verify-state -state prepared-state.json -timeout 30s
 ~~~
 
 报告字段：
 
 | 字段 | 含义 |
 | --- | --- |
-| <code>format</code> | 固定 <code>flowable-go-state</code> |
+| <code>format</code> | 固定 <code>flowtide-state</code> |
 | <code>version</code> | 状态格式版本 |
 | <code>bytes</code> / <code>sha256</code> | 文件字节数与摘要 |
 | <code>deployments</code> / <code>definitions</code> | 部署与定义数量 |
@@ -58,7 +58,7 @@ tags: [运维, 备份, 恢复, 校验]
 ## 源库与准备状态核对
 
 ~~~bash
-./bin/flowable-migrate -verify-state -verify-source -dialect postgres -env .env -state prepared-state.json -out reconcile.json
+./bin/flowtide-migrate -verify-state -verify-source -dialect postgres -env .env -state prepared-state.json -out reconcile.json
 ~~~
 
 在源库停写时只读扫描，重新执行正式转换，再比较规范行投影的逐表行数和内容指纹。状态 SHA-256 绑定被检查文件；相同数量但变量值不同也返回差异。退出码为 0 一致、2 差异、1 操作失败；报告不含业务值且不覆盖已有文件。

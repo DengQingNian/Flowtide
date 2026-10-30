@@ -14,7 +14,7 @@ import (
 // @param namespace 数据库名称
 // @return 锁名称
 func LockName(namespace string) string {
-	return fmt.Sprintf("flowable-go:%x", sha256.Sum256([]byte(namespace)))[:64]
+	return fmt.Sprintf("flowtide:%x", sha256.Sum256([]byte(namespace)))[:64]
 }
 
 // exclusiveMySQLDB 将快照与 MySQL 会话独占锁绑定到同一物理连接。

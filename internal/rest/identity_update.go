@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/flowable-go/flowable/api"
+	"github.com/DengQingNian/Flowtide/api"
 )
 
 // readIdentityPatch 解析单个身份更新对象并保留字段是否出现，显式 null 与缺省不同。

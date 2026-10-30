@@ -1,4 +1,4 @@
-module github.com/flowable-go/flowable
+module github.com/DengQingNian/Flowtide
 
 go 1.27
 

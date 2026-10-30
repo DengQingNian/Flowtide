@@ -1,7 +1,7 @@
 package engine
 
 import (
-	"github.com/flowable-go/flowable/bpmn/model"
+	"github.com/DengQingNian/Flowtide/bpmn/model"
 )
 
 // scheduleEventSubProcesses 为作用域内的事件子流程创建启动订阅。

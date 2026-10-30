@@ -4,8 +4,8 @@ import (
 	"context"
 	"sort"
 
-	"github.com/flowable-go/flowable/api"
-	flowablerow "github.com/flowable-go/flowable/internal/persistence/flowable"
+	"github.com/DengQingNian/Flowtide/api"
+	flowablerow "github.com/DengQingNian/Flowtide/internal/persistence/flowable"
 )
 
 // QueryProcessInstances 按条件分页查询运行中实例。

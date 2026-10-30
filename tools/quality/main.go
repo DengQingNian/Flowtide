@@ -7,7 +7,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/flowable-go/flowable/internal/quality"
+	"github.com/DengQingNian/Flowtide/internal/quality"
 )
 
 // main 检查覆盖率，失败时以非零状态退出。

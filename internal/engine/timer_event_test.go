@@ -5,8 +5,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/flowable-go/flowable/api"
-	"github.com/flowable-go/flowable/internal/clock"
+	"github.com/DengQingNian/Flowtide/api"
+	"github.com/DengQingNian/Flowtide/internal/clock"
 )
 
 const timerStartXML = `<?xml version="1.0" encoding="UTF-8"?>

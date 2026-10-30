@@ -12,7 +12,7 @@ tags: [架构, 分层, 模块]
 
 ~~~text
 ┌──────────────────────────────────────────────┐
-│ cmd/flowable-server · cmd/flowable-migrate   │
+│ cmd/flowtide-server · cmd/flowtide-migrate   │
 ├──────────────────────────────────────────────┤
 │ internal/rest        HTTP 路由、认证、指标   │
 ├──────────────────────────────────────────────┤

@@ -4,8 +4,8 @@ import (
 	"context"
 	"sort"
 
-	"github.com/flowable-go/flowable/api"
-	"github.com/flowable-go/flowable/internal/tenant"
+	"github.com/DengQingNian/Flowtide/api"
+	"github.com/DengQingNian/Flowtide/internal/tenant"
 )
 
 // ListEventSubscriptions 返回事件订阅。

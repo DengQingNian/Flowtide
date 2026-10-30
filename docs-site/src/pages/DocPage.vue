@@ -79,7 +79,7 @@ onMounted(scrollToHash)
       <div class="doc-meta">
         <span><CalendarClock :size="14" /> 基于提交 <code>{{ page.verifiedCommit }}</code></span>
         <span v-if="page.tags.length"><Tag :size="14" /> {{ page.tags.join(' · ') }}</span>
-        <a :href="`https://git.dengqn.com/dqn/flowable-engine-go/src/branch/master/${page.sourcePath}`" target="_blank" rel="noopener">
+        <a :href="`https://github.com/DengQingNian/Flowtide/src/branch/master/${page.sourcePath}`" target="_blank" rel="noopener">
           <ExternalLink :size="14" /> 在仓库查看
         </a>
       </div>

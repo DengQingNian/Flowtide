@@ -5,7 +5,7 @@ import (
 	"math"
 	"strconv"
 
-	"github.com/flowable-go/flowable/internal/persistence/flowable"
+	"github.com/DengQingNian/Flowtide/internal/persistence/flowable"
 )
 
 // checkExecution 校验简单执行树的根、父链、定义和复杂状态。

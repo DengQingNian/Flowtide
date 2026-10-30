@@ -3,7 +3,7 @@ package xml
 import (
 	"testing"
 
-	"github.com/flowable-go/flowable/bpmn/model"
+	"github.com/DengQingNian/Flowtide/bpmn/model"
 )
 
 // TestParse_Compensation 验证补偿边界与处理器绑定。

@@ -8,8 +8,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/flowable-go/flowable/api"
-	statestore "github.com/flowable-go/flowable/internal/persistence/state"
+	"github.com/DengQingNian/Flowtide/api"
+	statestore "github.com/DengQingNian/Flowtide/internal/persistence/state"
 )
 
 // TestSnapshotTypedValueCorruption 验证损坏的类型、标量范围及容器形状不能隐式恢复。

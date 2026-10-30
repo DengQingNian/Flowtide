@@ -49,13 +49,13 @@ checksum, err := schema.Checksum("postgres")
 
 ~~~bash
 # 输出 MySQL DDL
-go run ./cmd/flowable-migrate -dialect mysql
+go run ./cmd/flowtide-migrate -dialect mysql
 
 # 写入文件
-go run ./cmd/flowable-migrate -dialect postgres -out schema.sql
+go run ./cmd/flowtide-migrate -dialect postgres -out schema.sql
 
 # 仅列出表
-go run ./cmd/flowable-migrate -dialect mysql -tables
+go run ./cmd/flowtide-migrate -dialect mysql -tables
 ~~~
 
 ## 5. 与运行时的关系

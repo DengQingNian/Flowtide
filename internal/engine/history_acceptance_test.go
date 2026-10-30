@@ -5,8 +5,8 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/flowable-go/flowable/api"
-	"github.com/flowable-go/flowable/internal/tenant"
+	"github.com/DengQingNian/Flowtide/api"
+	"github.com/DengQingNian/Flowtide/internal/tenant"
 )
 
 // TestHistoryLevelAcceptance 验证六级历史的流程、活动、任务、变量与明细写入矩阵。

@@ -5,8 +5,8 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/flowable-go/flowable/api"
-	"github.com/flowable-go/flowable/internal/tenant"
+	"github.com/DengQingNian/Flowtide/api"
+	"github.com/DengQingNian/Flowtide/internal/tenant"
 )
 
 const starterProcess = `<?xml version="1.0" encoding="UTF-8"?>

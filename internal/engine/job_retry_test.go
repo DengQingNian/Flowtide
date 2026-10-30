@@ -6,8 +6,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/flowable-go/flowable/api"
-	"github.com/flowable-go/flowable/internal/clock"
+	"github.com/DengQingNian/Flowtide/api"
+	"github.com/DengQingNian/Flowtide/internal/clock"
 )
 
 // TestJobRetry_DeadLetter 验证作业重试与死信恢复。

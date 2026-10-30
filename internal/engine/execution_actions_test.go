@@ -5,7 +5,7 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/flowable-go/flowable/api"
+	"github.com/DengQingNian/Flowtide/api"
 )
 
 // TestMessageEventReceivedForExecution 验证定向消息投递。

@@ -8,9 +8,9 @@ import (
 	"fmt"
 	"sort"
 
-	"github.com/flowable-go/flowable/internal/engine"
-	"github.com/flowable-go/flowable/internal/persistence/flowable"
-	statestore "github.com/flowable-go/flowable/internal/persistence/state"
+	"github.com/DengQingNian/Flowtide/internal/engine"
+	"github.com/DengQingNian/Flowtide/internal/persistence/flowable"
+	statestore "github.com/DengQingNian/Flowtide/internal/persistence/state"
 )
 
 // StateTableComparison 表示源库预期转换结果和待接管状态的逐表核对。

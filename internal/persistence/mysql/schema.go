@@ -7,10 +7,10 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/flowable-go/flowable/internal/persistence/schema"
+	"github.com/DengQingNian/Flowtide/internal/persistence/schema"
 )
 
-const checksumKey = "flowable-go.schema.checksum" // 完整初始化标记
+const checksumKey = "flowtide.schema.checksum" // 完整初始化标记
 
 // EnsureSchema 校验已有 Schema，或在显式允许时初始化尚无引擎表的数据库。
 // @param ctx 操作上下文
@@ -37,7 +37,7 @@ func EnsureSchema(ctx context.Context, db *sql.DB, initialize bool) error {
 		return checkVersion(ctx, db, checksum)
 	}
 	if !initialize {
-		return errors.New("MySQL Schema 尚未初始化，请执行 flowable-migrate -dialect mysql -apply")
+		return errors.New("MySQL Schema 尚未初始化，请执行 flowtide-migrate -dialect mysql -apply")
 	}
 	ddl, _ := schema.Load("mysql")
 	// MySQL DDL 隐式提交；最后写入完成标记，失败后再次启动会拒绝接管部分 Schema。

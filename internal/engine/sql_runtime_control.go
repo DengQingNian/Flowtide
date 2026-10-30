@@ -5,8 +5,8 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/flowable-go/flowable/api"
-	flowablerow "github.com/flowable-go/flowable/internal/persistence/flowable"
+	"github.com/DengQingNian/Flowtide/api"
+	flowablerow "github.com/DengQingNian/Flowtide/internal/persistence/flowable"
 )
 
 // runtimeControl 保存 ACT 标准列无法表达的 Go 续跑控制信息；不宣称 Java 可读。
@@ -69,7 +69,7 @@ func (e *Engine) runtimeControlRows() ([]flowablerow.Row, error) {
 			return nil, err
 		}
 		row, _ := runtimeRow("ACT_GE_BYTEARRAY", []string{"ID_", "REV_", "NAME_", "DEPLOYMENT_ID_", "BYTES_"})
-		name := "flowable-go-control/" + instance.ID
+		name := "flowtide-control/" + instance.ID
 		_ = row.Set("ID_", byteArrayID("", name))
 		_ = row.Set("REV_", 1)
 		_ = row.Set("NAME_", name)
@@ -92,12 +92,12 @@ func decodeRuntimeControls(rows []flowablerow.Row) ([]runtimeControl, error) {
 			continue
 		}
 		name, _ := row.Values["NAME_"].(string)
-		if !strings.HasPrefix(name, "flowable-go-control/") {
+		if !strings.HasPrefix(name, "flowtide-control/") {
 			continue
 		}
 		data, ok := row.Values["BYTES_"].([]byte)
 		var control runtimeControl
-		if !ok || json.Unmarshal(data, &control) != nil || control.Version != 1 || control.Instance == nil || name != "flowable-go-control/"+control.Instance.ID {
+		if !ok || json.Unmarshal(data, &control) != nil || control.Version != 1 || control.Instance == nil || name != "flowtide-control/"+control.Instance.ID {
 			return nil, api.NewError("ENGINE-0920", "续跑扩展无效或版本不支持", api.ErrBadRequest)
 		}
 		controls = append(controls, control)

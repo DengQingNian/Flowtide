@@ -51,16 +51,16 @@ tags: [迁移, Java, 决策树]
 
 ~~~bash
 # 1. 只读预检；存在阻断时退出码 2
-./bin/flowable-migrate -preflight -dialect mysql -env .env -out preflight.json
+./bin/flowtide-migrate -preflight -dialect mysql -env .env -out preflight.json
 
 # 2. 预检无阻断后，准备离线状态文件
-./bin/flowable-migrate -convert -dialect mysql -env .env -out prepared-state.json
+./bin/flowtide-migrate -convert -dialect mysql -env .env -out prepared-state.json
 
 # 3. 在隔离内存引擎中恢复校验
-./bin/flowable-migrate -verify-state -state prepared-state.json -out verify-report.json
+./bin/flowtide-migrate -verify-state -state prepared-state.json -out verify-report.json
 
 # 4. 停写窗口内做静默检查
-./bin/flowable-migrate -cutover-check -dialect mysql -env .env -quiesce-window 30s -out cutover.json
+./bin/flowtide-migrate -cutover-check -dialect mysql -env .env -quiesce-window 30s -out cutover.json
 ~~~
 
 ## 人工控制点

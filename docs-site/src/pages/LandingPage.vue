@@ -110,13 +110,13 @@ curl -sS -X POST 'localhost:8080/service/runtime/process-instances' \\
   -d '{"processDefinitionKey":"helloWorld","variables":[{"name":"initiator","value":"alice"}]}'
 
 curl -sS 'localhost:8080/service/runtime/tasks?assignee=alice'`,
-  go: `app, err := flowable.New(flowable.Config{StatePath: "./data/engine.json"})
+  go: `app, err := flowtide.New(flowtide.Config{StatePath: "./data/engine.json"})
 if err != nil {
     log.Fatal(err)
 }
 defer app.Close(ctx)
 
-app.RegisterDelegate("notify", func(ctx context.Context, exec *flowable.Execution) error {
+app.RegisterDelegate("notify", func(ctx context.Context, exec *flowtide.Execution) error {
     exec.SetVariable("preparedBy", "system")
     return nil
 })
@@ -126,13 +126,13 @@ pi, err := app.RuntimeService().StartProcessInstance(ctx, api.StartRequest{
     Variables: []api.Variable{{Name: "initiator", Value: "alice"}},
 })`,
   mysql: `# 初始化 Schema（重复执行会校验版本）
-go run ./cmd/flowable-migrate -dialect mysql -apply -env .env
+go run ./cmd/flowtide-migrate -dialect mysql -apply -env .env
 
 # 行仓储模式：单执行者独占锁
-go run ./cmd/flowable-server -storage mysql-rows -env .env
+go run ./cmd/flowtide-server -storage mysql-rows -env .env
 
 # 既有 Java 库只读预检
-./bin/flowable-migrate -preflight -dialect mysql -env .env -out preflight.json`,
+./bin/flowtide-migrate -preflight -dialect mysql -env .env -out preflight.json`,
 }
 
 // copySnippet 复制示例代码。
@@ -177,7 +177,7 @@ async function copySnippet(): Promise<void> {
           </div>
           <div class="hero__install">
             <span class="prompt">$</span>
-            <code>HOME=/root make build && ./bin/flowable-server -addr :8080</code>
+            <code>HOME=/root make build && ./bin/flowtide-server -addr :8080</code>
             <span class="hero__install-note">Go 1.27+</span>
           </div>
         </div>
@@ -188,13 +188,13 @@ async function copySnippet(): Promise<void> {
               <span class="terminal__dot" />
               <span class="terminal__dot" />
               <span class="terminal__dot" />
-              <span class="terminal__title">flowable-go · 当前提交</span>
+              <span class="terminal__title">flowtide · 当前提交</span>
             </div>
             <div class="terminal__body">
               <div class="terminal__line"><span class="prompt">$</span> curl -sS localhost:8080/healthz</div>
               <div class="terminal__out">{&quot;status&quot;:&quot;UP&quot;}</div>
               <div class="terminal__line"><span class="prompt">$</span> curl -sS localhost:8080/service/management/engine</div>
-              <div class="terminal__out">{&quot;name&quot;:&quot;flowable-go&quot;,&quot;version&quot;:&quot;{{ facts.version }}&quot;,&quot;historyLevel&quot;:&quot;audit&quot;}</div>
+              <div class="terminal__out">{&quot;name&quot;:&quot;flowtide&quot;,&quot;version&quot;:&quot;{{ facts.version }}&quot;,&quot;historyLevel&quot;:&quot;audit&quot;}</div>
               <div class="terminal__line terminal__line--muted"># 41 张 ACT 表 / 双库验收 / 单执行者</div>
               <div class="terminal__line"><span class="prompt">$</span> curl -sS localhost:8080/metrics</div>
               <div class="terminal__out">flowable_http_requests_total{...} ...</div>
@@ -298,7 +298,7 @@ async function copySnippet(): Promise<void> {
         </div>
         <div class="arch-arrow">↓</div>
         <div class="arch-row">
-          <span>接入层</span><span><code>cmd/flowable-server</code> · REST · 认证 · 指标</span>
+          <span>接入层</span><span><code>cmd/flowtide-server</code> · REST · 认证 · 指标</span>
         </div>
         <div class="arch-arrow">↓</div>
         <div class="arch-row">

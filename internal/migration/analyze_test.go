@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/flowable-go/flowable/internal/persistence/flowable"
+	"github.com/DengQingNian/Flowtide/internal/persistence/flowable"
 )
 
 // TestAnalyzeSimpleSource 验证简单等待实例的统计、基线和只读性。

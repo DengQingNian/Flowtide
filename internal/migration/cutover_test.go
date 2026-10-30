@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/DATA-DOG/go-sqlmock"
-	"github.com/flowable-go/flowable/internal/persistence/flowable"
+	"github.com/DengQingNian/Flowtide/internal/persistence/flowable"
 )
 
 // fingerprintValue 返回单列单值行的内容指纹，便于比较值编码差异。

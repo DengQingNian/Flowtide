@@ -3,9 +3,9 @@ package engine
 import (
 	"context"
 
-	"github.com/flowable-go/flowable/api"
-	bpmnxml "github.com/flowable-go/flowable/internal/bpmn/xml"
-	flowablerow "github.com/flowable-go/flowable/internal/persistence/flowable"
+	"github.com/DengQingNian/Flowtide/api"
+	bpmnxml "github.com/DengQingNian/Flowtide/internal/bpmn/xml"
+	flowablerow "github.com/DengQingNian/Flowtide/internal/persistence/flowable"
 )
 
 // ImportRows 从 ACT 行恢复部署与流程定义。

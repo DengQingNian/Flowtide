@@ -11,7 +11,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/flowable-go/flowable/internal/migration"
+	"github.com/DengQingNian/Flowtide/internal/migration"
 )
 
 // verifyStateReport 返回固定字段的恢复校验报告，供 CLI 输出断言使用。
@@ -197,7 +197,7 @@ func TestRunVerifyStateOutput(t *testing.T) {
 		t.Fatalf("报告权限错误: %v %v", info, err)
 	}
 	content, err := os.ReadFile(newPath)
-	if err != nil || !strings.Contains(string(content), `"format": "flowable-go-state"`) || !strings.Contains(string(content), `"deployments": 2`) {
+	if err != nil || !strings.Contains(string(content), `"format": "flowtide-state"`) || !strings.Contains(string(content), `"deployments": 2`) {
 		t.Fatalf("报告内容错误: %s %v", content, err)
 	}
 	var report migration.StateReport

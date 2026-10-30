@@ -5,7 +5,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/flowable-go/flowable/internal/engine"
+	"github.com/DengQingNian/Flowtide/internal/engine"
 )
 
 // TestAuditAuthenticatedIdentity 验证审计记录可信身份与绑定租户，失败凭据不能冒充用户。

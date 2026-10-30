@@ -32,11 +32,11 @@ tags: [运维, 存储, 容量, MySQL]
 | <code>-tenant</code> | 默认租户 |
 
 ~~~bash
-./bin/flowable-server -storage mysql-rows -env .env -jobs-interval 1s
+./bin/flowtide-server -storage mysql-rows -env .env -jobs-interval 1s
 
 # PostgreSQL 先显式初始化，服务启动只做版本与完整性校验
-./bin/flowable-migrate -dialect postgres -env .env -apply
-./bin/flowable-server -storage postgres-rows -env .env -jobs-interval 1s
+./bin/flowtide-migrate -dialect postgres -env .env -apply
+./bin/flowtide-server -storage postgres-rows -env .env -jobs-interval 1s
 ~~~
 
 行仓储与快照互斥；同时配置 <code>-state</code> 与数据库模式会被拒绝。

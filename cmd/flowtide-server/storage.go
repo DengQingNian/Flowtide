@@ -7,11 +7,11 @@ import (
 	"fmt"
 	"sync"
 
-	flowablerow "github.com/flowable-go/flowable/internal/persistence/flowable"
-	mysqlstore "github.com/flowable-go/flowable/internal/persistence/mysql"
-	pgstore "github.com/flowable-go/flowable/internal/persistence/postgres"
-	"github.com/flowable-go/flowable/internal/persistence/sqlstate"
-	statestore "github.com/flowable-go/flowable/internal/persistence/state"
+	flowablerow "github.com/DengQingNian/Flowtide/internal/persistence/flowable"
+	mysqlstore "github.com/DengQingNian/Flowtide/internal/persistence/mysql"
+	pgstore "github.com/DengQingNian/Flowtide/internal/persistence/postgres"
+	"github.com/DengQingNian/Flowtide/internal/persistence/sqlstate"
+	statestore "github.com/DengQingNian/Flowtide/internal/persistence/state"
 )
 
 // storageSetup 是启动参数解析后的存储初始化结果。
@@ -132,7 +132,7 @@ func newPostgresRowStorage(ctx context.Context, db *sql.DB) (*storageSetup, erro
 		return nil, err
 	}
 	cleanup := func() error { return errors.Join(locked.Release(), db.Close()) }
-	rows, err := locked.QueryContext(ctx, "SELECT COUNT(*) FROM ACT_GE_BYTEARRAY WHERE NAME_ = $1", "flowable-go-state")
+	rows, err := locked.QueryContext(ctx, "SELECT COUNT(*) FROM ACT_GE_BYTEARRAY WHERE NAME_ = $1", "flowtide-state")
 	if err != nil {
 		return nil, errors.Join(err, cleanup())
 	}

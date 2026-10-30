@@ -7,7 +7,7 @@ import (
 	"net/url"
 	"os"
 
-	"github.com/flowable-go/flowable/internal/rest"
+	"github.com/DengQingNian/Flowtide/internal/rest"
 )
 
 // securityConfig 是标准二进制可加载的认证及可观测配置，配置内容可能含密钥，禁止打印。

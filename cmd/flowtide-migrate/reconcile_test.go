@@ -9,7 +9,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/flowable-go/flowable/internal/migration"
+	"github.com/DengQingNian/Flowtide/internal/migration"
 )
 
 // TestRunVerifySource 验证源库核对的参数、差异退出码及报告不覆盖约束。

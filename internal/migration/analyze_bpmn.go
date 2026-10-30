@@ -4,8 +4,8 @@ import (
 	"bytes"
 	"strings"
 
-	bpmnxml "github.com/flowable-go/flowable/internal/bpmn/xml"
-	"github.com/flowable-go/flowable/internal/persistence/flowable"
+	bpmnxml "github.com/DengQingNian/Flowtide/internal/bpmn/xml"
+	"github.com/DengQingNian/Flowtide/internal/persistence/flowable"
 )
 
 // checkDefinition 检查定义部署、资源及 BPMN 中需要 Go 映射的 Java 扩展。

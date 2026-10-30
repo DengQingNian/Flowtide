@@ -4,9 +4,9 @@ import (
 	"context"
 	"testing"
 
-	"github.com/flowable-go/flowable/internal/tenant"
+	"github.com/DengQingNian/Flowtide/internal/tenant"
 
-	"github.com/flowable-go/flowable/api"
+	"github.com/DengQingNian/Flowtide/api"
 )
 
 // TestExecutionQueries 验证执行查询。

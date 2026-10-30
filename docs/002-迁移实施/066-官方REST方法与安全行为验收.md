@@ -27,7 +27,7 @@
 ## 标准服务安全配置
 
 ```bash
-./bin/flowable-server -security-config /受限目录/security.json
+./bin/flowtide-server -security-config /受限目录/security.json
 ```
 
 配置示例（示例密码仅供本地验收）：
@@ -51,6 +51,6 @@ mTLS 证书经 TLS 验证后，CN 可使用 `userRoles` 显式映射角色。O/O
 
 ```bash
 go test ./internal/rest -run 'TestOfficialMethodAcceptance|TestJSONRequestBoundary|TestJavaReferenceHTTPPlayback|TestClientCertificateIdentityRBAC' -count=1
-go test ./cmd/flowable-server -run TestSecurityConfig -count=1
+go test ./cmd/flowtide-server -run TestSecurityConfig -count=1
 make check
 ```

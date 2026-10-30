@@ -13,7 +13,7 @@ tags: [SDK, 委托, 监听器]
 <code>serviceTask</code> 通过 <code>flowable:delegateExpression</code> 或委托名绑定到 Go 函数。注册发生在引擎实例上：
 
 ~~~go
-app.RegisterDelegate("notify", func(ctx context.Context, execution *flowable.Execution) error {
+app.RegisterDelegate("notify", func(ctx context.Context, execution *flowtide.Execution) error {
 	orderID, ok := execution.GetVariable("orderId")
 	if !ok {
 		return errors.New("缺少 orderId")
@@ -72,7 +72,7 @@ app.TaskService().RegisterTaskListener("auditTask", func(ctx context.Context, ta
 | --- | --- |
 | 实现 <code>JavaDelegate</code> 类 | 注册 <code>func(context.Context, *Execution) error</code> |
 | 类加载与 Spring 注入 | 进程内函数，依赖需闭包捕获 |
-| <code>DelegateExecution</code> | <code>*flowable.Execution</code> |
+| <code>DelegateExecution</code> | <code>*flowtide.Execution</code> |
 | 任务监听器类 | <code>func(context.Context, *api.Task) error</code> |
 | 表达式实例化 | 仅按注册名查找 |
 

@@ -116,4 +116,4 @@ normalizeRoutePath 只按完整路径段处理：
 5. reschedule 的 date 别名是兼容扩展；官方 Java 请求字段为 dueDate。
 6. 部署资源名只支持 URL 编码斜杠形式；未编码斜杠按官方语义 404。
 7. 作业桶依赖内存状态中的流程实例挂起标记；跨重启快照恢复后语义一致，但并发挂起/删除竞态未做额外隔离。
-8. 未修改 cmd/flowable-server 与 internal/engine/dmn*。
+8. 未修改 cmd/flowtide-server 与 internal/engine/dmn*。

@@ -7,10 +7,10 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/flowable-go/flowable/internal/persistence/schema"
+	"github.com/DengQingNian/Flowtide/internal/persistence/schema"
 )
 
-const checksumKey = "flowable-go.schema.checksum" // 完整初始化标记
+const checksumKey = "flowtide.schema.checksum" // 完整初始化标记
 
 // EnsureSchema 校验已有 Schema，或在显式允许时初始化尚无引擎表的数据库。
 // @param ctx 操作上下文
@@ -41,7 +41,7 @@ func EnsureSchema(ctx context.Context, db *sql.DB, initialize bool) error {
 		return checkVersion(ctx, db, checksum)
 	}
 	if !initialize {
-		return errors.New("PostgreSQL Schema 尚未初始化，请执行 flowable-migrate -dialect postgres -apply")
+		return errors.New("PostgreSQL Schema 尚未初始化，请执行 flowtide-migrate -dialect postgres -apply")
 	}
 	ddl, _ := schema.Load("postgres")
 	// PostgreSQL 建表与完成标记在同一事务提交，任何失败均回滚。

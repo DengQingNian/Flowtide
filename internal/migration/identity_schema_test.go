@@ -3,7 +3,7 @@ package migration
 import (
 	"testing"
 
-	"github.com/flowable-go/flowable/internal/persistence/schema"
+	"github.com/DengQingNian/Flowtide/internal/persistence/schema"
 )
 
 // TestIdentitySchemaMetadata 验证官方身份版本标记可预检，但未知标记、缺失行和版本冲突仍阻断。

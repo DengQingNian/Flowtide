@@ -67,9 +67,9 @@ tags: [概念, BPMN, 执行树]
 
 | Java 概念 | Go 对应 | 差异 |
 | --- | --- | --- |
-| ProcessEngine | <code>flowable.Engine</code> | 单进程构造，无 Spring |
+| ProcessEngine | <code>flowtide.Engine</code> | 单进程构造，无 Spring |
 | RuntimeService | <code>api.RuntimeService</code> | 方法子集，参数使用 Go 结构体 |
-| JavaDelegate | <code>flowable.Delegate</code> | 进程内函数注册，无类加载 |
+| JavaDelegate | <code>flowtide.Delegate</code> | 进程内函数注册，无类加载 |
 | ACT_* Schema | 相同表名与主要列 | 部分语义与写入时机待对照 |
 | REST /service | 相同前缀与主要路径 | 响应模式待逐项验收 |
 

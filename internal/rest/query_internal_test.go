@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/flowable-go/flowable/api"
+	"github.com/DengQingNian/Flowtide/api"
 )
 
 // mustQueryBody 解析查询体，失败时终止测试。

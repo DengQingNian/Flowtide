@@ -7,8 +7,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/flowable-go/flowable/api"
-	"github.com/flowable-go/flowable/internal/engine"
+	"github.com/DengQingNian/Flowtide/api"
+	"github.com/DengQingNian/Flowtide/internal/engine"
 )
 
 // TestAsyncVariablesRESTContract 验证官方异步变量状态码、延迟生效、冲突、单对象及整数精度。

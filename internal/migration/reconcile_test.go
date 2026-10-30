@@ -6,9 +6,9 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/flowable-go/flowable/internal/engine"
-	statestore "github.com/flowable-go/flowable/internal/persistence/state"
-	"github.com/flowable-go/flowable/internal/tenant"
+	"github.com/DengQingNian/Flowtide/internal/engine"
+	statestore "github.com/DengQingNian/Flowtide/internal/persistence/state"
+	"github.com/DengQingNian/Flowtide/internal/tenant"
 )
 
 // TestReconcileState 验证源快照与准备状态逐表核对，等量改值也必须发现。

@@ -6,9 +6,9 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/flowable-go/flowable/api"
-	"github.com/flowable-go/flowable/bpmn/model"
-	bpmnxml "github.com/flowable-go/flowable/internal/bpmn/xml"
+	"github.com/DengQingNian/Flowtide/api"
+	"github.com/DengQingNian/Flowtide/bpmn/model"
+	bpmnxml "github.com/DengQingNian/Flowtide/internal/bpmn/xml"
 )
 
 // Point 是二维坐标。

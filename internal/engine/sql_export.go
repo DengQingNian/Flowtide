@@ -6,7 +6,7 @@ import (
 	"encoding/hex"
 	"sort"
 
-	flowablerow "github.com/flowable-go/flowable/internal/persistence/flowable"
+	flowablerow "github.com/DengQingNian/Flowtide/internal/persistence/flowable"
 )
 
 // ExportRows 导出部署、流程定义与字节数组行，供按表仓储写入。

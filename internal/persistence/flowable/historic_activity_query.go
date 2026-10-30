@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/flowable-go/flowable/api"
+	"github.com/DengQingNian/Flowtide/api"
 )
 
 // HistoricActivityInstanceQuery 是历史活动查询条件。

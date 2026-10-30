@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/flowable-go/flowable/api"
+	"github.com/DengQingNian/Flowtide/api"
 )
 
 // snapshotTypedValues 在业务对象之外记录变量类型，避免业务 JSON 与内部标记混淆。

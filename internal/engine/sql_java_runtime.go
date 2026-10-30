@@ -1,8 +1,8 @@
 package engine
 
 import (
-	"github.com/flowable-go/flowable/api"
-	flowablerow "github.com/flowable-go/flowable/internal/persistence/flowable"
+	"github.com/DengQingNian/Flowtide/api"
+	flowablerow "github.com/DengQingNian/Flowtide/internal/persistence/flowable"
 )
 
 // restoreJavaExecutionTree 补齐无 Go 扩展的简单 Java 根子执行完成计数。

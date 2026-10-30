@@ -39,7 +39,7 @@ func newTestCA(t *testing.T) *testCA {
 	}
 	template := &x509.Certificate{
 		SerialNumber:          newTestSerial(t),
-		Subject:               pkix.Name{CommonName: "flowable-go-test-ca"},
+		Subject:               pkix.Name{CommonName: "flowtide-test-ca"},
 		NotBefore:             time.Now().Add(-time.Hour),
 		NotAfter:              time.Now().Add(time.Hour),
 		IsCA:                  true,
@@ -252,7 +252,7 @@ func TestMTLSHandshake(t *testing.T) {
 	dir := t.TempDir()
 	ca := newTestCA(t)
 	caFile := writeTestFile(t, dir, "ca.pem", ca.pem)
-	serverCert, _ := issueTestCert(t, ca, "flowable-server", true)
+	serverCert, _ := issueTestCert(t, ca, "flowtide-server", true)
 	clientCert, _ := issueTestCert(t, ca, "flowable-client", false)
 	untrustedCA := newTestCA(t)
 	untrustedCert, _ := issueTestCert(t, untrustedCA, "untrusted-client", false)

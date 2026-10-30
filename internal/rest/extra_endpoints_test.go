@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/flowable-go/flowable/api"
+	"github.com/DengQingNian/Flowtide/api"
 )
 
 const restMessageCatchXML = `<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:flowable="http://flowable.org/bpmn"><message id="m" name="approvedMessage"/><process id="msgCatch" isExecutable="true"><startEvent id="s"/><sequenceFlow id="f1" sourceRef="s" targetRef="wait"/><intermediateCatchEvent id="wait"><messageEventDefinition messageRef="m"/></intermediateCatchEvent><sequenceFlow id="f2" sourceRef="wait" targetRef="e"/><endEvent id="e"/></process></definitions>`

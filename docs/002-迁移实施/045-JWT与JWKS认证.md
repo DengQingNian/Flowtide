@@ -41,8 +41,8 @@ server := rest.New(engine,
         TenantClaim: "tenant_id",
     }),
     rest.WithRBAC(nil, map[string][]string{
-        "flowable-read":  {"read"},
-        "flowable-write": {"write"},
+        "flowtide-read":  {"read"},
+        "flowtide-write": {"write"},
         "flowable-admin": {"admin"},
     }),
 )

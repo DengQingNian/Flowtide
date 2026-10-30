@@ -11,7 +11,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/flowable-go/flowable/internal/migration"
+	"github.com/DengQingNian/Flowtide/internal/migration"
 )
 
 // TestRunPreflight 验证只读预检输出、退出码及显式默认租户。

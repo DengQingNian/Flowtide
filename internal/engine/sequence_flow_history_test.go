@@ -4,8 +4,8 @@ import (
 	"context"
 	"testing"
 
-	"github.com/flowable-go/flowable/api"
-	statestore "github.com/flowable-go/flowable/internal/persistence/state"
+	"github.com/DengQingNian/Flowtide/api"
+	statestore "github.com/DengQingNian/Flowtide/internal/persistence/state"
 )
 
 // TestMigrationSequenceFlowHistory 验证 Java 迁移续跑模式补记顺序流且普通实例保持原行为。

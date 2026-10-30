@@ -6,11 +6,11 @@ import (
 	"sync"
 	"time"
 
-	"github.com/flowable-go/flowable/api"
-	"github.com/flowable-go/flowable/internal/clock"
-	"github.com/flowable-go/flowable/internal/idgen"
-	flowablerow "github.com/flowable-go/flowable/internal/persistence/flowable"
-	statestore "github.com/flowable-go/flowable/internal/persistence/state"
+	"github.com/DengQingNian/Flowtide/api"
+	"github.com/DengQingNian/Flowtide/internal/clock"
+	"github.com/DengQingNian/Flowtide/internal/idgen"
+	flowablerow "github.com/DengQingNian/Flowtide/internal/persistence/flowable"
+	statestore "github.com/DengQingNian/Flowtide/internal/persistence/state"
 )
 
 // Version 是当前引擎版本。
@@ -256,7 +256,7 @@ func (e *Engine) EngineInfo(ctx context.Context) (map[string]any, error) {
 	e.mu.RLock()
 	defer e.mu.RUnlock()
 	return map[string]any{
-		"name":         "flowable-go",
+		"name":         "flowtide",
 		"version":      Version,
 		"historyLevel": e.cfg.HistoryLevel,
 		"closed":       e.closed,

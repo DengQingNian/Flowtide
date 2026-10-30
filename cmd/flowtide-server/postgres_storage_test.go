@@ -17,7 +17,7 @@ func TestNewPostgresRowStorage(t *testing.T) {
 			db, mock, _ := sqlmock.New()
 			mock.ExpectQuery("SELECT pg_try_advisory_lock").WillReturnRows(sqlmock.NewRows([]string{"locked"}).AddRow(true))
 			mock.ExpectQuery("SELECT EXISTS").WillReturnRows(sqlmock.NewRows([]string{"owned"}).AddRow(true))
-			query := mock.ExpectQuery("SELECT COUNT").WithArgs("flowable-go-state")
+			query := mock.ExpectQuery("SELECT COUNT").WithArgs("flowtide-state")
 			if scenario == "查询失败" {
 				query.WillReturnError(errors.New("查询失败"))
 			} else if scenario == "无计数行" {

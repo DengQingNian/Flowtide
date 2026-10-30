@@ -5,11 +5,11 @@ import (
 	"os"
 	"testing"
 
-	statestore "github.com/flowable-go/flowable/internal/persistence/state"
+	statestore "github.com/DengQingNian/Flowtide/internal/persistence/state"
 	"time"
 
-	"github.com/flowable-go/flowable/api"
-	"github.com/flowable-go/flowable/bpmn/model"
+	"github.com/DengQingNian/Flowtide/api"
+	"github.com/DengQingNian/Flowtide/bpmn/model"
 )
 
 // TestCounterTypes 验证多实例计数类型。

@@ -1,6 +1,6 @@
 ---
 title: 配置参考
-description: flowable-server 命令行参数、Config 字段、默认值与配置边界。
+description: flowtide-server 命令行参数、Config 字段、默认值与配置边界。
 order: 10
 section: reference
 status: verified

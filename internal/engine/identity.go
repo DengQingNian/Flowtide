@@ -6,8 +6,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/flowable-go/flowable/api"
-	"github.com/flowable-go/flowable/internal/auth"
+	"github.com/DengQingNian/Flowtide/api"
+	"github.com/DengQingNian/Flowtide/internal/auth"
 )
 
 // IdentityService 返回身份服务。

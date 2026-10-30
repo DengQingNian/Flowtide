@@ -63,19 +63,19 @@ tags: [迁移, 预检, 停写, 回退]
 
 ~~~bash
 # 1. 只读预检
-./bin/flowable-migrate -preflight -dialect mysql -env .env -out preflight.json
+./bin/flowtide-migrate -preflight -dialect mysql -env .env -out preflight.json
 
 # 2. 预检无阻断后准备离线状态
-./bin/flowable-migrate -convert -dialect mysql -env .env -out prepared-state.json
+./bin/flowtide-migrate -convert -dialect mysql -env .env -out prepared-state.json
 
 # 3. 独立恢复校验
-./bin/flowable-migrate -verify-state -state prepared-state.json -out verify-report.json
+./bin/flowtide-migrate -verify-state -state prepared-state.json -out verify-report.json
 
 # 4. 在停写的源快照上核对准备状态
-./bin/flowable-migrate -verify-state -verify-source -dialect mysql -env .env -state prepared-state.json -out reconcile.json
+./bin/flowtide-migrate -verify-state -verify-source -dialect mysql -env .env -state prepared-state.json -out reconcile.json
 
 # 5. 停写窗口内检查静默
-./bin/flowable-migrate -cutover-check -dialect mysql -env .env -quiesce-window 30s -out cutover.json
+./bin/flowtide-migrate -cutover-check -dialect mysql -env .env -quiesce-window 30s -out cutover.json
 ~~~
 
 ::: danger 不能省略的步骤

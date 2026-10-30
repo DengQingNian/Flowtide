@@ -3,7 +3,7 @@ package flowable
 import (
 	"strings"
 
-	"github.com/flowable-go/flowable/api"
+	"github.com/DengQingNian/Flowtide/api"
 )
 
 // IdentityUser 保存标准用户资料与头像字节行引用。

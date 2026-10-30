@@ -6,8 +6,8 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/flowable-go/flowable/api"
-	flowablerow "github.com/flowable-go/flowable/internal/persistence/flowable"
+	"github.com/DengQingNian/Flowtide/api"
+	flowablerow "github.com/DengQingNian/Flowtide/internal/persistence/flowable"
 )
 
 // asyncVariablePayload 以类型编码保存变量，避免重启后大整数、日期及字节退化为 JSON 通用值。
@@ -167,7 +167,7 @@ func (e *Engine) asyncVariableRows(rows []flowablerow.Row) []flowablerow.Row {
 			data, _ := runtimeRow("ACT_GE_BYTEARRAY", []string{"ID_", "REV_", "NAME_", "DEPLOYMENT_ID_", "BYTES_"})
 			_ = data.Set("ID_", ref)
 			_ = data.Set("REV_", 1)
-			_ = data.Set("NAME_", "flowable-go-job-variables")
+			_ = data.Set("NAME_", "flowtide-job-variables")
 			_ = data.Set("DEPLOYMENT_ID_", nil)
 			_ = data.Set("BYTES_", append([]byte(nil), job.VariablePayload...))
 			_ = row.Set("CUSTOM_VALUES_ID_", ref)

@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/flowable-go/flowable/bpmn/model"
+	"github.com/DengQingNian/Flowtide/bpmn/model"
 )
 
 // TestParse_BoundaryTimer 验证边界定时器解析。

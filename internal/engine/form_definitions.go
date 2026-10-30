@@ -7,8 +7,8 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/flowable-go/flowable/api"
-	"github.com/flowable-go/flowable/bpmn/model"
+	"github.com/DengQingNian/Flowtide/api"
+	"github.com/DengQingNian/Flowtide/bpmn/model"
 )
 
 // formResourceExtension 是部署内表单资源的扩展名。

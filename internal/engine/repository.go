@@ -10,9 +10,9 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/flowable-go/flowable/api"
-	"github.com/flowable-go/flowable/bpmn/model"
-	bpmnxml "github.com/flowable-go/flowable/internal/bpmn/xml"
+	"github.com/DengQingNian/Flowtide/api"
+	"github.com/DengQingNian/Flowtide/bpmn/model"
+	bpmnxml "github.com/DengQingNian/Flowtide/internal/bpmn/xml"
 )
 
 // Deploy 部署 BPMN 资源。

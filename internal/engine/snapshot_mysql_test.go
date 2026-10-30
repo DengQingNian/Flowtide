@@ -4,8 +4,8 @@ import (
 	"context"
 	"testing"
 
-	"github.com/flowable-go/flowable/api"
-	statestore "github.com/flowable-go/flowable/internal/persistence/state"
+	"github.com/DengQingNian/Flowtide/api"
+	statestore "github.com/DengQingNian/Flowtide/internal/persistence/state"
 )
 
 // TestSnapshotModelAndInstanceLinks 验证 SQL 所复用的快照完整保留模型及实例身份链接。

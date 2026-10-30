@@ -11,7 +11,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/flowable-go/flowable/api"
+	"github.com/DengQingNian/Flowtide/api"
 )
 
 // deploymentResourceResponse 是官方 DeploymentResourceResponse 的响应结构。

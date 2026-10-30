@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"sync"
 
-	"github.com/flowable-go/flowable/api"
+	"github.com/DengQingNian/Flowtide/api"
 )
 
 // Store 是引擎状态存储。
@@ -103,7 +103,7 @@ func (s *FileStore) Save(ctx context.Context, data []byte) error {
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		return api.NewError("ENGINE-0902", "创建状态目录失败", err)
 	}
-	temp, err := createTempFile(dir, ".flowable-state-*")
+	temp, err := createTempFile(dir, ".flowtide-state-*")
 	if err != nil {
 		return api.NewError("ENGINE-0903", "创建临时状态文件失败", err)
 	}

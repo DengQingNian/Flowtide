@@ -62,7 +62,7 @@ tags: [运维, 排障, FAQ]
 ## 收集诊断信息
 
 ~~~bash
-./bin/flowable-server -h
+./bin/flowtide-server -h
 curl -sS http://localhost:8080/healthz
 curl -sS http://localhost:8080/readyz
 curl -sS http://localhost:8080/metrics | head

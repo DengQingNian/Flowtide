@@ -2,15 +2,15 @@
 
 > 文档编号：002-058
 > 更新日期：2026-10-28
-> 对应任务：按表行仓储接入 flowable-server
+> 对应任务：按表行仓储接入 flowtide-server
 
 ## 1. 背景与目标
 
-`internal/engine` 已支持以 `RowRepository` 作为权威状态源，但 `cmd/flowable-server` 此前只提供 `-storage mysql` 快照模式。本任务新增 `-storage mysql-rows`，让服务直接使用 `internal/persistence/flowable` 的 ACT_* 行仓储：
+`internal/engine` 已支持以 `RowRepository` 作为权威状态源，但 `cmd/flowtide-server` 此前只提供 `-storage mysql` 快照模式。本任务新增 `-storage mysql-rows`，让服务直接使用 `internal/persistence/flowable` 的 ACT_* 行仓储：
 
 - 启动时连接 MySQL、校验 Schema，并获取与快照模式同名的数据库独占锁；
 - 以 `flowable.Repository` 读写 ACT_* 表，设置 `LoadRows=true` 从行表恢复；
-- 不设置 `StateStore` / `StatePath`，不写入 `flowable-go-state` 快照；
+- 不设置 `StateStore` / `StatePath`，不写入 `flowtide-state` 快照；
 - 行模式发现数据库已有快照状态时拒绝启动；
 - 关闭时先关闭引擎（落行差异），再释放独占锁并关闭连接池。
 
@@ -33,7 +33,7 @@
 使用 `.env` 中的开发库：
 
 ```bash
-HOME=/root go run ./cmd/flowable-server \
+HOME=/root go run ./cmd/flowtide-server \
   -storage mysql-rows \
   -addr :8080
 ```
@@ -41,7 +41,7 @@ HOME=/root go run ./cmd/flowable-server \
 显式指定配置文件和监听地址：
 
 ```bash
-HOME=/root go run ./cmd/flowable-server \
+HOME=/root go run ./cmd/flowtide-server \
   -storage mysql-rows \
   -env .env \
   -addr :8080 \
@@ -54,8 +54,8 @@ HOME=/root go run ./cmd/flowable-server \
 2. 读取连接配置并创建连接池；
 3. 调用 `mysql.EnsureSchema(ctx, db, false)` 校验完整 Schema 和版本标记，不自动建表；
 4. 在专用 `*sql.Conn` 上执行 `GET_LOCK(?, 0)`；
-5. 持锁后检查 `ACT_GE_BYTEARRAY.NAME_='flowable-go-state'`；
-6. 构造 `mysql.LockedRows` 包装与 `flowable.NewRepository(..., "mysql")`；
+5. 持锁后检查 `ACT_GE_BYTEARRAY.NAME_='flowtide-state'`；
+6. 构造 `mysql.LockedRows` 包装与 `flowtide.NewRepository(..., "mysql")`；
 7. 以 `engine.Config{RowRepository: ..., LoadRows: true}` 创建引擎并加载行表。
 
 任何一步失败都会关闭已取得的连接和锁，进程以非零状态退出。
@@ -67,8 +67,8 @@ HOME=/root go run ./cmd/flowable-server \
 | `-storage mysql-rows -state state.json` | 启动失败："-storage mysql-rows 与 -state 不能同时使用" |
 | `-storage mysql -state state.json` | 保持原有拒绝行为 |
 | `-storage postgres` 等未知值 | 启动失败："不支持的存储类型" |
-| `-storage mysql-rows` 但数据库 Schema 未初始化 | 启动失败，提示执行 `flowable-migrate -dialect mysql -apply` |
-| `-storage mysql-rows` 且已有 `flowable-go-state` 快照 | 启动失败，提示不能与快照模式混用 |
+| `-storage mysql-rows` 但数据库 Schema 未初始化 | 启动失败，提示执行 `flowtide-migrate -dialect mysql -apply` |
+| `-storage mysql-rows` 且已有 `flowtide-state` 快照 | 启动失败，提示不能与快照模式混用 |
 
 ## 3. 锁与单执行者边界
 
@@ -77,10 +77,10 @@ HOME=/root go run ./cmd/flowable-server \
 快照模式和行模式共用 `internal/persistence/sqlstate.LockName`：
 
 ```go
-fmt.Sprintf("flowable-go:%x", sha256.Sum256([]byte(namespace)))[:64]
+fmt.Sprintf("flowtide:%x", sha256.Sum256([]byte(namespace)))[:64]
 ```
 
-其中 `namespace` 为数据库名 `db_mysql_db_name`。锁名总长 64，前缀为 `flowable-go:`，后接 SHA-256 十六进制摘要的前 52 个字符。相同数据库无论以快照还是行模式启动，得到的锁名相同，因此两种模式不能同时运行。
+其中 `namespace` 为数据库名 `db_mysql_db_name`。锁名总长 64，前缀为 `flowtide:`，后接 SHA-256 十六进制摘要的前 52 个字符。相同数据库无论以快照还是行模式启动，得到的锁名相同，因此两种模式不能同时运行。
 
 ### 3.2 专用连接与所有权校验
 
@@ -97,12 +97,12 @@ SELECT IS_USED_LOCK(?) = CONNECTION_ID()
 
 ### 3.3 单执行者语义
 
-该锁只保证“同一个数据库同一时间只有一个 flowable-go 服务实例写入”，不提供多主、只读副本或跨库分布式锁。多个实例同时启动时，后启动者立即失败，不会排队等待。若运行期间持锁连接断开，后续行操作和事务提交会失败，服务不会自动重新取锁；应重启并确认数据库状态。
+该锁只保证“同一个数据库同一时间只有一个 flowtide 服务实例写入”，不提供多主、只读副本或跨库分布式锁。多个实例同时启动时，后启动者立即失败，不会排队等待。若运行期间持锁连接断开，后续行操作和事务提交会失败，服务不会自动重新取锁；应重启并确认数据库状态。
 
 ## 4. 与快照模式的互斥
 
 - 两种模式使用相同锁名，正常启动时互斥。
-- 行模式在持锁后检查 `ACT_GE_BYTEARRAY` 是否存在 `NAME_='flowable-go-state'` 的记录；只要存在就拒绝启动，防止快照与行表形成两个权威来源。
+- 行模式在持锁后检查 `ACT_GE_BYTEARRAY` 是否存在 `NAME_='flowtide-state'` 的记录；只要存在就拒绝启动，防止快照与行表形成两个权威来源。
 - 行模式不写入该快照记录；关闭引擎时只通过行仓储提交差异。
 - `-state` 文件仍与两种 MySQL 模式互斥。
 - 本次未修改快照模式的启动检查。如果数据库已有行数据却改用 `-storage mysql`，快照模式不会主动检测行表内容；切换模式前必须确认数据库用途，不能在同一数据库上交替启动两种模式。
@@ -129,11 +129,11 @@ SELECT IS_USED_LOCK(?) = CONNECTION_ID()
 
 | 文件 | 变更 |
 | --- | --- |
-| `cmd/flowable-server/storage.go` | 新增 `parseStorageMode`、`newStorage`、`newRowStorage`、`storageSetup.Close`；选择快照或行仓储并统一管理释放顺序。 |
-| `cmd/flowable-server/main.go` | `-storage` 说明更新；将 `Store` / `Repository` / `LoadRows` 注入 `engine.Config`；关闭失败写日志。 |
+| `cmd/flowtide-server/storage.go` | 新增 `parseStorageMode`、`newStorage`、`newRowStorage`、`storageSetup.Close`；选择快照或行仓储并统一管理释放顺序。 |
+| `cmd/flowtide-server/main.go` | `-storage` 说明更新；将 `Store` / `Repository` / `LoadRows` 注入 `engine.Config`；关闭失败写日志。 |
 | `internal/persistence/mysql/row_lock.go` | 新增 `LockedRows`、`NewLockedRows`、事务包装和 `CheckNoSnapshot`。 |
 | `internal/persistence/sqlstate/exclusive.go` | 导出 `LockName`，快照模式复用同一锁名规则。 |
-| `cmd/flowable-server/storage_test.go` | 覆盖模式选择、互斥、连接失败、行仓储初始化、快照拒绝及释放幂等。 |
+| `cmd/flowtide-server/storage_test.go` | 覆盖模式选择、互斥、连接失败、行仓储初始化、快照拒绝及释放幂等。 |
 | `internal/persistence/mysql/row_lock_test.go` | 使用 sqlmock 覆盖锁校验、读写、事务提交/回滚、锁丢失、释放错误和快照检查。 |
 | `internal/persistence/mysql/row_integration_test.go` | 新增真实 MySQL 行服务模式集成测试。 |
 
@@ -143,15 +143,15 @@ SELECT IS_USED_LOCK(?) = CONNECTION_ID()
 
 ```bash
 HOME=/root go test -count=1 -coverprofile=/tmp/final_cov.out \
-  ./cmd/flowable-server ./internal/persistence/mysql ./internal/persistence/sqlstate
+  ./cmd/flowtide-server ./internal/persistence/mysql ./internal/persistence/sqlstate
 ```
 
 本次结果（MySQL 行模式相关默认测试，不依赖真实数据库）：
 
 ```text
-ok  github.com/flowable-go/flowable/cmd/flowable-server       45.8% of statements
-ok  github.com/flowable-go/flowable/internal/persistence/mysql  97.1% of statements
-ok  github.com/flowable-go/flowable/internal/persistence/sqlstate 92.1% of statements
+ok  github.com/DengQingNian/Flowtide/cmd/flowtide-server       45.8% of statements
+ok  github.com/DengQingNian/Flowtide/internal/persistence/mysql  97.1% of statements
+ok  github.com/DengQingNian/Flowtide/internal/persistence/sqlstate 92.1% of statements
 ```
 
 核心库包 `internal/persistence/mysql` 与 `internal/persistence/sqlstate` 的语句覆盖率均高于 0.90。`row_lock.go` 中除 `Release` 的 `conn.Close` 失败分支外均达到 100%，`Release` 为 88.9%。
@@ -160,7 +160,7 @@ ok  github.com/flowable-go/flowable/internal/persistence/sqlstate 92.1% of state
 
 ```bash
 HOME=/root go test -count=1 ./cmd/... ./internal/persistence/...
-HOME=/root go vet ./cmd/flowable-server ./internal/persistence/mysql ./internal/persistence/sqlstate
+HOME=/root go vet ./cmd/flowtide-server ./internal/persistence/mysql ./internal/persistence/sqlstate
 ```
 
 以上命令均通过，`go vet` 无输出。
@@ -181,7 +181,7 @@ HOME=/root FLOWABLE_MYSQL_INTEGRATION=1 \
 --- PASS: TestIntegrationMySQLRowsServiceMode
 --- PASS: TestIntegrationMySQLExclusive
 PASS
-ok  github.com/flowable-go/flowable/internal/persistence/mysql  32.234s
+ok  github.com/DengQingNian/Flowtide/internal/persistence/mysql  32.234s
 ```
 
 新增 `TestIntegrationMySQLRowsServiceMode` 覆盖：
@@ -191,6 +191,6 @@ ok  github.com/flowable-go/flowable/internal/persistence/mysql  32.234s
 3. 关闭引擎后释放独占锁、关闭连接池；
 4. 新建连接池与引擎，从 ACT_* 行表恢复部署、流程定义 XML、历史流程、历史任务和历史变量；
 5. 首个实例持锁期间，第二个行模式连接立即失败；
-6. 写入 `flowable-go-state` 快照记录后，`CheckNoSnapshot` 拒绝启动。
+6. 写入 `flowtide-state` 快照记录后，`CheckNoSnapshot` 拒绝启动。
 
 集成测试仅在显式设置 `FLOWABLE_MYSQL_INTEGRATION=1` 时运行；显式启用后连接、建库或 Schema 失败都会 `t.Fatal`，不会转为跳过。可通过 `FLOWABLE_MYSQL_ENV` 指定其他配置文件，默认为仓库根目录 `.env`。

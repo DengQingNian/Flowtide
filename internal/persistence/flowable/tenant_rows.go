@@ -70,7 +70,7 @@ func FilterRowsByTenant(rows []Row, tenantID string) []Row {
 		deployment, _ := row.Values["DEPLOYMENT_ID_"].(string)
 		id, _ := rowIDValue(row)
 		name, _ := row.Values["NAME_"].(string)
-		if selected["ACT_RE_DEPLOYMENT"][deployment] || byteIDs[id] || instances[strings.TrimPrefix(name, "flowable-go-control/")] {
+		if selected["ACT_RE_DEPLOYMENT"][deployment] || byteIDs[id] || instances[strings.TrimPrefix(name, "flowtide-control/")] {
 			out = append(out, row)
 		}
 	}

@@ -4,7 +4,7 @@ import (
 	"reflect"
 	"time"
 
-	"github.com/flowable-go/flowable/internal/persistence/flowable"
+	"github.com/DengQingNian/Flowtide/internal/persistence/flowable"
 )
 
 // 可选 audit 表只在实际存在时检查，最低必需表仍使用原有十四张表。

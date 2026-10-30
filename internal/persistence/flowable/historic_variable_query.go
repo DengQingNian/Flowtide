@@ -5,7 +5,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/flowable-go/flowable/api"
+	"github.com/DengQingNian/Flowtide/api"
 )
 
 // HistoricVariableInstanceQuery 是历史变量查询条件。

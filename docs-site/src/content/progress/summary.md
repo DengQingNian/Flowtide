@@ -28,7 +28,7 @@ tags: [进度, 重构, 基线]
 | REST 方法端点 | 242 | 官方 184 + 扩展 58 |
 | ACT 表 | 41 | Flowable 8.1.0.3 双库 DDL |
 | 中文文档 | 93 篇 | 设计、实施与审计 |
-| 可执行文件 | 2 | <code>flowable-server</code>、<code>flowable-migrate</code> |
+| 可执行文件 | 2 | <code>flowtide-server</code>、<code>flowtide-migrate</code> |
 
 > 这些数字由仓库脚本生成，用于描述当前提交，不作为性能或生产容量承诺。
 

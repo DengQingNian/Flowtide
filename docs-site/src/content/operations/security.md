@@ -37,7 +37,7 @@ openssl req -x509 -newkey rsa:4096 -nodes \
 推荐配置：
 
 ~~~bash
-./bin/flowable-server -addr :8443 \
+./bin/flowtide-server -addr :8443 \
   -tls-cert server.crt -tls-key server.key \
   -tls-client-ca client-ca.pem \
   -tls-client-auth require-verify \

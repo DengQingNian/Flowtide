@@ -14,8 +14,8 @@ tags: [模块, 代码结构, 规范]
 | --- | --- |
 | <code>api/</code> | 公共类型、服务接口、错误 |
 | <code>bpmn/model/</code> | 对外 BPMN 模型类型 |
-| <code>cmd/flowable-server/</code> | REST 服务入口 |
-| <code>cmd/flowable-migrate/</code> | 迁移与 Schema CLI |
+| <code>cmd/flowtide-server/</code> | REST 服务入口 |
+| <code>cmd/flowtide-migrate/</code> | 迁移与 Schema CLI |
 | <code>internal/engine/</code> | 运行时核心 |
 | <code>internal/bpmn/</code> | XML 解析与图形 |
 | <code>internal/expr/</code> | 表达式 |
@@ -33,9 +33,9 @@ tags: [模块, 代码结构, 规范]
 
 外部模块只应依赖：
 
-- <code>github.com/flowable-go/flowable</code>：<code>New</code>、<code>Config</code>、<code>Engine</code>、<code>Delegate</code>、<code>Execution</code>。
-- <code>github.com/flowable-go/flowable/api</code>：请求/响应类型与服务接口。
-- <code>github.com/flowable-go/flowable/bpmn/model</code>：模型类型（只读场景）。
+- <code>github.com/DengQingNian/Flowtide</code>：<code>New</code>、<code>Config</code>、<code>Engine</code>、<code>Delegate</code>、<code>Execution</code>。
+- <code>github.com/DengQingNian/Flowtide/api</code>：请求/响应类型与服务接口。
+- <code>github.com/DengQingNian/Flowtide/bpmn/model</code>：模型类型（只读场景）。
 
 <code>internal/</code> 不构成公共契约。REST DTO 也不承诺与 Go 结构体字段一一对应。
 

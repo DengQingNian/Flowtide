@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/flowable-go/flowable/api"
+	"github.com/DengQingNian/Flowtide/api"
 )
 
 // businessRuleBPMN 构造只包含开始、业务规则任务与结束事件的 BPMN。

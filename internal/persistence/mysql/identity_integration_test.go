@@ -7,10 +7,10 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/flowable-go/flowable/api"
-	"github.com/flowable-go/flowable/internal/engine"
-	flowablerow "github.com/flowable-go/flowable/internal/persistence/flowable"
-	mysqlstore "github.com/flowable-go/flowable/internal/persistence/mysql"
+	"github.com/DengQingNian/Flowtide/api"
+	"github.com/DengQingNian/Flowtide/internal/engine"
+	flowablerow "github.com/DengQingNian/Flowtide/internal/persistence/flowable"
+	mysqlstore "github.com/DengQingNian/Flowtide/internal/persistence/mysql"
 )
 
 // TestIntegrationMySQLRowsIdentityRecovery 验证身份标准行与 Go 扩展在真实库重启后完整恢复。
@@ -79,7 +79,7 @@ func TestIntegrationMySQLRowsIdentityRecovery(t *testing.T) {
 		t.Fatalf("已清空信息键未保留显式空值行: %d %v", infoRows, err)
 	}
 	var controlRows int
-	if err := reopened.QueryRowContext(ctx, "SELECT COUNT(*) FROM ACT_ID_BYTEARRAY WHERE NAME_ = ?", "flowable-go-identity-control/v1").Scan(&controlRows); err != nil || controlRows != 1 {
+	if err := reopened.QueryRowContext(ctx, "SELECT COUNT(*) FROM ACT_ID_BYTEARRAY WHERE NAME_ = ?", "flowtide-identity-control/v1").Scan(&controlRows); err != nil || controlRows != 1 {
 		t.Fatalf("Go 身份扩展控制行缺失: %d %v", controlRows, err)
 	}
 	if err := second.Close(ctx); err != nil {

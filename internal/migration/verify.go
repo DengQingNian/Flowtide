@@ -10,14 +10,14 @@ import (
 	"fmt"
 	"sort"
 
-	"github.com/flowable-go/flowable/api"
-	"github.com/flowable-go/flowable/internal/engine"
-	statestore "github.com/flowable-go/flowable/internal/persistence/state"
-	"github.com/flowable-go/flowable/internal/tenant"
+	"github.com/DengQingNian/Flowtide/api"
+	"github.com/DengQingNian/Flowtide/internal/engine"
+	statestore "github.com/DengQingNian/Flowtide/internal/persistence/state"
+	"github.com/DengQingNian/Flowtide/internal/tenant"
 )
 
 // StateFormat 是离线状态文件的格式标识，与 -convert 报告中的 preparedState.format 保持一致。
-const StateFormat = "flowable-go-state"
+const StateFormat = "flowtide-state"
 
 // StateReport 描述离线状态文件的只读恢复校验结果，不包含变量值、部署源码或连接凭据。
 type StateReport struct {

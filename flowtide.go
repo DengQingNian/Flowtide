@@ -1,7 +1,7 @@
-// Package flowable 提供可从独立 Go 模块构造的公共引擎入口。
-package flowable
+// Package flowtide 提供可从独立 Go 模块构造的公共引擎入口。
+package flowtide
 
-import "github.com/flowable-go/flowable/internal/engine"
+import "github.com/DengQingNian/Flowtide/internal/engine"
 
 // Config 是引擎配置，默认使用内存状态与审计历史。
 type Config = engine.Config

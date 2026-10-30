@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"github.com/DATA-DOG/go-sqlmock"
-	"github.com/flowable-go/flowable/internal/persistence/schema"
+	"github.com/DengQingNian/Flowtide/internal/persistence/schema"
 )
 
 // TestEnsureSchema 验证 PostgreSQL 全量初始化原子提交、重复校验与损坏拒绝。

@@ -6,8 +6,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/flowable-go/flowable/api"
-	flowablerow "github.com/flowable-go/flowable/internal/persistence/flowable"
+	"github.com/DengQingNian/Flowtide/api"
+	flowablerow "github.com/DengQingNian/Flowtide/internal/persistence/flowable"
 )
 
 // TestJavaShapeRootMetadata 验证子执行先排序时实例元数据仍从流程根恢复。
@@ -203,7 +203,7 @@ func javaShapeRows(t *testing.T) ([]flowablerow.Row, string, time.Time) {
 	result := make([]flowablerow.Row, 0, len(rows)+1)
 	// 模拟仅根保留业务键与开始时间的布局，并让叶执行排序早于根。
 	for _, row := range rows {
-		if row.Table == "ACT_GE_BYTEARRAY" && strings.HasPrefix(row.Values["NAME_"].(string), "flowable-go-control/") {
+		if row.Table == "ACT_GE_BYTEARRAY" && strings.HasPrefix(row.Values["NAME_"].(string), "flowtide-control/") {
 			continue
 		}
 		switch row.Table {

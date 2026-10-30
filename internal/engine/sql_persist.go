@@ -4,8 +4,8 @@ import (
 	"context"
 	"strings"
 
-	"github.com/flowable-go/flowable/api"
-	flowablerow "github.com/flowable-go/flowable/internal/persistence/flowable"
+	"github.com/DengQingNian/Flowtide/api"
+	flowablerow "github.com/DengQingNian/Flowtide/internal/persistence/flowable"
 )
 
 // PersistSnapshot 将完整引擎快照写入行仓储。

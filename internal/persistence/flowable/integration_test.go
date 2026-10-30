@@ -9,8 +9,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/flowable-go/flowable/internal/persistence/schema"
-	"github.com/flowable-go/flowable/internal/persistence/sqlstate"
+	"github.com/DengQingNian/Flowtide/internal/persistence/schema"
+	"github.com/DengQingNian/Flowtide/internal/persistence/sqlstate"
 )
 
 // TestIntegrationSQL 是可选的真实数据库集成测试。

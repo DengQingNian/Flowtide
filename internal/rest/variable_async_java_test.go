@@ -9,8 +9,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/flowable-go/flowable/api"
-	"github.com/flowable-go/flowable/internal/engine"
+	"github.com/DengQingNian/Flowtide/api"
+	"github.com/DengQingNian/Flowtide/internal/engine"
 )
 
 // TestJavaAsyncRESTReference 逐字段比较原版 Java 控制器的状态码、响应体及排队执行副作用。

@@ -9,8 +9,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/flowable-go/flowable/api"
-	"github.com/flowable-go/flowable/internal/engine"
+	"github.com/DengQingNian/Flowtide/api"
+	"github.com/DengQingNian/Flowtide/internal/engine"
 )
 
 // TestREST_HistoricQueryEndpoints 验证历史变量与明细查询端点。

@@ -48,13 +48,13 @@ tags: [持久化, MySQL, PostgreSQL, 行仓储]
 | 历史变量查询 | 等值列与分页下推 SQL；表无租户列，租户作用域回退内存 | 双库验收（MySQL 8.0.35 / PG 16.3） |
 | 变量过滤 | 内存过滤 | 未下推 |
 
-任务、实例与历史查询下推只改变执行位置，不改变结果契约；内存路径与 SQL 路径由一致性测试对照。详见 [存储模式](/docs/operations/storage) 与 [075 实例与历史查询下推](https://github.com/flowable-go/flowable/blob/master/docs/002-迁移实施/075-实例与历史查询下推.md)、[078 历史活动与历史变量查询下推](https://github.com/flowable-go/flowable/blob/master/docs/002-迁移实施/078-历史活动与历史变量查询下推.md)。
+任务、实例与历史查询下推只改变执行位置，不改变结果契约；内存路径与 SQL 路径由一致性测试对照。详见 [存储模式](/docs/operations/storage) 与 [075 实例与历史查询下推](https://github.com/DengQingNian/Flowtide/blob/master/docs/002-迁移实施/075-实例与历史查询下推.md)、[078 历史活动与历史变量查询下推](https://github.com/DengQingNian/Flowtide/blob/master/docs/002-迁移实施/078-历史活动与历史变量查询下推.md)。
 
 ## 恢复与校验
 
 - JSON 状态文件原子写入，启动时恢复；失败时回滚。
 - 行仓储启动时从行表恢复，行是唯一权威来源。
-- <code>flowable-migrate -verify-state</code> 在隔离内存引擎中独立恢复状态文件并输出实体计数，不连接数据库。
+- <code>flowtide-migrate -verify-state</code> 在隔离内存引擎中独立恢复状态文件并输出实体计数，不连接数据库。
 - verify-state 配合 verify-source 可只读核对源库与准备状态的行数及内容指纹。
 - 没有自动备份、PITR 或在线迁移；生产备份仍依赖数据库自身能力。
 
@@ -64,7 +64,7 @@ tags: [持久化, MySQL, PostgreSQL, 行仓储]
 2. 集群租约、作业抢占、故障转移与幂等。
 3. 异步历史写入与定期清理。
 4. 真实数据库上的容量基线与长稳测试。
-5. 从仓库外模块配置行仓储：<code>flowable.Config</code> 字段引用内部包类型，外部模块目前只能使用内存或 <code>StatePath</code>。
+5. 从仓库外模块配置行仓储：<code>flowtide.Config</code> 字段引用内部包类型，外部模块目前只能使用内存或 <code>StatePath</code>。
 
 ## 相关阅读
 

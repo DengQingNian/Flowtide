@@ -1,4 +1,4 @@
-# Flowable Go 常用构建与验收目标。
+# Flowtide 常用构建与验收目标。
 GO ?= go
 BIN_DIR ?= bin
 BENCHTIME ?= 1s
@@ -9,8 +9,8 @@ all: build
 
 ## build 构建服务端与数据库迁移工具。
 build:
-	CGO_ENABLED=0 $(GO) build -trimpath -o $(BIN_DIR)/flowable-server ./cmd/flowable-server
-	CGO_ENABLED=0 $(GO) build -trimpath -o $(BIN_DIR)/flowable-migrate ./cmd/flowable-migrate
+	CGO_ENABLED=0 $(GO) build -trimpath -o $(BIN_DIR)/flowtide-server ./cmd/flowtide-server
+	CGO_ENABLED=0 $(GO) build -trimpath -o $(BIN_DIR)/flowtide-migrate ./cmd/flowtide-migrate
 
 ## test 运行全部普通测试；真实数据库由独立任务显式启用。
 test:
@@ -66,7 +66,7 @@ check: lint cover contract test-sdk build
 
 ## run 启动本地服务。
 run:
-	$(GO) run ./cmd/flowable-server -addr :8080
+	$(GO) run ./cmd/flowtide-server -addr :8080
 
 ## docs-gen 生成文档站事实、页面 HTML 与搜索索引。
 docs-gen:

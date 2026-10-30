@@ -5,8 +5,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/flowable-go/flowable/api"
-	"github.com/flowable-go/flowable/internal/clock"
+	"github.com/DengQingNian/Flowtide/api"
+	"github.com/DengQingNian/Flowtide/internal/clock"
 )
 
 // TestRepositoryQueries 验证部署与定义查询。
@@ -345,7 +345,7 @@ func TestServiceAccessors(t *testing.T) {
 		t.Fatalf("服务门面存在 nil")
 	}
 	info, err := engine.EngineInfo(context.Background())
-	if err != nil || info["name"] != "flowable-go" {
+	if err != nil || info["name"] != "flowtide" {
 		t.Fatalf("引擎信息错误: %v %+v", err, info)
 	}
 	if err := engine.Close(context.Background()); err != nil {

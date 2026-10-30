@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/flowable-go/flowable/api"
+	"github.com/DengQingNian/Flowtide/api"
 )
 
 // TestMatchDMNInputEntry 验证输入条件的各类安全子集写法。

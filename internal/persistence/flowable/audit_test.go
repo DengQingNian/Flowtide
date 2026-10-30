@@ -114,7 +114,7 @@ func TestAuditCommittedRevision(t *testing.T) {
 	if ops := DiffOperations(committed, []Row{changed}); len(ops) != 0 {
 		t.Fatalf("无业务变化不应推进版本: %+v", ops)
 	}
-	system := auditRow(t, "ACT_GE_PROPERTY", map[string]any{"NAME_": "flowable-go.schema.checksum", "VALUE_": "hash", "REV_": 1})
+	system := auditRow(t, "ACT_GE_PROPERTY", map[string]any{"NAME_": "flowtide.schema.checksum", "VALUE_": "hash", "REV_": 1})
 	preserved := PreserveSchemaRows([]Row{system, old}, []Row{changed, system})
 	if len(preserved) != 2 || len(DiffOperations([]Row{system, old}, preserved)) != 1 {
 		t.Fatalf("系统属性不应删除: %+v", preserved)
@@ -137,7 +137,7 @@ func TestAuditTenantRelatedRows(t *testing.T) {
 		{Table: "ACT_GE_BYTEARRAY", Values: map[string]any{"ID_": "source"}},
 		{Table: "ACT_GE_BYTEARRAY", Values: map[string]any{"ID_": "data"}},
 		{Table: "ACT_GE_BYTEARRAY", Values: map[string]any{"ID_": "resource", "DEPLOYMENT_ID_": "d"}},
-		{Table: "ACT_GE_BYTEARRAY", Values: map[string]any{"ID_": "control", "NAME_": "flowable-go-control/i"}},
+		{Table: "ACT_GE_BYTEARRAY", Values: map[string]any{"ID_": "control", "NAME_": "flowtide-control/i"}},
 		{Table: "ACT_GE_PROPERTY", Values: map[string]any{"NAME_": "global"}},
 	}
 	foreign := Row{Table: "ACT_RE_MODEL", Values: map[string]any{"ID_": "foreign", "TENANT_ID_": "b"}}

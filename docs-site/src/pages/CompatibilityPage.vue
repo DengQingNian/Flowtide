@@ -84,7 +84,7 @@ function downloadJson(): void {
   const url = URL.createObjectURL(blob)
   const anchor = document.createElement('a')
   anchor.href = url
-  anchor.download = 'flowable-go-capabilities.json'
+  anchor.download = 'flowtide-capabilities.json'
   anchor.click()
   URL.revokeObjectURL(url)
 }
@@ -187,7 +187,7 @@ function downloadJson(): void {
       </div>
       <p class="matrix-footnote">
         完整证据与退出条件见仓库
-        <a href="https://git.dengqn.com/dqn/flowable-engine-go/src/branch/master/docs/003-迁移审计/003-能力矩阵与迁移退出条件.md" target="_blank" rel="noopener">003 能力矩阵与迁移退出条件</a>。
+        <a href="https://github.com/DengQingNian/Flowtide/src/branch/master/docs/003-迁移审计/003-能力矩阵与迁移退出条件.md" target="_blank" rel="noopener">003 能力矩阵与迁移退出条件</a>。
       </p>
     </section>
   </div>

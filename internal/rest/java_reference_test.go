@@ -11,10 +11,10 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/flowable-go/flowable/internal/engine"
-	"github.com/flowable-go/flowable/internal/migration"
-	flowablerow "github.com/flowable-go/flowable/internal/persistence/flowable"
-	statestore "github.com/flowable-go/flowable/internal/persistence/state"
+	"github.com/DengQingNian/Flowtide/internal/engine"
+	"github.com/DengQingNian/Flowtide/internal/migration"
+	flowablerow "github.com/DengQingNian/Flowtide/internal/persistence/flowable"
+	statestore "github.com/DengQingNian/Flowtide/internal/persistence/state"
 )
 
 // javaHTTPExpected 保存真实 Java 公共服务的稳定业务字段，用于验收 HTTP 输出及写入副作用。

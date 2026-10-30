@@ -3,8 +3,8 @@ package engine
 import (
 	"context"
 
-	"github.com/flowable-go/flowable/api"
-	"github.com/flowable-go/flowable/bpmn/model"
+	"github.com/DengQingNian/Flowtide/api"
+	"github.com/DengQingNian/Flowtide/bpmn/model"
 )
 
 // ChangeActivityState 将执行移动到新的活动（仅支持单目标活动）。

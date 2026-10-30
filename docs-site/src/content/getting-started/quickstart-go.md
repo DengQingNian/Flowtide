@@ -1,6 +1,6 @@
 ---
 title: 30 分钟嵌入 Go 应用
-description: 在仓库外创建 Go 模块，使用 flowable.New 构造引擎、注册委托并完成部署到历史的闭环。
+description: 在仓库外创建 Go 模块，使用 flowtide.New 构造引擎、注册委托并完成部署到历史的闭环。
 order: 30
 section: getting-started
 status: verified
@@ -16,20 +16,20 @@ tags: [SDK, Go, 快速开始]
 ## 步骤 1：创建模块
 
 ~~~bash
-mkdir flowable-demo && cd flowable-demo
-go mod init flowable-demo
+mkdir flowtide-demo && cd flowtide-demo
+go mod init flowtide-demo
 ~~~
 
 仓库内开发时，使用 <code>replace</code> 指向本地仓库：
 
 ~~~text title="go.mod"
-module flowable-demo
+module flowtide-demo
 
 go 1.27
 
-require github.com/flowable-go/flowable v0.0.0
+require github.com/DengQingNian/Flowtide v0.0.0
 
-replace github.com/flowable-go/flowable => /path/to/flowable-engine-go
+replace github.com/DengQingNian/Flowtide => /path/to/Flowtide
 ~~~
 
 正式分发依赖版本管理策略尚未确定，当前没有发布 tag 与稳定 API 承诺。
@@ -66,19 +66,19 @@ import (
 	"log"
 	"os"
 
-	"github.com/flowable-go/flowable"
-	"github.com/flowable-go/flowable/api"
+	"github.com/DengQingNian/Flowtide"
+	"github.com/DengQingNian/Flowtide/api"
 )
 
 func main() {
 	ctx := context.Background()
-	app, err := flowable.New(flowable.Config{StatePath: "./data/engine.json"})
+	app, err := flowtide.New(flowtide.Config{StatePath: "./data/engine.json"})
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer app.Close(ctx)
 
-	app.RegisterDelegate("notify", func(ctx context.Context, execution *flowable.Execution) error {
+	app.RegisterDelegate("notify", func(ctx context.Context, execution *flowtide.Execution) error {
 		execution.SetVariable("preparedBy", "system")
 		return nil
 	})

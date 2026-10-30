@@ -12,7 +12,7 @@ tags: [参考, 文档, 索引]
 
 | 分组 | 内容 | 入口 |
 | --- | --- | --- |
-| <code>docs/001-flowable-go-重构计划</code> | 目标、架构、数据模型、PVM、任务、变量、作业、历史、REST、质量、里程碑、ADR | 001 项目总览 |
+| <code>docs/001-flowtide-重构计划</code> | 目标、架构、数据模型、PVM、任务、变量、作业、历史、REST、质量、里程碑、ADR | 001 项目总览 |
 | <code>docs/002-迁移实施</code> | 分阶段实施记录、MySQL、预检、转换、mTLS、容量、查询下推 | 001 MVP 实现说明 |
 | <code>docs/003-迁移审计</code> | 审计证据、整改记录、能力矩阵、REST 对照 | 003 能力矩阵 |
 | <code>docs/004-文档站</code> | 站点规划、内容清单、写作规范 | 001 文档站规划 |
@@ -40,7 +40,7 @@ docs/{三位流水号}-{描述}/
 | --- | --- |
 | 能力状态与发布边界 | <code>docs/003-迁移审计/003-能力矩阵与迁移退出条件.md</code> |
 | REST 方法清单 | <code>docs/003-迁移审计/004-REST端点对照.md</code> 与 <code>testdata/compatibility/baseline.json</code> |
-| 配置与 CLI | <code>cmd/flowable-server/main.go</code>、<code>internal/engine/engine.go</code> |
+| 配置与 CLI | <code>cmd/flowtide-server/main.go</code>、<code>internal/engine/engine.go</code> |
 | 错误码 | <code>api/errors.go</code> 与 <code>internal/rest</code> |
 | 质量门禁 | <code>Makefile</code> 与 <code>.github/</code> |
 | 站点内容 | <code>docs-site/src/content</code> |
@@ -56,6 +56,6 @@ docs/{三位流水号}-{描述}/
 
 ## 相关阅读
 
-- [文档站规划与内容清单](https://git.dengqn.com/dqn/flowable-engine-go)
+- [文档站规划与内容清单](https://github.com/DengQingNian/Flowtide)
 - [质量门禁](/docs/progress/quality)
 - [术语表](/docs/reference/glossary)

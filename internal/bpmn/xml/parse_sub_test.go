@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/flowable-go/flowable/bpmn/model"
+	"github.com/DengQingNian/Flowtide/bpmn/model"
 )
 
 // TestParse_SubProcess 验证子流程解析。

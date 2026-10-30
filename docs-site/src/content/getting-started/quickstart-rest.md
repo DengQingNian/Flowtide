@@ -15,7 +15,7 @@ tags: [REST, 快速开始, 用户任务]
 
 ## 前置条件
 
-- 已按 [安装](/docs/getting-started/installation) 构建 <code>bin/flowable-server</code>。
+- 已按 [安装](/docs/getting-started/installation) 构建 <code>bin/flowtide-server</code>。
 - 8080 端口空闲。本文命令假设服务监听 <code>localhost:8080</code>。
 - 已安装 <code>curl</code> 与 <code>jq</code>（可选，便于提取字段）。
 
@@ -23,7 +23,7 @@ tags: [REST, 快速开始, 用户任务]
 
 ~~~bash
 mkdir -p ./data
-./bin/flowable-server -addr :8080 -state ./data/engine.json -jobs-interval 0
+./bin/flowtide-server -addr :8080 -state ./data/engine.json -jobs-interval 0
 ~~~
 
 另开终端验证：

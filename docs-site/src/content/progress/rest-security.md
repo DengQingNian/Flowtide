@@ -61,7 +61,7 @@ tags: [REST, 认证, mTLS, 租户]
 | 限流 | 令牌桶 | 服务端 <code>-rate-limit</code> |
 
 ::: info 标准二进制安全接入
-标准 <code>flowable-server -security-config /受限目录/security.json</code> 已支持 JWT/JWKS、RBAC、身份库认证、租户绑定、内存审计及 HTTP 指标。配置文件支持 basicUsers、bearerToken、identityAuth、jwt、userRoles、rolePermissions、tenantBindings、tenantAdministrators、auditCapacity、metrics；解析失败不回显密钥。原 Basic/Bearer flag 在配置文件之后生效。
+标准 <code>flowtide-server -security-config /受限目录/security.json</code> 已支持 JWT/JWKS、RBAC、身份库认证、租户绑定、内存审计及 HTTP 指标。配置文件支持 basicUsers、bearerToken、identityAuth、jwt、userRoles、rolePermissions、tenantBindings、tenantAdministrators、auditCapacity、metrics；解析失败不回显密钥。原 Basic/Bearer flag 在配置文件之后生效。
 :::
 
 ## mTLS 与证书身份

@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/flowable-go/flowable/internal/persistence/flowable"
+	"github.com/DengQingNian/Flowtide/internal/persistence/flowable"
 )
 
 // TestAnalyzeAuditHistory 验证 Java audit 核心历史和身份链接能独立通过基本关联检查。

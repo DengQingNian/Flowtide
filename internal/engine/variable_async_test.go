@@ -8,10 +8,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/flowable-go/flowable/api"
-	"github.com/flowable-go/flowable/internal/clock"
-	statestore "github.com/flowable-go/flowable/internal/persistence/state"
-	"github.com/flowable-go/flowable/internal/tenant"
+	"github.com/DengQingNian/Flowtide/api"
+	"github.com/DengQingNian/Flowtide/internal/clock"
+	statestore "github.com/DengQingNian/Flowtide/internal/persistence/state"
+	"github.com/DengQingNian/Flowtide/internal/tenant"
 )
 
 // TestAsyncVariablesDeferredRestore 验证排队不立即改值，文件及行恢复后仍保留精确类型和大载荷。

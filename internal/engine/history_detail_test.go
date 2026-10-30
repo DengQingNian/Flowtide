@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/flowable-go/flowable/api"
+	"github.com/DengQingNian/Flowtide/api"
 )
 
 // TestHistoricDetails 验证变量明细记录。

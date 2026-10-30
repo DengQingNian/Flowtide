@@ -10,7 +10,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/flowable-go/flowable/internal/engine"
+	"github.com/DengQingNian/Flowtide/internal/engine"
 )
 
 // TestOfficialMethodAcceptance 从固定官方规范逐方法验收真实路由、认证、只读权限及空输入行为。

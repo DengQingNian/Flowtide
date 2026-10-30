@@ -1,4 +1,4 @@
-// Command flowable-migrate 输出 Schema、初始化开发库、只读预检、离线准备 Go 状态文件或执行停写静默检查。
+// Command flowtide-migrate 输出 Schema、初始化开发库、只读预检、离线准备 Go 状态文件或执行停写静默检查。
 package main
 
 import (
@@ -14,10 +14,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/flowable-go/flowable/internal/migration"
-	mysqlstore "github.com/flowable-go/flowable/internal/persistence/mysql"
-	pgstore "github.com/flowable-go/flowable/internal/persistence/postgres"
-	"github.com/flowable-go/flowable/internal/persistence/schema"
+	"github.com/DengQingNian/Flowtide/internal/migration"
+	mysqlstore "github.com/DengQingNian/Flowtide/internal/persistence/mysql"
+	pgstore "github.com/DengQingNian/Flowtide/internal/persistence/postgres"
+	"github.com/DengQingNian/Flowtide/internal/persistence/schema"
 	_ "github.com/lib/pq"
 )
 
@@ -46,7 +46,7 @@ func main() {
 // @param dependencies 数据库与分析依赖
 // @return 退出码，零成功、一操作失败、二预检阻断或检测到变化
 func runWithDependencies(args []string, stdout, stderr io.Writer, dependencies commandDependencies) int {
-	flags := flag.NewFlagSet("flowable-migrate", flag.ContinueOnError)
+	flags := flag.NewFlagSet("flowtide-migrate", flag.ContinueOnError)
 	flags.SetOutput(stderr)
 	dialect := flags.String("dialect", "mysql", "数据库方言：mysql 或 postgres")
 	output := flags.String("out", "", "输出文件路径，为空时输出到标准输出")
@@ -424,7 +424,7 @@ func validateReportPath(output, envPath string) error {
 // @param content 完整报告内容
 // @return 创建、写入、同步或替换错误
 func writeReport(path string, content []byte) error {
-	file, err := os.CreateTemp(filepath.Dir(path), ".flowable-preflight-*")
+	file, err := os.CreateTemp(filepath.Dir(path), ".flowtide-preflight-*")
 	if err != nil {
 		return err
 	}
@@ -466,7 +466,7 @@ func writeNewReport(path string, content []byte) error {
 // @param content 完整报告内容
 // @return 创建、写入、同步或发布错误
 func writeVerifyReport(path string, content []byte) error {
-	return writeNewFile(path, ".flowable-verify-*", content)
+	return writeNewFile(path, ".flowtide-verify-*", content)
 }
 
 // writeNewFile 完整写入私有临时文件后通过同目录硬链接原子创建目标，目标已存在时失败。

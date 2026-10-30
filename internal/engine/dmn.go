@@ -6,8 +6,8 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/flowable-go/flowable/api"
-	bpmnxml "github.com/flowable-go/flowable/internal/bpmn/xml"
+	"github.com/DengQingNian/Flowtide/api"
+	bpmnxml "github.com/DengQingNian/Flowtide/internal/bpmn/xml"
 )
 
 // dmnResourceExtension 是部署内 DMN 资源的扩展名。

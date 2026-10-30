@@ -6,8 +6,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/flowable-go/flowable/api"
-	"github.com/flowable-go/flowable/internal/clock"
+	"github.com/DengQingNian/Flowtide/api"
+	"github.com/DengQingNian/Flowtide/internal/clock"
 )
 
 // TestTimerJobBucket 验证定时器作业的移动、改期与跨桶保护。

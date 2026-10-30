@@ -9,9 +9,9 @@ import (
 	"time"
 
 	"github.com/DATA-DOG/go-sqlmock"
-	"github.com/flowable-go/flowable/api"
-	flowablerow "github.com/flowable-go/flowable/internal/persistence/flowable"
-	"github.com/flowable-go/flowable/internal/tenant"
+	"github.com/DengQingNian/Flowtide/api"
+	flowablerow "github.com/DengQingNian/Flowtide/internal/persistence/flowable"
+	"github.com/DengQingNian/Flowtide/internal/tenant"
 )
 
 // 历史活动下推查询的 SQL 形状常量，与 internal/persistence/flowable 的白名单拼接结果逐字一致，

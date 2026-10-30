@@ -4,7 +4,7 @@ import (
 	"math"
 	"strings"
 
-	"github.com/flowable-go/flowable/bpmn/model"
+	"github.com/DengQingNian/Flowtide/bpmn/model"
 )
 
 // 内部标记类型常量。

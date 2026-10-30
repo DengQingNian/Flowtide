@@ -8,11 +8,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/flowable-go/flowable/api"
-	"github.com/flowable-go/flowable/internal/engine"
-	"github.com/flowable-go/flowable/internal/persistence/schema"
-	statestore "github.com/flowable-go/flowable/internal/persistence/state"
-	"github.com/flowable-go/flowable/internal/tenant"
+	"github.com/DengQingNian/Flowtide/api"
+	"github.com/DengQingNian/Flowtide/internal/engine"
+	"github.com/DengQingNian/Flowtide/internal/persistence/schema"
+	statestore "github.com/DengQingNian/Flowtide/internal/persistence/state"
+	"github.com/DengQingNian/Flowtide/internal/tenant"
 )
 
 // TestConvertState 验证离线转换保留变量类型、任务与源数据，生成的状态可独立续跑。
@@ -153,7 +153,7 @@ func conversionFixture(t *testing.T, tenantID string) SourceSnapshot {
 	counts := make(map[string]int64)
 	// 去除只有 Go 自己才能生成的续跑扩展，使测试覆盖标准行恢复入口。
 	for _, row := range rows {
-		if row.Table == "ACT_GE_BYTEARRAY" && strings.HasPrefix(analysisString(row, "NAME_"), "flowable-go-control/") {
+		if row.Table == "ACT_GE_BYTEARRAY" && strings.HasPrefix(analysisString(row, "NAME_"), "flowtide-control/") {
 			continue
 		}
 		source.Rows = append(source.Rows, row)

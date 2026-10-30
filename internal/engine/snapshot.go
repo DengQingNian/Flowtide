@@ -5,8 +5,8 @@ import (
 	"encoding/json"
 	"sort"
 
-	"github.com/flowable-go/flowable/api"
-	bpmnxml "github.com/flowable-go/flowable/internal/bpmn/xml"
+	"github.com/DengQingNian/Flowtide/api"
+	bpmnxml "github.com/DengQingNian/Flowtide/internal/bpmn/xml"
 )
 
 // deploymentSnapshot 是部署的持久化结构。

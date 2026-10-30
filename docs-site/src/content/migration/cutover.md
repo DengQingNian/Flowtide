@@ -16,10 +16,10 @@ tags: [迁移, 停写, 静默检查, 切换]
 
 ~~~bash
 # MySQL；只读检查，不初始化源库
-./bin/flowable-migrate -cutover-check -dialect mysql -env .env -quiesce-window 30s -out cutover.json
+./bin/flowtide-migrate -cutover-check -dialect mysql -env .env -quiesce-window 30s -out cutover.json
 
 # PostgreSQL
-./bin/flowable-migrate -cutover-check -dialect postgres -timeout 5m -quiesce-window 60s
+./bin/flowtide-migrate -cutover-check -dialect postgres -timeout 5m -quiesce-window 60s
 ~~~
 
 参数约束：

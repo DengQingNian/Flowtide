@@ -10,8 +10,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/flowable-go/flowable/api"
-	"github.com/flowable-go/flowable/internal/tenant"
+	"github.com/DengQingNian/Flowtide/api"
+	"github.com/DengQingNian/Flowtide/internal/tenant"
 )
 
 // TestJavaExecutionTopologyReference 对照原版实际执行行，验证新实例根作用域、活动执行及恢复后的完成行为。

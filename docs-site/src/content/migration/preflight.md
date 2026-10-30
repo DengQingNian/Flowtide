@@ -16,16 +16,16 @@ tags: [迁移, 预检, 只读]
 
 ~~~bash
 # MySQL：连接配置沿用 .env
-./bin/flowable-migrate -preflight -dialect mysql -env .env -out preflight.json
+./bin/flowtide-migrate -preflight -dialect mysql -env .env -out preflight.json
 
 # 只检查默认租户（显式空值）
-./bin/flowable-migrate -preflight -dialect mysql -tenant="" -out default-tenant.json
+./bin/flowtide-migrate -preflight -dialect mysql -tenant="" -out default-tenant.json
 
 # 不传 -tenant 时分析全部租户
-./bin/flowable-migrate -preflight -dialect mysql -out all-tenants.json
+./bin/flowtide-migrate -preflight -dialect mysql -out all-tenants.json
 
 # PostgreSQL：从 FLOWABLE_POSTGRES_DSN 读取连接
-./bin/flowable-migrate -preflight -dialect postgres -timeout 5m -out preflight-pg.json
+./bin/flowtide-migrate -preflight -dialect postgres -timeout 5m -out preflight-pg.json
 ~~~
 
 ## 退出码

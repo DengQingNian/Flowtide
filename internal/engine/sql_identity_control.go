@@ -6,12 +6,12 @@ import (
 	"io"
 	"time"
 
-	"github.com/flowable-go/flowable/api"
-	flowablerow "github.com/flowable-go/flowable/internal/persistence/flowable"
+	"github.com/DengQingNian/Flowtide/api"
+	flowablerow "github.com/DengQingNian/Flowtide/internal/persistence/flowable"
 )
 
 // identityControlName 是仅保存 Go 身份扩展属性的保留字节行名称。
-const identityControlName = "flowable-go-identity-control/v1"
+const identityControlName = "flowtide-identity-control/v1"
 
 // identityUserControl 保存标准用户表没有的 Go 安全属性，不保存用户公开资料或密码副本。
 type identityUserControl struct {

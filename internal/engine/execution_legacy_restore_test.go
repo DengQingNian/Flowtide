@@ -5,8 +5,8 @@ import (
 	"os"
 	"testing"
 
-	"github.com/flowable-go/flowable/api"
-	statestore "github.com/flowable-go/flowable/internal/persistence/state"
+	"github.com/DengQingNian/Flowtide/api"
+	statestore "github.com/DengQingNian/Flowtide/internal/persistence/state"
 )
 
 // TestLegacySingleRootStateRestore 验证真实旧版单根状态仍能加载、转成行状态并完成，不隐式重写执行标识。

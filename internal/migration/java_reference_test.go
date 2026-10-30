@@ -13,12 +13,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/flowable-go/flowable/api"
-	"github.com/flowable-go/flowable/internal/engine"
-	"github.com/flowable-go/flowable/internal/migration"
-	flowablerow "github.com/flowable-go/flowable/internal/persistence/flowable"
-	statestore "github.com/flowable-go/flowable/internal/persistence/state"
-	"github.com/flowable-go/flowable/internal/tenant"
+	"github.com/DengQingNian/Flowtide/api"
+	"github.com/DengQingNian/Flowtide/internal/engine"
+	"github.com/DengQingNian/Flowtide/internal/migration"
+	flowablerow "github.com/DengQingNian/Flowtide/internal/persistence/flowable"
+	statestore "github.com/DengQingNian/Flowtide/internal/persistence/state"
+	"github.com/DengQingNian/Flowtide/internal/tenant"
 )
 
 // javaReferenceFixture 保存固定 Java 提交生成的原始行及公共服务期望。

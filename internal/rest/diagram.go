@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/flowable-go/flowable/internal/bpmn/diagram"
+	"github.com/DengQingNian/Flowtide/internal/bpmn/diagram"
 )
 
 // handleDefinitionImage 返回流程定义图片。

@@ -9,12 +9,12 @@ import (
 	"sync"
 	"time"
 
-	"github.com/flowable-go/flowable/internal/persistence/flowable"
-	"github.com/flowable-go/flowable/internal/persistence/sqlstate"
+	"github.com/DengQingNian/Flowtide/internal/persistence/flowable"
+	"github.com/DengQingNian/Flowtide/internal/persistence/sqlstate"
 )
 
 // snapshotStateName 是快照模式在 ACT_GE_BYTEARRAY 中的固定 NAME_。
-const snapshotStateName = "flowable-go-state"
+const snapshotStateName = "flowtide-state"
 
 // lockOperationTimeout 是校验或释放独占锁的超时时间。
 const lockOperationTimeout = 5 * time.Second
@@ -193,7 +193,7 @@ func CheckNoSnapshot(ctx context.Context, db *sql.DB) error {
 	}
 	// 快照与行仓储不能共享同一权威来源，发现快照记录时拒绝启动。
 	if count != 0 {
-		return errors.New("数据库包含 flowable-go-state 快照数据，-storage mysql-rows 不能与快照模式混用")
+		return errors.New("数据库包含 flowtide-state 快照数据，-storage mysql-rows 不能与快照模式混用")
 	}
 	return nil
 }

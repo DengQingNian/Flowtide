@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"github.com/DATA-DOG/go-sqlmock"
-	"github.com/flowable-go/flowable/internal/persistence/schema"
+	"github.com/DengQingNian/Flowtide/internal/persistence/schema"
 )
 
 // TestEnsureSchema 验证初始化、重复执行、版本冲突与数据库错误。
@@ -49,7 +49,7 @@ func TestEnsureSchema(t *testing.T) {
 					expected.WillReturnResult(sqlmock.NewResult(0, 1))
 				}
 				if scenario != "DDL失败" {
-					expected := mock.ExpectExec("INSERT INTO ACT_GE_PROPERTY").WithArgs("flowable-go.schema.checksum", checksum)
+					expected := mock.ExpectExec("INSERT INTO ACT_GE_PROPERTY").WithArgs("flowtide.schema.checksum", checksum)
 					if scenario == "标记失败" {
 						expected.WillReturnError(failure)
 					} else {
@@ -73,7 +73,7 @@ func TestEnsureSchema(t *testing.T) {
 					if scenario == "校验和冲突" {
 						value = "old"
 					}
-					query := mock.ExpectQuery("SELECT VALUE_ FROM ACT_GE_PROPERTY").WithArgs("flowable-go.schema.checksum")
+					query := mock.ExpectQuery("SELECT VALUE_ FROM ACT_GE_PROPERTY").WithArgs("flowtide.schema.checksum")
 					if scenario == "缺少标记" {
 						query.WillReturnRows(sqlmock.NewRows([]string{"VALUE_"}))
 					} else {

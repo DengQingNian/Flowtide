@@ -20,7 +20,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/flowable-go/flowable/internal/engine"
+	"github.com/DengQingNian/Flowtide/internal/engine"
 )
 
 // 测试密钥只生成一次，避免重复生成 2048 位 RSA 密钥拖慢测试。

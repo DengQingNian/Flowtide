@@ -12,7 +12,7 @@ tags: [SDK, Java, 迁移, API]
 
 Java Flowable 通过 <code>ProcessEngine</code> 获取服务，服务方法大量使用查询对象、构建器和异常。Go 版本使用：
 
-- <code>flowable.New</code> 构造引擎。
+- <code>flowtide.New</code> 构造引擎。
 - 服务接口方法接收 <code>context.Context</code> 与结构体请求。
 - 错误通过返回值返回，使用 <code>api.Error</code>。
 - 没有 Spring/CDI、类加载、表达式实例化。
@@ -45,7 +45,7 @@ Java Flowable 通过 <code>ProcessEngine</code> 获取服务，服务方法大�
 
 | Java | Go |
 | --- | --- |
-| <code>implements JavaDelegate</code> | 注册 <code>func(context.Context, *flowable.Execution) error</code> |
+| <code>implements JavaDelegate</code> | 注册 <code>func(context.Context, *flowtide.Execution) error</code> |
 | <code>execution.getVariable("x")</code> | <code>execution.GetVariable("x")</code> |
 | <code>execution.setVariable("x", v)</code> | <code>execution.SetVariable("x", v)</code> |
 | Spring 注入 | 闭包捕获依赖 |

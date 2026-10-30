@@ -15,7 +15,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/flowable-go/flowable/internal/engine"
+	"github.com/DengQingNian/Flowtide/internal/engine"
 )
 
 // testPKI 保存测试用 CA、服务端证书与信任池。
@@ -130,7 +130,7 @@ func newTestPKI(t *testing.T) *testPKI {
 	}
 	caTemplate := &x509.Certificate{
 		SerialNumber:          randomSerial(t),
-		Subject:               pkix.Name{CommonName: "flowable-test-ca"},
+		Subject:               pkix.Name{CommonName: "flowtide-test-ca"},
 		NotBefore:             time.Now().Add(-time.Hour),
 		NotAfter:              time.Now().Add(24 * time.Hour),
 		IsCA:                  true,
@@ -151,7 +151,7 @@ func newTestPKI(t *testing.T) *testPKI {
 	pki := &testPKI{caCert: caCert, caKey: caKey, roots: roots}
 	pki.serverCert = pki.issueCertificate(t, &x509.Certificate{
 		SerialNumber: randomSerial(t),
-		Subject:      pkix.Name{CommonName: "flowable-test-server"},
+		Subject:      pkix.Name{CommonName: "flowtide-test-server"},
 		NotBefore:    time.Now().Add(-time.Hour),
 		NotAfter:     time.Now().Add(24 * time.Hour),
 		KeyUsage:     x509.KeyUsageDigitalSignature,

@@ -4,15 +4,15 @@ import (
 	"context"
 	"testing"
 
-	"github.com/flowable-go/flowable"
-	"github.com/flowable-go/flowable/api"
+	"github.com/DengQingNian/Flowtide"
+	"github.com/DengQingNian/Flowtide/api"
 )
 
 // TestPublicSDK 验证仓库外模块可以构造引擎并完成服务调用。
 // @param t 测试上下文
 // @return 无
 func TestPublicSDK(t *testing.T) {
-	app, err := flowable.New(flowable.Config{})
+	app, err := flowtide.New(flowtide.Config{})
 	if err != nil {
 		t.Fatal(err)
 	}

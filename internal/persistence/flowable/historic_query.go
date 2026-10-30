@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/flowable-go/flowable/api"
+	"github.com/DengQingNian/Flowtide/api"
 )
 
 // HistoricProcessInstanceQuery 是历史流程实例查询条件。

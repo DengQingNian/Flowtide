@@ -2,10 +2,10 @@ package mysql_test
 
 import (
 	"bytes"
-	"github.com/flowable-go/flowable/api"
-	"github.com/flowable-go/flowable/internal/engine"
-	flowablerow "github.com/flowable-go/flowable/internal/persistence/flowable"
-	dbstore "github.com/flowable-go/flowable/internal/persistence/mysql"
+	"github.com/DengQingNian/Flowtide/api"
+	"github.com/DengQingNian/Flowtide/internal/engine"
+	flowablerow "github.com/DengQingNian/Flowtide/internal/persistence/flowable"
+	dbstore "github.com/DengQingNian/Flowtide/internal/persistence/mysql"
 	"reflect"
 	"testing"
 	"time"
@@ -80,7 +80,7 @@ func TestIntegrationAsyncVariables(t *testing.T) {
 		t.Fatalf("已执行作业未删除: %+v %v", jobs, err)
 	}
 	var count int
-	if err := db.QueryRowContext(ctx, "SELECT COUNT(*) FROM ACT_GE_BYTEARRAY WHERE NAME_='flowable-go-job-variables'").Scan(&count); err != nil || count != 0 {
+	if err := db.QueryRowContext(ctx, "SELECT COUNT(*) FROM ACT_GE_BYTEARRAY WHERE NAME_='flowtide-job-variables'").Scan(&count); err != nil || count != 0 {
 		t.Fatalf("已执行载荷未回收: %d %v", count, err)
 	}
 	if err := second.Close(ctx); err != nil {

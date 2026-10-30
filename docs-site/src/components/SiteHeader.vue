@@ -48,7 +48,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown))
 <template>
   <header class="site-header">
     <div class="site-header__inner">
-      <router-link to="/" class="brand" aria-label="Flowable-go 首页">
+      <router-link to="/" class="brand" aria-label="Flowtide 首页">
         <span class="brand__mark" aria-hidden="true">
           <svg viewBox="0 0 32 32" fill="none">
             <path d="M6 8h20M6 16h13M6 24h20" stroke="currentColor" stroke-width="3" stroke-linecap="round" />
@@ -56,7 +56,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown))
           </svg>
         </span>
         <span class="brand__text">
-          <strong>Flowable-go</strong>
+          <strong>Flowtide</strong>
           <span>重构进度文档站</span>
         </span>
       </router-link>
@@ -77,7 +77,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown))
           <Sun v-if="themeState.isDark.value" :size="18" />
           <Moon v-else :size="18" />
         </button>
-        <a class="icon-button repo-link" href="https://git.dengqn.com/dqn/flowable-engine-go" target="_blank" rel="noopener" aria-label="源码仓库">
+        <a class="icon-button repo-link" href="https://github.com/DengQingNian/Flowtide" target="_blank" rel="noopener" aria-label="源码仓库">
           <Code2 :size="18" />
         </a>
         <button class="icon-button mobile-only" type="button" aria-label="打开导航" @click="mobileOpen = !mobileOpen">

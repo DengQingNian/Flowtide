@@ -1,6 +1,6 @@
 import { computed, ref, watch } from 'vue'
 
-const storageKey = 'flowable-go-docs-theme'
+const storageKey = 'flowtide-docs-theme'
 const preferred = typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches
 const stored = typeof window !== 'undefined' ? window.localStorage.getItem(storageKey) : null
 const isDark = ref(stored ? stored === 'dark' : preferred)

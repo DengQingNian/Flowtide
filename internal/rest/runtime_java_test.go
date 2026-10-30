@@ -14,9 +14,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/flowable-go/flowable/api"
-	"github.com/flowable-go/flowable/internal/clock"
-	"github.com/flowable-go/flowable/internal/engine"
+	"github.com/DengQingNian/Flowtide/api"
+	"github.com/DengQingNian/Flowtide/internal/clock"
+	"github.com/DengQingNian/Flowtide/internal/engine"
 )
 
 // runtimeJavaCase 保存原版运行时请求、完整响应及执行后的资源和变量。

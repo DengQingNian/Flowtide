@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/flowable-go/flowable/api"
+	"github.com/DengQingNian/Flowtide/api"
 )
 
 // Result 是 SQL 执行结果。
@@ -85,7 +85,7 @@ type Store struct {
 }
 
 // stateID 是状态记录固定 ID。
-const stateID = "flowable-go-state"
+const stateID = "flowtide-state"
 
 // New 创建 SQL 状态存储。
 // @param db 数据库接口

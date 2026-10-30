@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/flowable-go/flowable/api"
+	"github.com/DengQingNian/Flowtide/api"
 )
 
 // TestJavaAsyncVariableReference 对照固定 Java 引擎实际排队与执行结果，不从 Go 实现推导期望。

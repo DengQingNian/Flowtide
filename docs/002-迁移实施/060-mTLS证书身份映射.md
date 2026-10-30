@@ -7,7 +7,7 @@
 
 ## 1. 背景与目标
 
-057 已经在 `cmd/flowable-server` 实现双向 TLS：通过 `-tls-client-ca` 与 `-tls-client-auth` 让服务端在握手阶段要求并校验客户端证书。但证书主体没有进入 `internal/rest` 的认证与租户上下文，业务层仍只认 Basic、静态 Bearer 与 JWT，纯 mTLS 客户端只能以匿名方式访问"未配置认证即放行"的端点。
+057 已经在 `cmd/flowtide-server` 实现双向 TLS：通过 `-tls-client-ca` 与 `-tls-client-auth` 让服务端在握手阶段要求并校验客户端证书。但证书主体没有进入 `internal/rest` 的认证与租户上下文，业务层仍只认 Basic、静态 Bearer 与 JWT，纯 mTLS 客户端只能以匿名方式访问"未配置认证即放行"的端点。
 
 本期在 `internal/rest` 增加客户端证书到身份/租户的映射能力：
 
@@ -17,7 +17,7 @@
 - 不映射角色，不把证书中的任意字段直接当作角色；
 - 不改变 Basic / Bearer / JWT 的原有优先级，HTTP 凭据失败时绝不回退到证书。
 
-本期同时由同一提交的 `cmd/flowable-server` 完成主程序接线（见 2.2），`internal/rest` 仍是证书身份的唯一解析与授权入口。
+本期同时由同一提交的 `cmd/flowtide-server` 完成主程序接线（见 2.2），`internal/rest` 仍是证书身份的唯一解析与授权入口。
 
 ## 2. 启用方式
 
@@ -33,7 +33,7 @@ handler := rest.New(app,
 
 ### 2.2 主程序接线
 
-`cmd/flowable-server` 新增布尔参数 `-tls-client-identity`，语义为"使用已校验的客户端证书建立 REST 身份"。主程序在启动时校验以下前提，任一不满足即以退出码 1 拒绝启动：
+`cmd/flowtide-server` 新增布尔参数 `-tls-client-identity`，语义为"使用已校验的客户端证书建立 REST 身份"。主程序在启动时校验以下前提，任一不满足即以退出码 1 拒绝启动：
 
 - 必须同时配置 `-tls-cert` 与 `-tls-key`（启用本地 TLS）；
 - 必须配置 `-tls-client-ca`；
@@ -43,7 +43,7 @@ handler := rest.New(app,
 满足前提后，主程序把 `rest.WithClientCertificateIdentity()` 加入 REST 选项。启动示例：
 
 ```bash
-HOME=/root go run ./cmd/flowable-server \
+HOME=/root go run ./cmd/flowtide-server \
   -addr :8443 \
   -tls-cert server.crt \
   -tls-key server.key \
@@ -56,7 +56,7 @@ HOME=/root go run ./cmd/flowable-server \
 
 ### 2.3 仅打开选项但不启用 TLS 的结果
 
-若直接调用 `WithClientCertificateIdentity()` 而不启用 TLS（例如 TLS 在反向代理终止，且代理没有把已验证证书通过别的机制传给后端），`r.TLS` 为空，所有 `/service/` 请求都会返回 401。这是有意的失败关闭（fail closed）行为；`cmd/flowable-server` 已通过启动校验避免这种误配。
+若直接调用 `WithClientCertificateIdentity()` 而不启用 TLS（例如 TLS 在反向代理终止，且代理没有把已验证证书通过别的机制传给后端），`r.TLS` 为空，所有 `/service/` 请求都会返回 401。这是有意的失败关闭（fail closed）行为；`cmd/flowtide-server` 已通过启动校验避免这种误配。
 
 ## 3. 证书主体语义
 
@@ -139,10 +139,10 @@ CN=(空),  O=tenant-a             ->  认证失败（401）
 
 ```bash
 HOME=/root go test ./internal/rest -count=1
-# ok github.com/flowable-go/flowable/internal/rest
+# ok github.com/DengQingNian/Flowtide/internal/rest
 
 HOME=/root go test ./internal/rest -count=1 -coverprofile=/tmp/rest_mtls_coverage.out
-# ok github.com/flowable-go/flowable/internal/rest coverage: 90.6% of statements
+# ok github.com/DengQingNian/Flowtide/internal/rest coverage: 90.6% of statements
 
 HOME=/root go tool cover -func=/tmp/rest_mtls_coverage.out | grep client_cert
 # WithClientCertificateIdentity  100.0%
@@ -188,6 +188,6 @@ HOME=/root go tool cover -func=/tmp/rest_mtls_coverage.out | grep client_cert
 | `internal/rest/client_cert_identity_test.go` | 新增真实 TLS 集成测试与边界单元测试。 |
 | `internal/rest/server.go` | 新增字段；认证中间件启用条件；`permitted` 的证书身份授权分支。 |
 | `internal/rest/identity_context.go` | 认证顺序末尾增加证书回退（仅无 `Authorization` 时）。 |
-| `cmd/flowable-server/main.go` | 新增 `-tls-client-identity` 参数、启动校验与 REST 选项接线。 |
-| `cmd/flowable-server/tls.go` / `tls_test.go` | 新增 `validateClientCertIdentity` 及错误分支测试。 |
+| `cmd/flowtide-server/main.go` | 新增 `-tls-client-identity` 参数、启动校验与 REST 选项接线。 |
+| `cmd/flowtide-server/tls.go` / `tls_test.go` | 新增 `validateClientCertIdentity` 及错误分支测试。 |
 | `docs/002-迁移实施/060-mTLS证书身份映射.md` | 本文档。 |

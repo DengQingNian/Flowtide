@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/flowable-go/flowable/api"
+	"github.com/DengQingNian/Flowtide/api"
 )
 
 // VariableValue 按受支持的显式类型恢复变量，未知类型必须阻断。

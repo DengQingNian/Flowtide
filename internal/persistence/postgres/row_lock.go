@@ -9,7 +9,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/flowable-go/flowable/internal/persistence/flowable"
+	"github.com/DengQingNian/Flowtide/internal/persistence/flowable"
 )
 
 // rowLockKey 为同一数据库内的服务执行者保留固定会话锁，不用于集群仲裁。
