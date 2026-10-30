@@ -2608,17 +2608,32 @@ func (s *Server) handleHistoricActivities(w http.ResponseWriter, r *http.Request
 // @param w 响应
 // @param r 请求
 func (s *Server) handleHistoricTasks(w http.ResponseWriter, r *http.Request) {
-	items, err := s.engine.HistoryService().ListHistoricTaskInstances(r.Context(), r.URL.Query().Get("processInstanceId"))
-	if err != nil {
-		writeError(w, err)
-		return
+	query := r.URL.Query()
+	processInstanceID := query.Get("processInstanceId")
+	// 原版查询参数为 finished，与内部结束状态一致；非法取值沿用原语义按 false 处理。
+	var finished *bool
+	if raw := query.Get("finished"); raw != "" {
+		want := raw == "true"
+		finished = &want
 	}
-	// 原版查询参数为 finished，与内部结束状态一致。
-	if finished := r.URL.Query().Get("finished"); finished != "" {
-		want := finished == "true"
+	items := make([]api.HistoricTaskInstance, 0)
+	// 引擎单页最多一千条，过滤和总量计算前必须读完，不能静默截断后续匹配项。
+	for start := 0; ; start += 1000 {
+		page, err := s.engine.HistoryService().QueryHistoricTaskInstances(r.Context(), api.HistoricTaskInstanceFilter{Start: start, Size: 1000,
+			ProcessInstanceID: processInstanceID, Finished: finished})
+		if err != nil {
+			writeError(w, err)
+			return
+		}
+		items = append(items, page.Data...)
+		if len(page.Data) == 0 || int64(start+len(page.Data)) >= page.Total {
+			break
+		}
+	}
+	if finished != nil {
 		filtered := make([]api.HistoricTaskInstance, 0, len(items))
 		for _, item := range items {
-			if (item.EndTime != nil) == want {
+			if (item.EndTime != nil) == *finished {
 				filtered = append(filtered, item)
 			}
 		}

@@ -258,6 +258,26 @@ type HistoricProcessInstance struct {
 	Ended                     bool       `json:"ended"`                               // 是否结束
 }
 
+// HistoricTaskInstanceFilter 是历史任务的查询条件。
+// 仅包含可下推 SQL 的字段；模糊匹配等仍由调用方在内存过滤。
+type HistoricTaskInstanceFilter struct {
+	ID                   string     // 历史/任务 ID
+	Name                 string     // 任务名称
+	Assignee             string     // 处理人
+	TaskDefinitionKey    string     // 任务定义 Key
+	ProcessInstanceID    string     // 流程实例 ID
+	ProcessDefinitionID  string     // 流程定义 ID
+	ProcessDefinitionKey string     // 流程定义 Key
+	TenantID             string     // 租户，空表示不过滤
+	StartedAfter         *time.Time // 开始时间下界，含边界
+	StartedBefore        *time.Time // 开始时间上界，含边界
+	FinishedAfter        *time.Time // 结束时间下界，含边界
+	FinishedBefore       *time.Time // 结束时间上界，含边界
+	Finished             *bool      // 是否已结束，空表示不过滤
+	Start                int        // 偏移量
+	Size                 int        // 每页数量
+}
+
 // HistoricActivityInstance 是历史活动实例。
 // 字段与 ACT_HI_ACTINST 列一一对应，转换 Java 存量数据时不能因查询层未使用而丢失原始列。
 type HistoricActivityInstance struct {

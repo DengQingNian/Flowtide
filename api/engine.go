@@ -748,6 +748,12 @@ type HistoryService interface {
 	// @return 分页历史实例
 	// @return 查询错误
 	QueryHistoricProcessInstances(ctx context.Context, filter HistoricProcessInstanceFilter) (Page[HistoricProcessInstance], error)
+	// QueryHistoricTaskInstances 按条件分页查询历史任务；行模式下等值与时间条件可下推 SQL。
+	// @param ctx 上下文
+	// @param filter 查询条件
+	// @return 分页历史任务
+	// @return 查询错误
+	QueryHistoricTaskInstances(ctx context.Context, filter HistoricTaskInstanceFilter) (Page[HistoricTaskInstance], error)
 	// ListHistoricActivityInstances 返回指定实例的历史活动。
 	// @param ctx 上下文
 	// @param processInstanceID 实例 ID

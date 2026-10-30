@@ -85,6 +85,18 @@ func TestREST_TenantFilterPushdown(t *testing.T) {
 		t.Fatalf("t2 历史实例查询应无结果: %+v", page)
 	}
 
+	// 历史任务查询按请求体 tenantId 过滤，命中默认租户与陌生租户两侧
+	response = postQuery(t, server.URL, "/service/query/historic-task-instances", map[string]any{"tenantId": "t1"}, "")
+	page = decodeQueryPage[map[string]any](t, response)
+	if response.StatusCode != http.StatusOK || page.Total != 2 {
+		t.Fatalf("t1 历史任务查询失败: %d %+v", response.StatusCode, page)
+	}
+	response = postQuery(t, server.URL, "/service/query/historic-task-instances", map[string]any{"tenantId": "t2"}, "")
+	page = decodeQueryPage[map[string]any](t, response)
+	if page.Total != 0 {
+		t.Fatalf("t2 历史任务查询应无结果: %+v", page)
+	}
+
 	// POST 任务查询按请求体 tenantId 过滤
 	response = postQuery(t, server.URL, "/service/query/tasks", map[string]any{"tenantId": "t1"}, "")
 	page = decodeQueryPage[map[string]any](t, response)
@@ -172,6 +184,18 @@ func TestREST_TenantFilterMultiTenant(t *testing.T) {
 	page = decodeQueryPage[map[string]any](t, response)
 	if page.Total != 1 || page.Data[0]["id"] != secondID {
 		t.Fatalf("t2 历史实例查询失败: %+v", page)
+	}
+
+	// 历史任务查询按租户各自命中
+	response = postQuery(t, server.URL, "/service/query/historic-task-instances", map[string]any{"tenantId": "t1"}, "t1")
+	page = decodeQueryPage[map[string]any](t, response)
+	if page.Total != 1 || page.Data[0]["processInstanceId"] != firstID {
+		t.Fatalf("t1 历史任务查询失败: %+v", page)
+	}
+	response = postQuery(t, server.URL, "/service/query/historic-task-instances", map[string]any{"tenantId": "t2"}, "t2")
+	page = decodeQueryPage[map[string]any](t, response)
+	if page.Total != 1 || page.Data[0]["processInstanceId"] != secondID {
+		t.Fatalf("t2 历史任务查询失败: %+v", page)
 	}
 
 	// POST 任务查询只返回对应租户任务

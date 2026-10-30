@@ -112,6 +112,23 @@ func TestIntegrationMySQLInstanceQueryPushdown(t *testing.T) {
 	if err != nil || historic.Total != 2 {
 		t.Fatalf("历史时间区间过滤错误: %v %+v", err, historic)
 	}
+	// 历史任务下推：完成后的两个任务全部结束，按结束状态与定义 Key 过滤
+	finishedTasks, err := app.QueryHistoricTaskInstances(ctx, api.HistoricTaskInstanceFilter{Finished: &finished, Size: 10})
+	if err != nil || finishedTasks.Total != 2 || len(finishedTasks.Data) != 2 {
+		t.Fatalf("历史任务结束过滤错误: %v %+v", err, finishedTasks)
+	}
+	finishedTasks, err = app.QueryHistoricTaskInstances(ctx, api.HistoricTaskInstanceFilter{ProcessDefinitionKey: "instance_push", Size: 10})
+	if err != nil || finishedTasks.Total != 2 {
+		t.Fatalf("历史任务定义 Key 过滤错误: %v %+v", err, finishedTasks)
+	}
+	finishedTasks, err = app.QueryHistoricTaskInstances(ctx, api.HistoricTaskInstanceFilter{TaskDefinitionKey: "approve", StartedBefore: &before, Size: 10})
+	if err != nil || finishedTasks.Total != 2 {
+		t.Fatalf("历史任务定义与时间过滤错误: %v %+v", err, finishedTasks)
+	}
+	finishedTasks, err = app.QueryHistoricTaskInstances(ctx, api.HistoricTaskInstanceFilter{Name: "Approve", Size: 10})
+	if err != nil || finishedTasks.Total != 2 {
+		t.Fatalf("历史任务名称过滤错误: %v %+v", err, finishedTasks)
+	}
 	if err := app.Close(ctx); err != nil {
 		t.Fatal(err)
 	}
