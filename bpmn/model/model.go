@@ -39,6 +39,7 @@ type Process struct {
 	ExecutionListeners     []ExecutionListenerDefinition // 流程级执行监听器
 	Elements               map[string]FlowElement        // 按 ID 索引的元素
 	Order                  []string                      // 元素在文档中的顺序
+	Extensions             *ElementExtensions            // 流程级业务扩展属性（nil 表示无扩展）
 }
 
 // ExecutionListenerDefinition 是 BPMN 执行监听器定义。
@@ -69,6 +70,46 @@ type BaseElement struct {
 	Documentation string // 文档说明
 }
 
+// ExtensionField 是扩展元素中的单个字段值（对应 BPMN 扩展 <field name="x"> 的文本值）。
+type ExtensionField struct {
+	Name  string // 字段名（field 的 name 属性）
+	Value string // 字段值（string/value/expression 子元素的文本）
+}
+
+// ElementExtensions 保留元素上的业务扩展属性与扩展字段。
+// 二次封装（workflow）依赖 stepCode/weightType/executorList/direction 等非引擎语义
+// 属性；解析器把"带命名空间前缀的属性"与"解析器未消费的未知属性"统一落到
+// Attributes（键为去命名空间前缀的本地名），扩展元素中的 field 落到 Fields。
+type ElementExtensions struct {
+	Attributes map[string]string // 扩展属性：本地名 → 值
+	Fields     []ExtensionField  // 扩展字段（<extensionElements> 内 field 元素）
+}
+
+// Attr 返回扩展属性值。
+// @param local 去命名空间前缀的本地属性名
+// @return 属性值，不存在时为空串
+func (e *ElementExtensions) Attr(local string) string {
+	if e == nil {
+		return ""
+	}
+	return e.Attributes[local]
+}
+
+// Field 返回扩展字段值。
+// @param name 字段名
+// @return 字段值，不存在时为空串
+func (e *ElementExtensions) Field(name string) string {
+	if e == nil {
+		return ""
+	}
+	for i := range e.Fields {
+		if e.Fields[i].Name == name {
+			return e.Fields[i].Value
+		}
+	}
+	return ""
+}
+
 // GetID 返回元素 ID。
 // @return 元素 ID
 func (b *BaseElement) GetID() string { return b.ID }
@@ -88,6 +129,7 @@ type FlowNodeBase struct {
 	Exclusive          bool                          // 是否独占作业
 	ForCompensation    bool                          // 是否补偿处理器
 	ExecutionListeners []ExecutionListenerDefinition // 节点级执行监听器
+	Extensions         *ElementExtensions            // 业务扩展属性（nil 表示无扩展）
 }
 
 // GetIncoming 返回入线。
@@ -504,10 +546,11 @@ func (s *SubProcess) StartEvents() []*StartEvent {
 // SequenceFlow 表示顺序流。
 type SequenceFlow struct {
 	BaseElement
-	SourceRef string // 源节点 ID
-	TargetRef string // 目标节点 ID
-	Condition string // 条件表达式
-	IsDefault bool   // 是否默认流
+	SourceRef  string             // 源节点 ID
+	TargetRef  string             // 目标节点 ID
+	Condition  string             // 条件表达式
+	IsDefault  bool               // 是否默认流
+	Extensions *ElementExtensions // 业务扩展属性（nil 表示无扩展）
 }
 
 // ElementType 返回元素类型。
