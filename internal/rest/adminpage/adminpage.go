@@ -16,6 +16,36 @@ import (
 // Prefix 是管理台占用的 URL 前缀。
 const Prefix = "/adminpage"
 
+// extensionContentTypes 是前端静态资源的本地优先 Content-Type 映射。
+// 不依赖操作系统 MIME 注册表：Windows 注册表缺失 font/woff2、text/javascript
+// 映射（或给出 application/javascript 旧值）时，跨环境 Content-Type 会漂移。
+var extensionContentTypes = map[string]string{
+	".js":   "text/javascript; charset=utf-8",
+	".mjs":  "text/javascript; charset=utf-8",
+	".css":  "text/css; charset=utf-8",
+	".html": "text/html; charset=utf-8",
+	".json": "application/json; charset=utf-8",
+	".svg":  "image/svg+xml",
+	".woff": "font/woff",
+	// .woff2 现代浏览器字体格式
+	".woff2": "font/woff2",
+	".png":   "image/png",
+	".ico":   "image/x-icon",
+}
+
+// contentTypeFor 返回资源扩展名对应的 Content-Type。
+// @param ext 带点扩展名（如 ".js"）
+// @return Content-Type；本地映射与系统 MIME 都未命中时回退 application/octet-stream
+func contentTypeFor(ext string) string {
+	if contentType, ok := extensionContentTypes[ext]; ok {
+		return contentType
+	}
+	if contentType := mime.TypeByExtension(ext); contentType != "" {
+		return contentType
+	}
+	return "application/octet-stream"
+}
+
 // contentSecurityPolicy 是管理台统一内容安全策略。
 const contentSecurityPolicy = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'"
 
@@ -177,10 +207,7 @@ func (h *handler) serveFile(w http.ResponseWriter, r *http.Request, name string)
 		writeHTML(w, r, http.StatusNotFound, pageNotFound)
 		return
 	}
-	contentType := mime.TypeByExtension(path.Ext(name))
-	if contentType == "" {
-		contentType = "application/octet-stream"
-	}
+	contentType := contentTypeFor(path.Ext(name))
 	w.Header().Set("Content-Type", contentType)
 	// assets 下的文件名带内容指纹，可以长期缓存；其他文件保持不缓存
 	if strings.HasPrefix(name, "assets/") {

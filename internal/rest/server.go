@@ -157,7 +157,15 @@ func (s *Server) withTenant(next http.Handler) http.Handler {
 	})
 }
 
-// authenticate 对 /service 路径执行认证。
+// isEngineAPIPath 判断路径是否属于受引擎中间件管辖的业务 API。
+// /workflow/**（二次封装门面）与 /service/**（Flowable 兼容 API）同策略（006 §6）。
+// @param path 请求路径
+// @return 是否业务 API 路径
+func isEngineAPIPath(path string) bool {
+	return strings.HasPrefix(path, "/service/") || strings.HasPrefix(path, "/workflow/")
+}
+
+// authenticate 对 /service 与 /workflow 路径执行认证。
 // @param next 下游处理器
 // @return 处理器
 func (s *Server) authenticate(next http.Handler) http.Handler {
@@ -166,7 +174,7 @@ func (s *Server) authenticate(next http.Handler) http.Handler {
 		return next
 	}
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if !strings.HasPrefix(r.URL.Path, "/service/") {
+		if !isEngineAPIPath(r.URL.Path) {
 			next.ServeHTTP(w, r)
 			return
 		}
@@ -543,6 +551,7 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("GET /service/history/historic-variable-instances/{id}", s.handleHistoricVariable)
 	s.mux.HandleFunc("GET /service/history/historic-variable-instances/{id}/data", s.handleGetHistoricVariableData)
 	s.mux.HandleFunc("DELETE /service/history/historic-variable-instances/{id}", s.handleDeleteHistoricVariable)
+	registerWorkflowRoutes(s)
 }
 
 // handleEngineProperties 返回引擎属性。

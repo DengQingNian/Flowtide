@@ -97,6 +97,8 @@ type Engine struct {
 	delegates          map[string]Delegate          // 服务任务委托
 	taskListeners      map[string]api.TaskListener  // 任务监听器
 	executionListeners map[string]ExecutionListener // 执行监听器
+	taskCreatedHooks   []api.TaskHook               // 任务创建全局钩子，按注册顺序执行
+	taskCompletedHooks []api.TaskHook               // 任务完成全局钩子，按注册顺序执行
 	closed             bool                         // 是否关闭
 	rowRepository      *flowablerow.Repository      // 行仓储
 	lastRows           []flowablerow.Row            // 上次持久化行
@@ -106,12 +108,13 @@ type Engine struct {
 
 // commandContext 是单条命令的上下文。
 type commandContext struct {
-	engine           *Engine         // 引擎
-	ctx              context.Context // 调用方上下文
-	now              time.Time       // 命令内统一时间
-	agenda           *agenda         // 议程
-	listenerErr      error           // 执行监听器错误，命令结束统一回滚
-	transactionOrder int             // 命令内历史活动写入顺序
+	engine           *Engine                           // 引擎
+	ctx              context.Context                   // 调用方上下文
+	now              time.Time                         // 命令内统一时间
+	agenda           *agenda                           // 议程
+	listenerErr      error                             // 执行监听器错误，命令结束统一回滚
+	transactionOrder int                               // 命令内历史活动写入顺序
+	deferred         []func(ctx context.Context) error // 命令提交成功后锁外顺序执行的延迟动作
 }
 
 // nextTransactionOrder 返回当前命令内的下一个活动事务顺序，与 Java audit 记录一致。
@@ -263,20 +266,33 @@ func (e *Engine) EngineInfo(ctx context.Context) (map[string]any, error) {
 	}, nil
 }
 
-// execute 在锁与事务语义中执行命令。
+// execute 在锁与事务语义中执行命令，命令成功提交后在锁外顺序执行延迟动作。
 // @param ctx 上下文
 // @param fn 命令函数
 // @return 命令结果
 // @return 执行错误
 func (e *Engine) execute(ctx context.Context, fn func(*commandContext) (any, error)) (any, error) {
+	result, err, deferred := e.executeLocked(ctx, fn)
+	// 命令已成功落盘，延迟动作在锁释放后执行，动作内可安全调用引擎公有 API
+	e.runDeferredActions(ctx, deferred)
+	return result, err
+}
+
+// executeLocked 在持锁状态下执行命令本体，并返回命令登记的延迟动作。
+// @param ctx 上下文
+// @param fn 命令函数
+// @return 命令结果
+// @return 执行错误
+// @return 延迟动作列表，命令失败时为空
+func (e *Engine) executeLocked(ctx context.Context, fn func(*commandContext) (any, error)) (any, error, []func(ctx context.Context) error) {
 	e.mu.Lock()
 	defer e.mu.Unlock()
 	if e.closed {
-		return nil, api.NewError("ENGINE-0002", "引擎已关闭", api.ErrEngineClosed)
+		return nil, api.NewError("ENGINE-0002", "引擎已关闭", api.ErrEngineClosed), nil
 	}
 	if owner, ok := e.cfg.StateStore.(interface{ CheckOwner(context.Context) error }); ok {
 		if err := owner.CheckOwner(ctx); err != nil {
-			return nil, api.NewError("ENGINE-0922", "存储独占权校验失败", err)
+			return nil, api.NewError("ENGINE-0922", "存储独占权校验失败", err), nil
 		}
 	}
 	backup := cloneState(e.state)
@@ -294,7 +310,7 @@ func (e *Engine) execute(ctx context.Context, fn func(*commandContext) (any, err
 	if err != nil {
 		// 任一操作失败，回滚到命令开始前的状态
 		e.state = backup
-		return nil, err
+		return nil, err, nil
 	}
 	// 瞬态变量仅在命令内可见，落盘前统一清理
 	for _, execution := range e.state.Executions {
@@ -303,15 +319,15 @@ func (e *Engine) execute(ctx context.Context, fn func(*commandContext) (any, err
 	// 命令成功后落盘；落盘失败同样回滚，保证内存与磁盘一致
 	if err := e.saveState(ctx); err != nil {
 		e.state = backup
-		return nil, err
+		return nil, err, nil
 	}
 	if !e.suppressPersist {
 		if err := e.persistRows(ctx); err != nil {
 			e.state = backup
-			return nil, err
+			return nil, err, nil
 		}
 	}
-	return copyValue(result), nil
+	return copyValue(result), nil, cc.deferred
 }
 
 // read 在只读锁中执行查询。
