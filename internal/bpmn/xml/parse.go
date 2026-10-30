@@ -80,6 +80,7 @@ func parseProcess(node *Node) (*model.Process, error) {
 	if doc, ok := node.Child("documentation"); ok {
 		process.Documentation = doc.TextContent()
 	}
+	process.Extensions = parseExtensions(node)
 	for _, child := range node.Children {
 		element, err := parseElement(child)
 		if err != nil {
@@ -270,6 +271,7 @@ func parseElement(node *Node) (model.FlowElement, error) {
 		}
 		flow.ID = node.Attr("id")
 		flow.Name = node.Attr("name")
+		flow.Extensions = parseExtensions(node)
 		if flow.ID == "" {
 			return nil, api.NewError("BPMN-1004", "sequenceFlow 缺少 id", nil)
 		}
@@ -294,9 +296,87 @@ func parseFlowNodeBase(node *Node, base *model.FlowNodeBase) {
 	base.Exclusive = !strings.EqualFold(attrAny(node, "exclusive"), "false")
 	base.ForCompensation = strings.EqualFold(attrAny(node, "isForCompensation"), "true")
 	base.ExecutionListeners = parseExecutionListeners(node)
+	base.Extensions = parseExtensions(node)
 	if doc, ok := node.Child("documentation"); ok {
 		base.Documentation = doc.TextContent()
 	}
+}
+
+// knownAttrs 是解析器已消费的属性名集合（本地名）。
+// 不在集合内的属性一律落入 ElementExtensions.Attributes，供业务层读取
+// stepCode/weightType/executorList/direction 等扩展。
+var knownAttrs = map[string]bool{
+	"id": true, "name": true, "type": true, "value": true, "source": true, "target": true,
+	"isExecutable": true, "candidateStarterUsers": true, "candidateStarterGroups": true,
+	"assignee": true, "candidateUsers": true, "candidateGroups": true, "dueDate": true,
+	"priority": true, "formKey": true, "category": true, "initiator": true,
+	"async": true, "asyncBefore": true, "asyncAfter": true, "exclusive": true,
+	"isForCompensation": true, "isInterrupting": true, "cancelActivity": true,
+	"attachedToRef": true, "messageRef": true, "signalRef": true, "errorRef": true,
+	"errorCode": true, "sourceRef": true, "targetRef": true, "default": true,
+	"delegateExpression": true, "expression": true, "class": true, "resultVariable": true,
+	"scriptFormat": true, "decisionRef": true, "calledElement": true,
+	"inheritVariables": true, "businessKey": true, "processInstanceName": true,
+	"isSequential": true, "collection": true, "elementVariable": true,
+	"completionCondition": true, "event": true, "ordering": true, "adHoc": true,
+	"sourceExpression": true, "triggeredByEvent": true, "required": true,
+	"readable": true, "writable": true,
+}
+
+// parseExtensions 提取节点上的业务扩展属性与扩展字段。
+// 规则：本地名不在 knownAttrs 中的属性（无论是否带命名空间前缀）进 Attributes
+// （键为去前缀本地名）；<extensionElements> 内的 field 元素进 Fields。
+// @param node XML 节点
+// @return 扩展集合，无扩展时返回 nil
+func parseExtensions(node *Node) *model.ElementExtensions {
+	var attrs map[string]string
+	for _, attr := range node.Attrs {
+		local := attr.Name.Local
+		// 命名空间声明与解析器已消费的属性不进入扩展
+		if local == "xmlns" || attr.Name.Space == "xmlns" || knownAttrs[local] {
+			continue
+		}
+		if attrs == nil {
+			attrs = make(map[string]string)
+		}
+		attrs[local] = attr.Value
+	}
+	fields := parseExtensionFields(node)
+	if attrs == nil && fields == nil {
+		return nil
+	}
+	return &model.ElementExtensions{Attributes: attrs, Fields: fields}
+}
+
+// parseExtensionFields 提取 <extensionElements> 内的 field 扩展字段。
+// 兼容 flowable/activiti 前缀与无前缀写法，值取 string/value/expression 子元素文本。
+// @param node XML 节点
+// @return 字段列表，无字段时返回 nil
+func parseExtensionFields(node *Node) []model.ExtensionField {
+	var fields []model.ExtensionField
+	for _, extension := range node.ChildrenNamed("extensionElements") {
+		for _, child := range extension.Children {
+			if child.Name.Local != "field" {
+				continue
+			}
+			field := model.ExtensionField{Name: attrAny(child, "name")}
+			// 值优先取 string/value/expression 子元素，退化为字段自身文本
+			for _, valueNode := range child.Children {
+				switch valueNode.Name.Local {
+				case "string", "value", "expression", "text":
+					field.Value = strings.TrimSpace(valueNode.TextContent())
+				}
+				if field.Value != "" {
+					break
+				}
+			}
+			if field.Value == "" {
+				field.Value = strings.TrimSpace(child.TextContent())
+			}
+			fields = append(fields, field)
+		}
+	}
+	return fields
 }
 
 // parseFormProperties 解析表单字段。
