@@ -118,7 +118,7 @@
     },
     {
       "path": "testdata/compatibility/java/007-history-rest.json",
-      "sha256": "d7f4419fcaae36ace15c3ac4a121f424eb62ee6cf1e376e7c4c9b9f3aed2cf84"
+      "sha256": "95e2247be33b21ddeac1ee833c6405f6ae1802b605c981d52e0ec52014f34b00"
     },
     {
       "path": "testdata/compatibility/java/history-provenance.json",

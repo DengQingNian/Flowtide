@@ -290,6 +290,12 @@ type RuntimeService interface {
 	// @return 实例列表
 	// @return 查询错误
 	ListProcessInstances(ctx context.Context) ([]ProcessInstance, error)
+	// QueryProcessInstances 按条件分页查询运行中实例；行模式下等值与时间条件可下推 SQL。
+	// @param ctx 上下文
+	// @param filter 查询条件
+	// @return 分页实例
+	// @return 查询错误
+	QueryProcessInstances(ctx context.Context, filter ProcessInstanceFilter) (Page[ProcessInstance], error)
 	// DeleteProcessInstance 删除流程实例。
 	// @param ctx 上下文
 	// @param id 实例 ID
@@ -736,6 +742,12 @@ type HistoryService interface {
 	// @return 历史实例列表
 	// @return 查询错误
 	ListHistoricProcessInstances(ctx context.Context) ([]HistoricProcessInstance, error)
+	// QueryHistoricProcessInstances 按条件分页查询历史实例；行模式下等值与时间条件可下推 SQL。
+	// @param ctx 上下文
+	// @param filter 查询条件
+	// @return 分页历史实例
+	// @return 查询错误
+	QueryHistoricProcessInstances(ctx context.Context, filter HistoricProcessInstanceFilter) (Page[HistoricProcessInstance], error)
 	// ListHistoricActivityInstances 返回指定实例的历史活动。
 	// @param ctx 上下文
 	// @param processInstanceID 实例 ID

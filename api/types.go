@@ -195,6 +195,36 @@ type TaskFilter struct {
 	Size                 int    // 每页数量
 }
 
+// ProcessInstanceFilter 是运行中实例的查询条件。
+// 仅包含可下推 SQL 的字段；名称、模糊匹配、键集合与租户等仍由调用方在内存过滤。
+type ProcessInstanceFilter struct {
+	ID                   string     // 流程实例 ID
+	ProcessDefinitionID  string     // 流程定义 ID
+	ProcessDefinitionKey string     // 流程定义 Key
+	BusinessKey          string     // 业务键
+	Suspended            *bool      // 是否挂起，空表示不过滤
+	StartedAfter         *time.Time // 开始时间下界，含边界
+	StartedBefore        *time.Time // 开始时间上界，含边界
+	Start                int        // 偏移量
+	Size                 int        // 每页数量
+}
+
+// HistoricProcessInstanceFilter 是历史流程实例的查询条件。
+// 仅包含可下推 SQL 的字段；名称、模糊匹配、键集合、删除原因与租户等仍由调用方在内存过滤。
+type HistoricProcessInstanceFilter struct {
+	ID                   string     // 流程实例 ID
+	ProcessDefinitionID  string     // 流程定义 ID
+	ProcessDefinitionKey string     // 流程定义 Key
+	BusinessKey          string     // 业务键
+	StartedAfter         *time.Time // 开始时间下界，含边界
+	StartedBefore        *time.Time // 开始时间上界，含边界
+	FinishedAfter        *time.Time // 结束时间下界，含边界
+	FinishedBefore       *time.Time // 结束时间上界，含边界
+	Finished             *bool      // 是否已结束，空表示不过滤
+	Start                int        // 偏移量
+	Size                 int        // 每页数量
+}
+
 // HistoricProcessInstance 是历史流程实例。
 type HistoricProcessInstance struct {
 	ID                        string     `json:"id"`                                  // 实例 ID

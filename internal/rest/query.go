@@ -1161,10 +1161,46 @@ func (s *Server) handleQueryHistoricProcesses(w http.ResponseWriter, r *http.Req
 		writeError(w, err)
 		return
 	}
-	items, err := s.engine.HistoryService().ListHistoricProcessInstances(r.Context())
+	finished, err := body.boolField("finished")
 	if err != nil {
 		writeError(w, err)
 		return
+	}
+	startedAfter, err := body.timeField("startedAfter")
+	if err != nil {
+		writeError(w, err)
+		return
+	}
+	startedBefore, err := body.timeField("startedBefore")
+	if err != nil {
+		writeError(w, err)
+		return
+	}
+	endedAfter, err := body.timeField("endedAfter")
+	if err != nil {
+		writeError(w, err)
+		return
+	}
+	endedBefore, err := body.timeField("endedBefore")
+	if err != nil {
+		writeError(w, err)
+		return
+	}
+	items := make([]api.HistoricProcessInstance, 0)
+	// 引擎单页最多一千条，过滤和总量计算前必须读完，不能静默截断后续匹配项。
+	for start := 0; ; start += 1000 {
+		page, err := s.engine.HistoryService().QueryHistoricProcessInstances(r.Context(), api.HistoricProcessInstanceFilter{Start: start, Size: 1000,
+			ID: body.str("id"), ProcessDefinitionID: body.str("processDefinitionId"), ProcessDefinitionKey: body.str("processDefinitionKey"),
+			BusinessKey: body.str("businessKey"), StartedAfter: startedAfter, StartedBefore: startedBefore,
+			FinishedAfter: endedAfter, FinishedBefore: endedBefore, Finished: finished})
+		if err != nil {
+			writeError(w, err)
+			return
+		}
+		items = append(items, page.Data...)
+		if len(page.Data) == 0 || int64(start+len(page.Data)) >= page.Total {
+			break
+		}
 	}
 	// 原版支持按流程实例过滤历史查询。
 	if instanceID := body.str("processInstanceId"); instanceID != "" {

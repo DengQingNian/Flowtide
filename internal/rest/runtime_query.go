@@ -12,10 +12,35 @@ import (
 // @param body 合并后的参数
 // @return 无
 func (s *Server) serveInstanceQuery(w http.ResponseWriter, r *http.Request, body queryBody) {
-	items, err := s.engine.RuntimeService().ListProcessInstances(r.Context())
+	suspended, err := body.boolField("suspended")
 	if err != nil {
 		writeError(w, err)
 		return
+	}
+	startedAfter, err := body.timeField("startedAfter")
+	if err != nil {
+		writeError(w, err)
+		return
+	}
+	startedBefore, err := body.timeField("startedBefore")
+	if err != nil {
+		writeError(w, err)
+		return
+	}
+	items := make([]api.ProcessInstance, 0)
+	// 引擎单页最多一千条，过滤和总量计算前必须读完，不能静默截断后续匹配项。
+	for start := 0; ; start += 1000 {
+		page, err := s.engine.RuntimeService().QueryProcessInstances(r.Context(), api.ProcessInstanceFilter{Start: start, Size: 1000,
+			ID: body.str("id"), ProcessDefinitionID: body.str("processDefinitionId"), ProcessDefinitionKey: body.str("processDefinitionKey"),
+			BusinessKey: body.str("businessKey"), Suspended: suspended, StartedAfter: startedAfter, StartedBefore: startedBefore})
+		if err != nil {
+			writeError(w, err)
+			return
+		}
+		items = append(items, page.Data...)
+		if len(page.Data) == 0 || int64(start+len(page.Data)) >= page.Total {
+			break
+		}
 	}
 	items, err = filterQueryProcessInstances(items, body, requestTenant(r))
 	if err == nil {

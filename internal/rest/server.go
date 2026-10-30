@@ -2376,10 +2376,19 @@ func (s *Server) handleTaskAction(w http.ResponseWriter, r *http.Request) {
 // @param w 响应
 // @param r 请求
 func (s *Server) handleHistoricProcesses(w http.ResponseWriter, r *http.Request) {
-	items, err := s.engine.HistoryService().ListHistoricProcessInstances(r.Context())
-	if err != nil {
-		writeError(w, err)
-		return
+	items := make([]api.HistoricProcessInstance, 0)
+	// 引擎单页最多一千条，过滤和总量计算前必须读完，不能静默截断后续匹配项。
+	for start := 0; ; start += 1000 {
+		page, err := s.engine.HistoryService().QueryHistoricProcessInstances(r.Context(), api.HistoricProcessInstanceFilter{Start: start, Size: 1000,
+			ProcessDefinitionKey: r.URL.Query().Get("processDefinitionKey"), BusinessKey: r.URL.Query().Get("businessKey")})
+		if err != nil {
+			writeError(w, err)
+			return
+		}
+		items = append(items, page.Data...)
+		if len(page.Data) == 0 || int64(start+len(page.Data)) >= page.Total {
+			break
+		}
 	}
 	if key := r.URL.Query().Get("processDefinitionKey"); key != "" {
 		filtered := make([]api.HistoricProcessInstance, 0, len(items))

@@ -20,11 +20,11 @@ import (
 )
 
 type historyJavaFixtureData struct {
-	Baseline    string                     `json:"baseline"`
-	Clock       time.Time                  `json:"clock"`
-	StartUserID string                     `json:"startUserId"`
-	Models      map[string]string          `json:"models"`
-	Cases       []historyJavaCase          `json:"cases"`
+	Baseline    string            `json:"baseline"`
+	Clock       time.Time         `json:"clock"`
+	StartUserID string            `json:"startUserId"`
+	Models      map[string]string `json:"models"`
+	Cases       []historyJavaCase `json:"cases"`
 }
 
 // historyJavaCase 保存原版历史请求、完整响应及历史实体计数。
@@ -334,12 +334,13 @@ func buildHistoryJavaFixture(t *testing.T, fixture historyJavaFixtureData, app *
 		}
 	}
 	// 临时探针：输出运行实例链接的时间线
-		links, _ := app.ListHistoricProcessIdentityLinks(ctx, ids["{runningId}"])
-		for _, link := range links {
-			t.Logf("探针: %s %s @%s", link.Type, link.UserID, link.CreateTime.Format("15:04:05"))
-		}
+	links, _ := app.ListHistoricProcessIdentityLinks(ctx, ids["{runningId}"])
+	for _, link := range links {
+		t.Logf("探针: %s %s @%s", link.Type, link.UserID, link.CreateTime.Format("15:04:05"))
+	}
 	return ids
 }
+
 // mustListInstances 返回全部运行时实例。
 // @param t 测试上下文
 // @param app 引擎
