@@ -3,7 +3,6 @@ package rest
 import (
 	"context"
 	"net/http"
-	"strings"
 	"sync"
 	"time"
 
@@ -97,7 +96,8 @@ func (s *Server) audit(next http.Handler) http.Handler {
 		return next
 	}
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if !strings.HasPrefix(r.URL.Path, "/service/") {
+		// /workflow/** 与 /service/** 同受审计（006 §6）
+		if !isEngineAPIPath(r.URL.Path) {
 			next.ServeHTTP(w, r)
 			return
 		}

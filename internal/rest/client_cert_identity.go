@@ -25,8 +25,8 @@ func (s *Server) clientCertificateIdentity(r *http.Request) (jwtIdentity, bool) 
 	if !s.clientCertIdentity {
 		return jwtIdentity{}, false
 	}
-	// 认证仅对 /service/ 业务接口生效
-	if !strings.HasPrefix(r.URL.Path, "/service/") {
+	// 认证仅对 /service/ 与 /workflow/ 业务接口生效（006 §6 同策略）
+	if !isEngineAPIPath(r.URL.Path) {
 		return jwtIdentity{}, false
 	}
 	// 未启用 TLS 或握手未完成时没有可信证书

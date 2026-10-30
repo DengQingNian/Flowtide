@@ -2,7 +2,6 @@ package rest
 
 import (
 	"net/http"
-	"strings"
 	"sync"
 	"time"
 
@@ -55,7 +54,8 @@ func (s *Server) rateLimit(next http.Handler) http.Handler {
 		return next
 	}
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if !strings.HasPrefix(r.URL.Path, "/service/") || s.limiter.allow(time.Now()) {
+		// /workflow/** 与 /service/** 同受限流（006 §6）
+		if !isEngineAPIPath(r.URL.Path) || s.limiter.allow(time.Now()) {
 			next.ServeHTTP(w, r)
 			return
 		}

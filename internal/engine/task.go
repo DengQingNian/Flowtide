@@ -76,6 +76,10 @@ func (e *Engine) createUserTask(cc *commandContext, execution *executionState, n
 	if err := e.invokeTaskListeners(cc, task, "create"); err != nil {
 		return err
 	}
+	// 触发任务创建全局钩子：执行人重写等通过 ctl 在命令内改写任务，失败使命令回滚
+	if err := e.invokeTaskHooks(cc, task, hookEventCreated); err != nil {
+		return err
+	}
 	execution.Waiting = true
 	execution.ActivityID = node.ID
 	return nil
@@ -512,6 +516,10 @@ func (e *Engine) completeTask(cc *commandContext, taskID string, req api.Complet
 		execution.Transient[variable.Name] = copyValue(variable.Value)
 	}
 	if err := e.invokeTaskListeners(cc, task, "complete"); err != nil {
+		return err
+	}
+	// 触发任务完成全局钩子：位于历史结束行落库之前，钩子内经 ctl 的状态改写会进入后续差分行
+	if err := e.invokeTaskHooks(cc, task, hookEventCompleted); err != nil {
 		return err
 	}
 	e.recordTaskLog(cc, task, "complete", actorFromContext(cc.ctx), "{}")

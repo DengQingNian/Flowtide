@@ -30,6 +30,12 @@ type Engine interface {
 	// FormService 返回表单服务。
 	// @return 表单服务
 	FormService() FormService
+	// AddTaskCreatedHook 注册任务创建全局钩子（TASK_CREATED），按注册顺序在创建任务的命令内同步执行。
+	// @param hook 钩子函数
+	AddTaskCreatedHook(hook TaskHook)
+	// AddTaskCompletedHook 注册任务完成全局钩子（TASK_COMPLETED），按注册顺序在完成任务的命令内同步执行。
+	// @param hook 钩子函数
+	AddTaskCompletedHook(hook TaskHook)
 	// Close 关闭引擎。
 	// @param ctx 关闭上下文
 	// @return 关闭错误
