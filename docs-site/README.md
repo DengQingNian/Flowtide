@@ -27,6 +27,7 @@ npm run preview      # http://localhost:4173
 | `npm run dev` | 开发服务器（先执行一次 gen） |
 | `npm run build` | 类型检查 + 生产构建 |
 | `npm test` | Vitest 单元测试（内容、搜索、导航、组件） |
+| `npm run test:deployment` | 部署路径测试与新增路径处理代码的 90% 行覆盖率门禁 |
 | `npm run test:e2e` | Playwright 冒烟测试；需先启动 preview |
 | `npm run check:links` | 重新生成内容并执行站内链接/锚点校验 |
 | `npm run check:facts` | 生成事实并校验关键不变量 |
@@ -115,7 +116,23 @@ tags: [进度, 重构]
 
 - Nginx：`try_files $uri $uri/ /index.html;`
 - Netlify / Cloudflare Pages：配置 SPA fallback。
-- GitHub/Gitea Pages：需要 404 回退或改为 hash 路由。
+- GitHub Pages：仓库根目录的 `.github/workflows/docs-pages.yml` 自动构建、上传并发布，同时复制 `index.html` 为 `404.html`，让深层链接刷新后仍能显示对应页面。此类请求的 HTTP 状态仍为 404。
+
+GitHub 仓库首次启用时，在 **Settings → Pages → Build and deployment → Source** 选择 **GitHub Actions**。之后每次向 `master` 推送都会发布，也可在 Actions 页面手动运行“文档站发布到 GitHub Pages”；手动运行其他分支只检查构建，不发布。
+
+流水线检出完整 Git 历史，执行 `make cover` 生成事实所需的 `coverage.out` 并检查 Go 覆盖率，再执行 `npm ci`、单元测试、部署路径覆盖率检查和生产构建。使用工作流自带的 `GITHUB_TOKEN`，无需额外配置个人令牌。`github-pages` 环境如设置了审批规则，部署仍需遵守该规则。
+
+发布时自动从 Pages 配置读取部署目录，支持 `/Flowtide/` 这类项目站点路径以及根目录、自定义域名。资源、前端路由和 Markdown 正文中的站内链接统一适配此目录。本地模拟项目站点构建：
+
+~~~bash
+# 先在仓库根目录执行 make cover，确保存在 coverage.out
+cd docs-site
+DOCS_BASE_PATH=/Flowtide/ npm run build
+DOCS_BASE_PATH=/Flowtide/ npm run preview
+# 打开 http://localhost:4173/Flowtide/
+~~~
+
+详细说明见 [GitHub Pages 自动发布](../docs/004-文档站/004-GitHub-Pages自动发布.md)。
 
 当前没有版本快照、英文版或 OpenAPI 浏览器。
 

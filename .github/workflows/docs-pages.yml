@@ -1,0 +1,92 @@
+name: 文档站发布到 GitHub Pages
+
+on:
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# 同一时间只发布一个版本，后续提交等待正在进行的部署结束。
+concurrency:
+  group: github-pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: 检查并构建文档站
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: read
+    steps:
+      - name: 检出完整仓库历史
+        uses: actions/checkout@v6
+        with:
+          # 事实生成器需要统计提交总数和最近提交。
+          fetch-depth: 0
+
+      - name: 配置 Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+
+      - name: 生成覆盖率事实并检查百分之九十门禁
+        run: make cover
+
+      - name: 配置 Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: docs-site/package-lock.json
+
+      - name: 读取 GitHub Pages 部署目录
+        id: pages
+        uses: actions/configure-pages@v5
+
+      - name: 安装文档站依赖
+        working-directory: docs-site
+        run: npm ci
+
+      - name: 运行文档站测试
+        working-directory: docs-site
+        run: npm test
+
+      - name: 检查部署路径代码覆盖率
+        working-directory: docs-site
+        run: npm run test:deployment
+
+      - name: 构建静态文档站
+        working-directory: docs-site
+        env:
+          # 项目站点为 /仓库名/，用户站点和自定义域名为 /。
+          DOCS_BASE_PATH: ${{ steps.pages.outputs.base_path }}/
+        run: npm run build
+
+      - name: 配置单页应用刷新回退
+        # GitHub Pages 对未知路径返回此文件，前端继续解析原始 URL。
+        run: cp docs-site/dist/index.html docs-site/dist/404.html
+
+      - name: 上传静态站点
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: docs-site/dist
+
+  deploy:
+    name: 发布文档站
+    needs: build
+    # 手动运行也只允许发布 master，避免覆盖线上站点。
+    if: github.ref == 'refs/heads/master'
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: 发布到 GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

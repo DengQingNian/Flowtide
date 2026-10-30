@@ -4,12 +4,14 @@ import { useRoute } from 'vue-router'
 import { useMessage } from 'naive-ui'
 import { ArrowLeft, ArrowRight, CalendarClock, ExternalLink, Tag } from '@lucide/vue'
 import { neighbors, pageByRoute, sectionLabel } from '@/lib/content'
+import { withBaseLinks } from '@/lib/deployment'
 import StatusBadge from '@/components/StatusBadge.vue'
 import NotFoundPage from './NotFoundPage.vue'
 
 const route = useRoute()
 const message = useMessage()
 const page = computed(() => pageByRoute.get(route.path))
+const html = computed(() => withBaseLinks(page.value?.html || '', import.meta.env.BASE_URL))
 const nav = computed(() => (page.value ? neighbors(page.value.route) : {}))
 
 // copyFromButton 复制代码块文本并给出反馈。
@@ -85,7 +87,7 @@ onMounted(scrollToHash)
       </div>
     </header>
 
-    <div class="markdown-body" v-html="page.html" />
+    <div class="markdown-body" v-html="html" />
 
     <nav class="page-nav" aria-label="上一篇与下一篇">
       <router-link v-if="nav.prev" :to="nav.prev.route" class="page-nav__item page-nav__item--prev">

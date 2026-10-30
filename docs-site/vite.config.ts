@@ -5,6 +5,7 @@ import vue from '@vitejs/plugin-vue'
 // 站点构建配置：静态产物、源码别名与预览端口。
 // @return Vite 配置
 export default defineConfig({
+  base: process.env.DOCS_BASE_PATH || '/',
   plugins: [vue()],
   resolve: {
     alias: {

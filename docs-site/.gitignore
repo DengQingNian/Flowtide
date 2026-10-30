@@ -6,4 +6,5 @@ src/generated/
 .DS_Store
 playwright-report/
 test-results/
+coverage/
 screenshots/
