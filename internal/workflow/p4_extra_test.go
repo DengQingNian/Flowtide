@@ -208,14 +208,19 @@ func TestRemindServiceFailingStores(t *testing.T) {
 	if _, err := svc.Add(ctx, RemindSaveRequest{Remind: &Remind{PID: "model-1"}}); err == nil {
 		t.Error("主表保存失败应上抛")
 	}
-	// Add：对象保存失败（主表内存实现）
-	memTargets := NewMemRemindTargetStore(nil)
-	okSvc := NewRemindService(NewMemRemindStore(nil), memTargets, nil, NopScheduleRuleProvider{}, NopChannelProvider{}, nil, nil, nil, nil)
+	// Add：对象保存失败（失败对象存储 + 内存配置存储）
+	okSvc := NewRemindService(NewMemRemindStore(nil), &failingRemindTargetStore{err: storeErr}, nil, NopScheduleRuleProvider{}, NopChannelProvider{}, nil, nil, nil, nil)
 	if _, err := okSvc.Add(ctx, RemindSaveRequest{
 		Remind:  &Remind{PID: "model-1"},
-		Targets: []*RemindTarget{{ExecutorID: "-1111", PID: "blocked"}},
+		Targets: []*RemindTarget{{ExecutorID: "-1111"}},
 	}); err == nil {
 		t.Error("对象保存失败应上抛")
+	}
+	// Add：无对象时默认 -1111 行落库（成功路径） */
+	memSvcOK := NewRemindService(NewMemRemindStore(nil), NewMemRemindTargetStore(nil), nil, NopScheduleRuleProvider{}, NopChannelProvider{}, nil, nil, nil, nil)
+	added, addErr := memSvcOK.Add(ctx, RemindSaveRequest{Remind: &Remind{PID: "model-1"}})
+	if addErr != nil || added == nil || len(added.Targets) != 1 {
+		t.Fatalf("默认对象新增错误: %v", addErr)
 	}
 	// Update：Get 失败 / 保存失败
 	if _, err := svc.Update(ctx, RemindSaveRequest{Remind: &Remind{ID: "r-1", PID: "model-1"}}); err == nil {
@@ -288,11 +293,13 @@ func TestRemindServiceScanAndSendErrors(t *testing.T) {
 	if err := memReminds.Save(ctx, &Remind{ID: "r-1", PID: "model-1", StepIDs: "step-1"}); err != nil {
 		t.Fatalf("配置保存失败: %v", err)
 	}
-	if err := memTargets.Save(ctx, &RemindTarget{ID: "tg-1", PID: "r-1", Enable: 1, Type: RemindTypeAhead, ExecutorID: "-1111"}); err != nil {
+	if err := memTargets.Save(ctx, &RemindTarget{ID: "tg-1", PID: "r-1", Enable: 1, Type: RemindTypeAhead, ByPlanCompleteTime: 1, ExecutorID: "-1111"}); err != nil {
 		t.Fatalf("对象保存失败: %v", err)
 	}
-	// 待办失败先于渠道校验；再以正常待办源触发渠道失败
+	// 待办失败先于渠道校验；再以正常待办源触发渠道失败（计划完成时间已过确保命中）
 	todo := &MessageExtend{BaseColumns: BaseColumns{ID: "msg-1", TenantID: "dev"}, TaskID: "task-1", TaskStepCode: "step-1", OwnerID: "alice", Title: "标题"}
+	past := time.Now().Add(-time.Hour)
+	todo.PlanFinishTime = &past
 	memTodos := NewMemTodoSource(NewMemMessageStore(nil))
 	if err := memTodos.store.Save(ctx, todo); err != nil {
 		t.Fatalf("待办保存失败: %v", err)
@@ -363,10 +370,10 @@ func TestRemindServiceDefaultsAndClones(t *testing.T) {
 	}
 	// sortRemindTargets 多行排序
 	targets := NewMemRemindTargetStore(nil)
-	if err := targets.Save(ctx, &RemindTarget{ID: "t-late", PID: "r-1", CreateTime: base.Add(2 * time.Hour)}); err != nil {
+	if err := targets.Save(ctx, &RemindTarget{ID: "t-late", PID: "r-1", Enable: 1, CreateTime: base.Add(2 * time.Hour)}); err != nil {
 		t.Fatalf("保存失败: %v", err)
 	}
-	if err := targets.Save(ctx, &RemindTarget{ID: "t-early", PID: "r-1", CreateTime: base}); err != nil {
+	if err := targets.Save(ctx, &RemindTarget{ID: "t-early", PID: "r-1", Enable: 1, CreateTime: base}); err != nil {
 		t.Fatalf("保存失败: %v", err)
 	}
 	tlist, _ := targets.ListByRemind(ctx, "r-1")
@@ -468,7 +475,8 @@ func TestSchedulerDefaultsAndLoop(t *testing.T) {
 		Options:    Options{NoHandleAutoComplete: true, SendWorkflowRemind: true, TaskTimeoutRemind: true, Clock: clock.NewFake(completeFixtureTime)},
 		TodoSource: NewMemTodoSource(NewMemMessageStore(clock.NewFake(completeFixtureTime))),
 		Rules:      NopScheduleRuleProvider{},
-		Remind:     NewRemindService(NewMemRemindStore(nil), NewMemRemindTargetStore(nil), nil, nil, nil, nil, nil, nil, nil),
+		Remind: NewRemindService(NewMemRemindStore(nil), NewMemRemindTargetStore(nil),
+			NewMemTodoSource(NewMemMessageStore(clock.NewFake(completeFixtureTime))), nil, nil, nil, nil, nil, nil),
 	})
 	plain.autoCompleteInterval = 5 * time.Millisecond
 	plain.remindInterval = 5 * time.Millisecond
