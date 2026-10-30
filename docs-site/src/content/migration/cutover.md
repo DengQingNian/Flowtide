@@ -41,7 +41,7 @@ tags: [迁移, 停写, 静默检查, 切换]
 
 <code>dialect</code>、<code>schemaVersion</code>、<code>windowSeconds</code>、<code>stable</code>、<code>scanTimes</code>、<code>tables</code>（前后行数、指纹、是否变化）、<code>changedTables</code>、<code>jobCounts</code>、<code>limitations</code>。
 
-内容指纹对列名、类型标记、长度前缀和值编码后做 SHA-256，行/列顺序与时区不影响；不同表示（字符串“1”、字节 0x31、数字 1）会产生不同指纹。未知表只比较行数，同数改值无法发现。
+内容指纹对列名、类型标记、长度前缀和值编码后做 SHA-256，行/列顺序与时区不影响；不同表示（字符串「1」、字节 0x31、数字 1）会产生不同指纹。未知表只比较行数，同数改值无法发现。
 
 ## 切换前检查清单
 

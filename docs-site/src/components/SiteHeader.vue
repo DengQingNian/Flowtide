@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { Code2, Menu, Moon, Search, Sun, X } from '@lucide/vue'
 import { navLinks } from '@/lib/navigation'
@@ -10,28 +10,14 @@ const route = useRoute()
 const mobileOpen = ref(false)
 const platform = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform) ? '⌘' : 'Ctrl'
 
-const activePath = computed(() => {
-  if (route.path === '/docs' || route.path.startsWith('/docs/')) return route.path
-  return route.path
-})
-
 // isActive 判断导航项是否处于当前分区。
 // @param to 目标路径
 // @return 是否激活
 function isActive(to: string): boolean {
+  // 文档与发布入口包含子页面，其余入口按完整路径匹配。
   if (to === '/docs') return route.path === '/docs' || route.path.startsWith('/docs/')
   if (to === '/releases') return route.path === '/releases' || route.path.startsWith('/docs/releases')
-  return activePath.value === to
-}
-
-// onKeydown 处理全局搜索快捷键。
-// @param event 键盘事件
-// @return 无
-function onKeydown(event: KeyboardEvent): void {
-  if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
-    event.preventDefault()
-    openPalette()
-  }
+  return route.path === to
 }
 
 watch(
@@ -41,8 +27,6 @@ watch(
   },
 )
 
-onMounted(() => window.addEventListener('keydown', onKeydown))
-onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown))
 </script>
 
 <template>
@@ -57,7 +41,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown))
         </span>
         <span class="brand__text">
           <strong>Flowtide</strong>
-          <span>重构进度文档站</span>
+          <span>项目文档</span>
         </span>
       </router-link>
 
@@ -80,14 +64,14 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown))
         <a class="icon-button repo-link" href="https://github.com/DengQingNian/Flowtide" target="_blank" rel="noopener" aria-label="源码仓库">
           <Code2 :size="18" />
         </a>
-        <button class="icon-button mobile-only" type="button" aria-label="打开导航" @click="mobileOpen = !mobileOpen">
+        <button class="icon-button mobile-only" type="button" aria-label="打开导航" :aria-expanded="mobileOpen" aria-controls="mobile-nav" @click="mobileOpen = !mobileOpen">
           <X v-if="mobileOpen" :size="20" />
           <Menu v-else :size="20" />
         </button>
       </div>
     </div>
 
-    <div v-if="mobileOpen" class="mobile-nav">
+    <div v-if="mobileOpen" id="mobile-nav" class="mobile-nav">
       <router-link v-for="link in navLinks" :key="link.to" :to="link.to" :class="{ active: isActive(link.to) }">
         {{ link.label }}
       </router-link>

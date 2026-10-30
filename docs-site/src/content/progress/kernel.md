@@ -64,7 +64,7 @@ Command ──► Agenda ──► Operation ──► Behavior
 - 不提供外部工作项（External Worker）、CMMN 与完整 DMN 引擎。
 - 复杂网关、动态 BPMN 与部分定时器周期语义未覆盖。
 - 集群作业抢占、租约、幂等与故障恢复未实现。
-- 执行语义的“已编码”不等于“Java 兼容已验收”。
+- 执行语义的「已编码」不等于「Java 兼容已验收」。
 
 ## 验证入口
 

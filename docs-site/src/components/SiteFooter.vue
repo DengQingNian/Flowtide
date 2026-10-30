@@ -18,7 +18,7 @@ const commit = computed(() => content.commit)
           </span>
           Flowtide
         </div>
-        <p>用纯 Go 重构 Flowable BPMN 引擎。当前为新建库原型，生产使用前请阅读能力矩阵与已知问题。</p>
+        <p>Flowable BPMN 引擎的 Go 实现。当前适合新建库原型和单进程验证，使用前请阅读能力矩阵与已知问题。</p>
         <div class="footer-meta">
           <span>数据截至 <code>{{ commit }}</code></span>
           <span>Apache-2.0 License</span>
@@ -33,7 +33,7 @@ const commit = computed(() => content.commit)
           <router-link to="/docs/rest">REST API</router-link>
         </div>
         <div class="footer-column">
-          <h3>判断边界</h3>
+          <h3>使用限制</h3>
           <router-link to="/compatibility">能力矩阵</router-link>
           <router-link to="/docs/compatibility/known-issues">已知问题</router-link>
           <router-link to="/docs/migration/limits">迁移限制</router-link>

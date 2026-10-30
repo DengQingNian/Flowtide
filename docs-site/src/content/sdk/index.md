@@ -10,7 +10,7 @@ tags: [SDK, Go, 服务接口]
 
 ## 定位
 
-引擎既可以作为独立 REST 服务运行，也可以作为 Go 库嵌入业务进程。SDK 与 REST 共用同一个 <code>internal/engine</code> 实现，因此语义一致；差异在传输、认证与生命周期管理。
+引擎既可以作为独立 REST 服务运行，也可以作为 Go 库嵌入业务进程。SDK 与 REST 调用同一个 <code>internal/engine</code>。使用 SDK 时，你需要自行管理进程内的认证和引擎生命周期。
 
 | 使用方式 | 适用场景 | 入口 |
 | --- | --- | --- |

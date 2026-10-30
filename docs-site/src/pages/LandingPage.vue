@@ -15,7 +15,8 @@ import {
   Layers,
   Route,
   ShieldCheck,
-  Sparkles,
+  BookOpen,
+  FileText,
   Terminal,
   Workflow,
 } from '@lucide/vue'
@@ -128,7 +129,7 @@ pi, err := app.RuntimeService().StartProcessInstance(ctx, api.StartRequest{
   mysql: `# 初始化 Schema（重复执行会校验版本）
 go run ./cmd/flowtide-migrate -dialect mysql -apply -env .env
 
-# 行仓储模式：单执行者独占锁
+# 行仓储模式，单执行者独占锁
 go run ./cmd/flowtide-server -storage mysql-rows -env .env
 
 # 既有 Java 库只读预检
@@ -150,62 +151,51 @@ async function copySnippet(): Promise<void> {
 <template>
   <div class="landing">
     <section class="hero">
-      <div class="hero__glow" aria-hidden="true" />
-      <div class="hero__grid" aria-hidden="true" />
       <div class="hero__inner">
         <div class="hero__copy">
-          <div class="eyebrow">
-            <span class="eyebrow__dot" />
-            重构进度文档站 · 截至 {{ facts.commit.short }} · {{ facts.commit.date }}
-          </div>
-          <h1>用纯 Go，重写<br /><span class="hero__accent">Flowable BPMN 引擎</span></h1>
+          <div class="eyebrow"><BookOpen :size="14" /> Flowtide / 项目文档</div>
+          <div class="hero__page-icon" aria-hidden="true"><FileText :size="42" :stroke-width="1.4" /></div>
+          <h1>Flowtide 文档</h1>
+          <p class="hero__subtitle">用 Go 运行 Flowable 流程</p>
           <p class="hero__lead">
-            不依赖 JVM、不依赖 CGO，复用 Flowable 的 <code>ACT_*</code> Schema 与 REST 契约。
-            当前已完成 BPMN 内核与 184 个官方 REST 方法路由，正在补齐真实数据库、Java 行为对照与迁移验收。
+            Flowtide 用纯 Go 实现 Flowable BPMN 引擎，复用 <code>ACT_*</code> 表结构与 REST 接口，无需 JVM 或 CGO。
+            在这里查看实现进度、运行示例，或评估现有 Java 项目的迁移工作。
           </p>
+          <div class="hero__actions">
+            <router-link to="/docs/getting-started/quickstart-rest" class="button button--primary">
+              <Terminal :size="16" /> 运行第一个流程 <ArrowRight :size="16" />
+            </router-link>
+            <router-link to="/docs" class="button">浏览文档</router-link>
+          </div>
           <div class="hero__status">
             <span class="status-pill status-pill--warn">原型阶段</span>
-            <span>新建库可运行 · 单执行者 · 尚未通过停写、回退与集群验收</span>
+            <span>单执行者 · 生产切换、回退与集群尚未验收</span>
           </div>
-          <div class="hero__actions">
-            <router-link to="/progress" class="button button--primary">
-              查看当前进度 <ArrowRight :size="17" />
-            </router-link>
-            <router-link to="/docs/getting-started/quickstart-rest" class="button">
-              <Terminal :size="17" /> 10 分钟跑通
-            </router-link>
-          </div>
-          <div class="hero__install">
-            <span class="prompt">$</span>
-            <code>HOME=/root make build && ./bin/flowtide-server -addr :8080</code>
-            <span class="hero__install-note">Go 1.27+</span>
-          </div>
+          <div class="hero__revision">更新至 <code>{{ facts.commit.short }}</code><span>{{ facts.commit.date }}</span></div>
         </div>
 
-        <div class="hero__panel">
-          <div class="terminal">
-            <div class="terminal__bar">
-              <span class="terminal__dot" />
-              <span class="terminal__dot" />
-              <span class="terminal__dot" />
-              <span class="terminal__title">flowtide · 当前提交</span>
-            </div>
-            <div class="terminal__body">
-              <div class="terminal__line"><span class="prompt">$</span> curl -sS localhost:8080/healthz</div>
-              <div class="terminal__out">{&quot;status&quot;:&quot;UP&quot;}</div>
-              <div class="terminal__line"><span class="prompt">$</span> curl -sS localhost:8080/service/management/engine</div>
-              <div class="terminal__out">{&quot;name&quot;:&quot;flowtide&quot;,&quot;version&quot;:&quot;{{ facts.version }}&quot;,&quot;historyLevel&quot;:&quot;audit&quot;}</div>
-              <div class="terminal__line terminal__line--muted"># 41 张 ACT 表 / 双库验收 / 单执行者</div>
-              <div class="terminal__line"><span class="prompt">$</span> curl -sS localhost:8080/metrics</div>
-              <div class="terminal__out">flowable_http_requests_total{...} ...</div>
-              <div class="terminal__cursor"><span /></div>
-            </div>
-          </div>
-          <div class="hero__panel-foot">
-            <span>官方基线 <code>f6017e3</code></span>
-            <router-link to="/compatibility">能力矩阵 <ArrowRight :size="14" /></router-link>
-          </div>
-        </div>
+        <nav class="hero__panel reading-panel" aria-label="开始阅读">
+          <div class="reading-panel__head"><BookOpen :size="17" /><h2>开始阅读</h2></div>
+          <router-link to="/docs/getting-started/installation" class="reading-link group">
+            <span class="block-handle" aria-hidden="true">⋮⋮</span>
+            <Terminal :size="19" />
+            <span><strong>安装与快速开始</strong><small>从源码构建，启动服务并运行流程。</small></span>
+            <ArrowRight :size="16" />
+          </router-link>
+          <router-link to="/docs/sdk" class="reading-link group">
+            <span class="block-handle" aria-hidden="true">⋮⋮</span>
+            <Code2 :size="19" />
+            <span><strong>在 Go 项目中使用</strong><small>配置引擎，注册委托，调用服务接口。</small></span>
+            <ArrowRight :size="16" />
+          </router-link>
+          <router-link to="/docs/migration" class="reading-link group">
+            <span class="block-handle" aria-hidden="true">⋮⋮</span>
+            <GitBranch :size="19" />
+            <span><strong>从 Java Flowable 迁移</strong><small>了解预检、转换和切换前的准备工作。</small></span>
+            <ArrowRight :size="16" />
+          </router-link>
+          <div class="reading-panel__note">使用前请核对 <router-link to="/compatibility">能力矩阵</router-link>与<router-link to="/docs/compatibility/known-issues">已知问题</router-link>。</div>
+        </nav>
       </div>
     </section>
 
@@ -219,9 +209,9 @@ async function copySnippet(): Promise<void> {
     <section class="section-block progress-snapshot">
       <div class="section-heading">
         <div>
-          <div class="eyebrow eyebrow--plain"><Sparkles :size="14" /> 截至当前提交</div>
-          <h2>内核已跑通，生产验收还在路上</h2>
-          <p>每个阶段都对应可重复执行的证据。这里不把“代码存在”写成“已经兼容”。</p>
+          <div class="eyebrow eyebrow--plain"><Check :size="14" /> 开发进度</div>
+          <h2>当前实现进度</h2>
+          <p>BPMN 内核已能运行。REST 行为对照、生产切换和集群支持仍需继续验收。</p>
         </div>
         <router-link to="/progress" class="text-link">完整进度看板 <ArrowRight :size="15" /></router-link>
       </div>
@@ -244,13 +234,14 @@ async function copySnippet(): Promise<void> {
       <div class="section-heading">
         <div>
           <div class="eyebrow eyebrow--plain">能力概览</div>
-          <h2>六条能力主线，各自带边界</h2>
-          <p>状态标签不是营销词：原型可用意味着主路径能跑，但生产验收未完成。</p>
+          <h2>已实现的功能</h2>
+          <p>以下功能已有实现与回归测试。各项数据库和 Java 对照结果见对应文档。</p>
         </div>
         <router-link to="/docs" class="text-link">浏览全部文档 <ArrowRight :size="15" /></router-link>
       </div>
       <div class="feature-grid">
-        <router-link v-for="feature in features" :key="feature.title" :to="feature.href" class="feature-card">
+        <router-link v-for="feature in features" :key="feature.title" :to="feature.href" class="feature-card group">
+          <span class="block-handle" aria-hidden="true">⋮⋮</span>
           <div class="feature-card__icon"><component :is="feature.icon" :size="20" /></div>
           <div class="feature-card__head">
             <h3>{{ feature.title }}</h3>
@@ -265,10 +256,10 @@ async function copySnippet(): Promise<void> {
     <section class="section-block compatibility-band">
       <div class="compat-copy">
         <div class="eyebrow eyebrow--plain"><ShieldCheck :size="14" /> 兼容性</div>
-        <h2>四个层面，分别判断</h2>
+        <h2>兼容性与限制</h2>
         <p>
-          路由齐全不代表行为兼容，表名相同不代表数据可接管。使用前请按层面核对证据，
-          而不是只看一个百分比。
+          评估接入时，需要分别检查数据库、流程语义、REST 行为和部署方式。
+          这些层面的验收进度各不相同，具体结果见能力矩阵。
         </p>
         <router-link to="/compatibility" class="button button--dark">
           打开能力矩阵 <ArrowRight :size="16" />
@@ -323,8 +314,8 @@ async function copySnippet(): Promise<void> {
       <div class="section-heading">
         <div>
           <div class="eyebrow eyebrow--plain"><Code2 :size="14" /> 直接开始</div>
-          <h2>三条可复制的路径</h2>
-          <p>REST 闭环、Go 嵌入与 MySQL 行仓储。完整步骤与预期输出在快速开始中。</p>
+          <h2>运行示例</h2>
+          <p>选择 REST、Go SDK 或 MySQL 示例。完整步骤与预期输出见快速开始。</p>
         </div>
         <router-link to="/docs/getting-started/quickstart-go" class="text-link">Go 快速开始 <ArrowRight :size="15" /></router-link>
       </div>
@@ -345,8 +336,8 @@ async function copySnippet(): Promise<void> {
       <div class="section-heading">
         <div>
           <div class="eyebrow eyebrow--plain"><GitCommitHorizontal :size="14" /> 最近提交</div>
-          <h2>进度是从提交里长出来的</h2>
-          <p>最近的能力增量与文档更新。完整历史见源码仓库。</p>
+          <h2>最近更新</h2>
+          <p>查看最近的代码与文档变更，完整记录见源码仓库。</p>
         </div>
         <router-link to="/releases" class="text-link">版本与变更 <ArrowRight :size="15" /></router-link>
       </div>
@@ -363,7 +354,7 @@ async function copySnippet(): Promise<void> {
       <div class="status-card">
         <div class="status-card__icon"><Boxes :size="22" /></div>
         <div class="status-card__copy">
-          <h2>现在可以做什么，不能做什么</h2>
+          <h2>使用范围</h2>
           <p>{{ facts.status.phase }}。<strong>单执行者</strong>，没有集群租约、作业抢占与故障转移；停写切换与回退尚未完成演练。</p>
         </div>
         <ul class="status-card__list">
@@ -377,9 +368,8 @@ async function copySnippet(): Promise<void> {
     </section>
 
     <section class="final-cta">
-      <div class="final-cta__glow" aria-hidden="true" />
-      <h2>先判断边界，再决定是否使用</h2>
-      <p>如果你需要多节点高可用、完整 Java 兼容或可回退迁移，当前版本还不适合。先读能力矩阵，能节省很多时间。</p>
+      <h2>准备使用 Flowtide？</h2>
+      <p>先核对项目需要的功能。当前版本适合新建库原型和单进程验证，多节点高可用、完整 Java 兼容与可回退迁移仍待验收。</p>
       <div class="final-cta__actions">
         <router-link to="/compatibility" class="button button--primary">打开能力矩阵 <ArrowRight :size="16" /></router-link>
         <router-link to="/docs/getting-started/installation" class="button button--ghost">从安装开始</router-link>

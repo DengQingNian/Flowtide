@@ -12,13 +12,13 @@ const layout = computed(() => (route.meta.layout === 'landing' ? LandingLayout :
 
 const themeOverrides = {
   common: {
-    primaryColor: '#0d9488',
-    primaryColorHover: '#14b8a6',
-    primaryColorPressed: '#0f766e',
-    primaryColorSuppl: '#14b8a6',
-    borderRadius: '8px',
+    primaryColor: '#62605a',
+    primaryColorHover: '#78746c',
+    primaryColorPressed: '#37352f',
+    primaryColorSuppl: '#62605a',
+    borderRadius: '6px',
     fontFamily:
-      'Inter, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", system-ui, -apple-system, sans-serif',
+      '-apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif',
     fontFamilyMono: '"JetBrains Mono", "SFMono-Regular", Consolas, "Liberation Mono", monospace',
   },
 }

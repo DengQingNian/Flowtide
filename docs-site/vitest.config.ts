@@ -15,7 +15,10 @@ export default defineConfig({
     environment: 'jsdom',
     include: ['tests/**/*.test.ts'],
     coverage: {
+      include: ['src/**/*.{ts,vue}'],
+      exclude: ['src/**/*.d.ts', 'src/generated/**'],
       reporter: ['text', 'json-summary'],
+      thresholds: { lines: 90 },
     },
   },
 })

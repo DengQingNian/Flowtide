@@ -19,25 +19,25 @@ const paths = [
   {
     icon: Compass,
     title: '第一次使用',
-    description: '安装服务端，10 分钟完成部署、启动、任务与历史。',
+    description: '启动服务，部署流程，完成任务并查询历史。',
     route: '/docs/getting-started/quickstart-rest',
   },
   {
     icon: Gauge,
     title: '判断当前进度',
-    description: '看规模、阶段、能力分布与尚未跨过的门槛。',
+    description: '查看各阶段的实现情况和待验收工作。',
     route: '/progress',
   },
   {
     icon: ShieldCheck,
     title: '核对能力边界',
-    description: '按四列证据查找一项能力是否可试用。',
+    description: '查看单测、数据库和 Java 对照的验收结果。',
     route: '/compatibility',
   },
   {
     icon: FileText,
     title: '评估 Java 迁移',
-    description: '预检、转换、停写检查与回退的边界。',
+    description: '了解迁移工具的用法和切换前的准备。',
     route: '/docs/migration',
   },
 ]
@@ -53,8 +53,8 @@ function goSearch(): void {
   <div class="docs-index">
     <header class="index-hero">
       <div class="index-hero__badge"><BookOpen :size="14" /> Flowtide 文档</div>
-      <h1>从一个可验证的事实开始</h1>
-      <p>50 篇文档围绕同一个问题组织：截至当前提交，这个 Flowable 兼容引擎能做什么、不能做什么、下一步是什么。</p>
+      <h1>文档中心</h1>
+      <p>共 {{ total }} 篇文档，包含安装示例、Go SDK、REST API 和迁移说明。第一次使用可以从快速开始读起，评估接入前请先查阅兼容性与已知问题。</p>
       <button type="button" class="index-search" @click="goSearch">
         <Search :size="17" />
         <span>搜索文档、端点与术语</span>
@@ -68,7 +68,8 @@ function goSearch(): void {
     </header>
 
     <section class="index-paths" aria-label="推荐路径">
-      <button v-for="path in paths" :key="path.route" type="button" class="path-card" @click="router.push(path.route)">
+      <button v-for="path in paths" :key="path.route" type="button" class="path-card group" @click="router.push(path.route)">
+        <span class="block-handle" aria-hidden="true">⋮⋮</span>
         <component :is="path.icon" :size="20" />
         <span class="path-card__title">{{ path.title }}</span>
         <span class="path-card__desc">{{ path.description }}</span>

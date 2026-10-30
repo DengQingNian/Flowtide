@@ -28,7 +28,7 @@ const routes: RouteRecordRaw[] = [
     path: '/',
     name: 'landing',
     component: () => import('@/pages/LandingPage.vue'),
-    meta: { layout: 'landing', title: 'Flowtide · 重构进度文档站' },
+    meta: { layout: 'landing', title: 'Flowtide · 项目文档' },
   },
   {
     path: '/docs',
@@ -88,7 +88,7 @@ const router = createRouter({
 // @return 无
 function syncTitle(to: { meta: Record<string, unknown> }): void {
   const title = typeof to.meta.title === 'string' ? to.meta.title : 'Flowtide'
-  document.title = title === 'Flowtide · 重构进度文档站' ? title : `${title} · Flowtide`
+  document.title = title === 'Flowtide · 项目文档' ? title : `${title} · Flowtide`
 }
 
 router.afterEach(syncTitle)

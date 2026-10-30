@@ -101,10 +101,10 @@ watch(pageCount, () => {
   <div class="rest-page">
     <header class="dash-hero">
       <div class="dash-hero__badge">REST 浏览器 · {{ facts.rest.total }} 个方法端点</div>
-      <h1>找到端点，也看到差异</h1>
+      <h1>REST 端点查询</h1>
       <p>
         官方 {{ facts.rest.officialCount }} 个流程 REST 方法全部有路由，另有 {{ facts.rest.extensionCount }} 个扩展端点。
-        这里显示的是路由覆盖与实现状态；请求/响应模式仍需逐项 Java 对照。
+        可按方法、业务域和来源筛选，复制带 /service 前缀的路径。请求与响应的兼容情况仍需逐项与 Java 对照。
       </p>
     </header>
 
@@ -171,7 +171,7 @@ watch(pageCount, () => {
               <td><button type="button" class="copy-icon" aria-label="复制端点" @click="copyPath(endpoint)"><Copy :size="14" /></button></td>
             </tr>
             <tr v-if="visible.length === 0">
-              <td colspan="6" class="matrix-empty">没有匹配的端点。试试“tasks”“deployment”“migration”或重置筛选。</td>
+              <td colspan="6" class="matrix-empty">没有匹配的端点。试试 tasks、deployment、migration，或重置筛选。</td>
             </tr>
           </tbody>
         </table>

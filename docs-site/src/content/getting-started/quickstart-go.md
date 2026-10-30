@@ -1,6 +1,6 @@
 ---
 title: 30 分钟嵌入 Go 应用
-description: 在仓库外创建 Go 模块，使用 flowtide.New 构造引擎、注册委托并完成部署到历史的闭环。
+description: 在独立 Go 模块中创建引擎，注册委托，部署流程并查询历史。
 order: 30
 section: getting-started
 status: verified
@@ -11,7 +11,7 @@ tags: [SDK, Go, 快速开始]
 
 ## 目标
 
-在独立 Go 模块中嵌入引擎，完成：注册服务任务委托、部署 BPMN、启动实例、查询并完成任务、读取历史。示例已在本机编译运行，输出 <code>started: ...</code> 与 <code>ended: true state: completed</code>。
+这个示例在独立 Go 模块中嵌入引擎。运行后会注册服务任务委托、部署 BPMN、启动实例、完成任务，再读取历史。示例已在本机编译运行，输出 <code>started: ...</code> 与 <code>ended: true state: completed</code>。
 
 ## 步骤 1：创建模块
 

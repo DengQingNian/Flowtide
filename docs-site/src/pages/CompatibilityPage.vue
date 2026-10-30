@@ -94,10 +94,9 @@ function downloadJson(): void {
   <div class="compat-page">
     <header class="dash-hero">
       <div class="dash-hero__badge">能力矩阵 · 数据截至 {{ facts.commit.short }}</div>
-      <h1>一项能力，四种证据</h1>
+      <h1>能力矩阵</h1>
       <p>
-        已编码/已单测、真实数据库、Java 对照、可发布，分别取证。任何一列通过都不能自动推导下一列；
-        本页按发布状态分组，展开可查看限制与下一验收门槛。
+        查看每项能力的代码与单测、数据库和 Java 对照结果。可按发布状态筛选，展开条目查看使用限制和待验收工作。
       </p>
     </header>
 
@@ -111,7 +110,7 @@ function downloadJson(): void {
       </div>
       <div class="matrix-note">
         <Filter :size="15" />
-        <span>“发布状态”是保守归类；具体限制以每行展开内容与仓库能力矩阵为准。</span>
+        <span>发布状态按已完成的验收归类。展开条目可查看具体限制。</span>
       </div>
     </section>
 
@@ -119,7 +118,7 @@ function downloadJson(): void {
       <div class="matrix-toolbar">
         <div class="field">
           <Search :size="16" />
-          <input v-model="query" type="search" placeholder="搜索能力、限制、责任职责…" aria-label="搜索能力" />
+          <input v-model="query" type="search" placeholder="搜索能力、限制或负责人…" aria-label="搜索能力" />
           <button v-if="query" type="button" class="field-clear" aria-label="清空" @click="query = ''"><X :size="14" /></button>
         </div>
         <div class="field field--select">
@@ -162,14 +161,14 @@ function downloadJson(): void {
                 <td colspan="6">
                   <div class="matrix-detail__grid">
                     <div><span>发布状态原文</span><p>{{ row.release }}</p></div>
-                    <div><span>限制与下一验收门槛</span><p>{{ row.limits }}</p></div>
-                    <div><span>责任职责</span><p>{{ row.owner }}</p></div>
+                    <div><span>使用限制与待验收工作</span><p>{{ row.limits }}</p></div>
+                    <div><span>负责人</span><p>{{ row.owner }}</p></div>
                   </div>
                 </td>
               </tr>
             </template>
             <tr v-if="filtered.length === 0">
-              <td colspan="6" class="matrix-empty">没有匹配的能力项。试试“MySQL”“REST”“迁移”或清空筛选。</td>
+              <td colspan="6" class="matrix-empty">没有匹配的能力项。试试 MySQL、REST、迁移，或清空筛选。</td>
             </tr>
           </tbody>
         </table>

@@ -12,7 +12,7 @@
     "prebuild": "npm run gen",
     "build": "vue-tsc -b && vite build",
     "preview": "vite preview --host 0.0.0.0 --port 4173",
-    "test": "vitest run",
+    "test": "vitest run --coverage",
     "test:deployment": "vitest run tests/deployment.test.ts --coverage --coverage.include=src/lib/deployment.ts --coverage.thresholds.lines=90",
     "test:watch": "vitest",
     "check:links": "npm run gen",

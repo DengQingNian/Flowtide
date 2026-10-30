@@ -1,6 +1,6 @@
 # Flowtide 文档站
 
-Vue 3 + TypeScript + Naive UI 的静态文档站，内容聚焦“截至当前重构提交，引擎能做什么、不能做什么、下一步是什么”。
+Vue 3 + TypeScript + Naive UI 的静态文档站，提供安装示例、Go SDK、REST API、兼容性和迁移说明。首页、文档阅读区与查询页面采用 Notion 风格的中性色、轻边框和系统字体。
 
 ## 快速开始
 
@@ -26,9 +26,9 @@ npm run preview      # http://localhost:4173
 | `npm run gen` | 生成 `src/generated/facts.json` 与 `content.json` |
 | `npm run dev` | 开发服务器（先执行一次 gen） |
 | `npm run build` | 类型检查 + 生产构建 |
-| `npm test` | Vitest 单元测试（内容、搜索、导航、组件） |
+| `npm test` | Vitest 内容与交互测试，检查前端源码行覆盖率不低于 90% |
 | `npm run test:deployment` | 部署路径测试与新增路径处理代码的 90% 行覆盖率门禁 |
-| `npm run test:e2e` | Playwright 冒烟测试；需先启动 preview |
+| `npm run test:e2e` | Playwright 路由、交互、悬停稳定性与四种视口检查；需先启动 preview |
 | `npm run check:links` | 重新生成内容并执行站内链接/锚点校验 |
 | `npm run check:facts` | 生成事实并校验关键不变量 |
 
@@ -43,6 +43,10 @@ BASE_URL=http://127.0.0.1:4173 npm run test:e2e
 ~~~
 
 截图输出到 `screenshots/`，不参与生产构建。
+
+`npm test` 统计 `src/` 下的 TypeScript 与 Vue 源码，排除类型声明和构建生成物。页面交互测试使用真实路由与布局，覆盖示例复制、搜索快捷键、主题切换、移动目录、能力筛选和 REST 分页。Naive UI 的提示服务在测试中使用替身，真实组件显示效果由浏览器检查确认。
+
+视觉与文案调整记录见 [Notion 风格与文案整理](../docs/004-文档站/005-Notion风格与文案整理.md)。
 
 ## 目录
 

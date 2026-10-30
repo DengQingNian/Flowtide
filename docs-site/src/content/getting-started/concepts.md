@@ -1,6 +1,6 @@
 ---
 title: 核心概念
-description: 用部署、流程定义、实例、执行、任务、作业、历史与变量八个词建立心智模型。
+description: 了解部署、流程定义、实例、执行与任务的关系，以及作业、历史和变量的作用。
 order: 40
 section: getting-started
 status: verified
@@ -8,7 +8,7 @@ since: v0.1.0
 tags: [概念, BPMN, 执行树]
 ---
 
-## 八个核心词
+## 核心概念
 
 | 概念 | 含义 | REST 入口 | SDK 入口 |
 | --- | --- | --- | --- |

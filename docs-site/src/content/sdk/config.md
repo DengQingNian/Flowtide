@@ -10,7 +10,7 @@ tags: [SDK, 配置, 持久化]
 
 ## 默认值
 
-<code>flowtide.New(flowtide.Config{})</code> 使用内存状态、<code>audit</code> 历史、真实时钟与 UUIDv7 ID 生成器。最小配置只需按需覆盖字段。
+<code>flowtide.New(flowtide.Config{})</code> 使用内存状态、<code>audit</code> 历史、真实时钟与 UUIDv7 ID 生成器。需要持久化或调整历史级别时，再设置对应字段。
 
 ~~~go
 app, err := flowtide.New(flowtide.Config{

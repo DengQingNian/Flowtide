@@ -38,11 +38,11 @@ const browser = await chromium.launch()
 const context = await browser.newContext({ viewport: { width: 1440, height: 960 }, reducedMotion: 'reduce', colorScheme: 'light' })
 
 const routes = [
-  { route: '/', heading: '用纯 Go' },
-  { route: '/docs', heading: '从一个可验证的事实开始' },
+  { route: '/', heading: 'Flowtide 文档' },
+  { route: '/docs', heading: '文档中心' },
   { route: '/progress', heading: '重构进度看板' },
-  { route: '/compatibility', heading: '一项能力，四种证据' },
-  { route: '/rest-explorer', heading: '找到端点，也看到差异' },
+  { route: '/compatibility', heading: '能力矩阵' },
+  { route: '/rest-explorer', heading: 'REST 端点查询' },
   { route: '/docs/getting-started/quickstart-rest', heading: '10 分钟跑通第一个流程' },
   { route: '/docs/migration', heading: '迁移总览与决策树' },
   { route: '/docs/sdk/config', heading: '引擎配置' },
@@ -84,6 +84,58 @@ for (const item of routes) {
   check(page.url().includes('migration'), '搜索跳转 URL 不正确: ' + page.url())
   check(errors.length === 0, '搜索错误: ' + errors.join('; '))
   await page.close()
+}
+
+// 搜索快捷键只处理一次，打开和关闭后恢复正文滚动。
+{
+  const { page } = await visit(context, '/docs')
+  await page.keyboard.press('Control+k')
+  check(await page.getByRole('dialog', { name: '搜索文档' }).isVisible(), '搜索快捷键未打开面板')
+  await page.keyboard.press('Escape')
+  await page.getByRole('dialog').waitFor({ state: 'hidden' })
+  check((await page.getByRole('dialog').count()) === 0, 'Esc 未关闭搜索')
+  check((await page.evaluate(() => document.body.style.overflow)) !== 'hidden', '搜索关闭后正文仍被锁定')
+  await page.close()
+}
+
+// 阅读块悬停只改变背景和手柄透明度，位置、边框与阴影保持稳定。
+{
+  const { page } = await visit(context, '/')
+  const card = page.locator('.feature-card').first()
+  await card.scrollIntoViewIfNeeded()
+  const before = await card.boundingBox()
+  const initial = await card.evaluate((element) => {
+    const style = getComputedStyle(element)
+    return { border: style.borderColor, shadow: style.boxShadow }
+  })
+  await card.hover()
+  await page.waitForTimeout(180)
+  const after = await card.boundingBox()
+  const hovered = await card.evaluate((element) => {
+    const style = getComputedStyle(element)
+    return {
+      border: style.borderColor,
+      shadow: style.boxShadow,
+      background: style.backgroundColor,
+      transform: style.transform,
+      handle: getComputedStyle(element.querySelector('.block-handle')).opacity,
+    }
+  })
+  check(before?.x === after?.x && before?.y === after?.y && before?.width === after?.width, '阅读块悬停时发生位移')
+  check(initial.border === hovered.border && initial.shadow === hovered.shadow, '阅读块悬停时边框或阴影变化')
+  check(hovered.background === 'rgb(239, 237, 234)' && hovered.transform === 'none', '阅读块悬停样式不符合约定')
+  check(hovered.handle === '1', '阅读块悬停未显示手柄')
+  await page.close()
+}
+
+// 不同视口下只允许表格和代码块内部横向滚动，页面本身不能溢出。
+for (const width of [320, 390, 768, 1280]) {
+  for (const route of ['/', '/docs', '/progress', '/compatibility', '/rest-explorer', '/docs/getting-started/quickstart-rest']) {
+    const { page } = await visit(context, route, { width, height: 900 })
+    const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)
+    check(overflow <= 1, route + ': ' + width + 'px 视口横向溢出 ' + overflow + 'px')
+    await page.close()
+  }
 }
 
 // 主题切换
@@ -180,4 +232,4 @@ if (failures.length > 0) {
   for (const failure of failures) console.error(' - ' + failure)
   process.exit(1)
 }
-console.log('E2E 通过：' + routes.length + ' 个路由、搜索、主题、筛选、移动端与 404')
+console.log('E2E 通过：' + routes.length + ' 个路由、搜索、主题、筛选、移动端、404、悬停稳定性与四种视口下的六个页面')

@@ -47,6 +47,8 @@ const metrics = computed(() => [
 ])
 
 const stages = milestones
+const partialStages = computed(() => stages.filter((stage) => stage.state === 'partial').length)
+const pendingStages = computed(() => stages.filter((stage) => stage.state === 'todo').length)
 
 const levelMeta: Record<string, { label: string; tone: string }> = {
   verified: { label: '已验证', tone: 'good' },
@@ -69,7 +71,7 @@ const distribution = computed(() => {
 })
 
 const migrationStates = [
-  { name: '新建库原型', status: '已有双库本地证据', tone: 'good', detail: '单执行者、新建 Schema、新流程' },
+  { name: '新建库原型', status: '双库本地验收通过', tone: 'good', detail: '单执行者、新建 Schema、新流程' },
   { name: '只读预检', status: '保守子集已实现', tone: 'warn', detail: '无阻断不代表可转换或可切换' },
   { name: '停写切换续跑', status: '临时库演练通过，生产待验收', tone: 'bad', detail: '双库黄金样本转换、核对、行模式续跑与重启通过' },
   { name: '可回退迁移', status: '未完成', tone: 'bad', detail: '源快照还原通过；反向转换与 Java 增量接管未完成' },
@@ -87,11 +89,11 @@ const gaps = [
 <template>
   <div class="progress-page">
     <header class="dash-hero">
-      <div class="dash-hero__badge"><Clock3 :size="14" /> 实时生成 · 截至提交 {{ facts.commit.short }}</div>
+      <div class="dash-hero__badge"><Clock3 :size="14" /> 构建时更新 · 截至提交 {{ facts.commit.short }}</div>
       <h1>重构进度看板</h1>
       <p>
-        这是引擎仓库当前提交的进度快照，而不是发布承诺。页面上的规模、覆盖率、端点与能力矩阵由构建脚本从
-        <code>coverage.out</code>、<code>docs/003</code> 和 Git 历史生成。
+        这里记录当前提交的实现和验收情况。代码规模、覆盖率、端点清单与能力矩阵在构建时从
+        <code>coverage.out</code>、<code>docs/003</code> 和 Git 历史读取。
       </p>
       <div class="dash-hero__meta">
         <span><GitCommitHorizontal :size="14" /> {{ facts.commit.subject }}</span>
@@ -117,7 +119,7 @@ const gaps = [
     <section id="stages" class="dash-section">
       <div class="dash-section__head">
         <h2>阶段进展</h2>
-        <span class="muted">8 个阶段 · 3 个部分完成 · 1 个未完成</span>
+        <span class="muted">{{ stages.length }} 个阶段 · {{ partialStages }} 个部分完成 · {{ pendingStages }} 个未完成</span>
       </div>
       <div class="stage-grid">
         <div v-for="stage in stages" :key="stage.id" class="stage-card" :class="`stage-card--${stage.state}`">
@@ -149,8 +151,8 @@ const gaps = [
         </div>
         <div class="dist-note">
           <Database :size="20" />
-          <h3>{{ facts.capabilities.rows.length }} 项能力，四种证据</h3>
-          <p>“已编码/真实数据库/Java 对照/发布状态”分别取证，不能相互推导。这里是发布状态分布，不是完成度百分比。</p>
+          <h3>{{ facts.capabilities.rows.length }} 项能力的验收结果</h3>
+          <p>每项能力分别记录代码与单测、数据库、Java 对照和发布状态。图中按发布状态统计条目数，具体限制可在能力矩阵中查看。</p>
           <router-link to="/docs/compatibility/known-issues" class="text-link">查看已知问题 <ArrowRight :size="14" /></router-link>
         </div>
       </div>
@@ -173,7 +175,7 @@ const gaps = [
       </div>
       <div class="inline-warning">
         <ShieldAlert :size="17" />
-        <span>预检退出码 0、转换成功、静默检查 stable=true，都不等于“可以切换”或“可以回退”。</span>
+        <span>切换前仍需完成备份、数据核对和回退演练。预检退出码 0、转换成功或静默检查 stable=true 只能确认各自检查的结果。</span>
       </div>
     </section>
 

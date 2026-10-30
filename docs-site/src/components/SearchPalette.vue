@@ -14,7 +14,7 @@ const input = ref<HTMLInputElement | null>(null)
 const hits = computed<SearchHit[]>(() => searchDocs(query.value))
 const quickLinks = [
   { title: '当前重构进度', description: '规模、阶段、迁移状态与下一步', route: '/progress', section: 'progress' },
-  { title: '能力矩阵', description: '按四列证据判断一项能力', route: '/compatibility', section: 'compatibility' },
+  { title: '能力矩阵', description: '查看实现情况、验收结果与使用限制', route: '/compatibility', section: 'compatibility' },
   { title: 'REST 浏览器', description: '搜索 242 个方法端点', route: '/rest-explorer', section: 'rest' },
   { title: 'REST 快速开始', description: '10 分钟跑通部署到历史', route: '/docs/getting-started/quickstart-rest', section: 'getting-started' },
   { title: '已知问题', description: '使用前必须确认的限制', route: '/docs/compatibility/known-issues', section: 'compatibility' },
@@ -89,7 +89,7 @@ onBeforeUnmount(() => {
           </div>
           <div class="palette-results">
             <div v-if="visible.length === 0" class="palette-empty">
-              没有找到“{{ query }}”。试试“迁移”“mTLS”“任务”或“覆盖率”。
+              没有找到「{{ query }}」。试试迁移、mTLS、任务或覆盖率。
             </div>
             <button
               v-for="(item, index) in visible"
