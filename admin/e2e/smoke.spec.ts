@@ -51,6 +51,11 @@ test.describe.serial('管理台冒烟', () => {
     await expect(page.locator('.bpmn-designer__panel')).toBeVisible()
     await expect(page.getByRole('button', { name: /保存/ }).first()).toBeVisible()
     await expect(page.getByRole('button', { name: /部署/ }).first()).toBeVisible()
+
+    await page.getByTestId('save').click()
+    await expect(page.getByText('已保存模型源码。')).toBeVisible()
+    await page.getByTestId('deploy').click()
+    await expect(page.getByText(/部署成功/).first()).toBeVisible()
   })
 
   test('部署 → 启动 → 办理 → 历史闭环', async ({ page, request }) => {
