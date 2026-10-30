@@ -1479,6 +1479,16 @@ func (s *RemindService) Deliver(ctx context.Context, hit *RemindHit, notifier No
 // @param target 命中对象
 // @return 错误
 func (s *RemindService) markDelivered(ctx context.Context, target *RemindTarget) error {
+	// 对象存储未注入（独立送达场景）时跳过持久化，仅更新命中副本
+	if s.targets == nil {
+		if target.Sent == 0 {
+			target.Sent = 1
+		}
+		if target.Retry == 1 && target.RetryTimes > 0 && target.RetryCount < target.RetryTimes {
+			target.RetryCount++
+		}
+		return nil
+	}
 	// 首次发送：置已发送标记
 	if target.Sent == 0 {
 		if err := s.targets.MarkSent(ctx, target.ID); err != nil {

@@ -213,8 +213,10 @@ func TestDelegateRuleAddValidation(t *testing.T) {
 func TestDelegateRuleAddOverlap(t *testing.T) {
 	_, svc, _, _ := newDelegateFixture(t)
 	ctx := context.Background()
-	// 既有规则：10-01 ~ 11-30（proj-1，alice→bob）
-	if err := svc.Add(ctx, baseRule()); err != nil {
+	// 既有规则：10-01 ~ 11-30（proj-1，alice→bob）；假时钟不推进（CreateTime 同刻），
+	// 后续停用按捕获的 Id 定位而非列表下标，避免同刻排序不稳定
+	original := baseRule()
+	if err := svc.Add(ctx, original); err != nil {
 		t.Fatalf("既有规则保存失败: %v", err)
 	}
 	cases := []struct {
@@ -256,13 +258,9 @@ func TestDelegateRuleAddOverlap(t *testing.T) {
 			t.Errorf("%s: 不应报错: %v", tc.name, err)
 		}
 	}
-	// 停用规则不参与冲突：先停用既有规则，再提交重叠区间应允许
-	rules, _ := svc.List(ctx, "alice", "dev")
-	// 首条即最初保存的既有规则（按创建时间升序）
-	if len(rules) > 0 {
-		if err := svc.Disable(ctx, rules[0].ID); err != nil {
-			t.Fatalf("停用失败: %v", err)
-		}
+	// 停用规则不参与冲突：先停用既有规则（按 Id 定位），再提交重叠区间应允许
+	if err := svc.Disable(ctx, original.ID); err != nil {
+		t.Fatalf("停用失败: %v", err)
 	}
 	candidate := baseRule()
 	candidate.VaildFrom = time.Date(2026, 10, 15, 0, 0, 0, 0, time.UTC)
@@ -270,11 +268,8 @@ func TestDelegateRuleAddOverlap(t *testing.T) {
 	if err := svc.Add(ctx, candidate); err != nil {
 		t.Errorf("停用规则不应阻断重叠提交: %v", err)
 	}
-	// 恢复启用最初那条
-	rules, _ = svc.List(ctx, "alice", "dev")
-	if len(rules) > 0 {
-		_ = svc.Enable(ctx, rules[0].ID)
-	}
+	// 恢复启用最初那条（按 Id 定位）
+	_ = svc.Enable(ctx, original.ID)
 	// 全部委托之间冲突
 	allExisting := baseRule()
 	allExisting.ConsignType = ConsignTypeAll
@@ -708,22 +703,36 @@ func TestAdjustTaskOwner(t *testing.T) {
 	if !found || todo.OwnerID != "carl" || todo.ConsignerID != "alice" {
 		t.Errorf("待办改派错误: found=%v owner=%s consigner=%s", found, todo.OwnerID, todo.ConsignerID)
 	}
-	// 委托镜像逐 owner 落库
+	// 委托镜像逐 owner 落库（同刻创建无序，按集合断言）
 	list, _ := mirrors.ListByTaskID(ctx, task.ID)
 	if len(list) != 2 {
 		t.Fatalf("镜像应为 2 条: %d", len(list))
 	}
-	if list[0].EntrustID != "carl" || list[1].EntrustID != "helper" {
-		t.Errorf("镜像顺序/内容错误: %s, %s", list[0].EntrustID, list[1].EntrustID)
+	entrustSet := make(map[string]bool, 2)
+	for _, mirror := range list {
+		entrustSet[mirror.EntrustID] = true
 	}
-	// WP 操作记录
+	if !entrustSet["carl"] || !entrustSet["helper"] {
+		t.Errorf("镜像内容错误: %v", entrustSet)
+	}
+	// WP 操作记录（种子 TJ 与 WP 同刻创建，无序，按类型检索）
 	ops, err := fx.stores.Operation.ListByTask(ctx, task.ID)
 	if err != nil || len(ops) == 0 {
 		t.Fatalf("操作记录缺失: %d, %v", len(ops), err)
 	}
-	lastOp := ops[len(ops)-1]
-	if lastOp.Type != CommentTypeWP || !strings.Contains(lastOp.Message, "委托任务") {
-		t.Errorf("WP 记录错误: type=%s msg=%s", lastOp.Type, lastOp.Message)
+	var wpOp *OperationRecord
+	for _, op := range ops {
+		// 检索 WP 类型记录（同刻排序不稳定，不能取末条）
+		if op.Type == CommentTypeWP {
+			wpOp = op
+			break
+		}
+	}
+	if wpOp == nil || !strings.Contains(wpOp.Message, "委托任务") {
+		t.Fatalf("WP 记录缺失: %+v", ops)
+	}
+	if !strings.Contains(wpOp.Message, "张三") {
+		t.Errorf("WP 记录应含委托人姓名: %s", wpOp.Message)
 	}
 	// 实例级镜像删除
 	if err := mirrors.DeleteByProcessInstance(ctx, instance.ID); err != nil {
