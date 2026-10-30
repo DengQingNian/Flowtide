@@ -92,19 +92,19 @@ const flowGroupProcess = `<?xml version="1.0" encoding="UTF-8"?>
 
 // completeFixture 是办结/查询测试的完整环境（内存引擎 + MemStores + 全套域服务）。
 type completeFixture struct {
-	engine     api.Engine                    // 内存引擎
-	stores     *MemStores                    // 五大域内存存储
-	completeTo *MemCompleteToActivityStore   // 直送记录内存存储
-	meta       *ModelMetaService             // 模型元数据
-	next       *NextActivityService          // 下一步预生成
-	comments   *CommentService               // 意见
-	operations *OperationRecordService       // 操作记录
-	messages   *MessageExtendService         // 待办扩展
-	histories  *HistoryExtendService         // 已办扩展
-	documents  *DocumentService              // 表单状态机
-	complete   *CompleteService              // 办结服务
-	query      *QueryService                 // 查询门面
-	fakeClock  *clock.Fake                   // 假时钟（推进时间用）
+	engine     api.Engine                  // 内存引擎
+	stores     *MemStores                  // 五大域内存存储
+	completeTo *MemCompleteToActivityStore // 直送记录内存存储
+	meta       *ModelMetaService           // 模型元数据
+	next       *NextActivityService        // 下一步预生成
+	comments   *CommentService             // 意见
+	operations *OperationRecordService     // 操作记录
+	messages   *MessageExtendService       // 待办扩展
+	histories  *HistoryExtendService       // 已办扩展
+	documents  *DocumentService            // 表单状态机
+	complete   *CompleteService            // 办结服务
+	query      *QueryService               // 查询门面
+	fakeClock  *clock.Fake                 // 假时钟（推进时间用）
 }
 
 // newCompleteFixture 构造办结/查询测试环境（部署全部语料、创建测试用户）。

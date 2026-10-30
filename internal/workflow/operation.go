@@ -15,7 +15,7 @@ type OperationRecordService struct {
 	store       OperationRecordStore // 存储端口
 	history     TaskHistoryQuery     // 历史任务查询（补任务步骤与签收/办结时间）
 	instances   InstanceQuery        // 实例查询（补定义/业务键/租户）
-	definitions DefinitionQuery     // 定义查询（补流程分类）
+	definitions DefinitionQuery      // 定义查询（补流程分类）
 	users       UserQuery            // 身份查询（补处理人姓名与组）
 	clock       clock.Clock          // 时间源
 	newID       func() string        // ID 生成函数

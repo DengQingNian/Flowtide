@@ -56,9 +56,9 @@ func (f *failingNextStore) MarkUsedAndWriteBack(ctx context.Context, ids []strin
 // failingMessageStore 是带错误注入的待办扩展存储桩。
 type failingMessageStore struct {
 	MessageExtendStore
-	failGet    bool
-	failSave   bool
-	failList   bool
+	failGet  bool
+	failSave bool
+	failList bool
 }
 
 // GetByTaskID 按开关返回错误。

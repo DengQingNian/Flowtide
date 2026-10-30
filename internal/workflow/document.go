@@ -9,21 +9,21 @@ import (
 
 // DocumentService 是业务表单状态（workflow_document）域服务。
 // 行为规格对位 Java WorkflowDocumentServiceImpl#updateWorkflowDocumentByProcessInstanceIdOrTaskId:96 的状态机：
-//   1. 最后一条操作记录为 LCZZ → 已终止（清空待办数据 + 终止时间）；
-//   2. 实例已结束（运行表查不到且历史实例有结束时间）→ 已完成（清空待办数据 + 完成时间）；
-//   3. 其余 → 操作记录数 <=1 为"未提交"、>1 为"流转中"；
-//      待办聚合：document_url/flow_task_id/flow_action_id/flow_action/flow_current_step_name/
-//      flow_current_persons 取待办扩展去重逗号串；
-//      待办步骤代号命中签收类（Sign/Sign1/Sign2/EngineerSign）→ flow_status=已完成；
-//      办结任务 Key == Draft → 记流程开始时间。
+//  1. 最后一条操作记录为 LCZZ → 已终止（清空待办数据 + 终止时间）；
+//  2. 实例已结束（运行表查不到且历史实例有结束时间）→ 已完成（清空待办数据 + 完成时间）；
+//  3. 其余 → 操作记录数 <=1 为"未提交"、>1 为"流转中"；
+//     待办聚合：document_url/flow_task_id/flow_action_id/flow_action/flow_current_step_name/
+//     flow_current_persons 取待办扩展去重逗号串；
+//     待办步骤代号命中签收类（Sign/Sign1/Sign2/EngineerSign）→ flow_status=已完成；
+//     办结任务 Key == Draft → 记流程开始时间。
 type DocumentService struct {
-	store     DocumentStore     // 单据存储端口
-	msg       MessageExtendStore // 待办扩展端口（聚合待办人）
+	store     DocumentStore        // 单据存储端口
+	msg       MessageExtendStore   // 待办扩展端口（聚合待办人）
 	ops       OperationRecordStore // 操作记录端口（状态判据）
-	instances InstanceQuery     // 实例查询（业务键/租户/是否结束）
-	tasks     TaskHistoryQuery  // 历史任务查询（补任务 Key，Draft 判定）
-	clock     clock.Clock       // 时间源
-	newID     func() string     // ID 生成函数
+	instances InstanceQuery        // 实例查询（业务键/租户/是否结束）
+	tasks     TaskHistoryQuery     // 历史任务查询（补任务 Key，Draft 判定）
+	clock     clock.Clock          // 时间源
+	newID     func() string        // ID 生成函数
 }
 
 // NewDocumentService 创建业务表单状态域服务。

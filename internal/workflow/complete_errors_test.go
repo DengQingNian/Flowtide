@@ -428,7 +428,7 @@ func TestComplete_ParentNotPendingResolveError(t *testing.T) {
 // @param t 测试上下文
 func TestComplete_WeightValueParsing(t *testing.T) {
 	cases := []struct {
-		value any    // 输入值
+		value any     // 输入值
 		want  float64 // 期望浮点
 	}{
 		{2.5, 2.5},
@@ -511,7 +511,7 @@ func TestComplete_DeleteTransferSkipsSelfLoop(t *testing.T) {
 	fx.seedFirstTodo(t, instance, apply)
 	// 自环记录：preTaskId = 当前任务（另用独立身份，避免同身份整批删除的存储语义覆盖）
 	if err := fx.next.InsertDual(ctxB, &NextActivity{
-		BaseColumns: BaseColumns{TenantID: instance.TenantID},
+		BaseColumns:    BaseColumns{TenantID: instance.TenantID},
 		NextActivityID: "apply", IdentityID: "carl", SendIdentityID: "alice",
 		ProcessInstanceID: instance.ID, Used: 1, TaskID: apply.ID, PreTaskID: apply.ID, Version: 9,
 	}, "alice"); err != nil {
@@ -654,7 +654,7 @@ func TestComplete_CoverageExtras(t *testing.T) {
 	instance2, apply := fx.start(t, "flowComplete", "e-other", "alice")
 	fx.seedFirstTodo(t, instance2, apply)
 	if err := fx.next.InsertDual(ctxB, &NextActivity{
-		BaseColumns: BaseColumns{TenantID: instance2.TenantID},
+		BaseColumns:    BaseColumns{TenantID: instance2.TenantID},
 		NextActivityID: "otherNode", IdentityID: "alice", SendIdentityID: "alice",
 		ProcessInstanceID: instance2.ID, Used: 1, TaskID: apply.ID, Version: 9,
 	}, "alice"); err != nil {
@@ -754,7 +754,7 @@ func TestComplete_DelegationStoreErrorBranches(t *testing.T) {
 		t.Fatalf("委派失败: %v", err)
 	}
 	if err := fx.next.InsertDual(ctxB, &NextActivity{
-		BaseColumns: BaseColumns{TenantID: instance.TenantID},
+		BaseColumns:    BaseColumns{TenantID: instance.TenantID},
 		NextActivityID: "apply", IdentityID: "bob", SendIdentityID: "bob",
 		ProcessInstanceID: instance.ID, Used: 1, TaskID: apply.ID, Version: 1,
 	}, "bob"); err != nil {
@@ -776,7 +776,7 @@ func TestComplete_DelegationStoreErrorBranches(t *testing.T) {
 		t.Fatalf("委派失败: %v", err)
 	}
 	if err := fx2.next.InsertDual(ctxB, &NextActivity{
-		BaseColumns: BaseColumns{TenantID: instance2.TenantID},
+		BaseColumns:    BaseColumns{TenantID: instance2.TenantID},
 		NextActivityID: "apply", IdentityID: "bob", SendIdentityID: "bob",
 		ProcessInstanceID: instance2.ID, Used: 1, TaskID: apply2.ID, Version: 1,
 	}, "bob"); err != nil {

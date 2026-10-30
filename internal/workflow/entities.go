@@ -43,95 +43,95 @@ type ExtendFields struct {
 // "预生成-消耗"模型：写操作预生成 used=0 记录，任务创建时执行人重写钩子
 // 置 used=1 并回写 task_id；首步（saveFirstTaskUser）直接写 used=1 + taskId。
 type NextActivity struct {
-	BaseColumns               // 公共审计列
-	NextActivityID    string  // 目标节点 ID（BPMN userTask id；流程结束为保留代号 end，end 不落库由调用方跳过）
-	GroupID           string  // 候选组 Id（同一候选组的多条记录共享，供组任务聚合）
-	IdentityID        string  // 处理人身份 Id
-	SendIdentityID    string  // 发送人身份 Id
-	SendUserName      string  // 发送人姓名
-	ProcessInstanceID string  // 流程实例 Id
+	BaseColumns                // 公共审计列
+	NextActivityID    string   // 目标节点 ID（BPMN userTask id；流程结束为保留代号 end，end 不落库由调用方跳过）
+	GroupID           string   // 候选组 Id（同一候选组的多条记录共享，供组任务聚合）
+	IdentityID        string   // 处理人身份 Id
+	SendIdentityID    string   // 发送人身份 Id
+	SendUserName      string   // 发送人姓名
+	ProcessInstanceID string   // 流程实例 Id
 	AgreeWeight       *float64 // 同意权重（权重会签）
 	RejectWeight      *float64 // 退回权重（权重会签）
-	Used              int     // 消耗标记：0 未消耗（待执行人重写）、1 已消耗
-	PreTaskID         string  // 来源任务 Id（产生该预生成的任务）
-	TaskID            string  // 消耗后回写的引擎任务 Id（ACT_RU_TASK.ID_）
-	Version           int     // 版本号：同实例同节点每预生成一轮 +1（按 his 表 used=1 记录的最大版本推算）
+	Used              int      // 消耗标记：0 未消耗（待执行人重写）、1 已消耗
+	PreTaskID         string   // 来源任务 Id（产生该预生成的任务）
+	TaskID            string   // 消耗后回写的引擎任务 Id（ACT_RU_TASK.ID_）
+	Version           int      // 版本号：同实例同节点每预生成一轮 +1（按 his 表 used=1 记录的最大版本推算）
 }
 
 // MessageExtend 是 workflow_task_message_extend（待办扩展，待办中心唯一数据源）的领域实体，
 // 与 ACT_RU_TASK 1:1（task_id 唯一）。
 type MessageExtend struct {
-	BaseColumns             // 公共审计列
-	TaskID              string     // 引擎任务 Id（唯一）
-	ProcessInstanceID   string     // 流程实例 Id
-	Title               string     // 待办标题 = 实例名称
-	Message             string     // 待办说明
-	BusinessID          string     // 业务单据 Id = businessKey
-	TargetURL           string     // 步骤处理地址（his_step.url）
-	TaskStepName        string     // 步骤名称（his_step.stepName）
-	TaskStepCode        string     // 步骤代号（his_step.stepCode）
-	FlowCategoryCode    string     // 流程分类代号 = 定义 Key
-	FlowCategoryName    string     // 流程分类名称 = 定义名称
-	OwnerID             string     // 处理人身份 Id
-	OwnerName           string     // 处理人姓名
-	OwnerGroup          string     // 处理人组简称
-	OwnerGroupID        string     // 处理人组 Id
-	OwnerGroupPaths     string     // 处理人组全称路径
-	OwnerGroupPathIDs   string     // 处理人组 Id 路径
-	DocumentOwnerID     string     // 起草人身份 Id（=实例发起人）
-	DocumentOwnerName   string     // 起草人姓名
-	DocumentGroupID     string     // 起草人组 Id
-	DocumentGroup       string     // 起草人组简称
-	DocumentGroupPaths  string     // 起草人组全称路径
-	DocumentGroupPathIDs string    // 起草人组 Id 路径
-	SenderID            string     // 发送人身份 Id（=预生成记录 send_identity_id）
-	Sender              string     // 发送人姓名（=send_user_name）
-	SenderStepName      string     // 发送步骤名称（来源任务名）
-	SenderStepCode      string     // 发送步骤代号（来源任务 Key）
-	ConsignerID         string     // 受托人身份 Id（委托场景）
-	Consigner           string     // 受托人姓名
-	IsRead              int        // 是否已读：0 否、1 是
-	ReadTime            *time.Time // 阅读时间
-	PlanFinishTime      *time.Time // 计划办结时间
-	TaskReceiptTime     *time.Time // 签收时间 = 任务创建时间
-	TaskStartTime       *time.Time // 开始处理时间
-	IsDelay             int        // 是否延时：0 否、1 是
-	DelayTime           *time.Time // 延时时间点
-	MessageGroupID      string     // 消息组 Id（同组待办联动删除）
-	ExtendFields               // 通用扩展列透传
+	BaseColumns                     // 公共审计列
+	TaskID               string     // 引擎任务 Id（唯一）
+	ProcessInstanceID    string     // 流程实例 Id
+	Title                string     // 待办标题 = 实例名称
+	Message              string     // 待办说明
+	BusinessID           string     // 业务单据 Id = businessKey
+	TargetURL            string     // 步骤处理地址（his_step.url）
+	TaskStepName         string     // 步骤名称（his_step.stepName）
+	TaskStepCode         string     // 步骤代号（his_step.stepCode）
+	FlowCategoryCode     string     // 流程分类代号 = 定义 Key
+	FlowCategoryName     string     // 流程分类名称 = 定义名称
+	OwnerID              string     // 处理人身份 Id
+	OwnerName            string     // 处理人姓名
+	OwnerGroup           string     // 处理人组简称
+	OwnerGroupID         string     // 处理人组 Id
+	OwnerGroupPaths      string     // 处理人组全称路径
+	OwnerGroupPathIDs    string     // 处理人组 Id 路径
+	DocumentOwnerID      string     // 起草人身份 Id（=实例发起人）
+	DocumentOwnerName    string     // 起草人姓名
+	DocumentGroupID      string     // 起草人组 Id
+	DocumentGroup        string     // 起草人组简称
+	DocumentGroupPaths   string     // 起草人组全称路径
+	DocumentGroupPathIDs string     // 起草人组 Id 路径
+	SenderID             string     // 发送人身份 Id（=预生成记录 send_identity_id）
+	Sender               string     // 发送人姓名（=send_user_name）
+	SenderStepName       string     // 发送步骤名称（来源任务名）
+	SenderStepCode       string     // 发送步骤代号（来源任务 Key）
+	ConsignerID          string     // 受托人身份 Id（委托场景）
+	Consigner            string     // 受托人姓名
+	IsRead               int        // 是否已读：0 否、1 是
+	ReadTime             *time.Time // 阅读时间
+	PlanFinishTime       *time.Time // 计划办结时间
+	TaskReceiptTime      *time.Time // 签收时间 = 任务创建时间
+	TaskStartTime        *time.Time // 开始处理时间
+	IsDelay              int        // 是否延时：0 否、1 是
+	DelayTime            *time.Time // 延时时间点
+	MessageGroupID       string     // 消息组 Id（同组待办联动删除）
+	ExtendFields                    // 通用扩展列透传
 }
 
 // HistoryExtend 是 workflow_task_history_extend（已办扩展，ACT_HI_TASKINST 1:1）的领域实体。
 // Java 侧由待办扩展整行复制生成（BeanUtils.copyProperties），故直接内嵌 MessageExtend。
 type HistoryExtend struct {
-	MessageExtend    // 与待办扩展同构
+	MessageExtend             // 与待办扩展同构
 	TaskFinishTime *time.Time // 实际办结时间
 }
 
 // OperationRecord 是 workflow_operation_record（操作记录/意见留痕）的领域实体。
 // type 取意见类型 CommentTypeEnum 代码；"可签名记录"只取 TJ/SP/TZ 三类。
 type OperationRecord struct {
-	BaseColumns             // 公共审计列
-	BusinessID          string     // 业务单据 Id
-	TaskID              string     // 任务 Id
-	ProcessInstanceID   string     // 流程实例 Id
-	Message             string     // 操作说明（审批意见内容）
-	IsAgree             *int       // 是否同意：1 同意、0 不同意，nil 表示不适用
-	TaskStepCode        string     // 步骤代号（=任务 Key）
-	TaskStepName        string     // 步骤名称（=任务名）
-	FlowCategoryCode    string     // 流程分类代号 = 定义 Key
-	FlowCategoryName    string     // 流程分类名称 = 定义名称
-	OwnerID             string     // 处理人身份 Id
-	OwnerName           string     // 处理人姓名
-	OwnerGroup          string     // 处理人组简称
-	OwnerGroupID        string     // 处理人组 Id
-	OwnerGroupPaths     string     // 处理人组全称路径
-	OwnerGroupPathIDs   string     // 处理人组 Id 路径
-	DealTime            *time.Time // 处理时间
-	TaskReceiptTime     *time.Time // 签收时间（任务创建时间）
-	TaskStartTime       *time.Time // 开始处理时间
-	TaskFinishTime      *time.Time // 任务办结时间
-	Type                string     // 意见类型 CommentTypeEnum 代码（如 TJ/SP/TH）
+	BaseColumns                  // 公共审计列
+	BusinessID        string     // 业务单据 Id
+	TaskID            string     // 任务 Id
+	ProcessInstanceID string     // 流程实例 Id
+	Message           string     // 操作说明（审批意见内容）
+	IsAgree           *int       // 是否同意：1 同意、0 不同意，nil 表示不适用
+	TaskStepCode      string     // 步骤代号（=任务 Key）
+	TaskStepName      string     // 步骤名称（=任务名）
+	FlowCategoryCode  string     // 流程分类代号 = 定义 Key
+	FlowCategoryName  string     // 流程分类名称 = 定义名称
+	OwnerID           string     // 处理人身份 Id
+	OwnerName         string     // 处理人姓名
+	OwnerGroup        string     // 处理人组简称
+	OwnerGroupID      string     // 处理人组 Id
+	OwnerGroupPaths   string     // 处理人组全称路径
+	OwnerGroupPathIDs string     // 处理人组 Id 路径
+	DealTime          *time.Time // 处理时间
+	TaskReceiptTime   *time.Time // 签收时间（任务创建时间）
+	TaskStartTime     *time.Time // 开始处理时间
+	TaskFinishTime    *time.Time // 任务办结时间
+	Type              string     // 意见类型 CommentTypeEnum 代码（如 TJ/SP/TH）
 }
 
 // Document 是 workflow_document（业务单据↔流程实例绑定与状态快照）的领域实体。
@@ -139,31 +139,31 @@ type OperationRecord struct {
 // 状态机（flow_status，对齐 Java WorkflowDocumentServiceImpl）：
 // 未提交 → 流转中 → 已完成/已终止；待办步骤代号含签收类（Sign*）时直接置已完成。
 type Document struct {
-	BaseColumns             // 公共审计列
-	BusinessID            string     // 业务单据 Id（租户内唯一）
-	CreateGroupPathIDs    string     // 创建人组 Id 路径
-	CreateGroupPaths      string     // 创建人组全称路径
-	CreateGroupID         string     // 创建人组 Id
-	CreateGroup           string     // 创建人组简称
-	UpdaterName           string     // 更新人姓名
-	Deleted               int        // 逻辑删除：0 正常、1 已删除
-	DocumentURL           string     // 表单处理地址（=待办 target_url）
-	DocumentID            string     // 表单 Id（=business_id）
-	DocumentTable         string     // 业务表名（流程变量 tableName）
-	FlowTitle             string     // 流程标题（=实例名称）
-	FlowTaskID            string     // 当前待办任务 Id 聚合（逗号分隔去重）
-	FlowInstanceID        string     // 流程实例 Id
-	FlowCategoryID        string     // 流程分类代号 = 定义 Key
-	FlowCategory          string     // 流程分类名称 = 定义名称
-	FlowActionID          string     // 当前待办步骤代号聚合（逗号分隔去重）
-	FlowAction            string     // 当前待办步骤名称聚合（逗号分隔去重）
-	FlowStatus            string     // 流程状态（见 FlowStatus* 常量）
-	FlowCurrentStepName   string     // 当前待办步骤名称聚合（与 flow_action 同值，Java 语义）
-	FlowCurrentPersons    string     // 当前待办人姓名聚合（逗号分隔去重）
-	FlowStartTime         *time.Time // 流程开始时间（Draft 提交时记）
-	FlowFinishTime        *time.Time // 流程完成时间（状态置已完成时记）
-	FlowTerminationTime   *time.Time // 流程终止时间（状态置已终止时记）
-	ExtendFields                 // 通用扩展列透传
+	BaseColumns                    // 公共审计列
+	BusinessID          string     // 业务单据 Id（租户内唯一）
+	CreateGroupPathIDs  string     // 创建人组 Id 路径
+	CreateGroupPaths    string     // 创建人组全称路径
+	CreateGroupID       string     // 创建人组 Id
+	CreateGroup         string     // 创建人组简称
+	UpdaterName         string     // 更新人姓名
+	Deleted             int        // 逻辑删除：0 正常、1 已删除
+	DocumentURL         string     // 表单处理地址（=待办 target_url）
+	DocumentID          string     // 表单 Id（=business_id）
+	DocumentTable       string     // 业务表名（流程变量 tableName）
+	FlowTitle           string     // 流程标题（=实例名称）
+	FlowTaskID          string     // 当前待办任务 Id 聚合（逗号分隔去重）
+	FlowInstanceID      string     // 流程实例 Id
+	FlowCategoryID      string     // 流程分类代号 = 定义 Key
+	FlowCategory        string     // 流程分类名称 = 定义名称
+	FlowActionID        string     // 当前待办步骤代号聚合（逗号分隔去重）
+	FlowAction          string     // 当前待办步骤名称聚合（逗号分隔去重）
+	FlowStatus          string     // 流程状态（见 FlowStatus* 常量）
+	FlowCurrentStepName string     // 当前待办步骤名称聚合（与 flow_action 同值，Java 语义）
+	FlowCurrentPersons  string     // 当前待办人姓名聚合（逗号分隔去重）
+	FlowStartTime       *time.Time // 流程开始时间（Draft 提交时记）
+	FlowFinishTime      *time.Time // 流程完成时间（状态置已完成时记）
+	FlowTerminationTime *time.Time // 流程终止时间（状态置已终止时记）
+	ExtendFields                   // 通用扩展列透传
 }
 
 // GetExtendColumns 返回扩展列的列名全集（与 DDL 顺序一致，供行转换使用）。

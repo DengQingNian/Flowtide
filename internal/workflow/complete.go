@@ -340,9 +340,9 @@ func (s *CompleteService) accumulateCountersignWeight(ctx context.Context, vo *a
 
 // weightConfig 是权重会签的个人权重配置（指针区分"未配置"与零值，对位 Java JSONObject.get 可空语义）。
 type weightConfig struct {
-	IdentityID   string    // 身份 Id
-	AgreeWeight  *float64  // 通过权重，未配置为 nil
-	RejectWeight *float64  // 拒绝权重，未配置为 nil
+	IdentityID   string   // 身份 Id
+	AgreeWeight  *float64 // 通过权重，未配置为 nil
+	RejectWeight *float64 // 拒绝权重，未配置为 nil
 }
 
 // parseWeightConfigs 解析 weightList 原始串为指针化权重配置（JSON 数组形态）。
@@ -785,7 +785,6 @@ func (s *CompleteService) buildMessageExtend(ctx context.Context, vo *api.Comple
 
 // collectNextTaskIDs 已并入 writeCompleteTailChain 返回值（避免重复任务列表查询）。
 // 保留占位说明：新待办 Id 以收尾链生成结果为准。
-
 
 // isInstanceFinished 判断实例是否已结束（运行表查不到或实例 Ended）。
 // @param ctx 操作上下文

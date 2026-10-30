@@ -12,7 +12,7 @@ import (
 // 对位 Java WorkflowCompleteToActivityEntity：自由选路兜底迁移时落一条
 // "从当前节点强制提交到目标节点"的轨迹（flow_id 对应 Java 随机连线 ID，Go 迁移语义不产生新连线，保留空值）。
 type CompleteToActivity struct {
-	BaseColumns       // 公共审计列
+	BaseColumns              // 公共审计列
 	FlowID            string // 连线 Id（Java 内存改线时生成的随机连线 ID；Go 引擎级迁移不产生新连线，为空）
 	SourceActivityID  string // 来源节点 ID（办结任务的 taskDefinitionKey）
 	TargetActivityID  string // 目标节点 ID（自由选路指定的直送目标）
@@ -46,10 +46,10 @@ type CompleteToActivityStore interface {
 // MemCompleteToActivityStore 是直送记录端口的内存实现（线程安全 map + 行克隆存取），
 // 供单元测试与嵌入式无 DB 模式使用。
 type MemCompleteToActivityStore struct {
-	mu      sync.RWMutex                  // 读写锁
-	rows    map[string]*CompleteToActivity // id → 记录
-	clock   clock.Clock                   // 时间源（审计列填充）
-	newID   func() string                 // ID 生成函数
+	mu    sync.RWMutex                   // 读写锁
+	rows  map[string]*CompleteToActivity // id → 记录
+	clock clock.Clock                    // 时间源（审计列填充）
+	newID func() string                  // ID 生成函数
 }
 
 // NewMemCompleteToActivityStore 创建内存直送记录存储。
@@ -181,18 +181,18 @@ func (s *SQLCompleteToActivityStore) ListByTask(ctx context.Context, taskID stri
 // @return 通用行
 func completeToActivityToRow(record *CompleteToActivity) pwf.Row {
 	return pwf.Row{
-		"id":                   record.ID,
-		"flow_id":              record.FlowID,
+		"id":                     record.ID,
+		"flow_id":                record.FlowID,
 		"source_flow_element_id": record.SourceActivityID,
 		"target_flow_element_id": record.TargetActivityID,
-		"task_id":              record.TaskID,
-		"process_instance_id":  record.ProcessInstanceID,
-		"creator":              record.Creator,
-		"creator_name":         record.CreatorName,
-		"create_time":          record.CreateTime,
-		"updater":              record.Updater,
-		"update_time":          record.UpdateTime,
-		"tenant_id":            record.TenantID,
+		"task_id":                record.TaskID,
+		"process_instance_id":    record.ProcessInstanceID,
+		"creator":                record.Creator,
+		"creator_name":           record.CreatorName,
+		"create_time":            record.CreateTime,
+		"updater":                record.Updater,
+		"update_time":            record.UpdateTime,
+		"tenant_id":              record.TenantID,
 	}
 }
 
@@ -203,7 +203,7 @@ func completeToActivitiesFromRows(rows []pwf.Row) []*CompleteToActivity {
 	out := make([]*CompleteToActivity, 0, len(rows))
 	for _, row := range rows {
 		out = append(out, &CompleteToActivity{
-			BaseColumns: baseFromRow(row),
+			BaseColumns:       baseFromRow(row),
 			FlowID:            rowString(row, "flow_id"),
 			SourceActivityID:  rowString(row, "source_flow_element_id"),
 			TargetActivityID:  rowString(row, "target_flow_element_id"),

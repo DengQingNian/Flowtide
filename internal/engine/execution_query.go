@@ -146,3 +146,56 @@ func (e *Engine) GetExecutionVariables(ctx context.Context, executionID string) 
 	}
 	return result.(map[string]any), nil
 }
+
+// findActiveExecutionsByActivityIDs 按实例与活动 ID 集合查找未结束的执行（G8）。
+// @param processInstanceID 流程实例 ID
+// @param activityIDs 活动 ID 集合
+// @return 执行列表（按 ID 排序）
+func (e *Engine) findActiveExecutionsByActivityIDs(processInstanceID string, activityIDs map[string]bool) []*executionState {
+	out := make([]*executionState, 0)
+	for _, execution := range e.state.Executions {
+		if execution.ProcessInstanceID != processInstanceID || execution.Ended {
+			continue
+		}
+		if !activityIDs[execution.ActivityID] {
+			continue
+		}
+		out = append(out, execution)
+	}
+	sort.Slice(out, func(i, j int) bool { return out[i].ID < out[j].ID })
+	return out
+}
+
+// getParentExecutionIDsByActivityID 按活动 ID 求承载执行的父执行 ID 集合（G8 多实例归并）。
+// 对位 Java FlowUtils.getParentExecutionIdsByActivityId：多实例活动只取多实例根的父执行。
+// @param executions 执行列表
+// @param activityID 活动 ID
+// @return 父执行 ID 集合，无命中时为 nil
+func (e *Engine) getParentExecutionIDsByActivityID(executions []*executionState, activityID string) map[string]bool {
+	matches := make([]*executionState, 0)
+	for _, execution := range executions {
+		if execution.ActivityID == activityID {
+			matches = append(matches, execution)
+		}
+	}
+	if len(matches) == 0 {
+		return nil
+	}
+	// 多实例：只保留根执行的父执行，避免把子实例当独立分支
+	roots := make([]*executionState, 0)
+	for _, execution := range matches {
+		if execution.MultiInstanceRoot {
+			roots = append(roots, execution)
+		}
+	}
+	if len(roots) > 0 {
+		matches = roots
+	}
+	parents := map[string]bool{}
+	for _, execution := range matches {
+		if execution.ParentID != "" {
+			parents[execution.ParentID] = true
+		}
+	}
+	return parents
+}

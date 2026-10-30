@@ -615,3 +615,22 @@ func sortInstances(instances []api.ProcessInstance) {
 		return instances[i].StartTime.Before(instances[j].StartTime)
 	})
 }
+
+// findTasksByActivityKeys 按实例与任务定义 Key 集合查找运行中任务（G9）。
+// @param processInstanceID 流程实例 ID
+// @param keys 任务定义 Key 集合
+// @return 任务列表（按任务 ID 排序）
+func (e *Engine) findTasksByActivityKeys(processInstanceID string, keys map[string]bool) []*taskState {
+	out := make([]*taskState, 0)
+	for _, task := range e.state.Tasks {
+		if task.Task.ProcessInstanceID != processInstanceID {
+			continue
+		}
+		if !keys[task.Task.TaskDefinitionKey] {
+			continue
+		}
+		out = append(out, task)
+	}
+	sort.Slice(out, func(i, j int) bool { return out[i].Task.ID < out[j].Task.ID })
+	return out
+}

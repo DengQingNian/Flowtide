@@ -56,7 +56,7 @@ func (s *HistoryExtendService) CreateForTask(ctx context.Context, req *HistoryEx
 }
 
 // UpdateFinishTime 办结回写：置（任务+处理人）记录的办结时间并删除同任务其他处理人的记录
-//（时间为零值时取当前时间，对位 Java updateByTaskIdAndOwnerId）。
+// （时间为零值时取当前时间，对位 Java updateByTaskIdAndOwnerId）。
 // @param ctx 操作上下文
 // @param taskID 任务 Id
 // @param ownerID 处理人 Id

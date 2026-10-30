@@ -108,10 +108,10 @@ type CommentRequest struct {
 
 // CommentView 是意见查询视图：引擎评论 + 联查补全的展示字段。
 type CommentView struct {
-	api.Comment               // 引擎评论原始字段
-	TaskName    string        // 任务名称（联历史任务，查不到为空）
-	TypeName    string        // 意见类型中文名（GetEnumMsgByType 映射，非枚举代码为空）
-	UserName    string        // 操作人姓名（联身份库，查不到为空）
+	api.Comment        // 引擎评论原始字段
+	TaskName    string // 任务名称（联历史任务，查不到为空）
+	TypeName    string // 意见类型中文名（GetEnumMsgByType 映射，非枚举代码为空）
+	UserName    string // 操作人姓名（联身份库，查不到为空）
 }
 
 // OperationRequest 是写操作记录请求（对位 Java WorkflowOperationRecordRequest）。

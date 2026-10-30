@@ -26,24 +26,24 @@ const (
 
 // TodoTaskView 是待办任务列表视图：待办扩展为主体，联查引擎任务补实时状态。
 type TodoTaskView struct {
-	*MessageExtend     // 待办扩展全字段（待办中心唯一数据源）
-	EngineTaskName string // 引擎任务名称（任务仍在办时非空，已流转为空）
+	*MessageExtend           // 待办扩展全字段（待办中心唯一数据源）
+	EngineTaskName string    // 引擎任务名称（任务仍在办时非空，已流转为空）
 	EngineCreate   time.Time // 引擎任务创建时间
-	EngineExists   bool   // 引擎任务是否仍存在（false 表示已办结/已流转）
+	EngineExists   bool      // 引擎任务是否仍存在（false 表示已办结/已流转）
 }
 
 // DoneTaskView 是已办任务列表视图：已办扩展为主体，联查引擎历史任务补办结时间。
 type DoneTaskView struct {
-	*HistoryExtend        // 已办扩展全字段
+	*HistoryExtend              // 已办扩展全字段
 	EngineFinishTime *time.Time // 引擎历史任务办结时间（查不到为空）
 	EngineExists     bool       // 引擎历史任务是否存在
 }
 
 // TaskInfoView 是任务详情视图：引擎任务 + workflow 扩展列。
 type TaskInfoView struct {
-	api.Task             // 引擎任务全字段
-	Extend    *MessageExtend // 待办扩展（存在时非空）
-	History   *HistoryExtend // 已办扩展（存在时非空）
+	api.Task                // 引擎任务全字段
+	Extend   *MessageExtend // 待办扩展（存在时非空）
+	History  *HistoryExtend // 已办扩展（存在时非空）
 }
 
 // ProcessInstanceView 是流程实例列表视图（字段对位调研 005 §1.1 instance/list）。

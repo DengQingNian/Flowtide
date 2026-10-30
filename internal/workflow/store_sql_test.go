@@ -13,17 +13,17 @@ import (
 func TestRowValueHelpers(t *testing.T) {
 	stamped := time.Date(2026, 1, 1, 8, 0, 0, 0, time.Local)
 	row := pwf.Row{
-		"s":     "text",
-		"bytes": []byte("字节"),
-		"i64":   int64(3),
-		"i":     4,
-		"f64":   1.5,
-		"dec":   "12.34",
-		"num":   []byte("56.78"),
-		"time":  stamped,
+		"s":        "text",
+		"bytes":    []byte("字节"),
+		"i64":      int64(3),
+		"i":        4,
+		"f64":      1.5,
+		"dec":      "12.34",
+		"num":      []byte("56.78"),
+		"time":     stamped,
 		"timeText": "2026-01-01 08:00:00",
-		"nil":   nil,
-		"bad":   struct{}{},
+		"nil":      nil,
+		"bad":      struct{}{},
 	}
 	// 字符串：string/[]byte/其他
 	if got := rowString(row, "s"); got != "text" {

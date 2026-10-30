@@ -147,6 +147,13 @@ func (e *Engine) invokeExecutionListeners(cc *commandContext, execution *Executi
 		if name == "" {
 			return api.NewError("ENGINE-1940", "执行监听器缺少实现", api.ErrBadRequest)
 		}
+		// 扩展监听器（控制接口版）优先命中；未注册时回退原生监听器表
+		if hit, err := e.invokeExecutionListenerHooks(cc, execution, name); hit {
+			if err != nil {
+				return api.NewError("ENGINE-1943", "执行监听器执行失败: "+name, err)
+			}
+			continue
+		}
 		listener, ok := e.executionListeners[name]
 		if !ok {
 			return api.NewError("ENGINE-1941", "执行监听器未注册: "+name, api.ErrBadRequest)
