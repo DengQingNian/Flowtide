@@ -578,7 +578,7 @@ func (m *MemMessageStore) ListByBusinessID(ctx context.Context, businessID, tena
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 	return m.listLocked(func(msg *MessageExtend) bool {
-		return msg.BusinessID == businessID && msg.TenantID == tenantID
+		return msg.BusinessID == businessID && (tenantID == "" || msg.TenantID == tenantID)
 	}), nil
 }
 
@@ -593,7 +593,7 @@ func (m *MemMessageStore) ListByBusinessID(ctx context.Context, businessID, tena
 func (m *MemMessageStore) ListByOwner(ctx context.Context, ownerID, tenantID string, page PageQuery) ([]*MessageExtend, int64, error) {
 	m.mu.RLock()
 	rows := m.listLocked(func(msg *MessageExtend) bool {
-		return msg.OwnerID == ownerID && msg.TenantID == tenantID
+		return msg.OwnerID == ownerID && (tenantID == "" || msg.TenantID == tenantID)
 	})
 	m.mu.RUnlock()
 	data, total := paginate(rows, page.Start, page.Size)
@@ -655,7 +655,7 @@ func (m *MemMessageStore) DeleteByBusinessID(ctx context.Context, businessID, te
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	for id, msg := range m.msg {
-		if msg.BusinessID == businessID && msg.TenantID == tenantID {
+		if msg.BusinessID == businessID && (tenantID == "" || msg.TenantID == tenantID) {
 			delete(m.msg, id)
 		}
 	}
@@ -862,7 +862,7 @@ func (m *MemHistoryStore) ListByBusinessID(ctx context.Context, businessID, tena
 	defer m.mu.RUnlock()
 	rows := make([]*HistoryExtend, 0, 4)
 	for _, h := range m.hist {
-		if h.BusinessID == businessID && h.TenantID == tenantID {
+		if h.BusinessID == businessID && (tenantID == "" || h.TenantID == tenantID) {
 			rows = append(rows, cloneHistory(h))
 		}
 	}
@@ -882,7 +882,7 @@ func (m *MemHistoryStore) ListByOwner(ctx context.Context, ownerID, tenantID str
 	m.mu.RLock()
 	rows := make([]*HistoryExtend, 0, 4)
 	for _, h := range m.hist {
-		if h.OwnerID == ownerID && h.TenantID == tenantID {
+		if h.OwnerID == ownerID && (tenantID == "" || h.TenantID == tenantID) {
 			rows = append(rows, cloneHistory(h))
 		}
 	}
@@ -956,7 +956,7 @@ func (m *MemHistoryStore) DeleteByBusinessID(ctx context.Context, businessID, te
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	for id, h := range m.hist {
-		if h.BusinessID == businessID && h.TenantID == tenantID {
+		if h.BusinessID == businessID && (tenantID == "" || h.TenantID == tenantID) {
 			delete(m.hist, id)
 		}
 	}
@@ -1229,7 +1229,7 @@ func (m *MemDocumentStore) GetByBusinessID(ctx context.Context, businessID, tena
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 	for _, d := range m.doc {
-		if d.BusinessID == businessID && d.TenantID == tenantID && d.Deleted == 0 {
+		if d.BusinessID == businessID && (tenantID == "" || d.TenantID == tenantID) && d.Deleted == 0 {
 			return cloneDocument(d), true, nil
 		}
 	}
@@ -1279,7 +1279,7 @@ func (m *MemDocumentStore) MarkDeletedByBusinessID(ctx context.Context, business
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	for _, d := range m.doc {
-		if d.BusinessID == businessID && d.TenantID == tenantID && d.Deleted == 0 {
+		if d.BusinessID == businessID && (tenantID == "" || d.TenantID == tenantID) && d.Deleted == 0 {
 			d.Deleted = 1
 		}
 	}
