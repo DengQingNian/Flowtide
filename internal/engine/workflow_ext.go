@@ -193,10 +193,72 @@ func (e *Engine) backUserTaskToActivity(cc *commandContext, taskID, targetActivi
 			return "", err
 		}
 	}
+	// G7 历史清理（P2-B 增补）：对位 Java generalBack L2594-2604——退回命令内删除
+	// "目标及其后继节点"的运行/历史活动行。Go 运行态活动行由迁移清场覆盖，
+	// 此处补删历史活动行；新落位目标的活动行在 agenda.run 中创建，位于删除之后，
+	// 不会被误删（蓝图 §5.3 风险 4：清理必须留在同一命令内保证原子回滚）。
+	e.deleteBackHistoricActivities(process, targetReal, task.Task.ProcessInstanceID)
 	if err := cc.agenda.run(cc); err != nil {
 		return "", err
 	}
 	return targetReal, nil
+}
+
+// backSuccessorActivityIDs 枚举目标活动沿出线可达的全部后继元素 ID（不含目标本身，防环）。
+// 对位 Java FlowUtils.getNextActivitys 的图遍历：沿 outgoing 深度优先收集；
+// 命中子流程容器时展开其内部全部元素 ID（历史活动行以内部元素 ID 落库）。
+// @param process 流程模型
+// @param targetID 目标活动 ID
+// @return 后继元素 ID 集合
+func backSuccessorActivityIDs(process *model.Process, targetID string) map[string]bool {
+	collected := map[string]bool{}
+	var visit func(id string)
+	visit = func(id string) {
+		// 已收集的元素跳过（环路与汇聚防止重复展开）
+		if collected[id] {
+			return
+		}
+		element, ok := findElement(process, id)
+		if !ok {
+			return
+		}
+		collected[id] = true
+		// 子流程容器：内部元素的历史活动行随容器一并清理（嵌套子流程递归展开）
+		if sub, isSub := element.(*model.SubProcess); isSub {
+			for innerID := range sub.Elements {
+				visit(innerID)
+			}
+		}
+		if node, isNode := element.(model.FlowNode); isNode {
+			for _, flow := range node.GetOutgoing() {
+				visit(flow.TargetRef)
+			}
+		}
+	}
+	visit(targetID)
+	// 目标本身由调用方并入删除集合，这里移除，仅保留"目标之后"语义
+	delete(collected, targetID)
+	return collected
+}
+
+// deleteBackHistoricActivities 退回历史清理（G7 活动侧）：
+// 删除"目标及其后继节点"的全部历史活动行，对位 Java generalBack 的
+// workflowHisActinstMapper.deleteHisActinstsByProcessInstanceIdAndActIds
+// （按活动 ID 全量删除、不设时间窗，与 Java 一致）。
+// 历史任务行（ACT_HI_TASKINST 等价存储）与 Java 一致保留，不在此清理。
+// @param process 流程模型
+// @param targetActivityID 实际落位目标活动 ID
+// @param processInstanceID 实例 ID
+func (e *Engine) deleteBackHistoricActivities(process *model.Process, targetActivityID, processInstanceID string) {
+	successors := backSuccessorActivityIDs(process, targetActivityID)
+	activityIDs := make(map[string]bool, len(successors)+1)
+	for id := range successors {
+		activityIDs[id] = true
+	}
+	// 目标本身并入删除集合（Java actIds.add(distFlowElementId)）
+	activityIDs[targetActivityID] = true
+	// 零时间下界：删除集合内活动 ID 的全部历史行（Java 无时间过滤语义）
+	_ = e.deleteHistoricActivitiesByProcessInstanceAndActivityIDs(processInstanceID, activityIDs, time.Time{}, "")
 }
 
 // specialGatewayLists 计算源/目标节点分别落在哪些特殊网关块内（外层在前）。
