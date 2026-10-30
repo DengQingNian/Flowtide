@@ -46,7 +46,7 @@ Flowtide **重构自 [Flowable](https://github.com/flowable/flowable-engine)**�
 
 ## 快速开始
 
-要求 Go 1.27+。构建与运行：
+要求 Go 1.27+；从源码构建管理台还需要 Node.js 20+ 与 npm。构建与运行：
 
 ```bash
 # 构建服务端与迁移工具（无 CGO）
@@ -58,6 +58,20 @@ make build
 # 健康检查
 curl -sS http://localhost:8080/healthz
 ```
+
+### 管理台
+
+`make build` 会先构建内置管理台，再编译单二进制；浏览器打开 `/adminpage/#/` 即可使用：
+
+```bash
+make build
+./bin/flowtide-server -addr :8080 -history audit -state ./data/engine.json
+# 浏览器访问 http://localhost:8080/adminpage/#/
+```
+
+管理台覆盖部署、流程定义与模型设计器、实例、任务、作业、批处理、表数据、引擎属性、审计、历史与身份。前端开发可执行 `cd admin && npm run dev`（`/service` 代理到 8080）；单独构建管理台用 `make admin-build`，前端测试与 e2e 分别用 `make admin-test`、`make admin-e2e`。
+
+> 本期不实现登录、会话与权限控制，建议仅部署在内网或前置反向代理之后。服务端启用认证时页面仍可打开，数据请求返回 401 并给出说明。详见 [管理台需求](docs/005-管理台/001-管理台需求清单.md) 与 [开发计划](docs/005-管理台/002-管理台开发计划.md)。
 
 部署并启动第一个流程：
 
@@ -257,7 +271,7 @@ npm test         # 内容、搜索、导航与组件测试
 - 阶段性成果按约定格式提交（`feat|fix|perf|chore(模块): 描述`）。
 
 ```bash
-make check        # 格式、注释、vet、测试、覆盖率、契约、独立 SDK 与构建
+make check        # 格式、注释、vet、测试、覆盖率、契约、独立 SDK、管理台单测与构建
 make race         # 竞争检测
 make test-mysql   # 真实 MySQL 临时库验收
 make test-postgres # 真实 PostgreSQL 验收（FLOWABLE_POSTGRES_DSN）
@@ -277,6 +291,7 @@ internal/persistence/flowable/  Flowable ACT_* 行映射（保留上游命名）
 internal/rest/            REST 路由、认证、租户与指标
 internal/migration/       预检、转换、静默检查与恢复校验
 docs/                     设计与实施文档
+admin/                    单二进制内嵌的 Vue 3 管理台
 docs-site/                Vue 3 文档站
 testdata/                 兼容基线、BPMN 语料与独立 SDK 验收
 ```

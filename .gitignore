@@ -8,7 +8,17 @@ temp/
 *.o
 coverage.out
 bin/
+# 管理台构建产物由 make admin-build 生成，仅保留占位文件
+internal/rest/adminpage/dist/*
+!internal/rest/adminpage/dist/.keep
 data/
 .env
 docs-site/pnpm-workspace.yaml
 docs-site/pnpm-lock.yaml
+# 管理台前端依赖与构建产物
+admin/node_modules/
+admin/dist/
+admin/coverage/
+admin/test-results/
+admin/playwright-report/
+admin/*.tsbuildinfo

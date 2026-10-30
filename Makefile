@@ -2,15 +2,32 @@
 GO ?= go
 BIN_DIR ?= bin
 BENCHTIME ?= 1s
+GIT_COMMIT ?= $(shell git rev-parse --short HEAD 2>/dev/null || echo unknown)
 
-.PHONY: all build test test-mysql test-postgres test-sdk race cover bench lint fmt-check doccheck contract contract-update check run clean docs-gen docs-test docs-build docs-check
+.PHONY: all build admin-build admin-test admin-e2e test test-mysql test-postgres test-sdk race cover bench lint fmt-check doccheck contract contract-update check run clean docs-gen docs-test docs-build docs-check
 
 all: build
 
-## build 构建服务端与数据库迁移工具。
-build:
+## build 先构建管理台，再构建服务端与数据库迁移工具。
+build: admin-build
 	CGO_ENABLED=0 $(GO) build -trimpath -o $(BIN_DIR)/flowtide-server ./cmd/flowtide-server
 	CGO_ENABLED=0 $(GO) build -trimpath -o $(BIN_DIR)/flowtide-migrate ./cmd/flowtide-migrate
+
+## admin-build 构建管理台并把产物复制到 Go 嵌入目录。
+admin-build:
+	cd admin && npm ci && GIT_COMMIT=$(GIT_COMMIT) npm run build
+	rm -rf internal/rest/adminpage/dist && mkdir -p internal/rest/adminpage/dist
+	cp -R admin/dist/. internal/rest/adminpage/dist/
+	touch internal/rest/adminpage/dist/.keep
+
+## admin-test 运行管理台单元测试与覆盖率门禁。
+admin-test:
+	cd admin && npm ci && npm test
+
+## admin-e2e 构建单二进制后运行管理台端到端冒烟。
+admin-e2e: admin-build
+	CGO_ENABLED=0 $(GO) build -trimpath -o $(BIN_DIR)/flowtide-server ./cmd/flowtide-server
+	cd admin && ADMIN_E2E_SERVER=$(CURDIR)/$(BIN_DIR)/flowtide-server npx playwright test
 
 ## test 运行全部普通测试；真实数据库由独立任务显式启用。
 test:
@@ -61,8 +78,8 @@ contract:
 contract-update:
 	$(GO) run ./tools/contract -write
 
-## check 执行无需真实数据库的最小交付门禁。
-check: lint cover contract test-sdk build
+## check 执行无需真实数据库的最小交付门禁（含管理台单测与构建）。
+check: lint cover contract test-sdk admin-test build
 
 ## run 启动本地服务。
 run:
@@ -87,4 +104,5 @@ docs-check:
 
 ## clean 清理产物。
 clean:
-	rm -rf $(BIN_DIR) coverage.out
+	rm -rf $(BIN_DIR) coverage.out admin/dist
+	rm -rf internal/rest/adminpage/dist && mkdir -p internal/rest/adminpage/dist && touch internal/rest/adminpage/dist/.keep

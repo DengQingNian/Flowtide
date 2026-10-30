@@ -16,6 +16,7 @@ import (
 
 	"github.com/DengQingNian/Flowtide/api"
 	"github.com/DengQingNian/Flowtide/internal/engine"
+	"github.com/DengQingNian/Flowtide/internal/rest/adminpage"
 	"github.com/DengQingNian/Flowtide/internal/tenant"
 )
 
@@ -294,6 +295,9 @@ func (s *Server) authorized(r *http.Request) bool {
 
 // routes 注册全部路由。
 func (s *Server) routes() {
+	s.mux.HandleFunc("GET /{$}", adminpage.RedirectRoot)
+	s.mux.HandleFunc("GET /adminpage", adminpage.RedirectSlash)
+	s.mux.Handle("GET /adminpage/", adminpage.NewHandler(adminpage.Assets))
 	s.mux.HandleFunc("GET /healthz", s.handleHealth)
 	s.mux.HandleFunc("GET /metrics", s.handleMetrics)
 	s.mux.HandleFunc("GET /readyz", s.handleReady)
