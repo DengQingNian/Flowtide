@@ -7,8 +7,8 @@ import (
 
 	"github.com/DengQingNian/Flowtide/api"
 	"github.com/DengQingNian/Flowtide/internal/clock"
-	"github.com/DengQingNian/Flowtide/internal/tenant"
 	pwf "github.com/DengQingNian/Flowtide/internal/persistence/workflow"
+	"github.com/DengQingNian/Flowtide/internal/tenant"
 )
 
 // ROk 构造成功返回（api 包构造函数的本地短名）。
@@ -274,13 +274,13 @@ func (s *Service) workflowStatusInternal(ctx context.Context, tenantID, processD
 		return R{}, api.NewError("WORKFLOW-0404", "业务单据未关联流程: "+businessKey, api.ErrNotFound)
 	}
 	return ROk(map[string]any{
-		"flowInstanceId":       document.FlowInstanceID,
-		"flowStatus":           document.FlowStatus,
-		"flowCurrentStepName":  document.FlowCurrentStepName,
-		"flowCurrentPersons":   document.FlowCurrentPersons,
-		"flowStartTime":        document.FlowStartTime,
-		"flowFinishTime":       document.FlowFinishTime,
-		"flowTerminationTime":  document.FlowTerminationTime,
+		"flowInstanceId":      document.FlowInstanceID,
+		"flowStatus":          document.FlowStatus,
+		"flowCurrentStepName": document.FlowCurrentStepName,
+		"flowCurrentPersons":  document.FlowCurrentPersons,
+		"flowStartTime":       document.FlowStartTime,
+		"flowFinishTime":      document.FlowFinishTime,
+		"flowTerminationTime": document.FlowTerminationTime,
 	}), nil
 }
 

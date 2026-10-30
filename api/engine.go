@@ -30,6 +30,9 @@ type Engine interface {
 	// FormService 返回表单服务。
 	// @return 表单服务
 	FormService() FormService
+	// WorkflowExtService 返回 workflow 二次封装扩展服务（任意退回/撤回/直送/重置/软终止/重激活）。
+	// @return 扩展服务
+	WorkflowExtService() WorkflowExtService
 	// AddTaskCreatedHook 注册任务创建全局钩子（TASK_CREATED），按注册顺序在创建任务的命令内同步执行。
 	// @param hook 钩子函数
 	AddTaskCreatedHook(hook TaskHook)
@@ -215,6 +218,50 @@ type StartRequest struct {
 	UserID               string     // 发起人，用于参与者身份链接
 	Variables            []Variable // 启动变量
 	TransientVariables   []Variable // 瞬态变量，仅启动命令内可见
+}
+
+// WorkflowExtService 提供 workflow 二次封装的引擎级扩展能力。
+// 对位 Java BackUserTaskCmd / RollbackCmd / completeToTargetActivity / doResetProcess /
+// doStopProcessByTaskId / ReactivateProcessInstanceCmd，全部在单条引擎命令内原子完成。
+type WorkflowExtService interface {
+	// BackUserTaskToActivity 任意退回：把当前任务退回到目标活动。
+	// @param ctx 上下文
+	// @param taskID 当前运行任务 ID
+	// @param targetActivityID 目标活动 ID
+	// @return 实际落位节点 ID
+	// @return 退回错误
+	BackUserTaskToActivity(ctx context.Context, taskID, targetActivityID string) (string, error)
+	// RollbackTask 撤回：把已完成的当前任务撤回到待办状态，删除其后继任务与历史。
+	// @param ctx 上下文
+	// @param taskID 已完成任务的 ID（历史任务 ID）
+	// @param assignee 撤回后任务的办理人，空串取历史任务办理人
+	// @return 撤回错误
+	RollbackTask(ctx context.Context, taskID, assignee string) error
+	// CompleteToTarget 直送：办结当前任务并把执行迁移到目标活动继续。
+	// @param ctx 上下文
+	// @param taskID 当前运行任务 ID
+	// @param targetActivityID 目标活动 ID
+	// @param variables 直送时写入的流程变量
+	// @return 直送错误
+	CompleteToTarget(ctx context.Context, taskID, targetActivityID string, variables map[string]any) error
+	// ResetProcess 重置流程：清场全部活动任务并把全部执行迁回开始事件的首个出线目标。
+	// @param ctx 上下文
+	// @param processInstanceID 实例 ID
+	// @param operator 操作人（业务操作记录由 workflow 层落库）
+	// @return 重置错误
+	ResetProcess(ctx context.Context, processInstanceID, operator string) error
+	// StopProcessToEvent 软终止：全部活动执行迁至首个正常结束事件走完，保留 end 事件历史。
+	// @param ctx 上下文
+	// @param processInstanceID 实例 ID
+	// @return 终止错误
+	StopProcessToEvent(ctx context.Context, processInstanceID string) error
+	// ReactivateProcessInstance 历史实例复活：按历史实例重建运行实例并可指定落位活动。
+	// @param ctx 上下文
+	// @param historicProcessInstanceID 历史实例 ID
+	// @param targetActivityID 落位活动 ID，空串表示回开始事件后首个用户任务
+	// @param operator 操作人（重写发起人）
+	// @return 复活错误
+	ReactivateProcessInstance(ctx context.Context, historicProcessInstanceID, targetActivityID, operator string) error
 }
 
 // RuntimeService 提供流程实例与变量操作。

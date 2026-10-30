@@ -13,11 +13,11 @@ import (
 // 供单元测试与嵌入式无 DB 模式使用；行数据按值克隆存取，避免调用方持有内部引用。
 // 五个端口存在同名方法（Save/GetByTaskID 等），故拆分为独立结构体分别实现。
 type MemStores struct {
-	Next      *MemNextStore       // 下一步预生成-消耗
-	Message   *MemMessageStore    // 待办扩展
-	History   *MemHistoryStore    // 已办扩展
-	Operation *MemOperationStore  // 操作记录
-	Document  *MemDocumentStore   // 业务表单状态
+	Next      *MemNextStore      // 下一步预生成-消耗
+	Message   *MemMessageStore   // 待办扩展
+	History   *MemHistoryStore   // 已办扩展
+	Operation *MemOperationStore // 操作记录
+	Document  *MemDocumentStore  // 业务表单状态
 }
 
 // NewMemStores 创建内存存储聚合。
@@ -168,10 +168,10 @@ func cloneDocument(d *Document) *Document {
 
 // MemNextStore 是 NextActivityStore 的内存实现。
 type MemNextStore struct {
-	mu   sync.RWMutex               // 保护 next 与 his 两个 map
-	clock clock.Clock               // 时间源（更新时间填充）
-	next map[string]*NextActivity  // 运行态记录（id → 行）
-	his  map[string]*NextActivity  // 历史记录（id → 行）
+	mu    sync.RWMutex             // 保护 next 与 his 两个 map
+	clock clock.Clock              // 时间源（更新时间填充）
+	next  map[string]*NextActivity // 运行态记录（id → 行）
+	his   map[string]*NextActivity // 历史记录（id → 行）
 }
 
 // NewMemNextStore 创建下一步内存存储。
@@ -505,9 +505,9 @@ func (m *MemNextStore) listNext(his bool, match func(*NextActivity) bool, order 
 
 // MemMessageStore 是 MessageExtendStore 的内存实现。
 type MemMessageStore struct {
-	mu   sync.RWMutex               // 保护 msg map
+	mu    sync.RWMutex              // 保护 msg map
 	clock clock.Clock               // 时间源
-	msg  map[string]*MessageExtend // 待办扩展（id → 行）
+	msg   map[string]*MessageExtend // 待办扩展（id → 行）
 }
 
 // NewMemMessageStore 创建待办扩展内存存储。
@@ -783,9 +783,9 @@ func paginate[T any](rows []T, start, size int) ([]T, int64) {
 
 // MemHistoryStore 是 HistoryExtendStore 的内存实现。
 type MemHistoryStore struct {
-	mu   sync.RWMutex              // 保护 hist map
-	clock clock.Clock              // 时间源
-	hist map[string]*HistoryExtend // 已办扩展（id → 行）
+	mu    sync.RWMutex              // 保护 hist map
+	clock clock.Clock               // 时间源
+	hist  map[string]*HistoryExtend // 已办扩展（id → 行）
 }
 
 // NewMemHistoryStore 创建已办扩展内存存储。
@@ -1006,9 +1006,9 @@ func historySortKey(h *HistoryExtend) time.Time {
 
 // MemOperationStore 是 OperationRecordStore 的内存实现。
 type MemOperationStore struct {
-	mu  sync.RWMutex               // 保护 op map
-	clock clock.Clock              // 时间源
-	op  map[string]*OperationRecord // 操作记录（id → 行）
+	mu    sync.RWMutex                // 保护 op map
+	clock clock.Clock                 // 时间源
+	op    map[string]*OperationRecord // 操作记录（id → 行）
 }
 
 // NewMemOperationStore 创建操作记录内存存储。
@@ -1176,9 +1176,9 @@ func opSortKey(r *OperationRecord) time.Time {
 
 // MemDocumentStore 是 DocumentStore 的内存实现。
 type MemDocumentStore struct {
-	mu   sync.RWMutex           // 保护 doc map
-	clock clock.Clock           // 时间源
-	doc  map[string]*Document   // 单据状态（id → 行）
+	mu    sync.RWMutex         // 保护 doc map
+	clock clock.Clock          // 时间源
+	doc   map[string]*Document // 单据状态（id → 行）
 }
 
 // NewMemDocumentStore 创建业务表单状态内存存储。

@@ -2,6 +2,7 @@ package engine
 
 import (
 	"context"
+	"time"
 
 	"github.com/DengQingNian/Flowtide/api"
 )
@@ -136,4 +137,83 @@ func (e *Engine) DeleteHistoricTaskLog(ctx context.Context, logID int64) error {
 		return nil, nil
 	})
 	return err
+}
+
+// deleteHistoricActivitiesByProcessInstanceAndActivityIDs 选择性删除历史活动行（G7）。
+// 对位 Java AbstractRollbackOperateStrategy.deleteHisActInstance：
+// 删除"开始时间晚于 createdAfter 且活动 ID 在集合内"的行，以及"当前撤回任务活动 ID 且
+// 结束时间晚于 createdAfter"的行，与 Java mapper.delete 语义一致。
+// @param processInstanceID 实例 ID
+// @param activityIDs 活动 ID 集合
+// @param createdAfter 开始时间下界
+// @param currentActivityID 当前撤回任务的活动 ID（其结束行一并删除）
+// @return 删除行数
+func (e *Engine) deleteHistoricActivitiesByProcessInstanceAndActivityIDs(processInstanceID string, activityIDs map[string]bool, createdAfter time.Time, currentActivityID string) int {
+	removed := 0
+	for id, activity := range e.state.HistoricActivities {
+		if activity.ProcessInstanceID != processInstanceID {
+			continue
+		}
+		// 撤回时间点之后经过的线条
+		hit := activity.StartTime.After(createdAfter) && activityIDs[activity.ActivityID]
+		// 当前任务的连线行（结束时间晚于创建时间）
+		if !hit && activity.ActivityID == currentActivityID && activity.EndTime != nil && activity.EndTime.After(createdAfter) {
+			hit = true
+		}
+		if !hit {
+			continue
+		}
+		delete(e.state.HistoricActivities, id)
+		removed++
+	}
+	return removed
+}
+
+// deleteHistoricTasksByDefinitionKeys 选择性删除历史任务行（G7）。
+// 对位 Java deleteRuntimeTasks 的历史任务删除分支；createdAfter 非空时仅删除创建时间不早于该时刻的任务。
+// 同步清理任务关联的历史链接、任务变量、任务日志与评论。
+// @param processInstanceID 实例 ID
+// @param keys 任务定义 Key 集合
+// @param createdAfter 创建时间下界，nil 表示不过滤
+// @return 删除行数
+func (e *Engine) deleteHistoricTasksByDefinitionKeys(processInstanceID string, keys map[string]bool, createdAfter *time.Time) int {
+	removed := 0
+	for id, historic := range e.state.HistoricTasks {
+		if historic.ProcessInstanceID != processInstanceID || !keys[historic.TaskDefinitionKey] {
+			continue
+		}
+		// 网关策略变体：只删撤回时间点之后创建的任务
+		if createdAfter != nil && historic.StartTime.Before(*createdAfter) {
+			continue
+		}
+		e.removeHistoricTaskAssociations(id)
+		delete(e.state.HistoricTasks, id)
+		removed++
+	}
+	return removed
+}
+
+// removeHistoricTaskAssociations 清理历史任务关联的身份链接、任务变量、任务日志与评论。
+// @param taskID 任务 ID
+func (e *Engine) removeHistoricTaskAssociations(taskID string) {
+	for id, link := range e.state.HistoricLinks {
+		if link.TaskID == taskID {
+			delete(e.state.HistoricLinks, id)
+		}
+	}
+	for id, variable := range e.state.HistoricVariables {
+		if variable.TaskID == taskID {
+			delete(e.state.HistoricVariables, id)
+		}
+	}
+	for id, log := range e.state.TaskLogs {
+		if log.TaskID == taskID {
+			delete(e.state.TaskLogs, id)
+		}
+	}
+	for id, comment := range e.state.Comments {
+		if comment.TaskID == taskID {
+			delete(e.state.Comments, id)
+		}
+	}
 }

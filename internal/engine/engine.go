@@ -91,19 +91,20 @@ func (e *Execution) ActivityID() string {
 
 // Engine 是流程引擎实现。
 type Engine struct {
-	mu                 sync.RWMutex                 // 保护全部状态
-	cfg                Config                       // 配置
-	state              *state                       // 可变状态
-	delegates          map[string]Delegate          // 服务任务委托
-	taskListeners      map[string]api.TaskListener  // 任务监听器
-	executionListeners map[string]ExecutionListener // 执行监听器
-	taskCreatedHooks   []api.TaskHook               // 任务创建全局钩子，按注册顺序执行
-	taskCompletedHooks []api.TaskHook               // 任务完成全局钩子，按注册顺序执行
-	closed             bool                         // 是否关闭
-	rowRepository      *flowablerow.Repository      // 行仓储
-	lastRows           []flowablerow.Row            // 上次持久化行
-	suppressPersist    bool                         // 导入期间暂停持久化
-	rowSource          bool                         // 行仓储是否为唯一状态源
+	mu                     sync.RWMutex                         // 保护全部状态
+	cfg                    Config                               // 配置
+	state                  *state                               // 可变状态
+	delegates              map[string]Delegate                  // 服务任务委托
+	taskListeners          map[string]api.TaskListener          // 任务监听器
+	executionListeners     map[string]ExecutionListener         // 执行监听器
+	executionListenerHooks map[string]api.ExecutionListenerHook // 扩展执行监听器（控制接口版，见 listener_ext.go）
+	taskCreatedHooks       []api.TaskHook                       // 任务创建全局钩子，按注册顺序执行
+	taskCompletedHooks     []api.TaskHook                       // 任务完成全局钩子，按注册顺序执行
+	closed                 bool                                 // 是否关闭
+	rowRepository          *flowablerow.Repository              // 行仓储
+	lastRows               []flowablerow.Row                    // 上次持久化行
+	suppressPersist        bool                                 // 导入期间暂停持久化
+	rowSource              bool                                 // 行仓储是否为唯一状态源
 }
 
 // commandContext 是单条命令的上下文。
@@ -159,12 +160,13 @@ func New(cfg Config) (*Engine, error) {
 		cfg.StateStore = statestore.NewFile(cfg.StatePath)
 	}
 	engine := &Engine{
-		cfg:                cfg,
-		state:              newState(),
-		delegates:          make(map[string]Delegate),
-		taskListeners:      make(map[string]api.TaskListener),
-		executionListeners: make(map[string]ExecutionListener),
-		rowRepository:      cfg.RowRepository,
+		cfg:                    cfg,
+		state:                  newState(),
+		delegates:              make(map[string]Delegate),
+		taskListeners:          make(map[string]api.TaskListener),
+		executionListeners:     make(map[string]ExecutionListener),
+		executionListenerHooks: make(map[string]api.ExecutionListenerHook),
+		rowRepository:          cfg.RowRepository,
 	}
 	// 转换进程显式启用 Java 顺序流历史；从已准备状态恢复时以状态内标记为准。
 	engine.state.RecordSequenceFlowHistory = cfg.RecordSequenceFlowHistory

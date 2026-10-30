@@ -13,9 +13,9 @@ import (
 
 	"github.com/DengQingNian/Flowtide/api"
 	"github.com/DengQingNian/Flowtide/internal/clock"
-	"github.com/DengQingNian/Flowtide/internal/persistence/schema"
 	mysqlstore "github.com/DengQingNian/Flowtide/internal/persistence/mysql"
 	pgstore "github.com/DengQingNian/Flowtide/internal/persistence/postgres"
+	"github.com/DengQingNian/Flowtide/internal/persistence/schema"
 	pwf "github.com/DengQingNian/Flowtide/internal/persistence/workflow"
 	_ "github.com/go-sql-driver/mysql"
 	_ "github.com/lib/pq"

@@ -127,11 +127,11 @@ func dialectPlaceholder(dialect string, n int) string {
 
 // 编译期断言：SQL 适配器满足全部五个存储端口。
 var (
-	_ NextActivityStore  = (*SQLNextStore)(nil)
-	_ MessageExtendStore = (*SQLMessageStore)(nil)
-	_ HistoryExtendStore = (*SQLHistoryStore)(nil)
+	_ NextActivityStore    = (*SQLNextStore)(nil)
+	_ MessageExtendStore   = (*SQLMessageStore)(nil)
+	_ HistoryExtendStore   = (*SQLHistoryStore)(nil)
 	_ OperationRecordStore = (*SQLOperationStore)(nil)
-	_ DocumentStore      = (*SQLDocumentStore)(nil)
+	_ DocumentStore        = (*SQLDocumentStore)(nil)
 )
 
 // ─── 值转换工具 ─────────────────────────────────────────────
@@ -1296,27 +1296,27 @@ func operationToRow(r *OperationRecord) pwf.Row {
 // @return 操作记录实体
 func operationFromRow(row pwf.Row) *OperationRecord {
 	return &OperationRecord{
-		BaseColumns:        baseFromRow(row),
-		BusinessID:         rowString(row, "business_id"),
-		TaskID:             rowString(row, "task_id"),
-		ProcessInstanceID:  rowString(row, "process_instance_id"),
-		Message:            rowString(row, "message"),
-		IsAgree:            rowIntPtr(row, "is_agree"),
-		TaskStepCode:       rowString(row, "task_step_code"),
-		TaskStepName:       rowString(row, "task_step_name"),
-		FlowCategoryCode:   rowString(row, "flow_category_code"),
-		FlowCategoryName:   rowString(row, "flow_category_name"),
-		OwnerID:            rowString(row, "owner_id"),
-		OwnerName:          rowString(row, "owner_name"),
-		OwnerGroup:         rowString(row, "owner_group"),
-		OwnerGroupID:       rowString(row, "owner_group_id"),
-		OwnerGroupPaths:    rowString(row, "owner_group_paths"),
-		OwnerGroupPathIDs:  rowString(row, "owner_group_path_ids"),
-		DealTime:           rowTimePtr(row, "deal_time"),
-		TaskReceiptTime:    rowTimePtr(row, "task_receipt_time"),
-		TaskStartTime:      rowTimePtr(row, "task_start_time"),
-		TaskFinishTime:     rowTimePtr(row, "task_finish_time"),
-		Type:               rowString(row, "type"),
+		BaseColumns:       baseFromRow(row),
+		BusinessID:        rowString(row, "business_id"),
+		TaskID:            rowString(row, "task_id"),
+		ProcessInstanceID: rowString(row, "process_instance_id"),
+		Message:           rowString(row, "message"),
+		IsAgree:           rowIntPtr(row, "is_agree"),
+		TaskStepCode:      rowString(row, "task_step_code"),
+		TaskStepName:      rowString(row, "task_step_name"),
+		FlowCategoryCode:  rowString(row, "flow_category_code"),
+		FlowCategoryName:  rowString(row, "flow_category_name"),
+		OwnerID:           rowString(row, "owner_id"),
+		OwnerName:         rowString(row, "owner_name"),
+		OwnerGroup:        rowString(row, "owner_group"),
+		OwnerGroupID:      rowString(row, "owner_group_id"),
+		OwnerGroupPaths:   rowString(row, "owner_group_paths"),
+		OwnerGroupPathIDs: rowString(row, "owner_group_path_ids"),
+		DealTime:          rowTimePtr(row, "deal_time"),
+		TaskReceiptTime:   rowTimePtr(row, "task_receipt_time"),
+		TaskStartTime:     rowTimePtr(row, "task_start_time"),
+		TaskFinishTime:    rowTimePtr(row, "task_finish_time"),
+		Type:              rowString(row, "type"),
 	}
 }
 
@@ -1459,26 +1459,26 @@ func sortOperationRows(rows []*OperationRecord) {
 // @return 通用行
 func documentToRow(d *Document) pwf.Row {
 	row := pwf.Row{
-		"business_id":           d.BusinessID,
-		"create_group_path_ids": d.CreateGroupPathIDs,
-		"create_group_paths":    d.CreateGroupPaths,
-		"create_group_id":       d.CreateGroupID,
-		"create_group":          d.CreateGroup,
-		"updater_name":          d.UpdaterName,
-		"deleted":               d.Deleted,
-		"document_url":          d.DocumentURL,
-		"document_id":           d.DocumentID,
-		"document_table":        d.DocumentTable,
-		"flow_title":            d.FlowTitle,
-		"flow_task_id":          d.FlowTaskID,
-		"flow_instance_id":      d.FlowInstanceID,
-		"flow_category_id":      d.FlowCategoryID,
-		"flow_category":         d.FlowCategory,
-		"flow_action_id":        d.FlowActionID,
-		"flow_action":           d.FlowAction,
-		"flow_status":           d.FlowStatus,
+		"business_id":            d.BusinessID,
+		"create_group_path_ids":  d.CreateGroupPathIDs,
+		"create_group_paths":     d.CreateGroupPaths,
+		"create_group_id":        d.CreateGroupID,
+		"create_group":           d.CreateGroup,
+		"updater_name":           d.UpdaterName,
+		"deleted":                d.Deleted,
+		"document_url":           d.DocumentURL,
+		"document_id":            d.DocumentID,
+		"document_table":         d.DocumentTable,
+		"flow_title":             d.FlowTitle,
+		"flow_task_id":           d.FlowTaskID,
+		"flow_instance_id":       d.FlowInstanceID,
+		"flow_category_id":       d.FlowCategoryID,
+		"flow_category":          d.FlowCategory,
+		"flow_action_id":         d.FlowActionID,
+		"flow_action":            d.FlowAction,
+		"flow_status":            d.FlowStatus,
 		"flow_current_step_name": d.FlowCurrentStepName,
-		"flow_current_persons":  d.FlowCurrentPersons,
+		"flow_current_persons":   d.FlowCurrentPersons,
 	}
 	// 可空时间列仅在有值时落库
 	if d.FlowStartTime != nil {
@@ -1500,31 +1500,31 @@ func documentToRow(d *Document) pwf.Row {
 // @return 单据状态实体
 func documentFromRow(row pwf.Row) *Document {
 	return &Document{
-		BaseColumns:          baseFromRow(row),
-		BusinessID:           rowString(row, "business_id"),
-		CreateGroupPathIDs:   rowString(row, "create_group_path_ids"),
-		CreateGroupPaths:     rowString(row, "create_group_paths"),
-		CreateGroupID:        rowString(row, "create_group_id"),
-		CreateGroup:          rowString(row, "create_group"),
-		UpdaterName:          rowString(row, "updater_name"),
-		Deleted:              rowInt(row, "deleted"),
-		DocumentURL:          rowString(row, "document_url"),
-		DocumentID:           rowString(row, "document_id"),
-		DocumentTable:        rowString(row, "document_table"),
-		FlowTitle:            rowString(row, "flow_title"),
-		FlowTaskID:           rowString(row, "flow_task_id"),
-		FlowInstanceID:       rowString(row, "flow_instance_id"),
-		FlowCategoryID:       rowString(row, "flow_category_id"),
-		FlowCategory:         rowString(row, "flow_category"),
-		FlowActionID:         rowString(row, "flow_action_id"),
-		FlowAction:           rowString(row, "flow_action"),
-		FlowStatus:           rowString(row, "flow_status"),
-		FlowCurrentStepName:  rowString(row, "flow_current_step_name"),
-		FlowCurrentPersons:   rowString(row, "flow_current_persons"),
-		FlowStartTime:        rowTimePtr(row, "flow_start_time"),
-		FlowFinishTime:       rowTimePtr(row, "flow_finish_time"),
-		FlowTerminationTime:  rowTimePtr(row, "flow_termination_time"),
-		ExtendFields:         extendFromRow(row),
+		BaseColumns:         baseFromRow(row),
+		BusinessID:          rowString(row, "business_id"),
+		CreateGroupPathIDs:  rowString(row, "create_group_path_ids"),
+		CreateGroupPaths:    rowString(row, "create_group_paths"),
+		CreateGroupID:       rowString(row, "create_group_id"),
+		CreateGroup:         rowString(row, "create_group"),
+		UpdaterName:         rowString(row, "updater_name"),
+		Deleted:             rowInt(row, "deleted"),
+		DocumentURL:         rowString(row, "document_url"),
+		DocumentID:          rowString(row, "document_id"),
+		DocumentTable:       rowString(row, "document_table"),
+		FlowTitle:           rowString(row, "flow_title"),
+		FlowTaskID:          rowString(row, "flow_task_id"),
+		FlowInstanceID:      rowString(row, "flow_instance_id"),
+		FlowCategoryID:      rowString(row, "flow_category_id"),
+		FlowCategory:        rowString(row, "flow_category"),
+		FlowActionID:        rowString(row, "flow_action_id"),
+		FlowAction:          rowString(row, "flow_action"),
+		FlowStatus:          rowString(row, "flow_status"),
+		FlowCurrentStepName: rowString(row, "flow_current_step_name"),
+		FlowCurrentPersons:  rowString(row, "flow_current_persons"),
+		FlowStartTime:       rowTimePtr(row, "flow_start_time"),
+		FlowFinishTime:      rowTimePtr(row, "flow_finish_time"),
+		FlowTerminationTime: rowTimePtr(row, "flow_termination_time"),
+		ExtendFields:        extendFromRow(row),
 	}
 }
 

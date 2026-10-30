@@ -1451,3 +1451,98 @@ func (e *Engine) counter(execution *executionState, name string) int {
 		return 0
 	}
 }
+
+// reenterMultiInstanceChild 在既有多实例根下按外部序号重入子实例（G5）。
+// 对位 Java planContinueMultiInstanceOperation 的重入语义：不重算 MIValues，接受外部 index/value，
+// 并修正多实例根的 nrOfActiveInstances/nrOfCompletedInstances 计数。
+// @param cc 命令上下文
+// @param parent 多实例根执行
+// @param index 子实例序号
+// @param elementVar 元素变量值，nil 表示不写元素变量
+// @return 重入的子执行
+func (e *Engine) reenterMultiInstanceChild(cc *commandContext, parent *executionState, index int, elementVar any) *executionState {
+	child := &executionState{
+		ID:                e.newID(),
+		ProcessInstanceID: parent.ProcessInstanceID,
+		DefinitionID:      parent.DefinitionID,
+		ParentID:          parent.ID,
+		ActivityID:        parent.MIActivityID,
+		Active:            true,
+		MIChild:           true,
+		MIIndex:           index,
+		Variables:         make(map[string]any),
+	}
+	if parent.MIElementVariable != "" && elementVar != nil {
+		child.Variables[parent.MIElementVariable] = copyValue(elementVar)
+	}
+	child.Variables["loopCounter"] = index
+	e.state.Executions[child.ID] = child
+	// 重入使活跃实例数 +1、完成实例数 -1（该序号此前被计为已完成）
+	active := e.counter(parent, "nrOfActiveInstances") + 1
+	completed := e.counter(parent, "nrOfCompletedInstances") - 1
+	if completed < 0 {
+		completed = 0
+	}
+	e.setVariableLocal(parent, "nrOfActiveInstances", active)
+	e.setVariableLocal(parent, "nrOfCompletedInstances", completed)
+	cc.agenda.schedule(&continueOperation{executionID: child.ID, activityID: parent.MIActivityID})
+	return child
+}
+
+// rebuildMultiInstanceScope 重造一个已完成多实例活动的作用域（G6）。
+// 对位 Java CompletedMultiInstanceTaskAndNextDefaultTask 的占位构造：置 MultiInstanceRoot、
+// 写 nrOf* 局部变量，为每个序号建子执行，仅 activeIndex 调度建任务，其余为非活跃占位；
+// 串行只重建最后一位。
+// @param cc 命令上下文
+// @param parent 新建的多实例根执行
+// @param node 多实例用户任务节点
+// @param values 元素值列表
+// @param activeIndex 活跃子实例序号
+// @param assignee 活跃子实例执行人
+func (e *Engine) rebuildMultiInstanceScope(cc *commandContext, parent *executionState, node *model.UserTask, values []any, activeIndex int, assignee string) {
+	loop := node.LoopCharacteristics
+	parent.MultiInstanceRoot = true
+	parent.MIActivityID = node.ID
+	parent.MIValues = append([]any(nil), values...)
+	parent.MISequential = loop.Sequential
+	parent.MIElementVariable = loop.ElementVariable
+	parent.MICompletionCondition = loop.CompletionCondition
+	parent.Waiting = true
+	parent.Active = false
+	if loop.Sequential {
+		// 串行只重建最后一位：调用方已校验撤回的是串行最后完成者
+		child := e.reenterMultiInstanceChild(cc, parent, len(values)-1, nil)
+		child.Variables[rollbackAssigneeExpr] = assignee
+	} else {
+		for i := 0; i < len(values); i++ {
+			if i == activeIndex {
+				// 活跃位：重入并写撤回人
+				child := e.reenterMultiInstanceChild(cc, parent, i, values[i])
+				child.Variables[rollbackAssigneeExpr] = assignee
+				continue
+			}
+			// 占位位：不调度，仅承载 loopCounter 与"已完成"标记
+			placeholder := &executionState{
+				ID:                e.newID(),
+				ProcessInstanceID: parent.ProcessInstanceID,
+				DefinitionID:      parent.DefinitionID,
+				ParentID:          parent.ID,
+				ActivityID:        parent.MIActivityID,
+				Active:            false,
+				MIChild:           true,
+				MIIndex:           i,
+				Variables:         make(map[string]any),
+			}
+			placeholder.Variables["loopCounter"] = i
+			placeholder.Variables[rollbackAssigneeExpr] = rollbackPlaceholderAssignee
+			if parent.MIElementVariable != "" {
+				placeholder.Variables[parent.MIElementVariable] = copyValue(values[i])
+			}
+			e.state.Executions[placeholder.ID] = placeholder
+		}
+	}
+	// 计数以重建语义为准（覆盖重入函数的 +1/-1 修正）：活跃 1 位、已完成其余位
+	e.setVariableLocal(parent, "nrOfInstances", len(values))
+	e.setVariableLocal(parent, "nrOfActiveInstances", 1)
+	e.setVariableLocal(parent, "nrOfCompletedInstances", len(values)-1)
+}

@@ -57,7 +57,7 @@ func (f *fakeCommentTasks) ListInstanceComments(ctx context.Context, processInst
 // fakeTaskHistory 是 TaskHistoryQuery 的测试桩。
 type fakeTaskHistory struct {
 	tasks map[string]api.HistoricTaskInstance // 任务 ID → 历史任务
-	miss  map[string]bool                      // 强制未命中的任务 ID
+	miss  map[string]bool                     // 强制未命中的任务 ID
 }
 
 // GetHistoricTaskInstance 查询历史任务。
