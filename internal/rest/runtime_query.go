@@ -32,7 +32,7 @@ func (s *Server) serveInstanceQuery(w http.ResponseWriter, r *http.Request, body
 	for start := 0; ; start += 1000 {
 		page, err := s.engine.RuntimeService().QueryProcessInstances(r.Context(), api.ProcessInstanceFilter{Start: start, Size: 1000,
 			ID: body.str("id"), ProcessDefinitionID: body.str("processDefinitionId"), ProcessDefinitionKey: body.str("processDefinitionKey"),
-			BusinessKey: body.str("businessKey"), Suspended: suspended, StartedAfter: startedAfter, StartedBefore: startedBefore})
+			BusinessKey: body.str("businessKey"), TenantID: body.str("tenantId"), Suspended: suspended, StartedAfter: startedAfter, StartedBefore: startedBefore})
 		if err != nil {
 			writeError(w, err)
 			return

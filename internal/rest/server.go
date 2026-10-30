@@ -2380,7 +2380,9 @@ func (s *Server) handleHistoricProcesses(w http.ResponseWriter, r *http.Request)
 	// 引擎单页最多一千条，过滤和总量计算前必须读完，不能静默截断后续匹配项。
 	for start := 0; ; start += 1000 {
 		page, err := s.engine.HistoryService().QueryHistoricProcessInstances(r.Context(), api.HistoricProcessInstanceFilter{Start: start, Size: 1000,
-			ProcessDefinitionKey: r.URL.Query().Get("processDefinitionKey"), BusinessKey: r.URL.Query().Get("businessKey")})
+			ProcessDefinitionKey: r.URL.Query().Get("processDefinitionKey"), BusinessKey: r.URL.Query().Get("businessKey"),
+			// 仅下推显式 tenantId 查询参数，请求租户仍由引擎上下文与内存复核处理。
+			TenantID: r.URL.Query().Get("tenantId")})
 		if err != nil {
 			writeError(w, err)
 			return

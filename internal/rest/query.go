@@ -1191,7 +1191,7 @@ func (s *Server) handleQueryHistoricProcesses(w http.ResponseWriter, r *http.Req
 	for start := 0; ; start += 1000 {
 		page, err := s.engine.HistoryService().QueryHistoricProcessInstances(r.Context(), api.HistoricProcessInstanceFilter{Start: start, Size: 1000,
 			ID: body.str("id"), ProcessDefinitionID: body.str("processDefinitionId"), ProcessDefinitionKey: body.str("processDefinitionKey"),
-			BusinessKey: body.str("businessKey"), StartedAfter: startedAfter, StartedBefore: startedBefore,
+			BusinessKey: body.str("businessKey"), TenantID: body.str("tenantId"), StartedAfter: startedAfter, StartedBefore: startedBefore,
 			FinishedAfter: endedAfter, FinishedBefore: endedBefore, Finished: finished})
 		if err != nil {
 			writeError(w, err)

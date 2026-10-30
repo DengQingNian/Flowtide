@@ -26,6 +26,14 @@ const (
 	historicCountSQL = "SELECT COUNT(*) FROM ACT_HI_PROCINST H"
 	// historicSelectSQL 是无条件历史实例的 ID 列表 SQL
 	historicSelectSQL = "SELECT H.PROC_INST_ID_ FROM ACT_HI_PROCINST H ORDER BY H.START_TIME_ ASC, H.PROC_INST_ID_ ASC LIMIT ? OFFSET ?"
+	// instanceTenantCountSQL 是带租户条件的运行中实例计数 SQL
+	instanceTenantCountSQL = "SELECT COUNT(*) FROM ACT_RU_EXECUTION E WHERE E.PARENT_ID_ IS NULL AND E.TENANT_ID_ = ?"
+	// instanceTenantSelectSQL 是带租户条件的运行中实例 ID 列表 SQL
+	instanceTenantSelectSQL = "SELECT E.PROC_INST_ID_ FROM ACT_RU_EXECUTION E WHERE E.PARENT_ID_ IS NULL AND E.TENANT_ID_ = ? ORDER BY E.START_TIME_ ASC, E.PROC_INST_ID_ ASC LIMIT ? OFFSET ?"
+	// historicTenantCountSQL 是带租户条件的历史实例计数 SQL
+	historicTenantCountSQL = "SELECT COUNT(*) FROM ACT_HI_PROCINST H WHERE H.TENANT_ID_ = ?"
+	// historicTenantSelectSQL 是带租户条件的历史实例 ID 列表 SQL
+	historicTenantSelectSQL = "SELECT H.PROC_INST_ID_ FROM ACT_HI_PROCINST H WHERE H.TENANT_ID_ = ? ORDER BY H.START_TIME_ ASC, H.PROC_INST_ID_ ASC LIMIT ? OFFSET ?"
 )
 
 // instanceIDsOf 提取运行中实例分页数据的 ID 列表，便于顺序断言。
@@ -173,51 +181,90 @@ func TestQueryProcessInstancesSuspendedPushdown(t *testing.T) {
 	}
 }
 
-// TestQueryProcessInstancesFallbackTenantFilter 验证租户生效时运行中实例查询回退内存路径。
-// 引擎绑定租户或请求携带租户时 SQL 无法表达租户隔离，必须走内存过滤，
-// 且租户不可见的实例被 allowTenant 隐藏；任何 SQL 下推都会命中未设置的期望而失败。
+// TestQueryProcessInstancesTenantPushdown 验证租户生效时运行中实例查询下推 SQL。
+// 引擎绑定租户、请求携带租户或请求指定租户过滤时以 E.TENANT_ID_ 等值条件查询，
+// 参数绑定必须精确匹配；回退内存会命中未设置的期望而失败。
 // @param t 测试上下文
-func TestQueryProcessInstancesFallbackTenantFilter(t *testing.T) {
+func TestQueryProcessInstancesTenantPushdown(t *testing.T) {
 	cases := []struct {
-		name    string                 // 用例名
-		bound   string                 // 引擎绑定的默认租户
-		ctx     func() context.Context // 请求上下文
-		visible []string               // 期望可见的实例 ID 顺序
+		name   string                    // 用例名
+		bound  string                    // 引擎绑定的默认租户
+		filter api.ProcessInstanceFilter // 查询条件
+		ctx    func() context.Context    // 请求上下文
 	}{
 		{
-			name:  "绑定默认租户",
-			bound: "t1",
-			ctx:   func() context.Context { return context.Background() },
-			// 请求租户 t1 下仅同租户实例可见，默认租户实例同样被隐藏
-			visible: []string{"i1"},
+			name:   "绑定默认租户",
+			bound:  "t1",
+			filter: api.ProcessInstanceFilter{},
+			ctx:    func() context.Context { return context.Background() },
 		},
 		{
-			name:    "请求租户上下文",
-			bound:   "",
-			ctx:     func() context.Context { return tenant.With(context.Background(), "t1") },
-			visible: []string{"i1"},
+			name:   "请求租户上下文",
+			bound:  "",
+			filter: api.ProcessInstanceFilter{},
+			ctx:    func() context.Context { return tenant.With(context.Background(), "t1") },
+		},
+		{
+			name:   "请求租户过滤",
+			bound:  "",
+			filter: api.ProcessInstanceFilter{TenantID: "t1"},
+			ctx:    func() context.Context { return tenant.With(context.Background(), "t1") },
 		},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			engine, mock := newTaskQueryEngine(t)
 			engine.cfg.TenantID = tc.bound
-			base := time.Date(2026, 10, 28, 0, 0, 0, 0, time.UTC)
-			engine.state.Instances["i1"] = &instanceState{ID: "i1", TenantID: "t1", StartTime: base.Add(2 * time.Hour)}
-			engine.state.Instances["i2"] = &instanceState{ID: "i2", TenantID: "t2", StartTime: base.Add(time.Hour)}
-			engine.state.Instances["i3"] = &instanceState{ID: "i3", StartTime: base}
-			page, err := engine.QueryProcessInstances(tc.ctx(), api.ProcessInstanceFilter{})
+			engine.state.Instances["i1"] = &instanceState{ID: "i1", TenantID: "t1", StartTime: time.Date(2026, 10, 28, 0, 0, 0, 0, time.UTC)}
+			// 计数与 ID 列表都以生效租户 t1 作为第一个绑定参数
+			mock.ExpectQuery(instanceTenantCountSQL).
+				WithArgs("t1").
+				WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(int64(1)))
+			mock.ExpectQuery(instanceTenantSelectSQL).
+				WithArgs("t1", int64(10), int64(0)).
+				WillReturnRows(sqlmock.NewRows([]string{"PROC_INST_ID_"}).AddRow("i1"))
+			page, err := engine.QueryProcessInstances(tc.ctx(), tc.filter)
 			if err != nil {
-				t.Fatalf("内存查询失败: %v", err)
+				t.Fatalf("下推查询失败: %v", err)
 			}
-			if page.Total != int64(len(tc.visible)) {
-				t.Fatalf("总数错误: %+v", page)
+			if page.Total != 1 || page.Start != 0 || page.Size != 10 {
+				t.Fatalf("分页信息错误: %+v", page)
 			}
-			assertInstanceOrder(t, page, tc.visible...)
+			assertInstanceOrder(t, page, "i1")
 			if err := mock.ExpectationsWereMet(); err != nil {
 				t.Fatal(err)
 			}
 		})
+	}
+}
+
+// TestQueryProcessInstancesMultiTenantTenantFilterPushdown 验证多租户数据下指定租户过滤仍下推 SQL。
+// 生效租户非空时非默认租户数据不再触发回退，SQL 以 TENANT_ID_ 等值条件收敛，
+// 默认租户实例不进入结果，总数以 SQL 计数为准。
+// @param t 测试上下文
+func TestQueryProcessInstancesMultiTenantTenantFilterPushdown(t *testing.T) {
+	engine, mock := newTaskQueryEngine(t)
+	base := time.Date(2026, 10, 28, 0, 0, 0, 0, time.UTC)
+	engine.state.Instances["i1"] = &instanceState{ID: "i1", StartTime: base.Add(time.Hour)}
+	engine.state.Instances["i2"] = &instanceState{ID: "i2", TenantID: "t2", StartTime: base}
+	// 多租户数据与指定租户过滤并存时仍下推，条件参数为生效租户 t2
+	mock.ExpectQuery(instanceTenantCountSQL).
+		WithArgs("t2").
+		WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(int64(1)))
+	mock.ExpectQuery(instanceTenantSelectSQL).
+		WithArgs("t2", int64(10), int64(0)).
+		WillReturnRows(sqlmock.NewRows([]string{"PROC_INST_ID_"}).AddRow("i2"))
+	page, err := engine.QueryProcessInstances(tenant.With(context.Background(), "t2"), api.ProcessInstanceFilter{TenantID: "t2"})
+	if err != nil {
+		t.Fatalf("下推查询失败: %v", err)
+	}
+	// 总数来自 SQL 计数；默认租户实例 i1 不在结果内
+	if page.Total != 1 {
+		t.Fatalf("总数错误: %+v", page)
+	}
+	assertInstanceOrder(t, page, "i2")
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Fatal(err)
 	}
 }
 
@@ -340,6 +387,24 @@ func TestQueryProcessInstancesMemoryFilter(t *testing.T) {
 		}
 		assertInstanceOrder(t, page, "i1", "i4")
 	})
+	t.Run("租户过滤", func(t *testing.T) {
+		engine := newTestEngine(t)
+		engine.cfg.TenantID = "t2"
+		engine.state.Instances["a"] = &instanceState{ID: "a", TenantID: "t2", StartTime: base}
+		engine.state.Instances["b"] = &instanceState{ID: "b", TenantID: "t3", StartTime: base}
+		// filter.TenantID 与请求租户一致时只返回该租户实例
+		page, err := engine.QueryProcessInstances(context.Background(), api.ProcessInstanceFilter{TenantID: "t2"})
+		if err != nil {
+			t.Fatalf("内存查询失败: %v", err)
+		}
+		assertInstanceOrder(t, page, "a")
+		// filter.TenantID 与请求租户不一致时实例被 allowTenant 隐藏
+		page, err = engine.QueryProcessInstances(context.Background(), api.ProcessInstanceFilter{TenantID: "t3"})
+		if err != nil {
+			t.Fatalf("内存查询失败: %v", err)
+		}
+		assertInstanceOrder(t, page)
+	})
 	t.Run("时间边界含等于", func(t *testing.T) {
 		// 下界含等于：开始时间等于边界仍匹配
 		bound := base
@@ -406,6 +471,22 @@ func TestQueryProcessInstancesMemoryFilter(t *testing.T) {
 			t.Fatalf("每页数量应封顶 1000: %+v", page)
 		}
 	})
+}
+
+// TestMatchesProcessInstanceFilterTenant 验证实例内存匹配的租户等值语义。
+// 空租户条件不过滤，非空租户要求完全一致，与 SQL TENANT_ID_ 等值语义一致。
+// @param t 测试上下文
+func TestMatchesProcessInstanceFilterTenant(t *testing.T) {
+	instance := api.ProcessInstance{ID: "i1", TenantID: "t1"}
+	if !matchesProcessInstanceFilter(instance, api.ProcessInstanceFilter{}) {
+		t.Fatal("空租户条件不应过滤实例")
+	}
+	if !matchesProcessInstanceFilter(instance, api.ProcessInstanceFilter{TenantID: "t1"}) {
+		t.Fatal("租户一致应匹配")
+	}
+	if matchesProcessInstanceFilter(instance, api.ProcessInstanceFilter{TenantID: "t2"}) {
+		t.Fatal("租户不一致不应匹配")
+	}
 }
 
 // TestQueryHistoricProcessInstancesRowPushdown 验证历史实例下推查询遵循 SQL 顺序与总数。
@@ -480,51 +561,90 @@ func TestQueryHistoricProcessInstancesFallbackMultiTenant(t *testing.T) {
 	}
 }
 
-// TestQueryHistoricProcessInstancesFallbackTenantBound 验证租户生效时历史实例查询回退内存路径。
-// 引擎绑定租户或请求携带租户时 SQL 无法表达租户隔离，必须走内存过滤，
-// 且租户不可见的历史实例被 allowTenant 隐藏；任何 SQL 下推都会命中未设置的期望而失败。
+// TestQueryHistoricProcessInstancesTenantPushdown 验证租户生效时历史实例查询下推 SQL。
+// 引擎绑定租户、请求携带租户或请求指定租户过滤时以 H.TENANT_ID_ 等值条件查询，
+// 参数绑定必须精确匹配；回退内存会命中未设置的期望而失败。
 // @param t 测试上下文
-func TestQueryHistoricProcessInstancesFallbackTenantBound(t *testing.T) {
+func TestQueryHistoricProcessInstancesTenantPushdown(t *testing.T) {
 	cases := []struct {
-		name    string                 // 用例名
-		bound   string                 // 引擎绑定的默认租户
-		ctx     func() context.Context // 请求上下文
-		visible []string               // 期望可见的历史实例 ID 顺序
+		name   string                            // 用例名
+		bound  string                            // 引擎绑定的默认租户
+		filter api.HistoricProcessInstanceFilter // 查询条件
+		ctx    func() context.Context            // 请求上下文
 	}{
 		{
-			name:  "绑定默认租户",
-			bound: "t1",
-			ctx:   func() context.Context { return context.Background() },
-			// 请求租户 t1 下仅同租户历史可见，默认租户历史同样被隐藏
-			visible: []string{"h1"},
+			name:   "绑定默认租户",
+			bound:  "t1",
+			filter: api.HistoricProcessInstanceFilter{},
+			ctx:    func() context.Context { return context.Background() },
 		},
 		{
-			name:    "请求租户上下文",
-			bound:   "",
-			ctx:     func() context.Context { return tenant.With(context.Background(), "t1") },
-			visible: []string{"h1"},
+			name:   "请求租户上下文",
+			bound:  "",
+			filter: api.HistoricProcessInstanceFilter{},
+			ctx:    func() context.Context { return tenant.With(context.Background(), "t1") },
+		},
+		{
+			name:   "请求租户过滤",
+			bound:  "",
+			filter: api.HistoricProcessInstanceFilter{TenantID: "t1"},
+			ctx:    func() context.Context { return tenant.With(context.Background(), "t1") },
 		},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			engine, mock := newTaskQueryEngine(t)
 			engine.cfg.TenantID = tc.bound
-			base := time.Date(2026, 10, 28, 0, 0, 0, 0, time.UTC)
-			engine.state.HistoricProcesses["h1"] = &api.HistoricProcessInstance{ID: "h1", TenantID: "t1", StartTime: base.Add(2 * time.Hour)}
-			engine.state.HistoricProcesses["h2"] = &api.HistoricProcessInstance{ID: "h2", TenantID: "t2", StartTime: base.Add(time.Hour)}
-			engine.state.HistoricProcesses["h3"] = &api.HistoricProcessInstance{ID: "h3", StartTime: base}
-			page, err := engine.QueryHistoricProcessInstances(tc.ctx(), api.HistoricProcessInstanceFilter{})
+			engine.state.HistoricProcesses["h1"] = &api.HistoricProcessInstance{ID: "h1", TenantID: "t1", StartTime: time.Date(2026, 10, 28, 0, 0, 0, 0, time.UTC)}
+			// 计数与 ID 列表都以生效租户 t1 作为第一个绑定参数
+			mock.ExpectQuery(historicTenantCountSQL).
+				WithArgs("t1").
+				WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(int64(1)))
+			mock.ExpectQuery(historicTenantSelectSQL).
+				WithArgs("t1", int64(10), int64(0)).
+				WillReturnRows(sqlmock.NewRows([]string{"PROC_INST_ID_"}).AddRow("h1"))
+			page, err := engine.QueryHistoricProcessInstances(tc.ctx(), tc.filter)
 			if err != nil {
-				t.Fatalf("内存查询失败: %v", err)
+				t.Fatalf("下推查询失败: %v", err)
 			}
-			if page.Total != int64(len(tc.visible)) {
-				t.Fatalf("总数错误: %+v", page)
+			if page.Total != 1 || page.Start != 0 || page.Size != 10 {
+				t.Fatalf("分页信息错误: %+v", page)
 			}
-			assertHistoricOrder(t, page, tc.visible...)
+			assertHistoricOrder(t, page, "h1")
 			if err := mock.ExpectationsWereMet(); err != nil {
 				t.Fatal(err)
 			}
 		})
+	}
+}
+
+// TestQueryHistoricProcessInstancesMultiTenantTenantFilterPushdown 验证多租户历史数据下指定租户过滤仍下推 SQL。
+// 生效租户非空时非默认租户历史数据不再触发回退，SQL 以 TENANT_ID_ 等值条件收敛，
+// 默认租户历史实例不进入结果，总数以 SQL 计数为准。
+// @param t 测试上下文
+func TestQueryHistoricProcessInstancesMultiTenantTenantFilterPushdown(t *testing.T) {
+	engine, mock := newTaskQueryEngine(t)
+	base := time.Date(2026, 10, 28, 0, 0, 0, 0, time.UTC)
+	engine.state.HistoricProcesses["h1"] = &api.HistoricProcessInstance{ID: "h1", StartTime: base.Add(time.Hour)}
+	engine.state.HistoricProcesses["h2"] = &api.HistoricProcessInstance{ID: "h2", TenantID: "t2", StartTime: base}
+	// 多租户历史数据与指定租户过滤并存时仍下推，条件参数为生效租户 t2
+	mock.ExpectQuery(historicTenantCountSQL).
+		WithArgs("t2").
+		WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(int64(1)))
+	mock.ExpectQuery(historicTenantSelectSQL).
+		WithArgs("t2", int64(10), int64(0)).
+		WillReturnRows(sqlmock.NewRows([]string{"PROC_INST_ID_"}).AddRow("h2"))
+	page, err := engine.QueryHistoricProcessInstances(tenant.With(context.Background(), "t2"), api.HistoricProcessInstanceFilter{TenantID: "t2"})
+	if err != nil {
+		t.Fatalf("下推查询失败: %v", err)
+	}
+	// 总数来自 SQL 计数；默认租户历史实例 h1 不在结果内
+	if page.Total != 1 {
+		t.Fatalf("总数错误: %+v", page)
+	}
+	assertHistoricOrder(t, page, "h2")
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Fatal(err)
 	}
 }
 
@@ -592,6 +712,24 @@ func TestQueryHistoricProcessInstancesMemoryFilter(t *testing.T) {
 			t.Fatalf("内存查询失败: %v", err)
 		}
 		assertHistoricOrder(t, page, "h1")
+	})
+	t.Run("租户过滤", func(t *testing.T) {
+		engine := newTestEngine(t)
+		engine.cfg.TenantID = "t2"
+		engine.state.HistoricProcesses["a"] = &api.HistoricProcessInstance{ID: "a", TenantID: "t2", StartTime: base}
+		engine.state.HistoricProcesses["b"] = &api.HistoricProcessInstance{ID: "b", TenantID: "t3", StartTime: base}
+		// filter.TenantID 与请求租户一致时只返回该租户历史实例
+		page, err := engine.QueryHistoricProcessInstances(context.Background(), api.HistoricProcessInstanceFilter{TenantID: "t2"})
+		if err != nil {
+			t.Fatalf("内存查询失败: %v", err)
+		}
+		assertHistoricOrder(t, page, "a")
+		// filter.TenantID 与请求租户不一致时历史实例被 allowTenant 隐藏
+		page, err = engine.QueryHistoricProcessInstances(context.Background(), api.HistoricProcessInstanceFilter{TenantID: "t3"})
+		if err != nil {
+			t.Fatalf("内存查询失败: %v", err)
+		}
+		assertHistoricOrder(t, page)
 	})
 	t.Run("结束时间边界含等于", func(t *testing.T) {
 		// 下界含等于：结束时间等于边界仍匹配
@@ -702,4 +840,20 @@ func TestQueryHistoricProcessInstancesMemoryFilter(t *testing.T) {
 			t.Fatalf("每页数量应封顶 1000: %+v", page)
 		}
 	})
+}
+
+// TestMatchesHistoricProcessInstanceFilterTenant 验证历史实例内存匹配的租户等值语义。
+// 空租户条件不过滤，非空租户要求完全一致，与 SQL TENANT_ID_ 等值语义一致。
+// @param t 测试上下文
+func TestMatchesHistoricProcessInstanceFilterTenant(t *testing.T) {
+	historic := api.HistoricProcessInstance{ID: "h1", TenantID: "t1"}
+	if !matchesHistoricProcessInstanceFilter(historic, api.HistoricProcessInstanceFilter{}) {
+		t.Fatal("空租户条件不应过滤历史实例")
+	}
+	if !matchesHistoricProcessInstanceFilter(historic, api.HistoricProcessInstanceFilter{TenantID: "t1"}) {
+		t.Fatal("租户一致应匹配")
+	}
+	if matchesHistoricProcessInstanceFilter(historic, api.HistoricProcessInstanceFilter{TenantID: "t2"}) {
+		t.Fatal("租户不一致不应匹配")
+	}
 }

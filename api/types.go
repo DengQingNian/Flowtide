@@ -196,12 +196,13 @@ type TaskFilter struct {
 }
 
 // ProcessInstanceFilter 是运行中实例的查询条件。
-// 仅包含可下推 SQL 的字段；名称、模糊匹配、键集合与租户等仍由调用方在内存过滤。
+// 仅包含可下推 SQL 的字段；名称、模糊匹配与键集合等仍由调用方在内存过滤。
 type ProcessInstanceFilter struct {
 	ID                   string     // 流程实例 ID
 	ProcessDefinitionID  string     // 流程定义 ID
 	ProcessDefinitionKey string     // 流程定义 Key
 	BusinessKey          string     // 业务键
+	TenantID             string     // 租户，空表示不过滤
 	Suspended            *bool      // 是否挂起，空表示不过滤
 	StartedAfter         *time.Time // 开始时间下界，含边界
 	StartedBefore        *time.Time // 开始时间上界，含边界
@@ -210,12 +211,13 @@ type ProcessInstanceFilter struct {
 }
 
 // HistoricProcessInstanceFilter 是历史流程实例的查询条件。
-// 仅包含可下推 SQL 的字段；名称、模糊匹配、键集合、删除原因与租户等仍由调用方在内存过滤。
+// 仅包含可下推 SQL 的字段；名称、模糊匹配、键集合与删除原因等仍由调用方在内存过滤。
 type HistoricProcessInstanceFilter struct {
 	ID                   string     // 流程实例 ID
 	ProcessDefinitionID  string     // 流程定义 ID
 	ProcessDefinitionKey string     // 流程定义 Key
 	BusinessKey          string     // 业务键
+	TenantID             string     // 租户，空表示不过滤
 	StartedAfter         *time.Time // 开始时间下界，含边界
 	StartedBefore        *time.Time // 开始时间上界，含边界
 	FinishedAfter        *time.Time // 结束时间下界，含边界

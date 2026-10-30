@@ -168,7 +168,8 @@ func (s *Server) serveTaskQuery(w http.ResponseWriter, r *http.Request, body que
 	// 引擎单页最多一千条，过滤和总量计算前必须读完，不能静默截断后续匹配项。
 	for start := 0; ; start += 1000 {
 		page, err := s.engine.TaskService().ListTasks(r.Context(), api.TaskFilter{Start: start, Size: 1000,
-			Assignee: body.str("assignee"), Owner: body.str("owner"), CandidateUser: body.str("candidateUser"), DelegationState: strings.ToUpper(body.str("delegationState"))})
+			Assignee: body.str("assignee"), Owner: body.str("owner"), CandidateUser: body.str("candidateUser"), DelegationState: strings.ToUpper(body.str("delegationState")),
+			TenantID: body.str("tenantId")})
 		if err != nil {
 			writeError(w, err)
 			return

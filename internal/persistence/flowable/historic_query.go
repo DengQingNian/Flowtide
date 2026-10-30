@@ -10,12 +10,13 @@ import (
 )
 
 // HistoricProcessInstanceQuery 是历史流程实例查询条件。
-// 过滤字段只覆盖 ACT_HI_PROCINST 已持久化的列；租户、名称与删除原因过滤尚未下推。
+// 过滤字段只覆盖 ACT_HI_PROCINST 已持久化的列；名称与删除原因过滤尚未下推。
 type HistoricProcessInstanceQuery struct {
 	ID                   string     // 流程实例 ID
 	ProcessDefinitionID  string     // 流程定义 ID
 	ProcessDefinitionKey string     // 流程定义 Key
 	BusinessKey          string     // 业务键
+	TenantID             string     // 租户，空表示不过滤
 	StartedAfter         *time.Time // 开始时间下界，含边界
 	StartedBefore        *time.Time // 开始时间上界，含边界
 	FinishedAfter        *time.Time // 结束时间下界，含边界
@@ -80,6 +81,8 @@ func buildHistoricProcessQuerySQL(dialect string, query HistoricProcessInstanceQ
 	appendEqual("H.PROC_INST_ID_", query.ID)
 	appendEqual("H.PROC_DEF_ID_", query.ProcessDefinitionID)
 	appendEqual("H.BUSINESS_KEY_", query.BusinessKey)
+	// 租户为空表示不过滤；非空租户以标准行 TENANT_ID_ 等值下推
+	appendEqual("H.TENANT_ID_", query.TenantID)
 	// 结束状态以 END_TIME_ 是否为空表达，与内存 Ended 布尔一致
 	if query.Finished != nil {
 		if *query.Finished {

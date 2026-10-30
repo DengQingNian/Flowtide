@@ -60,6 +60,18 @@ func (e *Engine) allowDefinition(ctx context.Context, definitionID string) error
 	return e.allowTenant(ctx, definition.Info.TenantID)
 }
 
+// effectiveTenantOf 计算查询的生效租户：请求过滤优先，其次上下文/默认租户。
+// @param ctx 上下文
+// @param filterTenant 查询条件指定的租户
+// @return 生效租户，空表示无租户条件
+func (e *Engine) effectiveTenantOf(ctx context.Context, filterTenant string) string {
+	// 请求显式指定租户时优先于上下文与默认租户
+	if filterTenant != "" {
+		return filterTenant
+	}
+	return e.tenantOf(tenant.From(ctx))
+}
+
 // requestTenantID 根据当前作用域补全创建请求的租户并校验归属。
 // @param ctx 请求上下文
 // @param requested 请求指定租户

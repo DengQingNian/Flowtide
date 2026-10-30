@@ -6,7 +6,6 @@ import (
 
 	"github.com/flowable-go/flowable/api"
 	flowablerow "github.com/flowable-go/flowable/internal/persistence/flowable"
-	"github.com/flowable-go/flowable/internal/tenant"
 )
 
 // QueryProcessInstances 按条件分页查询运行中实例。
@@ -18,7 +17,7 @@ import (
 func (e *Engine) QueryProcessInstances(ctx context.Context, filter api.ProcessInstanceFilter) (api.Page[api.ProcessInstance], error) {
 	result, err := e.read(func() (any, error) {
 		// 满足安全条件时使用行仓储 SQL，否则回退内存过滤
-		if e.canPushdownInstanceQuery(ctx) {
+		if e.canPushdownInstanceQuery(ctx, filter) {
 			return e.queryProcessInstancesFromRowQuery(ctx, filter)
 		}
 		return e.queryProcessInstancesFromMemory(ctx, filter)
@@ -30,19 +29,22 @@ func (e *Engine) QueryProcessInstances(ctx context.Context, filter api.ProcessIn
 }
 
 // canPushdownInstanceQuery 判断实例查询是否可以安全下推到行仓储 SQL。
+// 生效租户非空时以 TENANT_ID_ 等值条件下推；无租户条件且存在非默认租户数据时回退内存。
 // @param ctx 上下文
+// @param filter 查询条件
 // @return 是否下推
-func (e *Engine) canPushdownInstanceQuery(ctx context.Context) bool {
+func (e *Engine) canPushdownInstanceQuery(ctx context.Context, filter api.ProcessInstanceFilter) bool {
 	// 未配置行仓储时只能保留内存路径
 	if e.rowRepository == nil {
 		return false
 	}
-	// 请求租户或默认租户非空时，当前 SQL 无法表达租户隔离
-	if e.tenantOf(tenant.From(ctx)) != "" {
+	// 生效租户：请求过滤优先，其次上下文/默认租户
+	effective := e.effectiveTenantOf(ctx, filter.TenantID)
+	// 无租户条件时，内存存在非默认租户数据会导致 SQL 无租户条件多算总数与挤占分页
+	if effective == "" && e.hasNonDefaultTenantData() {
 		return false
 	}
-	// 内存中存在非默认租户数据时，SQL 无租户条件会导致总数和分页被其他租户挤占
-	return !e.hasNonDefaultTenantData()
+	return true
 }
 
 // queryProcessInstancesFromRowQuery 通过行仓储下推查询实例并按分页返回。
@@ -51,11 +53,14 @@ func (e *Engine) canPushdownInstanceQuery(ctx context.Context) bool {
 // @return 分页实例
 // @return 查询错误
 func (e *Engine) queryProcessInstancesFromRowQuery(ctx context.Context, filter api.ProcessInstanceFilter) (api.Page[api.ProcessInstance], error) {
+	// 生效租户与下推门禁一致：请求过滤优先，其次上下文/默认租户
+	effectiveTenant := e.effectiveTenantOf(ctx, filter.TenantID)
 	query := flowablerow.ProcessInstanceQuery{
 		ID:                   filter.ID,
 		ProcessDefinitionID:  filter.ProcessDefinitionID,
 		ProcessDefinitionKey: filter.ProcessDefinitionKey,
 		BusinessKey:          filter.BusinessKey,
+		TenantID:             effectiveTenant,
 		Suspended:            filter.Suspended,
 		StartedAfter:         filter.StartedAfter,
 		StartedBefore:        filter.StartedBefore,
@@ -135,6 +140,10 @@ func matchesProcessInstanceFilter(instance api.ProcessInstance, filter api.Proce
 	if filter.BusinessKey != "" && instance.BusinessKey != filter.BusinessKey {
 		return false
 	}
+	// 租户为空表示不过滤；非空时要求完全一致，与 SQL TENANT_ID_ 等值语义一致
+	if filter.TenantID != "" && instance.TenantID != filter.TenantID {
+		return false
+	}
 	if filter.Suspended != nil && instance.Suspended != *filter.Suspended {
 		return false
 	}
@@ -157,7 +166,7 @@ func matchesProcessInstanceFilter(instance api.ProcessInstance, filter api.Proce
 func (e *Engine) QueryHistoricProcessInstances(ctx context.Context, filter api.HistoricProcessInstanceFilter) (api.Page[api.HistoricProcessInstance], error) {
 	result, err := e.read(func() (any, error) {
 		// 满足安全条件时使用行仓储 SQL，否则回退内存过滤
-		if e.canPushdownHistoricProcessQuery(ctx) {
+		if e.canPushdownHistoricProcessQuery(ctx, filter) {
 			return e.queryHistoricProcessInstancesFromRowQuery(ctx, filter)
 		}
 		return e.queryHistoricProcessInstancesFromMemory(ctx, filter)
@@ -169,19 +178,22 @@ func (e *Engine) QueryHistoricProcessInstances(ctx context.Context, filter api.H
 }
 
 // canPushdownHistoricProcessQuery 判断历史实例查询是否可以安全下推到行仓储 SQL。
+// 生效租户非空时以 TENANT_ID_ 等值条件下推；无租户条件且存在非默认租户历史数据时回退内存。
 // @param ctx 上下文
+// @param filter 查询条件
 // @return 是否下推
-func (e *Engine) canPushdownHistoricProcessQuery(ctx context.Context) bool {
+func (e *Engine) canPushdownHistoricProcessQuery(ctx context.Context, filter api.HistoricProcessInstanceFilter) bool {
 	// 未配置行仓储时只能保留内存路径
 	if e.rowRepository == nil {
 		return false
 	}
-	// 请求租户或默认租户非空时，当前 SQL 无法表达租户隔离
-	if e.tenantOf(tenant.From(ctx)) != "" {
+	// 生效租户：请求过滤优先，其次上下文/默认租户
+	effective := e.effectiveTenantOf(ctx, filter.TenantID)
+	// 无租户条件时，内存存在非默认租户历史数据会导致 SQL 无租户条件多算总数与挤占分页
+	if effective == "" && e.hasNonDefaultTenantHistory() {
 		return false
 	}
-	// 内存中存在非默认租户历史数据时，SQL 无租户条件会导致总数和分页被其他租户挤占
-	return !e.hasNonDefaultTenantHistory()
+	return true
 }
 
 // hasNonDefaultTenantHistory 判断内存历史状态是否存在非默认租户的历史实例。
@@ -202,11 +214,14 @@ func (e *Engine) hasNonDefaultTenantHistory() bool {
 // @return 分页历史实例
 // @return 查询错误
 func (e *Engine) queryHistoricProcessInstancesFromRowQuery(ctx context.Context, filter api.HistoricProcessInstanceFilter) (api.Page[api.HistoricProcessInstance], error) {
+	// 生效租户与下推门禁一致：请求过滤优先，其次上下文/默认租户
+	effectiveTenant := e.effectiveTenantOf(ctx, filter.TenantID)
 	query := flowablerow.HistoricProcessInstanceQuery{
 		ID:                   filter.ID,
 		ProcessDefinitionID:  filter.ProcessDefinitionID,
 		ProcessDefinitionKey: filter.ProcessDefinitionKey,
 		BusinessKey:          filter.BusinessKey,
+		TenantID:             effectiveTenant,
 		StartedAfter:         filter.StartedAfter,
 		StartedBefore:        filter.StartedBefore,
 		FinishedAfter:        filter.FinishedAfter,
@@ -287,6 +302,10 @@ func matchesHistoricProcessInstanceFilter(historic api.HistoricProcessInstance, 
 		return false
 	}
 	if filter.BusinessKey != "" && historic.BusinessKey != filter.BusinessKey {
+		return false
+	}
+	// 租户为空表示不过滤；非空时要求完全一致，与 SQL TENANT_ID_ 等值语义一致
+	if filter.TenantID != "" && historic.TenantID != filter.TenantID {
 		return false
 	}
 	if filter.Finished != nil && historic.Ended != *filter.Finished {

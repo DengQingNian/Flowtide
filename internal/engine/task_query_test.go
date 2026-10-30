@@ -146,32 +146,33 @@ func TestListTasksRowQueryError(t *testing.T) {
 	}
 }
 
-// TestListTasksFallbackToMemory 验证存在租户作用域或租户过滤时保留内存路径。
+// TestListTasksTenantPushdown 验证绑定租户、请求租户与租户过滤时任务查询下推 SQL。
+// 生效租户（请求过滤优先，其次上下文/默认租户）非空时以 TENANT_ID_ 等值条件查询，
+// 计数与 ID 列表 SQL 的租户参数绑定必须精确匹配；回退内存会命中未设置的期望而失败。
 // @param t 测试上下文
-func TestListTasksFallbackToMemory(t *testing.T) {
+func TestListTasksTenantPushdown(t *testing.T) {
 	cases := []struct {
 		name   string                 // 用例名
-		tenant string                 // 绑定租户
+		tenant string                 // 引擎绑定的默认租户
 		filter api.TaskFilter         // 查询条件
-		setup  func(engine *Engine)   // 额外设置
 		ctx    func() context.Context // 上下文
 	}{
 		{
-			name: "租户过滤", tenant: "",
+			name:   "租户过滤",
+			tenant: "",
 			filter: api.TaskFilter{TenantID: "t1", Size: 10},
-			setup:  func(engine *Engine) { engine.state.Tasks["t1"] = &taskState{Task: api.Task{ID: "t1", TenantID: "t1"}} },
 			ctx:    func() context.Context { return tenant.With(context.Background(), "t1") },
 		},
 		{
-			name: "绑定租户上下文", tenant: "",
+			name:   "请求租户上下文",
+			tenant: "",
 			filter: api.TaskFilter{Size: 10},
-			setup:  func(engine *Engine) { engine.state.Tasks["t1"] = &taskState{Task: api.Task{ID: "t1", TenantID: "t1"}} },
 			ctx:    func() context.Context { return tenant.With(context.Background(), "t1") },
 		},
 		{
-			name: "默认租户", tenant: "t1",
+			name:   "默认租户",
+			tenant: "t1",
 			filter: api.TaskFilter{Size: 10},
-			setup:  func(engine *Engine) { engine.state.Tasks["t1"] = &taskState{Task: api.Task{ID: "t1", TenantID: "t1"}} },
 			ctx:    func() context.Context { return context.Background() },
 		},
 	}
@@ -179,14 +180,20 @@ func TestListTasksFallbackToMemory(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			engine, mock := newTaskQueryEngine(t)
 			engine.cfg.TenantID = tc.tenant
-			tc.setup(engine)
+			engine.state.Tasks["t1"] = &taskState{Task: api.Task{ID: "t1", TenantID: "t1"}}
+			// 计数与 ID 列表都以生效租户 t1 作为第一个绑定参数
+			mock.ExpectQuery("SELECT COUNT(*) FROM ACT_RU_TASK T WHERE T.TENANT_ID_ = ?").
+				WithArgs("t1").
+				WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(int64(1)))
+			mock.ExpectQuery("SELECT T.ID_ FROM ACT_RU_TASK T WHERE T.TENANT_ID_ = ? ORDER BY T.CREATE_TIME_ ASC, T.ID_ ASC LIMIT ? OFFSET ?").
+				WithArgs("t1", int64(10), int64(0)).
+				WillReturnRows(sqlmock.NewRows([]string{"ID_"}).AddRow("t1"))
 			page, err := engine.ListTasks(tc.ctx(), tc.filter)
 			if err != nil {
-				t.Fatalf("内存查询失败: %v", err)
+				t.Fatalf("下推查询失败: %v", err)
 			}
-			// 若发生 SQL 下推会命中未设置的 sqlmock 期望并报错
 			if page.Total != 1 || len(page.Data) != 1 || page.Data[0].ID != "t1" {
-				t.Fatalf("内存查询结果错误: %+v", page)
+				t.Fatalf("下推查询结果错误: %+v", page)
 			}
 			if err := mock.ExpectationsWereMet(); err != nil {
 				t.Fatal(err)
@@ -238,5 +245,66 @@ func TestListTasksMultiTenantFallback(t *testing.T) {
 	}
 	if err := mock.ExpectationsWereMet(); err != nil {
 		t.Fatal(err)
+	}
+}
+
+// TestListTasksMultiTenantTenantFilterPushdown 验证多租户数据下指定租户过滤仍下推 SQL。
+// 生效租户非空时非默认租户数据不再触发回退，SQL 以 TENANT_ID_ 等值条件收敛结果，
+// 默认租户任务不进入结果，总数以 SQL 计数为准。
+// @param t 测试上下文
+func TestListTasksMultiTenantTenantFilterPushdown(t *testing.T) {
+	engine, mock := newTaskQueryEngine(t)
+	base := time.Date(2026, 10, 28, 0, 0, 0, 0, time.UTC)
+	engine.state.Instances["i1"] = &instanceState{ID: "i1"}
+	engine.state.Instances["i2"] = &instanceState{ID: "i2", TenantID: "t2"}
+	engine.state.Tasks["t1"] = &taskState{Task: api.Task{ID: "t1", ProcessInstanceID: "i1", CreateTime: base}}
+	engine.state.Tasks["t2"] = &taskState{Task: api.Task{ID: "t2", ProcessInstanceID: "i2", CreateTime: base.Add(time.Hour)}}
+	// 多租户数据与指定租户过滤并存时仍下推，条件参数为生效租户 t2
+	mock.ExpectQuery("SELECT COUNT(*) FROM ACT_RU_TASK T WHERE T.TENANT_ID_ = ?").
+		WithArgs("t2").
+		WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(int64(1)))
+	mock.ExpectQuery("SELECT T.ID_ FROM ACT_RU_TASK T WHERE T.TENANT_ID_ = ? ORDER BY T.CREATE_TIME_ ASC, T.ID_ ASC LIMIT ? OFFSET ?").
+		WithArgs("t2", int64(10), int64(0)).
+		WillReturnRows(sqlmock.NewRows([]string{"ID_"}).AddRow("t2"))
+	page, err := engine.ListTasks(tenant.With(context.Background(), "t2"), api.TaskFilter{TenantID: "t2"})
+	if err != nil {
+		t.Fatalf("下推查询失败: %v", err)
+	}
+	// 总数来自 SQL 计数；默认租户任务 t1 不在结果内
+	if page.Total != 1 || len(page.Data) != 1 || page.Data[0].ID != "t2" {
+		t.Fatalf("租户下推结果错误: %+v", page)
+	}
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Fatal(err)
+	}
+}
+
+// TestListTasksMemoryTenantFilter 验证内存回退路径的租户过滤语义。
+// 未配置行仓储时走内存过滤，filter.TenantID 以任务自身或所属实例租户等值匹配，
+// 并与 allowTenant 的请求租户校验叠加生效。
+// @param t 测试上下文
+func TestListTasksMemoryTenantFilter(t *testing.T) {
+	engine := newTestEngine(t)
+	engine.cfg.TenantID = "t2"
+	engine.state.Instances["i2"] = &instanceState{ID: "i2", TenantID: "t2"}
+	engine.state.Instances["i3"] = &instanceState{ID: "i3", TenantID: "t3"}
+	engine.state.Tasks["t2"] = &taskState{Task: api.Task{ID: "t2", ProcessInstanceID: "i2"}}
+	engine.state.Tasks["t3"] = &taskState{Task: api.Task{ID: "t3", ProcessInstanceID: "i3"}}
+	engine.state.Tasks["solo"] = &taskState{Task: api.Task{ID: "solo", TenantID: "t2"}}
+	page, err := engine.ListTasks(context.Background(), api.TaskFilter{TenantID: "t2"})
+	if err != nil {
+		t.Fatalf("内存查询失败: %v", err)
+	}
+	// 租户一致时任务自身与所属实例租户两种来源都命中
+	if page.Total != 2 || len(page.Data) != 2 || page.Data[0].ID != "solo" || page.Data[1].ID != "t2" {
+		t.Fatalf("租户过滤结果错误: %+v", page)
+	}
+	// filter.TenantID 与请求租户不一致时结果为空
+	page, err = engine.ListTasks(context.Background(), api.TaskFilter{TenantID: "t3"})
+	if err != nil {
+		t.Fatalf("内存查询失败: %v", err)
+	}
+	if page.Total != 0 || len(page.Data) != 0 {
+		t.Fatalf("跨租户过滤应为空: %+v", page)
 	}
 }

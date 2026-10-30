@@ -228,12 +228,20 @@ func TestQueryTaskIDs_PostgresPlaceholders(t *testing.T) {
 	}
 }
 
-// TestQueryTaskIDs_TenantNotPushedDown 验证租户过滤被明确拒绝。
+// TestQueryTaskIDs_TenantPushdown 验证租户过滤以 TENANT_ID_ 等值下推。
 // @param t 测试上下文
-func TestQueryTaskIDs_TenantNotPushedDown(t *testing.T) {
+func TestQueryTaskIDs_TenantPushdown(t *testing.T) {
 	repository, mock := newTaskQueryRepository(t, "mysql")
-	_, _, err := repository.QueryTaskIDs(context.Background(), TaskQuery{TenantID: "t1"})
-	requireTaskQueryError(t, err, "ROW-0035")
+	mock.ExpectQuery("SELECT COUNT(*) FROM ACT_RU_TASK T WHERE T.TENANT_ID_ = ?").
+		WithArgs("t1").
+		WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(int64(1)))
+	mock.ExpectQuery("SELECT T.ID_ FROM ACT_RU_TASK T WHERE T.TENANT_ID_ = ? ORDER BY T.CREATE_TIME_ ASC, T.ID_ ASC LIMIT ? OFFSET ?").
+		WithArgs("t1", int64(10), int64(0)).
+		WillReturnRows(sqlmock.NewRows([]string{"ID_"}).AddRow("t1"))
+	ids, total, err := repository.QueryTaskIDs(context.Background(), TaskQuery{TenantID: "t1"})
+	if err != nil || total != 1 || len(ids) != 1 || ids[0] != "t1" {
+		t.Fatalf("租户下推查询错误: %v %d %+v", err, total, ids)
+	}
 	if err := mock.ExpectationsWereMet(); err != nil {
 		t.Fatal(err)
 	}

@@ -10,12 +10,13 @@ import (
 )
 
 // ProcessInstanceQuery 是运行时流程实例查询条件。
-// 过滤字段只覆盖 ACT_RU_EXECUTION 已持久化的列；租户与变量过滤尚未下推。
+// 过滤字段只覆盖 ACT_RU_EXECUTION 已持久化的列；变量过滤尚未下推。
 type ProcessInstanceQuery struct {
 	ID                   string     // 流程实例 ID
 	ProcessDefinitionID  string     // 流程定义 ID
 	ProcessDefinitionKey string     // 流程定义 Key
 	BusinessKey          string     // 业务键
+	TenantID             string     // 租户，空表示不过滤
 	Suspended            *bool      // 是否挂起，空表示不过滤
 	StartedAfter         *time.Time // 开始时间下界，含边界
 	StartedBefore        *time.Time // 开始时间上界，含边界
@@ -78,6 +79,8 @@ func buildProcessInstanceQuerySQL(dialect string, query ProcessInstanceQuery) (s
 	appendEqual("E.ID_", query.ID)
 	appendEqual("E.PROC_DEF_ID_", query.ProcessDefinitionID)
 	appendEqual("E.BUSINESS_KEY_", query.BusinessKey)
+	// 租户为空表示不过滤；非空租户以标准行 TENANT_ID_ 等值下推
+	appendEqual("E.TENANT_ID_", query.TenantID)
 	// 挂起状态以标准行导出的 SUSPENSION_STATE_ 编码为准：1 活动、2 挂起
 	if query.Suspended != nil {
 		state := 1

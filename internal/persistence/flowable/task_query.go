@@ -16,7 +16,7 @@ type TaskQuery struct {
 	ProcessInstanceID    string   // 流程实例 ID
 	ProcessDefinitionKey string   // 流程定义 Key
 	ParentTaskID         string   // 父任务 ID
-	TenantID             string   // 租户，尚未下推
+	TenantID             string   // 租户，空表示不过滤
 	CandidateUser        string   // 候选人
 	CandidateGroups      []string // 候选组
 	Start                int      // 偏移量
@@ -31,10 +31,6 @@ type TaskQuery struct {
 // @return 任务总数
 // @return 查询错误
 func (r *Repository) QueryTaskIDs(ctx context.Context, query TaskQuery) ([]string, int64, error) {
-	// 租户过滤尚未下推，直接拒绝以避免返回跨租户数据
-	if query.TenantID != "" {
-		return nil, 0, api.NewError("ROW-0035", "租户过滤尚未下推", api.ErrBadRequest)
-	}
 	queryDB, ok := r.db.(QueryDB)
 	if !ok {
 		return nil, 0, api.NewError("ROW-0017", "数据库不支持查询", api.ErrBadRequest)
@@ -84,6 +80,8 @@ func buildTaskQuerySQL(dialect string, query TaskQuery) (string, string, []any) 
 	appendEqual("T.DELEGATION_", query.DelegationState)
 	appendEqual("T.PROC_INST_ID_", query.ProcessInstanceID)
 	appendEqual("T.PARENT_TASK_ID_", query.ParentTaskID)
+	// 租户为空表示不过滤；非空租户以标准行 TENANT_ID_ 等值下推
+	appendEqual("T.TENANT_ID_", query.TenantID)
 	// 候选人条件同时约束任务未被签收，并匹配用户候选或用户所在组的候选
 	if query.CandidateUser != "" {
 		args = append(args, query.CandidateUser)

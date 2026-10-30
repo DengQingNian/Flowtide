@@ -10,7 +10,6 @@ import (
 	"github.com/flowable-go/flowable/bpmn/model"
 	"github.com/flowable-go/flowable/internal/expr"
 	flowablerow "github.com/flowable-go/flowable/internal/persistence/flowable"
-	"github.com/flowable-go/flowable/internal/tenant"
 )
 
 // createUserTask 创建用户任务并让执行进入等待。
@@ -171,7 +170,7 @@ func (e *Engine) toTaskDTO(task *taskState) api.Task {
 // @return 查询错误
 func (e *Engine) ListTasks(ctx context.Context, filter api.TaskFilter) (api.Page[api.Task], error) {
 	result, err := e.read(func() (any, error) {
-		// 行仓储模式且无租户过滤时优先下推 SQL，避免全量任务加载与内存扫描
+		// 行仓储模式下优先下推 SQL（含租户等值条件），避免全量任务加载与内存扫描
 		if e.canPushdownTaskQuery(ctx, filter) {
 			return e.listTasksFromRowQuery(ctx, filter)
 		}
@@ -210,6 +209,7 @@ func (e *Engine) ListTasks(ctx context.Context, filter api.TaskFilter) (api.Page
 }
 
 // canPushdownTaskQuery 判断任务查询是否可以安全下推到行仓储 SQL。
+// 生效租户非空时以 TENANT_ID_ 等值条件下推；无租户条件且存在非默认租户数据时回退内存。
 // @param ctx 上下文
 // @param filter 查询条件
 // @return 是否下推
@@ -218,16 +218,13 @@ func (e *Engine) canPushdownTaskQuery(ctx context.Context, filter api.TaskFilter
 	if e.rowRepository == nil {
 		return false
 	}
-	// 租户过滤尚未下推，继续走内存路径保证过滤正确
-	if filter.TenantID != "" {
+	// 生效租户：请求过滤优先，其次上下文/默认租户
+	effective := e.effectiveTenantOf(ctx, filter.TenantID)
+	// 无租户条件时，内存存在非默认租户数据会导致 SQL 无租户条件多算总数与挤占分页
+	if effective == "" && e.hasNonDefaultTenantData() {
 		return false
 	}
-	// 请求租户或默认租户非空时，当前 SQL 无法表达租户隔离
-	if e.tenantOf(tenant.From(ctx)) != "" {
-		return false
-	}
-	// 内存中存在非默认租户数据时，SQL 无租户条件会导致总数和分页被其他租户挤占
-	return !e.hasNonDefaultTenantData()
+	return true
 }
 
 // hasNonDefaultTenantData 判断内存状态是否存在非默认租户的任务或实例。
@@ -258,6 +255,8 @@ func (e *Engine) hasNonDefaultTenantData() bool {
 // @return 分页结果
 // @return 查询错误
 func (e *Engine) listTasksFromRowQuery(ctx context.Context, filter api.TaskFilter) (api.Page[api.Task], error) {
+	// 生效租户与下推门禁一致：请求过滤优先，其次上下文/默认租户
+	effectiveTenant := e.effectiveTenantOf(ctx, filter.TenantID)
 	query := flowablerow.TaskQuery{
 		Assignee:             filter.Assignee,
 		Owner:                filter.Owner,
@@ -265,6 +264,7 @@ func (e *Engine) listTasksFromRowQuery(ctx context.Context, filter api.TaskFilte
 		ProcessInstanceID:    filter.ProcessInstanceID,
 		ProcessDefinitionKey: filter.ProcessDefinitionKey,
 		ParentTaskID:         filter.ParentTaskID,
+		TenantID:             effectiveTenant,
 		CandidateUser:        filter.CandidateUser,
 		CandidateGroups:      candidateGroupsForUser(e.state.Memberships, filter.CandidateUser),
 		Start:                filter.Start,
