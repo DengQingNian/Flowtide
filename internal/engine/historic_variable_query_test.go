@@ -105,6 +105,34 @@ func TestQueryHistoricVariableInstancesRowPushdown(t *testing.T) {
 	}
 }
 
+// TestQueryHistoricVariableInstancesCompositeKey 验证历史变量以归属复合键建索引时仍能按 SQL 主键装配 DTO。
+// 生产写入路径的 map 键为“执行/任务 + 变量名”，与历史主键不同；
+// 下推必须按 DTO 的 ID 字段查找，不能把 map 键当作历史主键。
+// @param t 测试上下文
+func TestQueryHistoricVariableInstancesCompositeKey(t *testing.T) {
+	engine, mock := newTaskQueryEngine(t)
+	engine.state.HistoricProcesses["p1"] = &api.HistoricProcessInstance{ID: "p1"}
+	// 与 recordHistoricVariable 一致的归属复合键，历史主键在 DTO 内
+	engine.state.HistoricVariables["e1|amount"] = &api.HistoricVariableInstance{
+		ID: "v-uuid", Name: "amount", Type: "long", ProcessInstanceID: "p1", ExecutionID: "e1", Value: int64(100),
+	}
+	mock.ExpectQuery(historicVariableCountSQL).
+		WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(int64(1)))
+	mock.ExpectQuery(historicVariableSelectSQL).
+		WithArgs(int64(10), int64(0)).
+		WillReturnRows(sqlmock.NewRows([]string{"ID_"}).AddRow("v-uuid"))
+	page, err := engine.QueryHistoricVariableInstances(context.Background(), api.HistoricVariableInstanceFilter{})
+	if err != nil {
+		t.Fatalf("下推查询失败: %v", err)
+	}
+	if page.Total != 1 || len(page.Data) != 1 || page.Data[0].ID != "v-uuid" {
+		t.Fatalf("复合键索引下必须按历史主键装配 DTO: %+v", page)
+	}
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Fatal(err)
+	}
+}
+
 // TestQueryHistoricVariableInstancesTenantTaskFallback 验证存在非默认租户独立历史任务时回退内存。
 // 历史变量表没有租户列，独立历史任务的变量无法在 SQL 内收敛租户；
 // 若仍下推，SQL 计数会把他租户变量计入总数并挤占分页，因此必须整体回退内存并隐藏他租户变量。

@@ -72,6 +72,10 @@ func TestIntegrationMySQLInstanceQueryPushdown(t *testing.T) {
 	if err != nil || page.Total != 1 || len(page.Data) != 1 || page.Data[0].ID != first.ID {
 		t.Fatalf("挂起过滤错误: %v %+v", err, page)
 	}
+	// 挂起实例的任务不能完成，完成前必须恢复实例（原版同样返回 409）
+	if err := app.ActivateProcessInstance(ctx, first.ID); err != nil {
+		t.Fatalf("恢复实例失败: %v", err)
+	}
 	// 时间上界包含两个实例，下界推进到未来后应排除全部运行实例
 	before := time.Now().Add(time.Hour).UTC()
 	page, err = app.QueryProcessInstances(ctx, api.ProcessInstanceFilter{StartedBefore: &before, Size: 10})

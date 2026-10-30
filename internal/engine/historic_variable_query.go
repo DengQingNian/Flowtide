@@ -89,10 +89,16 @@ func (e *Engine) queryHistoricVariableInstancesFromRowQuery(ctx context.Context,
 	if err != nil {
 		return api.Page[api.HistoricVariableInstance]{}, err
 	}
+	// 内存历史变量以“执行/任务 + 变量名”归属复合键建立索引，map 的键不是历史主键；
+	// 因此先按历史主键建一次索引，再按 SQL 返回的主键顺序装配 DTO。
+	byID := make(map[string]*api.HistoricVariableInstance, len(e.state.HistoricVariables))
+	for _, historic := range e.state.HistoricVariables {
+		byID[historic.ID] = historic
+	}
 	variables := make([]api.HistoricVariableInstance, 0, len(ids))
 	for _, id := range ids {
 		// SQL 结果与内存状态可能短暂不一致，不存在的 ID 直接跳过
-		historic, ok := e.state.HistoricVariables[id]
+		historic, ok := byID[id]
 		if !ok {
 			continue
 		}
