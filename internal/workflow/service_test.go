@@ -13,6 +13,10 @@ import (
 // TestServiceImplementsWorkflowFacade 编译期断言 Service 满足门面接口，并逐一验证
 // 阶段 0 全部方法返回 WORKFLOW-0501"接口未实现"错误与空 R。
 // @param t 测试上下文
+// TestServiceImplementsWorkflowFacade 编译期断言 Service 满足门面接口，
+// 并验证未实现（P2+ 阶段）方法仍返回 WORKFLOW-0501"接口未实现"错误。
+// 已实现方法（发起/办结/查询/变量/表单等）由 facade_test.go 与各域服务测试覆盖。
+// @param t 测试上下文
 func TestServiceImplementsWorkflowFacade(t *testing.T) {
 	var facade api.WorkflowFacade = NewWorkflowService(nil)
 	service, ok := facade.(*Service)
@@ -24,37 +28,14 @@ func TestServiceImplementsWorkflowFacade(t *testing.T) {
 		name string // 用例名
 		call func() (R, error)
 	}{
-		{"StartProcess", func() (R, error) { return service.StartProcess(ctx, &StartProcessInstanceVo{}) }},
-		{"StartProcessAndFirstStep", func() (R, error) { return service.StartProcessAndFirstStep(ctx, &StartProcessInstanceVo{}) }},
-		{"Complete", func() (R, error) { return service.Complete(ctx, &CompleteTaskVo{}) }},
 		{"BackToStepTask", func() (R, error) { return service.BackToStepTask(ctx, &BackTaskVo{}) }},
 		{"BackTask", func() (R, error) { return service.BackTask(ctx, &BackTaskVo{}) }},
 		{"DoRollbackTask", func() (R, error) { return service.DoRollbackTask(ctx, "pi", "task", "u1") }},
 		{"CompleteToTargetActivity", func() (R, error) { return service.CompleteToTargetActivity(ctx, &CompleteTaskVo{}) }},
 		{"DoResetProcess", func() (R, error) { return service.DoResetProcess(ctx, "pi", "u1") }},
-		{"GetTodoTaskListByIdentityID", func() (R, error) { return service.GetTodoTaskListByIdentityID(ctx, "u1", PageQuery{}) }},
-		{"GetDoneTaskListByIdentityID", func() (R, error) { return service.GetDoneTaskListByIdentityID(ctx, "u1", PageQuery{}) }},
 		{"GetNextUserTaskAndUserList", func() (R, error) { return service.GetNextUserTaskAndUserList(ctx, "task") }},
-		{"SaveAgreeNextActivity", func() (R, error) { return service.SaveAgreeNextActivity(ctx, &NextActivityRequest{}) }},
-		{"IsProcessDeployed", func() (R, error) { return service.IsProcessDeployed(ctx, "sys", "key") }},
-		{"IsExistRunningProcess", func() (R, error) { return service.IsExistRunningProcess(ctx, "sys", "key", "biz") }},
-		{"GetWorkflowStatusByBusinessID", func() (R, error) { return service.GetWorkflowStatusByBusinessID(ctx, "sys", "key", "biz") }},
-		{"UpdateProcessGlobalVariable", func() (R, error) { return service.UpdateProcessGlobalVariable(ctx, "pi", map[string]any{}) }},
-		{"GetProcessGlobalVariableByProcessInstanceID", func() (R, error) { return service.GetProcessGlobalVariableByProcessInstanceID(ctx, "pi", nil) }},
-		{"GetProcessGlobalVariableByBusinessID", func() (R, error) { return service.GetProcessGlobalVariableByBusinessID(ctx, "sys", "biz", nil) }},
-		{"UpdateWorkflowDocumentByProcessInstanceIDOrTaskID", func() (R, error) {
-			return service.UpdateWorkflowDocumentByProcessInstanceIDOrTaskID(ctx, "pi", "task", nil)
-		}},
 		{"DoTaskOwnerAdjustment", func() (R, error) { return service.DoTaskOwnerAdjustment(ctx, "pi", "key", "u1", "u2", "op") }},
 		{"DoTaskOwnerAdjustmentByID", func() (R, error) { return service.DoTaskOwnerAdjustmentByID(ctx, "task", "u2", "op") }},
-		{"GetTaskMessageListByBusinessID", func() (R, error) { return service.GetTaskMessageListByBusinessID(ctx, "sys", "biz") }},
-		{"GetTaskHistoryListByProcessInstanceID", func() (R, error) { return service.GetTaskHistoryListByProcessInstanceID(ctx, "pi") }},
-		{"GetTaskHistoryListByBusinessID", func() (R, error) { return service.GetTaskHistoryListByBusinessID(ctx, "sys", "biz") }},
-		{"GetTaskHistoryListByTaskID", func() (R, error) { return service.GetTaskHistoryListByTaskID(ctx, "task") }},
-		{"GetTaskInfoByTaskID", func() (R, error) { return service.GetTaskInfoByTaskID(ctx, "task") }},
-	}
-	if len(cases) != 26 {
-		t.Fatalf("门面方法应覆盖 26 个，实际用例 %d 个", len(cases))
 	}
 	for _, c := range cases {
 		r, err := c.call()
