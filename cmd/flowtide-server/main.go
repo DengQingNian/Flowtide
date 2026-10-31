@@ -13,8 +13,10 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/DengQingNian/Flowtide/internal/clock"
 	"github.com/DengQingNian/Flowtide/internal/engine"
 	"github.com/DengQingNian/Flowtide/internal/rest"
+	"github.com/DengQingNian/Flowtide/internal/workflow"
 )
 
 // main 解析参数并启动服务。
@@ -130,6 +132,24 @@ func main() {
 		}
 		options = append(options, rest.WithClientCertificateIdentity())
 	}
+	// workflow 门面（/workflow/** 与管理台工作流页面数据面）：
+	// 行仓储模式走 SQL 存储，内存/快照模式走内存存储
+	wfOpts := []workflow.Option{workflow.WithClock(clock.Real{})}
+	if setup.WFStore != nil {
+		wfOpts = append(wfOpts, workflow.WithSQLStores(setup.WFStore, nil))
+	}
+	wfSvc := workflow.NewWorkflowService(app, wfOpts...)
+	// 执行人重写全局钩子（TASK_CREATED 回填预存执行人）
+	if err := wfSvc.RegisterExecutorRewriteHook(context.Background()); err != nil {
+		slog.Warn("执行人重写钩子预热告警", "error", err)
+	}
+	// 后台调度（自动办结/超时提醒/催办扫描/僵尸监控），优雅停机时停止
+	schedCtx, stopSched := context.WithCancel(context.Background())
+	defer stopSched()
+	wfSvc.StartSchedulers(schedCtx)
+	defer wfSvc.StopSchedulers()
+	options = append(options, rest.WithWorkflowService(wfSvc))
+
 	server := &http.Server{
 		Addr:              *addr,
 		Handler:           rest.New(app, options...).Handler(),
