@@ -3,6 +3,7 @@ package workflow
 import (
 	"context"
 	"database/sql"
+	"log/slog"
 
 	"github.com/DengQingNian/Flowtide/api"
 	"github.com/DengQingNian/Flowtide/internal/clock"
@@ -106,6 +107,13 @@ type Service struct {
 
 // 编译期断言：Service 必须满足 api.WorkflowFacade 门面契约。
 var _ api.WorkflowFacade = (*Service)(nil)
+
+// logWarn 输出装配期/部署期告警日志，避免非致命失败被静默吞掉。
+// @param msg 日志消息
+// @param args 键值对参数
+func (s *Service) logWarn(msg string, args ...any) {
+	slog.Warn(msg, args...)
+}
 
 // NewWorkflowService 创建 workflow 门面服务。
 // @param engine 引擎门面（七服务）

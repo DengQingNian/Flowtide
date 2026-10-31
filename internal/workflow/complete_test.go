@@ -241,8 +241,9 @@ func TestComplete_WeightCountersign(t *testing.T) {
 	// alice 通过：累计 +2.5
 	instance, wtask := fx.start(t, "flowWeight", "biz-w1", "alice")
 	if _, err := fx.complete.Complete(ctxB, &api.CompleteTaskVo{
-		BaseProcessVo:     api.BaseProcessVo{TaskID: wtask.ID, UserCode: "alice", Message: "通过"},
-		CountersignResult: 1,
+		BaseProcessVo:        api.BaseProcessVo{TaskID: wtask.ID, UserCode: "alice", Message: "通过"},
+		CountersignResult:    1,
+		CountersignResultSet: true,
 	}); err != nil {
 		t.Fatalf("权重办结失败: %v", err)
 	}
@@ -252,8 +253,9 @@ func TestComplete_WeightCountersign(t *testing.T) {
 	// alice 否决：累计 -1
 	instance2, wtask2 := fx.start(t, "flowWeight", "biz-w2", "alice")
 	if _, err := fx.complete.Complete(ctxB, &api.CompleteTaskVo{
-		BaseProcessVo:     api.BaseProcessVo{TaskID: wtask2.ID, UserCode: "alice", Message: "否决"},
-		CountersignResult: 0,
+		BaseProcessVo:        api.BaseProcessVo{TaskID: wtask2.ID, UserCode: "alice", Message: "否决"},
+		CountersignResult:    0,
+		CountersignResultSet: true,
 	}); err != nil {
 		t.Fatalf("权重办结失败: %v", err)
 	}
@@ -263,8 +265,9 @@ func TestComplete_WeightCountersign(t *testing.T) {
 	// bob 通过（仅通过权重）：累计 +1
 	_, wtask3 := fx.start(t, "flowWeight", "biz-w3", "bob")
 	if _, err := fx.complete.Complete(ctxB, &api.CompleteTaskVo{
-		BaseProcessVo:     api.BaseProcessVo{TaskID: wtask3.ID, UserCode: "bob", Message: "通过"},
-		CountersignResult: 1,
+		BaseProcessVo:        api.BaseProcessVo{TaskID: wtask3.ID, UserCode: "bob", Message: "通过"},
+		CountersignResult:    1,
+		CountersignResultSet: true,
 	}); err != nil {
 		t.Fatalf("权重办结失败: %v", err)
 	}
@@ -283,8 +286,9 @@ func TestComplete_WeightCountersign(t *testing.T) {
 	for _, tc := range errorCases {
 		_, broken := fx.start(t, "flowWeight", "biz-err-"+tc.initiator, tc.initiator)
 		_, err := fx.complete.Complete(ctxB, &api.CompleteTaskVo{
-			BaseProcessVo:     api.BaseProcessVo{TaskID: broken.ID, UserCode: tc.initiator, Message: "x"},
-			CountersignResult: tc.resultValue,
+			BaseProcessVo:        api.BaseProcessVo{TaskID: broken.ID, UserCode: tc.initiator, Message: "x"},
+			CountersignResult:    tc.resultValue,
+			CountersignResultSet: true,
 		})
 		if err == nil || !strings.Contains(err.Error(), tc.want) {
 			t.Fatalf("%s/%d: 期望错误含 %q，实际 %v", tc.initiator, tc.resultValue, tc.want, err)
@@ -303,8 +307,9 @@ func TestComplete_NonWeightNodeSkipsCountersign(t *testing.T) {
 	instance, apply := fx.start(t, "flowComplete", "biz-nw", "alice")
 	fx.seedFirstTodo(t, instance, apply)
 	if _, err := fx.complete.Complete(ctxB, &api.CompleteTaskVo{
-		BaseProcessVo:     api.BaseProcessVo{TaskID: apply.ID, UserCode: "alice", Message: "普通办结"},
-		CountersignResult: 1,
+		BaseProcessVo:        api.BaseProcessVo{TaskID: apply.ID, UserCode: "alice", Message: "普通办结"},
+		CountersignResult:    1,
+		CountersignResultSet: true,
 	}); err != nil {
 		t.Fatalf("普通办结失败: %v", err)
 	}

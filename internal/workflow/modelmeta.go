@@ -31,21 +31,39 @@ type MultiInstanceMeta struct {
 
 // UserTaskMeta 是用户任务节点的模型元数据摘要，供执行人重写/推演/会签消费。
 type UserTaskMeta struct {
-	ActivityID               string             // 节点 ID（= TaskDefinitionKey）
-	ActivityName             string             // 节点名称
-	Assignee                 string             // 处理人表达式（原样）
-	CandidateUsers           []string           // 候选用户表达式
-	CandidateGroups          []string           // 候选组表达式
-	StepCode                 string             // 步骤代号扩展属性
-	ExecutorType             string             // 执行类型扩展属性（person/org/role）
-	ExecutorNumType          string             // 执行数量类型扩展属性（single/multi）
-	ExecutorListRaw          string             // executorList 原始串（JSON 数组或逗号分隔）
-	WeightType               string             // 会签权重类型：average/custom
-	WeightThreshold          string             // 权重阈值（表达式或数值）
-	WeightListRaw            string             // weightList 原始串（按身份的权重 JSON）
-	Documentation            string             // 文档说明
-	MultiInstance            *MultiInstanceMeta // 多实例配置，非会签节点为 nil
-	ExecutionListenerClasses []string           // 节点执行监听器注册名（部署校验用）
+	ActivityID                string             // 节点 ID（= TaskDefinitionKey）
+	ActivityName              string             // 节点名称
+	Assignee                  string             // 处理人表达式（原样）
+	CandidateUsers            []string           // 候选用户表达式
+	CandidateGroups           []string           // 候选组表达式
+	StepCode                  string             // 步骤代号扩展属性
+	ExecutorType              string             // 执行类型扩展属性（person/org/role）
+	ExecutorNumType           string             // 执行数量类型扩展属性（single/multi）
+	ExecutorListRaw           string             // executorList 原始串（JSON 数组或逗号分隔）
+	WeightType                string             // 会签权重类型：average/custom
+	WeightThreshold           string             // 权重阈值（表达式或数值）
+	WeightListRaw             string             // weightList 原始串（按身份的权重 JSON）
+	Documentation             string             // 文档说明
+	MultiInstance             *MultiInstanceMeta // 多实例配置，非会签节点为 nil
+	ExecutionListenerClasses  []string           // 节点执行监听器注册名（部署校验用）
+	BusinessCallbackRaw       string             // 业务回调开关扩展属性原始值（"true" 启用）
+	BusinessCallbackParamsRaw string             // 业务回调 params 扩展属性原始串（"k:v;k:v"）
+}
+
+// BusinessCallbackEnabled 节点是否声明了业务回调。
+// @return 是否启用回调
+func (m *UserTaskMeta) BusinessCallbackEnabled() bool {
+	return m != nil && strings.EqualFold(strings.TrimSpace(m.BusinessCallbackRaw), "true")
+}
+
+// BusinessCallbackParams 返回回调报文的 params 原始串。
+// 节点未单独声明 params 时回退节点 Documentation（Java paramMap 取自扩展属性）。
+// @return params 串
+func (m *UserTaskMeta) BusinessCallbackParams() string {
+	if m == nil {
+		return ""
+	}
+	return m.BusinessCallbackParamsRaw
 }
 
 // ModelMetaService 读取部署定义的 BPMN 模型元数据。
@@ -201,6 +219,9 @@ func userTaskMetaOf(task *model.UserTask) *UserTaskMeta {
 		meta.WeightType = extensions.Attr("weightType")
 		meta.WeightThreshold = extensions.Attr("weightThreshold")
 		meta.WeightListRaw = extensions.Attr("weightList")
+		// 业务回调属性（016 号审计：D5 回调能力此前无消费方）
+		meta.BusinessCallbackRaw = extensions.Attr(AttrBusinessCallback)
+		meta.BusinessCallbackParamsRaw = extensions.Attr(AttrBusinessCallbackParams)
 	}
 	if task.LoopCharacteristics != nil {
 		meta.MultiInstance = &MultiInstanceMeta{

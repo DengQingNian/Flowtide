@@ -27,6 +27,7 @@ type capabilityStores struct {
 	reviews       ReviewTaskStore         // 审阅影子任务存储（P5.B）
 	extends       ActExtendStore          // 审阅人绑定（活动扩展）存储（P5.B）
 	weights       CountersignWeightStore  // 会签权重存储（/weight 接口数据，nil 时仅模型 weightList）
+	businesses    BusinessSystemStore     // 业务系统注册存储（业务回调按 tenantId 查回调地址，nil 时回调停用）
 }
 
 // assembleCapabilities 在基础组件之上装配 P2-C/P3/P4/P5 能力子服务与调度器。
@@ -60,9 +61,20 @@ func assembleCapabilities(comp *components, engine api.Engine, stores capability
 	// ── P3.A 加签减签与会签 ──
 	comp.addSign = NewAddSignService(engine, comp.comments, comp.operations, comp.messages, comp.histories, c).
 		WithAddSignUsers(engine.IdentityService())
-	counterOpts := make([]CountersignOption, 0, 1)
+	// 会签选项：权重存储 + next_activity 执行者来源 + 比例退回规则端口。
+	// 016 号审计：此前生产仅注入权重，导致比例退回恒 disabled（percentReturnRule 直接返回
+	// 未启用）、next_activity 预存覆盖失效（执行者退回模型默认），与文档 011 声称不符。
+	// 成员查询（WithCountersignMembers）按 Java ProcessesUtil.getExecutorMap 语义故意不注入：
+	// Java 在集合配置阶段不展开 org/role，保留组 ID；展开发生在推演器阶段。
+	counterOpts := make([]CountersignOption, 0, 3)
 	if stores.weights != nil {
 		counterOpts = append(counterOpts, WithCountersignWeights(stores.weights))
+	}
+	if comp.nextSvc != nil {
+		counterOpts = append(counterOpts, WithCountersignNext(comp.nextSvc))
+	}
+	if comp.steps != nil {
+		counterOpts = append(counterOpts, WithCountersignRules(comp.steps))
 	}
 	comp.counter = NewCountersignService(engine, comp.meta, counterOpts...)
 	// ── P5.B 下一步推演器（注入步骤规则 → 退回模式分支可用）──
@@ -76,6 +88,17 @@ func assembleCapabilities(comp *components, engine api.Engine, stores capability
 	comp.delegate = NewDelegateRuleService(stores.delegate, stores.mirrors, comp.messages, comp.nextSvc,
 		comp.operations, engine, engine.IdentityService(), nopCategoryLookup{}, c)
 	comp.exception = NewExceptionService(stores.exceptions, c)
+	// ── P1-C 业务系统注册与业务回调（016 号审计：此前业务系统存储未装配，
+	// CallbackClient 在生产代码零调用点，D5"回调失败→异常表→管理台重发"实际不生效）──
+	comp.businesses = stores.businesses
+	if stores.businesses != nil {
+		callbackOpts := make([]CallbackOption, 0, 1)
+		// 回调失败经 ExceptionRecorder 落 workflow_task_exception
+		if stores.exceptions != nil {
+			callbackOpts = append(callbackOpts, WithCallbackRecorder(NewCallbackExceptionRecorder(comp.exception)))
+		}
+		comp.bizCallback = NewBusinessCallbackHook(comp.meta, NewCallbackClient(stores.businesses, callbackOpts...))
+	}
 	// 调度规则/步骤解析/渠道来源接设计时步骤数据（P5-A 落地后替换为真实现）
 	comp.remind = NewRemindService(stores.reminds, stores.remindTargets, stores.todos,
 		NopScheduleRuleProvider{}, NopChannelProvider{}, nopStepResolver{},

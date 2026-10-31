@@ -143,6 +143,15 @@ func main() {
 	if err := wfSvc.RegisterExecutorRewriteHook(context.Background()); err != nil {
 		slog.Warn("执行人重写钩子预热告警", "error", err)
 	}
+	// 会签执行监听器注册与节点元数据预热（016 号审计：此前无生产调用点，
+	// 会签集合配置/权重监听器永不触发、比例退回恒 disabled）
+	if err := wfSvc.RegisterCountersignRuntime(context.Background()); err != nil {
+		slog.Warn("会签运行时注册告警", "error", err)
+	}
+	// 业务回调全局钩子（TASK_CREATED → 锁外 HTTP 回调 + 失败落异常表，D5）
+	if err := wfSvc.RegisterBusinessCallbackHook(context.Background()); err != nil {
+		slog.Warn("业务回调钩子预热告警", "error", err)
+	}
 	// 后台调度（自动办结/超时提醒/催办扫描/僵尸监控），优雅停机时停止
 	schedCtx, stopSched := context.WithCancel(context.Background())
 	defer stopSched()

@@ -6,11 +6,12 @@ import (
 )
 
 // 引擎（001）脚本的校验和基准：一旦变化说明 001 被改动，既有库的升级校验会被破坏。
-// MySQL 基准在阶段 0（382dfb4）重写 LoadFile 归一化加载后与旧值失配（001 文件本身自
-// 0644acf 引入后从未改动），按当前加载语义重算基准。
+// 基准值 = 001 脚本原始内容的 SHA-256（自 0644acf 引入后 001 文件从未改动）。
+// 57973e4 / 1206d0a 两次"重算基准"填入的值与任一 001 文件均不匹配，属误改；016 号
+// 审计记录已把基准恢复为经实测确认的真实值。
 const (
-	engineChecksumMySQL    = "f8a484fcd6d3fb466d310ef501fa28d29527d5e8b8cfc67f8baa4b45404c7660"
-	engineChecksumPostgres = "f57f3ce6daab1a9fdce9a6a9c43ba36be6238ddb3eeade24a0e30c7751f9ff41"
+	engineChecksumMySQL    = "b684b4038eab32a2c08983fb54216072f954c424117f5c6b57563a9ddb941ae4"
+	engineChecksumPostgres = "6a0feefe5383945366893e0c5395785eb2abd1f04225c99f5f0584b394ed34ea"
 )
 
 // TestLoad 验证两种方言的引擎 Schema 加载。
