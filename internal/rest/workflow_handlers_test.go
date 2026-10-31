@@ -765,6 +765,158 @@ func TestWorkflowHandlersDelegateRemindExceptionDict(t *testing.T) {
 	requireWorkflowBizFail(t, unknownDict)
 }
 
+// TestWorkflowHandlersExtraCapabilities 覆盖门面收尾能力端点：
+// 审阅绑定（extend）、会签权重（weight）、批量挂起激活、签收/委派处理（claim/resolve）、
+// 实例分页、身份树与操作按钮清单，含参数缺失反例。
+// @param t 测试上下文
+func TestWorkflowHandlersExtraCapabilities(t *testing.T) {
+	env := newWorkflowFacadeEnv(t)
+	base := env.server.URL
+
+	// ── 审阅绑定：保存（正例 + 空参反例）→ 按节点查 → 按定义查（缺 Key 反例）──
+	extendSave := doWorkflowJSON(t, http.MethodPost, base+"/workflow/extend/save?tenantId=bizA",
+		`{"activityId":"apply","activityName":"申请","processDefinitionKey":"facadeProc",`+
+			`"ownerType":"person","ownerValue":"u2","stepId":"step-1"}`)
+	requireWorkflowOK(t, extendSave)
+	missingExtendSave := doWorkflowJSON(t, http.MethodPost, base+"/workflow/extend/save?tenantId=bizA", `{}`)
+	requireWorkflowBizFail(t, missingExtendSave)
+	extendByNode, err := http.Get(base + "/workflow/extend/getActByProcessDefKeyAndActId?tenantId=bizA&processDefinitionKey=facadeProc&activityId=apply")
+	if err != nil {
+		t.Fatalf("按节点查绑定失败: %v", err)
+	}
+	extendByNodeBody := requireWorkflowOK(t, extendByNode)
+	if list := rDataSlice(t, extendByNodeBody); len(list) != 1 {
+		t.Fatalf("按节点绑定应为 1: %+v", extendByNodeBody)
+	}
+	extendAll, err := http.Get(base + "/workflow/extend/getActByProcessDefKeyAndActId?tenantId=bizA&processDefinitionKey=facadeProc")
+	if err != nil {
+		t.Fatalf("按定义查绑定失败: %v", err)
+	}
+	requireWorkflowOK(t, extendAll)
+	missingExtendList, err := http.Get(base + "/workflow/extend/getActByProcessDefKeyAndActId?tenantId=bizA")
+	if err != nil {
+		t.Fatalf("请求失败: %v", err)
+	}
+	requireWorkflowParamFail(t, missingExtendList)
+
+	// ── 会签权重：保存（正例 + 空参反例）→ 查询（缺 activityId 反例）──
+	weightSave := doWorkflowJSON(t, http.MethodPost, base+"/workflow/weight/save?tenantId=bizA",
+		`{"processDefinitionKey":"facadeProc","activityId":"apply","tenantId":"bizA",`+
+			`"configs":[{"identityId":"u1","agreeWeight":1,"rejectWeight":2},{"identityId":"u2","agreeWeight":1}]}`)
+	requireWorkflowOK(t, weightSave)
+	missingWeightSave := doWorkflowJSON(t, http.MethodPost, base+"/workflow/weight/save?tenantId=bizA", `{}`)
+	requireWorkflowBizFail(t, missingWeightSave)
+	weightList, err := http.Get(base + "/workflow/weight/getWeightByProcessDefKeyAndActId?tenantId=bizA&processDefinitionKey=facadeProc&activityId=apply")
+	if err != nil {
+		t.Fatalf("权重查询失败: %v", err)
+	}
+	weightBody := requireWorkflowOK(t, weightList)
+	if weights := rDataSlice(t, weightBody); len(weights) != 2 {
+		t.Fatalf("权重配置应为 2: %+v", weightBody)
+	}
+	missingWeightList, err := http.Get(base + "/workflow/weight/getWeightByProcessDefKeyAndActId?tenantId=bizA&processDefinitionKey=facadeProc")
+	if err != nil {
+		t.Fatalf("请求失败: %v", err)
+	}
+	requireWorkflowParamFail(t, missingWeightList)
+
+	// ── 批量挂起/激活（正例 + 空 ids 反例；引擎侧断言状态翻转）──
+	instanceID, taskID := workflowApply(t, env, "BIZ-301")
+	batchSuspend := doWorkflowJSON(t, http.MethodPost, base+"/workflow/process/suspend/processes?tenantId=bizA&operator=u1",
+		`{"processInstanceIds":["`+instanceID+`",""]}`)
+	batchSuspendBody := requireWorkflowOK(t, batchSuspend)
+	if suspended := rDataMap(t, batchSuspendBody)["suspended"]; suspended != float64(1) {
+		t.Fatalf("批量挂起数应为 1: %+v", batchSuspendBody)
+	}
+	ctx := tenant.With(context.Background(), "bizA")
+	pending, err := env.engine.RuntimeService().GetProcessInstance(ctx, instanceID)
+	if err != nil || !pending.Suspended {
+		t.Fatalf("实例应为挂起态: %+v err=%v", pending, err)
+	}
+	batchActivate := doWorkflowJSON(t, http.MethodPost, base+"/workflow/process/activate/processes?tenantId=bizA",
+		`{"processInstanceIds":["`+instanceID+`"],"operator":"u1"}`)
+	requireWorkflowOK(t, batchActivate)
+	restored, err := env.engine.RuntimeService().GetProcessInstance(ctx, instanceID)
+	if err != nil || restored.Suspended {
+		t.Fatalf("实例应为激活态: %+v err=%v", restored, err)
+	}
+	missingBatch := doWorkflowJSON(t, http.MethodPost, base+"/workflow/process/suspend/processes?tenantId=bizA", `{}`)
+	requireWorkflowParamFail(t, missingBatch)
+	missingActivateBatch := doWorkflowJSON(t, http.MethodPost, base+"/workflow/process/activate/processes?tenantId=bizA", `{}`)
+	requireWorkflowParamFail(t, missingActivateBatch)
+
+	// ── 签收（正例 + 缺 taskId 反例 + 缺 userId 业务反例）──
+	claim := doWorkflowJSON(t, http.MethodPost, base+"/workflow/process/claim/task?tenantId=bizA",
+		`{"taskId":"`+taskID+`","userId":"u1"}`)
+	requireWorkflowOK(t, claim)
+	missingClaim := doWorkflowJSON(t, http.MethodPost, base+"/workflow/process/claim/task?tenantId=bizA", `{}`)
+	requireWorkflowParamFail(t, missingClaim)
+	claimNoUser := doWorkflowJSON(t, http.MethodPost, base+"/workflow/process/claim/task?tenantId=bizA",
+		`{"taskId":"`+taskID+`"}`)
+	requireWorkflowBizFail(t, claimNoUser)
+
+	// ── 委派处理（引擎委派给 u2 后由 u1 恢复；正例 + 缺 taskId 反例）──
+	if err := env.engine.TaskService().Delegate(ctx, taskID, "u2"); err != nil {
+		t.Fatalf("引擎委派失败: %v", err)
+	}
+	resolve := doWorkflowJSON(t, http.MethodPost, base+"/workflow/process/resolve/task?tenantId=bizA",
+		`{"taskId":"`+taskID+`","userId":"u1"}`)
+	requireWorkflowOK(t, resolve)
+	resolved, err := env.engine.TaskService().GetTask(ctx, taskID)
+	// Flowable 语义：resolve 后处理人恢复为所有者，委派态置为 RESOLVED
+	if err != nil || resolved.Assignee != "u1" || resolved.DelegationState != "RESOLVED" {
+		t.Fatalf("委派处理未恢复所有者: %+v err=%v", resolved, err)
+	}
+	missingResolve := doWorkflowJSON(t, http.MethodPost, base+"/workflow/process/resolve/task?tenantId=bizA", `{}`)
+	requireWorkflowParamFail(t, missingResolve)
+
+	// ── 实例分页（正例：total≥1 且含当前实例）──
+	instancePage, err := http.Get(base + "/workflow/process/instance/all/list?tenantId=bizA&start=0&size=10")
+	if err != nil {
+		t.Fatalf("实例分页失败: %v", err)
+	}
+	pageBody := requireWorkflowOK(t, instancePage)
+	pageData := rDataMap(t, pageBody)
+	if total, _ := pageData["total"].(float64); total < 1 {
+		t.Fatalf("实例分页 total 应≥1: %+v", pageData)
+	}
+	if items, _ := pageData["data"].([]any); len(items) == 0 {
+		t.Fatalf("实例分页应含数据: %+v", pageData)
+	}
+
+	// ── 身份树（正例：预置 u1/u2 未分组节点）──
+	tree, err := http.Get(base + "/workflow/identity/tree")
+	if err != nil {
+		t.Fatalf("身份树失败: %v", err)
+	}
+	treeBody := requireWorkflowOK(t, tree)
+	if nodes := rDataSlice(t, treeBody); len(nodes) == 0 {
+		t.Fatalf("身份树不应为空: %+v", treeBody)
+	}
+
+	// ── 操作按钮清单（运行中 → stop 首位；软终止后 → reactivate 首位）──
+	buttons, err := http.Get(base + "/workflow/task/operationButtonList/" + instanceID + "?tenantId=bizA")
+	if err != nil {
+		t.Fatalf("操作按钮失败: %v", err)
+	}
+	buttonsBody := requireWorkflowOK(t, buttons)
+	runningButtons := rDataSlice(t, buttonsBody)
+	if len(runningButtons) == 0 || runningButtons[0] != "stop" {
+		t.Fatalf("运行中实例按钮不符: %+v", buttonsBody)
+	}
+	stop := doWorkflowJSON(t, http.MethodPost, base+"/workflow/process/stop/processInstance/"+instanceID+"?tenantId=bizA&operator=u1&message=%E4%BD%9C%E5%BA%9F", "")
+	requireWorkflowOK(t, stop)
+	endedButtons, err := http.Get(base + "/workflow/task/operationButtonList/" + instanceID + "?tenantId=bizA")
+	if err != nil {
+		t.Fatalf("已结束实例按钮失败: %v", err)
+	}
+	endedBody := requireWorkflowOK(t, endedButtons)
+	ended := rDataSlice(t, endedBody)
+	if len(ended) == 0 || ended[0] != "reactivate" {
+		t.Fatalf("已结束实例按钮不符: %+v", endedBody)
+	}
+}
+
 // TestWorkflowHandlersRetainedStub501 验证服务注入后保留 501 的端点仍为桩响应。
 // @param t 测试上下文
 func TestWorkflowHandlersRetainedStub501(t *testing.T) {
@@ -773,26 +925,21 @@ func TestWorkflowHandlersRetainedStub501(t *testing.T) {
 		method string // HTTP 方法
 		path   string // 端点路径
 	}{
-		{http.MethodPost, "/workflow/process/add/model"},             // P6 设计器
-		{http.MethodGet, "/workflow/process/getModelJsonByType"},     // P6 设计器
-		{http.MethodGet, "/workflow/process/instance/list"},          // Service 无实例分页
-		{http.MethodPost, "/workflow/process/suspend/processes"},     // Service 无批量挂起
-		{http.MethodPost, "/workflow/process/activate/processes"},    // Service 无批量激活
-		{http.MethodPost, "/workflow/process/public/model/id"},       // P6 发布族
-		{http.MethodPost, "/workflow/process/delegate/task"},         // 引擎委托语义，与规则 CRUD 不同
-		{http.MethodPost, "/workflow/process/resolve/task"},          // Service 无签收能力
-		{http.MethodPost, "/workflow/process/claim/task"},            // Service 无签收能力
-		{http.MethodPost, "/workflow/process/inject/node"},           // P6 节点注入
-		{http.MethodPost, "/workflow/process/wait/node/list"},        // P6 等待节点
-		{http.MethodGet, "/workflow/model/getUserTaskJsonInfo"},      // P6 设计器元数据
-		{http.MethodGet, "/workflow/model/findModelAndStepPageList"}, // P6 联合分页
-		{http.MethodGet, "/workflow/step/findById"},                  // P6 步骤主键查询
-		{http.MethodPost, "/workflow/hisstep/add"},                   // 快照只读
-		{http.MethodPost, "/workflow/extend/save"},                   // 审阅绑定属域服务内部端口
-		{http.MethodGet, "/workflow/extend/getActByProcessDefKeyAndActId"},
-		{http.MethodPost, "/workflow/weight/save"},                  // 会签权重属域服务内部端口
-		{http.MethodGet, "/workflow/task/operationButtonList/pi-1"}, // Service 无按钮聚合
-		{http.MethodGet, "/workflow/identity/tree"},                 // D10 身份库树另行评估
+		{http.MethodPost, "/workflow/process/add/model"},                 // P6 设计器
+		{http.MethodGet, "/workflow/process/getModelJsonByType"},         // P6 设计器
+		{http.MethodGet, "/workflow/process/instance/list"},              // 仅 instance/all/list 已接线
+		{http.MethodPost, "/workflow/process/public/model/id"},           // P6 发布族
+		{http.MethodPost, "/workflow/process/public/deploymentId"},       // P6 发布族
+		{http.MethodPost, "/workflow/process/delegate/task"},             // 引擎委托语义，与规则 CRUD 不同
+		{http.MethodPost, "/workflow/process/inject/node"},               // P6 节点注入
+		{http.MethodPost, "/workflow/process/wait/node/list"},            // P6 等待节点
+		{http.MethodGet, "/workflow/model/getUserTaskJsonInfo"},          // P6 设计器元数据
+		{http.MethodGet, "/workflow/model/getProcessDefinitionJsonInfo"}, // P6 设计器元数据
+		{http.MethodGet, "/workflow/model/findModelAndStepPageList"},     // P6 联合分页
+		{http.MethodGet, "/workflow/step/findById"},                      // P6 步骤主键查询
+		{http.MethodPost, "/workflow/hisstep/add"},                       // 快照只读
+		{http.MethodDelete, "/workflow/hisstep/delete/h1"},               // 快照只读
+		{http.MethodPost, "/workflow/weight/delete"},                     // 权重整存整取，无单独删除语义
 	}
 	for _, testCase := range cases {
 		response := doWorkflowJSON(t, testCase.method, env.server.URL+testCase.path, "")
@@ -972,6 +1119,7 @@ func TestWorkflowHandlersDefensiveBranches(t *testing.T) {
 		{"催办详情缺主键", server.handleWorkflowRemindGet, http.MethodGet, "/workflow/remind/getWorkflowRemind/", ""},
 		{"催办删除缺主键", server.handleWorkflowRemindDelete, http.MethodDelete, "/workflow/remind/delete/", ""},
 		{"异常处理缺主键", server.handleWorkflowExceptionDelete, http.MethodDelete, "/workflow/exception/delete/", ""},
+		{"操作按钮缺主键", server.handleWorkflowOperationButtons, http.MethodGet, "/workflow/task/operationButtonList/", ""},
 		{"已办缺身份", server.handleWorkflowDoneList, http.MethodGet, "/workflow/process/task/all/doneList", ""},
 		{"发起体非法", server.handleWorkflowApplyTask, http.MethodPost, "/workflow/process/apply/task", `{"title":123}`},
 	}
