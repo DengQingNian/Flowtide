@@ -541,6 +541,69 @@ func (s *Service) GetNextUserTaskAndUserListByKey(ctx context.Context, tenantID,
 
 // ─── P4 委托规则门面 ────────────────────────────────────────
 
+// DoTaskOwnerAdjustment 按节点调整运行中任务的处理人（遍历实例下该节点任务逐个改写）。
+// @param ctx 上下文
+// @param processInstanceID 流程实例 ID
+// @param taskKey 目标节点 Key
+// @param fromOwner 原处理人，空表示不限
+// @param toOwner 新处理人
+// @param operator 操作人身份 Id
+// @return 统一返回（data 含调整任务数）
+// @return 错误
+func (s *Service) DoTaskOwnerAdjustment(ctx context.Context, processInstanceID, taskKey, fromOwner, toOwner, operator string) (R, error) {
+	if err := requireCapable(s.comp); err != nil {
+		return R{}, err
+	}
+	// 实例下任务逐个比对节点 Key 与原处理人（空 fromOwner 不限）
+	page, err := s.engine.TaskService().ListTasks(ctx, api.TaskFilter{ProcessInstanceID: processInstanceID, Size: 100})
+	if err != nil {
+		return R{}, err
+	}
+	adjusted := 0
+	for _, task := range page.Data {
+		if task.TaskDefinitionKey != taskKey {
+			continue
+		}
+		if fromOwner != "" && task.Assignee != fromOwner {
+			continue
+		}
+		keep := false
+		if err := s.comp.delegate.AdjustTaskOwner(ctx, AdjustOwnerRequest{
+			TaskID: task.ID, CurrentOwnerID: task.Assignee, UserCode: operator,
+			OwnerIDs: []string{toOwner}, KeepCurrentTask: &keep,
+		}); err != nil {
+			return R{}, err
+		}
+		adjusted++
+	}
+	return ROkMsg("调整成功", map[string]any{"adjusted": adjusted}), nil
+}
+
+// DoTaskOwnerAdjustmentByID 按任务 ID 调整处理人。
+// @param ctx 上下文
+// @param taskID 任务 ID
+// @param toOwner 新处理人
+// @param operator 操作人身份 Id
+// @return 统一返回
+// @return 错误
+func (s *Service) DoTaskOwnerAdjustmentByID(ctx context.Context, taskID, toOwner, operator string) (R, error) {
+	if err := requireCapable(s.comp); err != nil {
+		return R{}, err
+	}
+	task, err := s.engine.TaskService().GetTask(ctx, taskID)
+	if err != nil {
+		return R{}, api.NewError("WORKFLOW-0404", "任务不存在", err)
+	}
+	keep := false
+	if err := s.comp.delegate.AdjustTaskOwner(ctx, AdjustOwnerRequest{
+		TaskID: taskID, CurrentOwnerID: task.Assignee, UserCode: operator,
+		OwnerIDs: []string{toOwner}, KeepCurrentTask: &keep,
+	}); err != nil {
+		return R{}, err
+	}
+	return ROkMsg("调整成功", nil), nil
+}
+
 // AddDelegateTask 新增委托规则。
 // @param ctx 上下文
 // @param rule 委托规则（Create 时 ID 可为空由存储生成）

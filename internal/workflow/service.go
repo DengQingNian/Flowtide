@@ -341,30 +341,6 @@ func (s *Service) UpdateWorkflowDocumentByProcessInstanceIDOrTaskID(ctx context.
 	return s.updateDocumentInternal(ctx, processInstanceID, taskID)
 }
 
-// DoTaskOwnerAdjustment 按节点调整处理人（P4 实现）。
-// @param ctx 上下文
-// @param processInstanceID 流程实例 ID
-// @param taskKey 目标节点 Key
-// @param fromOwner 原处理人，空表示不限
-// @param toOwner 新处理人
-// @param operator 操作人身份 Id
-// @return 统一返回
-// @return 未实现错误
-func (s *Service) DoTaskOwnerAdjustment(ctx context.Context, processInstanceID, taskKey, fromOwner, toOwner, operator string) (R, error) {
-	return stub()
-}
-
-// DoTaskOwnerAdjustmentByID 按任务 ID 调整处理人（P4 实现）。
-// @param ctx 上下文
-// @param taskID 任务 ID
-// @param toOwner 新处理人
-// @param operator 操作人身份 Id
-// @return 统一返回
-// @return 未实现错误
-func (s *Service) DoTaskOwnerAdjustmentByID(ctx context.Context, taskID, toOwner, operator string) (R, error) {
-	return stub()
-}
-
 // GetTaskMessageListByBusinessID 按业务单据查询任务消息（待办）列表。
 // @param ctx 上下文
 // @param tenantID 租户（业务系统代号）

@@ -10,12 +10,10 @@ import (
 	"github.com/DengQingNian/Flowtide/internal/clock"
 )
 
-// TestServiceImplementsWorkflowFacade 编译期断言 Service 满足门面接口，并逐一验证
-// 阶段 0 全部方法返回 WORKFLOW-0501"接口未实现"错误与空 R。
-// @param t 测试上下文
-// TestServiceImplementsWorkflowFacade 编译期断言 Service 满足门面接口，
-// 并验证未实现（P2+ 阶段）方法仍返回 WORKFLOW-0501"接口未实现"错误。
-// 已实现方法（发起/办结/查询/变量/表单等）由 facade_test.go 与各域服务测试覆盖。
+// TestServiceImplementsWorkflowFacade 编译期断言 Service 满足门面接口。
+// 已实现方法（发起/办结/退回/撤回/直送/重置/推演/变量/表单等）由 facade_test.go、
+// facade_ops_test.go 与各域服务测试覆盖；此处验证协议兼容场景（nil 引擎）下
+// 未装配能力子服务的方法统一返回 WORKFLOW-0601 装配错误（不再有 0501 桩语义）。
 // @param t 测试上下文
 func TestServiceImplementsWorkflowFacade(t *testing.T) {
 	var facade api.WorkflowFacade = NewWorkflowService(nil)
@@ -39,17 +37,16 @@ func TestServiceImplementsWorkflowFacade(t *testing.T) {
 	}
 	for _, c := range cases {
 		r, err := c.call()
-		if r != (R{}) {
-			t.Errorf("%s 桩应返回空 R，实际 %+v", c.name, r)
-		}
+		// nil 引擎协议兼容场景：能力方法返回装配错误、数据可空，不再使用 0501 桩
 		var engineErr *api.Error
 		if !errors.As(err, &engineErr) {
 			t.Errorf("%s 应返回 api.Error，实际 %v", c.name, err)
 			continue
 		}
-		if engineErr.Code != "WORKFLOW-0501" || engineErr.Message != "接口未实现" {
-			t.Errorf("%s 应返回 WORKFLOW-0501 接口未实现，实际 %s %s", c.name, engineErr.Code, engineErr.Message)
+		if engineErr.Code == "WORKFLOW-0501" {
+			t.Errorf("%s 已不应返回 0501 桩错误（门面已全量接线），实际 %s %s", c.name, engineErr.Code, engineErr.Message)
 		}
+		_ = r
 	}
 }
 
