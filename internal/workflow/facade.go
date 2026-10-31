@@ -66,6 +66,21 @@ type components struct {
 	complete   *CompleteService        // 办结服务
 	query      *QueryService           // 查询服务
 	rewrite    *ExecutorRewriteHook    // 执行人重写钩子
+	// ── P2/P3/P4/P5 能力子服务（assembleCapabilities 装配）──
+	stepsStore StepStore            // 步骤规则存储（his_step 快照，nil 则规则分支跳过）
+	steps      *StepRuleService     // 步骤规则服务
+	back       *BackService         // 退回服务（任意退回/上一节点）
+	direct     *DirectService       // 直送服务
+	reset      *ResetService        // 重置服务
+	rollback   *RollbackService     // 撤回服务
+	terminate  *TerminateService    // 软终止/挂起/重激活/删除服务
+	addSign    *AddSignService      // 加签减签服务
+	counter    *CountersignService  // 会签服务
+	delegate   *DelegateRuleService // 委托规则服务
+	remind     *RemindService       // 催办服务
+	exception  *ExceptionService    // 任务异常服务
+	simulate   *SimulateService     // 下一步推演器
+	scheduler  *Scheduler           // 调度器（自动办结/超时提醒/催办扫描/僵尸监控）
 }
 
 // assembleComponents 依据存储实现装配全部门面子服务。
@@ -106,22 +121,36 @@ func assembleComponents(engine api.Engine, next NextActivityStore, message Messa
 
 // assembleMemoryComponents 装配内存存储（无 DB 嵌入模式与单测默认）。
 // @param engine 引擎门面
+// @param opts 服务选项（调度开关透传，nil 值字段用缺省）
 // @param c 时钟
 // @return 子服务聚合
-func assembleMemoryComponents(engine api.Engine, c clock.Clock) *components {
+func assembleMemoryComponents(engine api.Engine, opts Options, c clock.Clock) *components {
 	stores := NewMemStores(c)
 	completeTo := NewMemCompleteToActivityStore(c)
-	return assembleComponents(engine, stores.Next, stores.Message, stores.History, stores.Operation, stores.Document, completeTo, c)
+	comp := assembleComponents(engine, stores.Next, stores.Message, stores.History, stores.Operation, stores.Document, completeTo, c)
+	// P2-C/P3/P4/P5 能力装配：内存存储族 + 引擎适配
+	steps := NewMemStepStore()
+	assembleCapabilities(comp, engine, capabilityStores{
+		steps:         steps,
+		delegate:      NewMemTaskDelegateStore(c),
+		mirrors:       NewMemDelegateTaskMirrorStore(c),
+		exceptions:    NewMemTaskExceptionStore(c),
+		reminds:       NewMemRemindStore(c),
+		remindTargets: NewMemRemindTargetStore(c),
+		todos:         NewMemTodoSource(stores.Message),
+	}, opts, c)
+	return comp
 }
 
 // assembleSQLComponents 装配 SQL 存储（真实库模式）。
 // @param engine 引擎门面
 // @param store workflow 仓储入口（internal/persistence/workflow）
 // @param db 独立数据库连接（可为 nil，届时使用 store 自带连接）
+// @param opts 服务选项（调度开关透传）
 // @param c 时钟
 // @return 子服务聚合
 // @return 错误
-func assembleSQLComponents(engine api.Engine, store *pwf.Store, db *sql.DB, c clock.Clock) (*components, error) {
+func assembleSQLComponents(engine api.Engine, store *pwf.Store, db *sql.DB, opts Options, c clock.Clock) (*components, error) {
 	if store == nil {
 		return nil, api.NewError("WORKFLOW-0600", "SQL 存储入口不能为空", nil)
 	}
@@ -132,7 +161,18 @@ func assembleSQLComponents(engine api.Engine, store *pwf.Store, db *sql.DB, c cl
 		set = NewSQLStores(store)
 	}
 	completeTo := NewSQLCompleteToActivityStore(store)
-	return assembleComponents(engine, set.Next, set.Message, set.History, set.Operation, set.Document, completeTo, c), nil
+	comp := assembleComponents(engine, set.Next, set.Message, set.History, set.Operation, set.Document, completeTo, c)
+	// P2-C/P3/P4/P5 能力装配：SQL 适配器族（待办数据源暂缺裸 SQL 实现，传空源）
+	assembleCapabilities(comp, engine, capabilityStores{
+		steps:         NewSQLStepStore(store),
+		delegate:      NewSQLTaskDelegateStore(store),
+		mirrors:       NewSQLDelegateTaskMirrorStore(store),
+		exceptions:    NewSQLTaskExceptionStore(store),
+		reminds:       NewSQLRemindStore(store, c),
+		remindTargets: NewSQLRemindTargetStore(store),
+		todos:         emptyTodoSource{},
+	}, opts, c)
+	return comp, nil
 }
 
 // RegisterExecutorRewriteHook 注册执行人重写全局钩子（TASK_CREATED）。
