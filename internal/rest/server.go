@@ -18,6 +18,7 @@ import (
 	"github.com/DengQingNian/Flowtide/internal/engine"
 	"github.com/DengQingNian/Flowtide/internal/rest/adminpage"
 	"github.com/DengQingNian/Flowtide/internal/tenant"
+	"github.com/DengQingNian/Flowtide/internal/workflow"
 )
 
 // MaxUploadSize 是部署上传的最大字节数。
@@ -39,6 +40,7 @@ type Server struct {
 	tenantAdministrators map[string]bool     // 显式允许选择其他租户的账号
 	jwt                  *jwtVerifier        // JWT/JWKS 认证
 	clientCertIdentity   bool                // 是否启用 mTLS 客户端证书身份映射
+	workflow             *workflow.Service   // workflow 门面服务（nil 时 /workflow/** 维持 501 桩）
 }
 
 // Option 是 REST 服务选项。
@@ -113,6 +115,22 @@ func WithMetrics() Option {
 	return func(server *Server) {
 		server.httpMetrics = newHTTPMetrics()
 	}
+}
+
+// WithWorkflowService 注入 workflow 二次封装门面服务，/workflow/** 路由切换到真实现。
+// 未注入时 /workflow/** 端点维持 501 桩（handleWorkflowNotImplemented）。
+// @param svc workflow 门面服务
+// @return 选项
+func WithWorkflowService(svc *workflow.Service) Option {
+	return func(server *Server) {
+		server.workflow = svc
+	}
+}
+
+// WorkflowService 返回注入的 workflow 门面服务（未注入为 nil）。
+// @return workflow 门面服务
+func (s *Server) WorkflowService() *workflow.Service {
+	return s.workflow
 }
 
 // New 创建 REST 服务。

@@ -12,12 +12,12 @@ type workflowRoute struct {
 	path   string // 完整路径（D8：Java 兼容形态 /workflow/{模块}/{方法}）
 }
 
-// workflowRouteTable 是 workflow 门面 REST 路由清单（阶段 0 全部返回 501）。
+// workflowRouteTable 是 workflow 门面 REST 路由清单。
 // 来源：005 接口清单 §1 中"非桩"端点 + D8 保留拼写决策 + D9/D10/D11 内置能力路径。
 // 已排除：Java 桩端点（/task/getNextUserTaskAndUserList、/task/complete/task、
 // /task/getBackNodesByProcessInstanceId、/task/reject|delegate|end|reset 等）、
 // 明确裁剪模块（/rule、/model/discard、遗留四表 task/history/record/example、旧版 /consigner）。
-// 端点行为由 api.WorkflowFacade 服务层承接，实现分阶段填充。
+// 每条路由由 workflowHandlerFor 绑定业务 handler（接 workflow.Service 真实现或 501 桩）。
 var workflowRouteTable = []workflowRoute{
 	// ── /process/**：FlowableController（核心门面，005 §1.1）──
 	{method: http.MethodPost, path: "/workflow/process/add/model"},
@@ -145,19 +145,21 @@ var workflowRouteTable = []workflowRoute{
 	{method: http.MethodGet, path: "/workflow/identity/tree"},
 }
 
-// workflowNotImplementedCode 是阶段 0 空实现的协议状态码与文案。
+// workflowNotImplementedCode 是阶段 0 空实现/未接线端点的协议状态码与文案。
+// 业务失败 R 复用同码（enm.R 协议仅 "200"/"500" 两态）。
 const (
 	workflowNotImplementedCode = "500"
 	workflowNotImplementedMsg  = "接口未实现"
 )
 
-// registerWorkflowRoutes 挂载 /workflow/** 全部路由，统一返回 501 + R 失败体。
+// registerWorkflowRoutes 挂载 /workflow/** 全部路由。
+// 每条路由经 workflowHandlerFor 绑定独立 handler：已接线端点走 workflow.Service 真实现；
+// 未注入 workflow 服务时统一回落 501 桩（guardWorkflow），保留端点恒为 501。
 // 复用 Server 中间件链：认证/租户/审计/限流对 /workflow/** 与 /service/** 同策略（006 §6）。
-// 阶段 0 为 501 空实现，不依赖 workflow 服务实例；P1 起逐端点改接 Service。
 // @param s REST 服务
 func registerWorkflowRoutes(s *Server) {
-	handler := s.handleWorkflowNotImplemented
 	for _, route := range workflowRouteTable {
+		handler := s.workflowHandlerFor(route.path)
 		if route.method == "" {
 			// 无方法前缀的 pattern 匹配任意 HTTP 方法（对应 Java ANY）
 			s.mux.HandleFunc(route.path, handler)
@@ -167,7 +169,217 @@ func registerWorkflowRoutes(s *Server) {
 	}
 }
 
-// handleWorkflowNotImplemented 返回阶段 0 空实现响应：
+// workflowHandlerFor 返回路由路径对应的业务 handler。
+// 已接线端点经 guardWorkflow 包装（未注入 workflow 服务时回落 501）；
+// 保留 501 的端点直接返回桩并注释"待接线原因"。
+// @param path 路由模板路径
+// @return HTTP 处理器
+func (s *Server) workflowHandlerFor(path string) http.HandlerFunc {
+	switch path {
+	// ── /process/**：已接线端点 ──
+	case "/workflow/process/apply/task": // 发起流程并预存首步 → StartProcessAndFirstStep
+		return s.serveWorkflow(s.handleWorkflowApplyTask)
+	case "/workflow/process/complete/task": // 办结任务 → Complete
+		return s.serveWorkflow(s.handleWorkflowCompleteTask)
+	case "/workflow/process/back/process": // 退回任务 → BackToStepTask
+		return s.serveWorkflow(s.handleWorkflowBackProcess)
+	case "/workflow/process/end/process", "/workflow/process/stop/processInstance/{pid}": // 软终止 → DoStopProcessInstance
+		return s.serveWorkflow(s.handleWorkflowStopProcess)
+	case "/workflow/process/delete/process": // 按业务单据删除流程 → DoDeleteProcessByBusinessID
+		return s.serveWorkflow(s.handleWorkflowDeleteByBusiness)
+	case "/workflow/process/instance/all/delete/{id}": // 按实例删除流程 → DoDeleteProcessInstance
+		return s.serveWorkflow(s.handleWorkflowDeleteInstance)
+	case "/workflow/process/suspend/processInstance/{pid}": // 挂起实例 → DoSuspendProcessInstance
+		return s.serveWorkflow(s.handleWorkflowSuspendInstance)
+	case "/workflow/process/activate/processInstance/{pid}": // 激活实例 → DoActivateProcessInstance
+		return s.serveWorkflow(s.handleWorkflowActivateInstance)
+	case "/workflow/process/task/list": // 任务详情（taskId 必填）→ GetTaskInfoByTaskID
+		return s.serveWorkflow(s.handleWorkflowTaskList)
+	case "/workflow/process/task/all/todoList": // 待办列表 → GetTodoTaskListByIdentityID
+		return s.serveWorkflow(s.handleWorkflowTodoList)
+	case "/workflow/process/task/all/doneList": // 已办列表 → GetDoneTaskListByIdentityID
+		return s.serveWorkflow(s.handleWorkflowDoneList)
+	case "/workflow/process/history/step/list/{taskId}": // 按任务查历史 → GetTaskHistoryListByTaskID
+		return s.serveWorkflow(s.handleWorkflowHistoryStepList)
+	case "/workflow/process/history/task/list": // 按实例/业务键查历史 → 分派
+		return s.serveWorkflow(s.handleWorkflowHistoryTaskList)
+	case "/workflow/process/transfer/task": // 调整处理人 → DoTaskOwnerAdjustment
+		return s.serveWorkflow(s.handleWorkflowTransferTask)
+	case "/workflow/process/complete/sign": // 会签比例结论 → CompleteSign
+		return s.serveWorkflow(s.handleWorkflowCompleteSign)
+	case "/workflow/process/add/execution": // 加签 → AddExecution
+		return s.serveWorkflow(s.handleWorkflowAddExecution)
+	case "/workflow/process/del/execution": // 减签 → DelExecution
+		return s.serveWorkflow(s.handleWorkflowDelExecution)
+	case "/workflow/process/deplay", "/workflow/process/deploy": // 部署模型 → DeployModel（D8 保留 deplay 拼写）
+		return s.serveWorkflow(s.handleWorkflowDeploy)
+	case "/workflow/process/model/list": // 模型列表 → ListModelCategory
+		return s.serveWorkflow(s.handleWorkflowModelList)
+	case "/workflow/process/model/delete/{id}": // 删除模型/分类 → DeleteModelCategory
+		return s.serveWorkflow(s.handleWorkflowModelDelete)
+	case "/workflow/process/highlight/img", "/workflow/process/normal/img": // 流程图高亮 → GetFlowHighlight（DELETE 保留 Java 兼容）
+		return s.serveWorkflow(s.handleWorkflowHighlightImg)
+
+	// ── /task/**：已接线端点 ──
+	case "/workflow/task/rollback": // 撤回任务 → DoRollbackTask
+		return s.serveWorkflow(s.handleWorkflowRollback)
+	case "/workflow/task/completeToTargetActivity": // 直送 → CompleteToTargetActivity
+		return s.serveWorkflow(s.handleWorkflowCompleteToTargetActivity)
+
+	// ── /model/**、/category/**：模型/分类管理（一表两页，同语义投影）──
+	case "/workflow/model/add", "/workflow/category/add": // 新增 → AddModelCategory
+		return s.serveWorkflow(s.handleWorkflowModelAdd)
+	case "/workflow/model/edit", "/workflow/category/edit": // 更新 → EditModelCategory
+		return s.serveWorkflow(s.handleWorkflowModelEdit)
+	case "/workflow/model/delete/{ids}", "/workflow/category/delete/{ids}": // 批量删除（逗号分隔）→ DeleteModelCategory
+		return s.serveWorkflow(s.handleWorkflowModelDelete)
+	case "/workflow/model/list", "/workflow/category/list": // 列表 → ListModelCategory
+		return s.serveWorkflow(s.handleWorkflowModelList)
+	case "/workflow/model/tree/list": // 分类树 → GetModelCategoryTree
+		return s.serveWorkflow(s.handleWorkflowModelTree)
+
+	// ── /step/**：设计时步骤 ──
+	case "/workflow/step/add": // 新增 → AddStepDesign
+		return s.serveWorkflow(s.handleWorkflowStepAdd)
+	case "/workflow/step/edit": // 更新 → EditStepDesign
+		return s.serveWorkflow(s.handleWorkflowStepEdit)
+	case "/workflow/step/delete/{ids}": // 批量删除 → DeleteStepDesign
+		return s.serveWorkflow(s.handleWorkflowStepDelete)
+	case "/workflow/step/list": // 按模型查步骤列表 → ListStepDesignByModel
+		return s.serveWorkflow(s.handleWorkflowStepList)
+
+	// ── /hisstep/**：部署步骤快照（只读）──
+	case "/workflow/hisstep/list": // 按部署查快照 → ListHisSteps
+		return s.serveWorkflow(s.handleWorkflowHisStepList)
+
+	// ── /template/**：设计器模板 ──
+	case "/workflow/template/add": // 新增 → AddTemplateDef
+		return s.serveWorkflow(s.handleWorkflowTemplateAdd)
+	case "/workflow/template/edit": // 更新 → EditTemplateDef
+		return s.serveWorkflow(s.handleWorkflowTemplateEdit)
+	case "/workflow/template/delete/{ids}": // 批量删除 → DeleteTemplateDef
+		return s.serveWorkflow(s.handleWorkflowTemplateDelete)
+	case "/workflow/template/list": // 模板列表 → ListTemplateDefs
+		return s.serveWorkflow(s.handleWorkflowTemplateList)
+
+	// ── /delegate/**：委托规则 CRUD ──
+	case "/workflow/delegate/add": // 新增 → AddDelegateTask
+		return s.serveWorkflow(s.handleWorkflowDelegateAdd)
+	case "/workflow/delegate/edit": // 更新 → EditDelegateTask
+		return s.serveWorkflow(s.handleWorkflowDelegateEdit)
+	case "/workflow/delegate/delete/{ids}": // 删除（单个 Id）→ DeleteDelegateTask
+		return s.serveWorkflow(s.handleWorkflowDelegateDelete)
+	case "/workflow/delegate/list": // 规则列表（ownerId+tenantId）→ ListDelegateTask
+		return s.serveWorkflow(s.handleWorkflowDelegateList)
+
+	// ── /remind/**：催办配置 ──
+	case "/workflow/remind/getPageList": // 分页列表 → GetRemindPageList
+		return s.serveWorkflow(s.handleWorkflowRemindPageList)
+	case "/workflow/remind/getWorkflowRemind/{id}": // 详情 → GetRemind
+		return s.serveWorkflow(s.handleWorkflowRemindGet)
+	case "/workflow/remind/add": // 新增 → AddRemind
+		return s.serveWorkflow(s.handleWorkflowRemindAdd)
+	case "/workflow/remind/edit": // 更新 → EditRemind
+		return s.serveWorkflow(s.handleWorkflowRemindEdit)
+	case "/workflow/remind/delete/{id}": // 删除 → DeleteRemind
+		return s.serveWorkflow(s.handleWorkflowRemindDelete)
+
+	// ── /exception/**：任务异常 ──
+	case "/workflow/exception/list": // 按实例查异常 → ListTaskExceptions
+		return s.serveWorkflow(s.handleWorkflowExceptionList)
+	case "/workflow/exception/delete/{ids}": // 批量处理异常 → HandleTaskExceptions
+		return s.serveWorkflow(s.handleWorkflowExceptionDelete)
+
+	// ── /dict/**：内置静态字典（D9）──
+	case "/workflow/dict/{code}": // 字典码表 → workflow.DictService（无状态可直接使用）
+		return s.serveWorkflow(s.handleWorkflowDict)
+
+	// ── 保留 501 的端点（服务已注入也维持桩，待后续阶段接线）──
+	// 设计器/导入导出（P6 阶段接线）：模型 JSON 读写、XML 导入导出、流程复制、节点注入与示例/等待节点清单
+	case "/workflow/process/add/model",
+		"/workflow/process/getModelJsonByType",
+		"/workflow/process/getHisModelJson",
+		"/workflow/process/save/xml",
+		"/workflow/process/updateHisModelXml",
+		"/workflow/process/export/xml",
+		"/workflow/process/import/xml",
+		"/workflow/process/exportProcess",
+		"/workflow/process/importProcess",
+		"/workflow/process/copyProcess",
+		"/workflow/process/index",                      // 流程设计首页（P6）
+		"/workflow/process/create",                     // 新建流程（P6）
+		"/workflow/process/inject/node",                // 运行时节点注入（引擎直连能力，P6 评估）
+		"/workflow/process/exmple/node/list",           // 示例节点清单（P6）
+		"/workflow/process/wait/node/list",             // 等待节点清单（P6）
+		"/workflow/model/getUserTaskJsonInfo",          // 设计器用户任务元数据（P6）
+		"/workflow/model/getProcessDefinitionJsonInfo", // 设计器定义元数据（P6）
+		"/workflow/model/findModelAndStepPageList",     // 模型+步骤联合分页（P6）
+		"/workflow/step/findById":                      // 步骤主键查询（P6）
+		return s.handleWorkflowNotImplemented
+	// 批量挂起/激活与 public 发布族：Service 未提供批量方法（单实例挂起/激活已接线），P6 补批量能力
+	case "/workflow/process/suspend/processes",
+		"/workflow/process/activate/processes",
+		"/workflow/process/public/model/id",
+		"/workflow/process/public/deploymentId",
+		"/workflow/process/public/processes/id":
+		return s.handleWorkflowNotImplemented
+	// 实例分页查询：Service 无实例分页能力（走 /service/runtime/process-instances 兼容端点）
+	case "/workflow/process/instance/list", "/workflow/process/instance/all/list":
+		return s.handleWorkflowNotImplemented
+	// 引擎委托语义（委派给他人办理）：Service 的 delegate 是委托规则 CRUD，语义不同（P6 评估）
+	case "/workflow/process/delegate/task":
+		return s.handleWorkflowNotImplemented
+	// 任务认领（resolve/claim）：Service 未提供签收能力（P6 评估）
+	case "/workflow/process/resolve/task", "/workflow/process/claim/task":
+		return s.handleWorkflowNotImplemented
+	// 审阅人绑定（act_extend）与会签权重：属域服务内部端口，未走门面（P6 评估）
+	case "/workflow/extend/save",
+		"/workflow/extend/getActByProcessDefKeyAndActId",
+		"/workflow/weight/save",
+		"/workflow/weight/delete",
+		"/workflow/weight/getWeightByProcessDefKeyAndActId":
+		return s.handleWorkflowNotImplemented
+	// 操作按钮清单（按实例计算可用按钮集）：Service 未提供该聚合（P6 评估）
+	case "/workflow/task/operationButtonList/{processInstanceId}":
+		return s.handleWorkflowNotImplemented
+	// 快照只读：hisstep 增删改破坏部署快照一致性，仅开放 list
+	case "/workflow/hisstep/add", "/workflow/hisstep/edit", "/workflow/hisstep/delete/{ids}":
+		return s.handleWorkflowNotImplemented
+	// 内置身份库树（D10）：组树需聚合用户/组/成员关系，工作量另评（P6）
+	case "/workflow/identity/tree":
+		return s.handleWorkflowNotImplemented
+	default:
+		return s.handleWorkflowNotImplemented
+	}
+}
+
+// workflowHandler 是 /workflow/** 已接线业务 handler 的统一签名。
+// @param w 响应
+// @param r 请求
+// @param params 参数读取器（query 优先、JSON body 兜底）
+type workflowHandler func(http.ResponseWriter, *http.Request, *workflowParams)
+
+// serveWorkflow 包装业务 handler 为路由入口：
+// 1. 未注入 workflow 服务时回落 501 桩（保留"未注入→501"协议行为）；
+// 2. 统一解析参数（query 优先、JSON body 兜底），解析失败回参数错误。
+// @param business 已接线业务 handler
+// @return HTTP 处理器
+func (s *Server) serveWorkflow(business workflowHandler) http.HandlerFunc {
+	// 未注入门面服务：全部端点维持阶段 0 的 501 桩
+	if s.workflow == nil {
+		return s.handleWorkflowNotImplemented
+	}
+	return func(w http.ResponseWriter, r *http.Request) {
+		params, err := newWorkflowParams(r)
+		if err != nil {
+			writeWorkflowParamError(w, err)
+			return
+		}
+		business(w, r, params)
+	}
+}
+
+// handleWorkflowNotImplemented 返回未接线端点响应：
 // HTTP 501 + R{code:"500", ErrorMessage:"接口未实现", success:false}。
 // @param w 响应
 // @param r 请求
