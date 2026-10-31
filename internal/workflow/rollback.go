@@ -75,6 +75,7 @@ func NewRollbackService(engine api.Engine, next *NextActivityService, comments *
 //     重做任务的新待办由执行人重写钩子与办结链生成，本服务不重复生成。
 //  3. processInstanceID 与历史任务归属不一致时拒绝（Java 静默覆盖为历史任务归属，
 //     Go 侧显式暴露调用方传参错误）。
+//
 // @param ctx 操作上下文
 // @param processInstanceID 流程实例 Id（协议入参，与历史任务归属不一致时报错）
 // @param taskID 待撤回任务 Id（历史任务 Id，必须已办结）
@@ -97,18 +98,19 @@ func (s *RollbackService) Rollback(ctx context.Context, processInstanceID, taskI
 	if processInstanceID != "" && processInstanceID != hisTask.ProcessInstanceID {
 		return apiError(errCodeRollbackPiMismatch, "撤回任务不属于该流程实例")
 	}
-	// 已办结校验（Java RollbackCmd 内 endTime==null 拒绝的等价前置；文案对位）
-	if hisTask.EndTime == nil {
-		return apiError(errCodeRollbackUnfinished, "任务正在执行，无法撤回")
-	}
 	// 实例运行中校验：运行表查不到即已结束（Java isSuspended 在前、Go 运行态校验等价合并）
 	instance, err := s.engine.RuntimeService().GetProcessInstance(ctx, hisTask.ProcessInstanceID)
 	if err != nil {
 		return apiError(errCodeRollbackInstanceEnded, "该流程已完成，无法进行任务撤回")
 	}
-	// 挂起实例拒绝撤回（Java isSuspended → "流程已暂停，请联系管理员激活"）
+	// 挂起实例拒绝撤回（Java isSuspended → "流程已暂停，请联系管理员激活"；
+	// Java 挂起校验先于命令内 endTime 校验，Go 同序）
 	if instance.Suspended {
 		return apiError(errCodeRollbackSuspended, "流程已暂停，请联系管理员激活")
+	}
+	// 已办结校验（Java RollbackCmd 内 endTime==null 拒绝的等价前置；文案对位）
+	if hisTask.EndTime == nil {
+		return apiError(errCodeRollbackUnfinished, "任务正在执行，无法撤回")
 	}
 	// 撤回前快照运行任务 Id（待办遗留清理定位用）
 	beforeTaskIDs, err := s.listInstanceTaskIDs(ctx, hisTask.ProcessInstanceID)
@@ -158,7 +160,7 @@ func (s *RollbackService) writeRollbackTailChain(ctx context.Context, hisTask ap
 		return err
 	}
 	// 待办遗留清理：撤回后已不存在的运行任务，其待办扩展为悬挂行（差异 2）
-	if err := s.cleanupStaleTodos(ctx, hisTask.ProcessInstanceID, beforeTaskIDs); err != nil {
+	if err := s.cleanupStaleTodos(ctx, hisTask, beforeTaskIDs); err != nil {
 		return err
 	}
 	// 表单状态机刷新（Java 无显式调用，状态机按操作记录派生；Go 显式刷新对齐办结链）
@@ -183,14 +185,18 @@ func (s *RollbackService) listInstanceTaskIDs(ctx context.Context, processInstan
 }
 
 // cleanupStaleTodos 删除已不存在的运行任务的待办扩展（撤回遗留清理）。
-// 比对撤回前快照与当前运行任务：快照中有而当前已消失的任务，其待办扩展一并删除；
-// 新建任务（含重做任务）天然不在快照内，不受影响。
+// 清理范围：被撤回任务自身（任务已办结，运行表必无此任务）+ 快照中有而撤回后已消失的
+// 后继任务（引擎撤回删除）；新建任务（含重做任务）天然不在范围内，不受影响。
 // @param ctx 操作上下文
-// @param processInstanceID 流程实例 Id
+// @param hisTask 被撤回的历史任务
 // @param beforeTaskIDs 撤回前快照的运行任务 Id 集合
 // @return 错误
-func (s *RollbackService) cleanupStaleTodos(ctx context.Context, processInstanceID string, beforeTaskIDs []string) error {
-	// 逐个快照任务检查：已被撤回删除的任务（运行表查不到）删除其待办
+func (s *RollbackService) cleanupStaleTodos(ctx context.Context, hisTask api.HistoricTaskInstance, beforeTaskIDs []string) error {
+	// 被撤回任务自身的待办遗留（正常链路已在办结时删除，此处兜底幂等清理）
+	if err := s.messages.DeleteByTaskID(ctx, hisTask.ID); err != nil {
+		return err
+	}
+	// 逐个快照任务检查：已被撤回删除的后继任务（运行表查不到）删除其待办
 	for _, taskID := range beforeTaskIDs {
 		if _, err := s.engine.TaskService().GetTask(ctx, taskID); err == nil {
 			// 任务仍在运行：待办仍有效，跳过
