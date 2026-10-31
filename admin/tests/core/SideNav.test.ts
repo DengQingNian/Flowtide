@@ -15,10 +15,10 @@ async function createTestRouter(path: string) {
 }
 
 describe('SideNav', () => {
-  it('渲染七个分组与当前项高亮', async () => {
+  it('渲染八个分组与当前项高亮', async () => {
     const router = await createTestRouter('/dashboard')
     const wrapper = mount(SideNav, { props: { collapsed: false }, global: { plugins: [router] } })
-    for (const group of ['概览', '仓库', '运行态', '运维', '历史', '身份', '系统']) {
+    for (const group of ['概览', '工作流', '仓库', '运行态', '运维', '历史', '身份', '系统']) {
       expect(wrapper.text()).toContain(group)
     }
     expect(wrapper.find('.side-nav__link--active').text()).toContain('仪表盘')
@@ -29,9 +29,10 @@ describe('SideNav', () => {
     const wrapper = mount(SideNav, { props: { collapsed: false }, global: { plugins: [router] } })
     const groupButton = wrapper.findAll('.side-nav__group-title').find((button) => button.text().includes('仓库'))
     await groupButton!.trigger('click')
-    expect(wrapper.text()).not.toContain('流程模型')
+    // 用仓库组独有项断言（"流程模型"同时出现在工作流组，不具备唯一性）
+    expect(wrapper.text()).not.toContain('流程定义')
     await groupButton!.trigger('click')
-    expect(wrapper.text()).toContain('流程模型')
+    expect(wrapper.text()).toContain('流程定义')
   })
 
   it('整体折叠时隐藏文字并保留导航', async () => {

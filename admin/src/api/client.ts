@@ -119,10 +119,11 @@ async function parseErrorBody(response: Response): Promise<{ code: string; messa
   try {
     const text = await response.text()
     if (!text) return { code: '', message: fallback, exception: '' }
-    const body = JSON.parse(text) as { code?: string; message?: string; exception?: string }
+    // ErrorMessage 兼容 workflow 门面 R 信封的大写字段名（api.R）
+    const body = JSON.parse(text) as { code?: string; message?: string; ErrorMessage?: string; exception?: string }
     return {
       code: body.code ?? '',
-      message: body.message || fallback,
+      message: body.message || body.ErrorMessage || fallback,
       exception: body.exception ?? '',
     }
   } catch {
