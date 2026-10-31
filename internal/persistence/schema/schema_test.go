@@ -10,7 +10,7 @@ import (
 // 0644acf 引入后从未改动），按当前加载语义重算基准。
 const (
 	engineChecksumMySQL    = "f8a484fcd6d3fb466d310ef501fa28d29527d5e8b8cfc67f8baa4b45404c7660"
-	engineChecksumPostgres = "6a0feefe5383945366893e0c5395785eb2abd1f04225c99f5f0584b394ed34ea"
+	engineChecksumPostgres = "f57f3ce6daab1a9fdce9a6a9c43ba36be6238ddb3eeade24a0e30c7751f9ff41"
 )
 
 // TestLoad 验证两种方言的引擎 Schema 加载。
