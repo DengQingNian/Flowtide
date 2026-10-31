@@ -2,6 +2,7 @@ package workflow
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"math/rand"
 	"strconv"
@@ -448,10 +449,20 @@ type StepRuleProvider interface {
 // @return 是否超过退回比例（需要触发比例退回）
 // @return 错误
 func (s *CountersignService) CountersignPercentResult(ctx context.Context, taskID string, countersignResult int) (bool, error) {
-	// 规则端口未注入或未启用：不判定超线（P3-A 接口位约定）
+	// 规则端口未注入或未启用：不判定超线（P3-A 接口位约定）。
+	// 016 号审计：规则端口接入后，任务/定义已不存在的实例原本会向上抛"任务不存在"，
+	// 使 /process/complete/sign 在普通实例上由"data=false"退化为失败。按文档 015 §3.2
+	// 约定（未启用会签退回规则的实例返回成功且 data=false），规则定位失败按未启用处理；
+	// 规则存储故障（WORKFLOW-24xx 之外的存储错误）仍向上抛出，避免掩盖真实故障。
 	rule, enabled, err := s.percentReturnRule(ctx, taskID)
-	if err != nil || !enabled {
+	if err != nil {
+		if isStepRuleLookupError(err) {
+			return false, nil
+		}
 		return false, err
+	}
+	if !enabled {
+		return false, nil
 	}
 	// 会签结论合法性：0 否决 / 1 通过（对位 Java complete 的 countersignResult 校验）
 	if countersignResult != 0 && countersignResult != 1 {
@@ -493,6 +504,18 @@ func (s *CountersignService) CountersignPercentResult(ctx context.Context, taskI
 		return false, nil
 	}
 	return returnRatioOverLine(returned, pass+returned, *rule.ReturnPercent), nil
+}
+
+// isStepRuleLookupError 判定是否为"规则定位失败"（任务/定义已不存在）。
+// 定位失败按未启用会签比例退回处理，其余错误（存储故障等）继续向上抛出。
+// @param err 错误
+// @return 是否属于定位失败
+func isStepRuleLookupError(err error) bool {
+	var apiErr *api.Error
+	if !errors.As(err, &apiErr) {
+		return false
+	}
+	return apiErr.Code == errCodeStepTaskMissing || apiErr.Code == errCodeStepDefMissing
 }
 
 // percentReturnRule 读取节点的比例退回规则（规则端口未注入时恒不启用）。

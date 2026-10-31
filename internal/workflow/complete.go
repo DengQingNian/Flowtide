@@ -308,7 +308,13 @@ func (s *CompleteService) accumulateCountersignWeight(ctx context.Context, vo *a
 		// 模型读取失败按非权重节点处理，避免阻断常规办结
 		return nil
 	}
-	// 会签结论合法性：0 否决 / 1 通过（Go int 缺省 0，与协议 JSON 缺省行为一致）
+	// 会签结论合法性：0 否决 / 1 通过。
+	// 016 号审计修复：Java CompleteTaskVo 该字段为 Integer，null 时抛"未知会签任务执行结果"；
+	// Grid 裸 int 无法区分"未传"与"显式 0"，此前缺省会静默记为否决并扣 rejectWeight。
+	// 现以 CountersignResultSet 标记区分：未显式设置一律报错；显式值仍须为 0/1。
+	if !vo.CountersignResultSet {
+		return apiError("WORKFLOW-2010", "未知会签任务执行结果：缺少 countersignResult")
+	}
 	if vo.CountersignResult != 0 && vo.CountersignResult != 1 {
 		return apiError("WORKFLOW-2010", "未知会签任务执行结果")
 	}
@@ -355,6 +361,9 @@ func parseWeightConfigs(raw string) []weightConfig {
 		return nil
 	}
 	var rawConfigs []struct {
+		// ID 是 Java 设计器写入的权重条目身份键（ProcessesUtil.getCountersignWeight:4305 读 "id"）
+		ID string `json:"id"`
+		// IdentityID 是 Go 侧历史格式键，保留兼容
 		IdentityID   string   `json:"identityId"`
 		AgreeWeight  *float64 `json:"agreeWeight"`
 		RejectWeight *float64 `json:"rejectWeight"`
@@ -364,7 +373,13 @@ func parseWeightConfigs(raw string) []weightConfig {
 	}
 	configs := make([]weightConfig, 0, len(rawConfigs))
 	for _, item := range rawConfigs {
-		configs = append(configs, weightConfig{IdentityID: item.IdentityID, AgreeWeight: item.AgreeWeight, RejectWeight: item.RejectWeight})
+		// 016 号审计修复：Java 读 "id"，Go 此前只读 "identityId"，按 Java 格式配置的
+		// 权重会永远匹配失败并抛 WORKFLOW-2011。两键并存时以 id 为准（Java 权威）。
+		identityID := item.ID
+		if identityID == "" {
+			identityID = item.IdentityID
+		}
+		configs = append(configs, weightConfig{IdentityID: identityID, AgreeWeight: item.AgreeWeight, RejectWeight: item.RejectWeight})
 	}
 	return configs
 }

@@ -641,8 +641,9 @@ func TestComplete_CoverageExtras(t *testing.T) {
 		t.Fatalf("预置权重失败: %v", err)
 	}
 	if _, err := fx.complete.Complete(ctxB, &api.CompleteTaskVo{
-		BaseProcessVo:     api.BaseProcessVo{TaskID: wtask.ID, UserCode: "alice", Message: "通过"},
-		CountersignResult: 1,
+		BaseProcessVo:        api.BaseProcessVo{TaskID: wtask.ID, UserCode: "alice", Message: "通过"},
+		CountersignResult:    1,
+		CountersignResultSet: true,
 	}); err != nil {
 		t.Fatalf("权重办结失败: %v", err)
 	}

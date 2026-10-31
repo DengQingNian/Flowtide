@@ -6,7 +6,10 @@
 // 字段命名与 005 接口清单 §4、006 流程变量与意见类型约定保持逐字兼容。
 package api
 
-import "context"
+import (
+	"context"
+	"encoding/json"
+)
 
 // StartProcessInstanceVo 是发起流程实例请求。
 // 对应 Java model/entity/process/StartProcessInstanceVo.java，必填字段：
@@ -34,13 +37,41 @@ type BaseProcessVo struct {
 // CompleteTaskVo 是办结任务请求，继承 BaseProcessVo。
 // 对应 Java CompleteTaskVo.java；TargetActivityID 非空时语义为直送目标节点。
 type CompleteTaskVo struct {
-	BaseProcessVo                          // 继承基础字段
-	Variables         map[string]any       `json:"variables,omitempty"`         // 流程变量
-	TargetActivityID  string               `json:"targetActivityId,omitempty"`  // 直送目标节点 ID（流程结束时为保留代号 end）
-	CountersignResult int                  `json:"countersignResult,omitempty"` // 会签结论：0 否决 / 1 通过
-	SenderStepCode    string               `json:"senderStepCode,omitempty"`    // 发送方步骤代号
-	SenderStepName    string               `json:"senderStepName,omitempty"`    // 发送方步骤名称
-	Request           *NextActivityRequest `json:"request,omitempty"`           // 下一步预存请求（目标为 end 时可省略）
+	BaseProcessVo                    // 继承基础字段
+	Variables         map[string]any `json:"variables,omitempty"`         // 流程变量
+	TargetActivityID  string         `json:"targetActivityId,omitempty"`  // 直送目标节点 ID（流程结束时为保留代号 end）
+	CountersignResult int            `json:"countersignResult,omitempty"` // 会签结论：0 否决 / 1 通过
+	// CountersignResultSet 标记 countersignResult 是否由调用方显式设置。
+	// Java CompleteTaskVo 该字段为 Integer，null 时抛"未知会签任务执行结果"；
+	// Go 裸 int 无法区分"未传"与"显式 0（否决）"，016 号审计引入本标记补齐语义：
+	// 未设置时权重会签节点按 Java 抛 WORKFLOW-2010，而非静默记为否决并扣 rejectWeight。
+	CountersignResultSet bool                 `json:"-"`
+	SenderStepCode       string               `json:"senderStepCode,omitempty"` // 发送方步骤代号
+	SenderStepName       string               `json:"senderStepName,omitempty"` // 发送方步骤名称
+	Request              *NextActivityRequest `json:"request,omitempty"`        // 下一步预存请求（目标为 end 时可省略）
+}
+
+// completeTaskVoAlias 是 UnmarshalJSON 的别名类型，避免递归调用自身。
+type completeTaskVoAlias CompleteTaskVo
+
+// UnmarshalJSON 解析办结请求并标记 countersignResult 是否显式出现。
+// 与 Java Integer 为 null 可区分的语义对齐：JSON 中缺省或显式 null 时
+// CountersignResultSet 为 false，服务层据此抛出"未知会签任务执行结果"。
+// @param data JSON 原始字节
+// @return 解析错误
+func (v *CompleteTaskVo) UnmarshalJSON(data []byte) error {
+	alias := (*completeTaskVoAlias)(v)
+	if err := json.Unmarshal(data, alias); err != nil {
+		return err
+	}
+	var probe map[string]json.RawMessage
+	if err := json.Unmarshal(data, &probe); err != nil {
+		return err
+	}
+	raw, exists := probe["countersignResult"]
+	// 显式 null 与缺省同义：均视为未设置
+	v.CountersignResultSet = exists && string(raw) != "null"
+	return nil
 }
 
 // NextActivityRequest 是下一步节点与处理人预存请求。

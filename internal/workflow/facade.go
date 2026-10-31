@@ -49,45 +49,47 @@ func (a engineInstanceQuery) GetHistoricProcessInstance(ctx context.Context, pro
 
 // components 聚合门面内部子服务（域服务 + 独立能力），由 assembleComponents 装配。
 type components struct {
-	next       NextActivityStore       // 下一步预生成-消耗存储
-	message    MessageExtendStore      // 待办扩展存储
-	history    HistoryExtendStore      // 已办扩展存储
-	operation  OperationRecordStore    // 操作记录存储
-	document   DocumentStore           // 业务表单状态存储
-	completeTo CompleteToActivityStore // 直送记录存储
-	meta       *ModelMetaService       // 模型元数据
-	nextSvc    *NextActivityService    // 预生成-消耗服务
-	comments   *CommentService         // 意见服务
-	operations *OperationRecordService // 操作记录服务
-	messages   *MessageExtendService   // 待办扩展服务
-	histories  *HistoryExtendService   // 已办扩展服务
-	documents  *DocumentService        // 表单状态服务
-	start      *StartService           // 发起服务
-	complete   *CompleteService        // 办结服务
-	query      *QueryService           // 查询服务
-	rewrite    *ExecutorRewriteHook    // 执行人重写钩子
+	next        NextActivityStore       // 下一步预生成-消耗存储
+	message     MessageExtendStore      // 待办扩展存储
+	history     HistoryExtendStore      // 已办扩展存储
+	operation   OperationRecordStore    // 操作记录存储
+	document    DocumentStore           // 业务表单状态存储
+	completeTo  CompleteToActivityStore // 直送记录存储
+	meta        *ModelMetaService       // 模型元数据
+	nextSvc     *NextActivityService    // 预生成-消耗服务
+	comments    *CommentService         // 意见服务
+	operations  *OperationRecordService // 操作记录服务
+	messages    *MessageExtendService   // 待办扩展服务
+	histories   *HistoryExtendService   // 已办扩展服务
+	documents   *DocumentService        // 表单状态服务
+	start       *StartService           // 发起服务
+	complete    *CompleteService        // 办结服务
+	query       *QueryService           // 查询服务
+	rewrite     *ExecutorRewriteHook    // 执行人重写钩子
+	bizCallback *BusinessCallbackHook   // 业务回调钩子（TASK_CREATED，D5）
+	businesses  BusinessSystemStore     // 业务系统注册存储直引（回调地址解析）
 	// ── P2/P3/P4/P5 能力子服务（assembleCapabilities 装配）──
-	stepsStore StepStore            // 步骤规则存储（his_step 快照，nil 则规则分支跳过）
-	steps      *StepRuleService     // 步骤规则服务
-	back       *BackService         // 退回服务（任意退回/上一节点）
-	direct     *DirectService       // 直送服务
-	reset      *ResetService        // 重置服务
-	rollback   *RollbackService     // 撤回服务
-	terminate  *TerminateService    // 软终止/挂起/重激活/删除服务
-	addSign    *AddSignService      // 加签减签服务
-	counter    *CountersignService  // 会签服务
-	delegate   *DelegateRuleService // 委托规则服务
-	remind     *RemindService       // 催办服务
-	exception  *ExceptionService    // 任务异常服务
-	simulate   *SimulateService     // 下一步推演器
-	scheduler  *Scheduler           // 调度器（自动办结/超时提醒/催办扫描/僵尸监控）
-	modelMgmt  *ModelService        // 模型/分类管理（P5.A）
-	stepDesign *StepDesignService   // 设计时步骤管理（P5.A）
-	template   *TemplateService     // 设计器模板管理（P5.A）
-	snapshot   *DeploySnapshotService // 部署快照服务（P5.A）
-	review     *ReviewTaskService   // 审阅影子任务服务（P5.B）
-	highlight  *HighlightService    // 流程图高亮数据服务（P5.B）
-	extendsStore ActExtendStore     // 审阅人绑定存储直引（宿主/测试播种绑定用）
+	stepsStore   StepStore              // 步骤规则存储（his_step 快照，nil 则规则分支跳过）
+	steps        *StepRuleService       // 步骤规则服务
+	back         *BackService           // 退回服务（任意退回/上一节点）
+	direct       *DirectService         // 直送服务
+	reset        *ResetService          // 重置服务
+	rollback     *RollbackService       // 撤回服务
+	terminate    *TerminateService      // 软终止/挂起/重激活/删除服务
+	addSign      *AddSignService        // 加签减签服务
+	counter      *CountersignService    // 会签服务
+	delegate     *DelegateRuleService   // 委托规则服务
+	remind       *RemindService         // 催办服务
+	exception    *ExceptionService      // 任务异常服务
+	simulate     *SimulateService       // 下一步推演器
+	scheduler    *Scheduler             // 调度器（自动办结/超时提醒/催办扫描/僵尸监控）
+	modelMgmt    *ModelService          // 模型/分类管理（P5.A）
+	stepDesign   *StepDesignService     // 设计时步骤管理（P5.A）
+	template     *TemplateService       // 设计器模板管理（P5.A）
+	snapshot     *DeploySnapshotService // 部署快照服务（P5.A）
+	review       *ReviewTaskService     // 审阅影子任务服务（P5.B）
+	highlight    *HighlightService      // 流程图高亮数据服务（P5.B）
+	extendsStore ActExtendStore         // 审阅人绑定存储直引（宿主/测试播种绑定用）
 }
 
 // assembleComponents 依据存储实现装配全部门面子服务。
@@ -150,6 +152,7 @@ func assembleMemoryComponents(engine api.Engine, opts Options, c clock.Clock) *c
 		designs:       NewMemStepDesignStore(c),
 		templates:     NewMemTemplateStore(c),
 		hisSteps:      hisSteps,
+		businesses:    NewMemoryBusinessSystemStore(),
 		reviews:       NewMemReviewTaskStore(c),
 		extends:       NewMemActExtendStore(),
 		weights:       NewMemCountersignWeightStore(),
@@ -180,7 +183,15 @@ func assembleSQLComponents(engine api.Engine, store *pwf.Store, db *sql.DB, opts
 	// P2-C/P3/P4/P5 能力装配：SQL 适配器族（待办数据源暂缺裸 SQL 实现，传空源）
 	mgmt := NewSQLModelMgmtStoresWithDB(store, db)
 	reviewStores := NewSQLReviewStoresWithDB(store, db)
+	// 业务系统注册 SQL 适配器（D5 业务回调按 tenantId 查回调地址；缺连接池时回调停用）
+	var businesses BusinessSystemStore
+	if db != nil {
+		if biz, err := NewSQLBusinessSystemStore(db, store.Dialect(), store); err == nil {
+			businesses = biz
+		}
+	}
 	assembleCapabilities(comp, engine, capabilityStores{
+		businesses:    businesses,
 		steps:         mgmt.HisStep,
 		delegate:      NewSQLTaskDelegateStore(store),
 		mirrors:       NewSQLDelegateTaskMirrorStore(store),
@@ -207,6 +218,70 @@ func (s *Service) RegisterExecutorRewriteHook(ctx context.Context) error {
 	s.comp.rewrite.Register(s.engine)
 	// 启动期全量预热已部署定义的模型元数据，避免首单触发 Defer 预热延迟
 	return s.comp.rewrite.WarmupAll(ctx)
+}
+
+// RegisterCountersignRuntime 注册会签执行监听器并预热节点元数据缓存。
+// 对位文档 011 §部署强校验：监听器在引擎命令内同步执行且只读预热缓存，
+// 因此注册后必须预热，否则会签节点在首单触发 WORKFLOW-2104。
+// 016 号审计：此前该方法无生产调用点，会签集合配置与权重监听器永不触发。
+// @param ctx 上下文（用于预热，可取消）
+// @return 注册或预热错误（引擎不支持监听器注册时返回错误）
+func (s *Service) RegisterCountersignRuntime(ctx context.Context) error {
+	if s.comp == nil || s.comp.counter == nil {
+		return nil
+	}
+	if err := s.comp.counter.RegisterCountersignListeners(s.engine); err != nil {
+		return err
+	}
+	return s.comp.counter.WarmupAll(ctx)
+}
+
+// RegisterBusinessCallbackHook 注册业务回调全局钩子（TASK_CREATED）并预热元数据缓存。
+// 未装配业务系统注册存储时为空操作（回调能力停用）。
+// 016 号审计：CallbackClient 此前零调用点，本方法把 D5 回调能力真正接入生产链路。
+// @param ctx 上下文（用于预热，可取消）
+// @return 预热错误（注册本身不失败）
+func (s *Service) RegisterBusinessCallbackHook(ctx context.Context) error {
+	if s.comp == nil || s.comp.bizCallback == nil {
+		return nil
+	}
+	s.comp.bizCallback.Register(s.engine)
+	return s.comp.bizCallback.WarmupAll(ctx, s.engine)
+}
+
+// RewarmBusinessCallbackDefinition 部署新定义后预热业务回调元数据缓存。
+// @param ctx 上下文
+// @param definitionID 流程定义 Id
+// @return 预热错误
+func (s *Service) RewarmBusinessCallbackDefinition(ctx context.Context, definitionID string) error {
+	if s.comp == nil || s.comp.bizCallback == nil || definitionID == "" {
+		return nil
+	}
+	return s.comp.bizCallback.Warmup(ctx, definitionID)
+}
+
+// RewarmCountersignDefinition 部署新定义后预热指定定义的会签节点元数据缓存。
+// 部署链路调用（DeployModel），不注册监听器（启动期已注册）。
+// @param ctx 上下文
+// @param definitionID 流程定义 Id
+// @return 预热错误
+func (s *Service) RewarmCountersignDefinition(ctx context.Context, definitionID string) error {
+	if s.comp == nil || s.comp.counter == nil || definitionID == "" {
+		return nil
+	}
+	return s.comp.counter.Warmup(ctx, definitionID)
+}
+
+// RewarmExecutorRewriteDefinition 部署新定义后预热执行人重写钩子的元数据缓存。
+// 016 号审计：此前仅启动期预热，新部署定义的首个实例会静默退回模型默认执行人。
+// @param ctx 上下文
+// @param definitionID 流程定义 Id
+// @return 预热错误
+func (s *Service) RewarmExecutorRewriteDefinition(ctx context.Context, definitionID string) error {
+	if s.comp == nil || s.comp.rewrite == nil || definitionID == "" {
+		return nil
+	}
+	return s.comp.rewrite.Warmup(ctx, definitionID)
 }
 
 // startProcessInternal 发起流程的门面内部实现（两个发起入口共用）。

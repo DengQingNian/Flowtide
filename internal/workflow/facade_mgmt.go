@@ -318,6 +318,18 @@ func (s *Service) DeployModel(ctx context.Context, tenantID, modelID string) (R,
 	if err != nil {
 		return R{}, err
 	}
+	// 新定义预热：会签节点元数据（监听器只读缓存）与执行人重写元数据。
+	// 016 号审计：此前仅启动期预热，新部署定义的首个实例会签节点抛 WORKFLOW-2104、
+	// 执行人重写静默退回模型默认执行人。预热失败不阻断部署（部署已生效），但需告警。
+	if err := s.RewarmCountersignDefinition(ctx, definition.ID); err != nil {
+		s.logWarn("部署后会签元数据预热失败", "definitionId", definition.ID, "error", err)
+	}
+	if err := s.RewarmExecutorRewriteDefinition(ctx, definition.ID); err != nil {
+		s.logWarn("部署后执行人重写元数据预热失败", "definitionId", definition.ID, "error", err)
+	}
+	if err := s.RewarmBusinessCallbackDefinition(ctx, definition.ID); err != nil {
+		s.logWarn("部署后业务回调元数据预热失败", "definitionId", definition.ID, "error", err)
+	}
 	return ROkMsg("部署成功", map[string]any{
 		"deploymentId":  deployment.ID,
 		"definitionId":  definition.ID,
