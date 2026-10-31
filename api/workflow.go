@@ -70,6 +70,25 @@ type BackTaskVo struct {
 	Type             string `json:"type,omitempty"`             // 意见类型，退回场景通常为 TH
 }
 
+// AddSignRequest 是前后加签请求。
+// 对应 Java AddSignTaskVo（taskId/userCode/signPersoneds/flag/message）。
+type AddSignRequest struct {
+	TaskID    string   `json:"taskId"`              // 当前任务 Id（必填；首层加签时改造为父任务）
+	Operator  string   `json:"operator"`            // 操作人（加签人身份 Id，必填）
+	Assignees []string `json:"assignees"`           // 被加签人身份 Id 列表（必填，至少一人）
+	ScopeType string   `json:"scopeType,omitempty"` // 作用域：后加签 "after" / 前加签 "before"（必填）
+	Message   string   `json:"message,omitempty"`   // 加签意见（域服务意见留痕约束）
+}
+
+// DelSignRequest 是减签请求（对位任务级减签语义；Java 无任务级减签对位源码，
+// 行为按加签的逆操作定义：删子任务 + 意见 + 剩余为空时恢复父任务）。
+type DelSignRequest struct {
+	ParentTaskID string `json:"parentTaskId"`      // 父任务 Id（必填）
+	SubTaskID    string `json:"subTaskId"`         // 待减掉的子任务 Id（必填）
+	Operator     string `json:"operator"`          // 操作人身份 Id（必填）
+	Message      string `json:"message,omitempty"` // 减签意见，空时使用默认文案
+}
+
 // R 是 workflow 门面统一返回结构。
 // 对应 Java api 模块 enm/R.java：code 取 "200"/"500"；出错时不填 Msg，
 // 只填 ErrorMessage（兼容 Java @JsonProperty("ErrorMessage") 的大写字段名）与 Success=false。
@@ -323,4 +342,121 @@ type WorkflowFacade interface {
 	// @return 统一返回（data 为任务详情）
 	// @return 错误
 	GetTaskInfoByTaskID(ctx context.Context, taskID string) (R, error)
+
+	// ── 退回辅助（P2.B）──
+
+	// GetBackNodes 查询任务的可退回节点列表（前端"退回"按钮数据源）。
+	// @param ctx 上下文
+	// @param taskID 当前任务 ID
+	// @return 统一返回（data 为可退节点视图列表）
+	// @return 错误
+	GetBackNodes(ctx context.Context, taskID string) (R, error)
+
+	// ── 软终止/挂起/重激活/删除（P2.C）──
+
+	// DoStopProcessInstance 软终止流程实例（按实例 ID，写终态留痕）。
+	// @param ctx 上下文
+	// @param processInstanceID 流程实例 ID
+	// @param operator 操作人身份 Id
+	// @param message 终止意见
+	// @return 统一返回
+	// @return 错误
+	DoStopProcessInstance(ctx context.Context, processInstanceID, operator, message string) (R, error)
+	// DoStopTaskByTaskID 按任务软终止其所在流程实例。
+	// @param ctx 上下文
+	// @param taskID 任务 ID
+	// @param operator 操作人身份 Id
+	// @return 统一返回
+	// @return 错误
+	DoStopTaskByTaskID(ctx context.Context, taskID, operator string) (R, error)
+	// DoDeleteProcessInstance 删除流程实例（运行态删除 + 历史留痕）。
+	// @param ctx 上下文
+	// @param processInstanceID 流程实例 ID
+	// @param operator 操作人身份 Id
+	// @param reason 删除原因
+	// @return 统一返回
+	// @return 错误
+	DoDeleteProcessInstance(ctx context.Context, processInstanceID, operator, reason string) (R, error)
+	// DoDeleteProcessByBusinessID 按业务单据删除其流程实例。
+	// @param ctx 上下文
+	// @param tenantID 租户（业务系统代号）
+	// @param businessKey 业务单据 ID
+	// @param operator 操作人身份 Id
+	// @return 统一返回
+	// @return 错误
+	DoDeleteProcessByBusinessID(ctx context.Context, tenantID, businessKey, operator string) (R, error)
+	// DoSuspendProcessInstance 挂起流程实例。
+	// @param ctx 上下文
+	// @param processInstanceID 流程实例 ID
+	// @param operator 操作人身份 Id
+	// @return 统一返回
+	// @return 错误
+	DoSuspendProcessInstance(ctx context.Context, processInstanceID, operator string) (R, error)
+	// DoActivateProcessInstance 恢复挂起的流程实例。
+	// @param ctx 上下文
+	// @param processInstanceID 流程实例 ID
+	// @param operator 操作人身份 Id
+	// @return 统一返回
+	// @return 错误
+	DoActivateProcessInstance(ctx context.Context, processInstanceID, operator string) (R, error)
+	// DoReactivateProcess 重激活已结束实例到指定节点（原实例复活，ID 不变）。
+	// @param ctx 上下文
+	// @param historicProcessInstanceID 历史实例 ID
+	// @param targetActivityID 重激活目标节点 ID（空表示回开始事件后首个用户任务）
+	// @param operator 操作人身份 Id
+	// @return 统一返回（data 含 processInstanceId）
+	// @return 错误
+	DoReactivateProcess(ctx context.Context, historicProcessInstanceID, targetActivityID, operator string) (R, error)
+
+	// ── 加签减签/会签（P3.A）──
+
+	// AddExecution 加签：为当前任务追加办理人（前加签/后加签）。
+	// @param ctx 上下文
+	// @param req 加签请求
+	// @return 统一返回（data 为加签结果）
+	// @return 错误
+	AddExecution(ctx context.Context, req AddSignRequest) (R, error)
+	// DelExecution 减签：移除被加签人子任务并按需恢复父任务。
+	// @param ctx 上下文
+	// @param req 减签请求
+	// @return 统一返回（data 为减签结果）
+	// @return 错误
+	DelExecution(ctx context.Context, req DelSignRequest) (R, error)
+	// AddMultiInstanceMember 向多实例（会签）活动动态追加一个实例成员。
+	// @param ctx 上下文
+	// @param processInstanceID 流程实例 ID
+	// @param activityID 多实例活动 ID
+	// @param assignee 新成员身份 Id
+	// @return 统一返回
+	// @return 错误
+	AddMultiInstanceMember(ctx context.Context, processInstanceID, activityID, assignee string) (R, error)
+	// RemoveMultiInstanceMember 移除多实例（会签）活动的一个实例成员。
+	// @param ctx 上下文
+	// @param processInstanceID 流程实例 ID
+	// @param activityID 多实例活动 ID
+	// @param assignee 成员身份 Id
+	// @param executionID 被移除实例的执行 ID
+	// @param completed 移除时是否视作已完成
+	// @return 统一返回
+	// @return 错误
+	RemoveMultiInstanceMember(ctx context.Context, processInstanceID, activityID, assignee, executionID string, completed bool) (R, error)
+	// CompleteSign 会签比例结论：按已办比例判定会签是否通过。
+	// @param ctx 上下文
+	// @param taskID 会签任务 ID
+	// @param countersignResult 会签结论：0 否决 / 1 通过
+	// @return 统一返回（data 为是否达成比例）
+	// @return 错误
+	CompleteSign(ctx context.Context, taskID string, countersignResult int) (R, error)
+
+	// ── 下一步推演（P5.B）──
+
+	// GetNextUserTaskAndUserListByKey 未发起实例按流程定义推演（不含办结伪节点）。
+	// @param ctx 上下文
+	// @param tenantID 租户（业务系统代号）
+	// @param processDefinitionKey 流程定义 Key（取最新版本）
+	// @param businessKey 业务单据 Id（预留透传）
+	// @param vars 表单/条件变量
+	// @return 统一返回（data 为节点与用户视图列表）
+	// @return 错误
+	GetNextUserTaskAndUserListByKey(ctx context.Context, tenantID, processDefinitionKey, businessKey string, vars map[string]any) (R, error)
 }

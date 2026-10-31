@@ -123,10 +123,10 @@ func NewWorkflowService(engine api.Engine, options ...Option) *Service {
 	var comp *components
 	if opts.sqlStore != nil {
 		// 真实库模式：workflow_* 行仓储走 internal/persistence/workflow
-		comp, _ = assembleSQLComponents(engine, opts.sqlStore, opts.sqlDB, opts.Clock)
+		comp, _ = assembleSQLComponents(engine, opts.sqlStore, opts.sqlDB, opts, opts.Clock)
 	}
 	if comp == nil {
-		comp = assembleMemoryComponents(engine, opts.Clock)
+		comp = assembleMemoryComponents(engine, opts, opts.Clock)
 	}
 	return &Service{engine: engine, opts: opts, comp: comp}
 }
@@ -194,54 +194,6 @@ func (s *Service) Complete(ctx context.Context, vo *CompleteTaskVo) (R, error) {
 	}), nil
 }
 
-// BackToStepTask 退回任务到指定步骤（P2 实现）。
-// @param ctx 上下文
-// @param vo 退回请求
-// @return 统一返回
-// @return 未实现错误
-func (s *Service) BackToStepTask(ctx context.Context, vo *BackTaskVo) (R, error) {
-	return stub()
-}
-
-// BackTask 退回任务到上一节点（P2 实现）。
-// @param ctx 上下文
-// @param vo 退回请求
-// @return 统一返回
-// @return 未实现错误
-func (s *Service) BackTask(ctx context.Context, vo *BackTaskVo) (R, error) {
-	return stub()
-}
-
-// DoRollbackTask 撤回任务（P2 实现）。
-// @param ctx 上下文
-// @param processInstanceID 流程实例 ID
-// @param taskID 待撤回任务 ID
-// @param operator 操作人身份 Id
-// @return 统一返回
-// @return 未实现错误
-func (s *Service) DoRollbackTask(ctx context.Context, processInstanceID, taskID, operator string) (R, error) {
-	return stub()
-}
-
-// CompleteToTargetActivity 直送指定目标节点（P2 实现）。
-// @param ctx 上下文
-// @param vo 办结请求（TargetActivityID 必填）
-// @return 统一返回
-// @return 未实现错误
-func (s *Service) CompleteToTargetActivity(ctx context.Context, vo *CompleteTaskVo) (R, error) {
-	return stub()
-}
-
-// DoResetProcess 重置流程实例（P2 实现）。
-// @param ctx 上下文
-// @param processInstanceID 流程实例 ID
-// @param operator 操作人身份 Id
-// @return 统一返回
-// @return 未实现错误
-func (s *Service) DoResetProcess(ctx context.Context, processInstanceID, operator string) (R, error) {
-	return stub()
-}
-
 // GetTodoTaskListByIdentityID 按身份 Id 分页查询待办任务。
 // @param ctx 上下文
 // @param identityID 身份 Id
@@ -275,10 +227,6 @@ func (s *Service) GetDoneTaskListByIdentityID(ctx context.Context, identityID st
 // @param taskID 任务 ID
 // @return 统一返回
 // @return 未实现错误
-func (s *Service) GetNextUserTaskAndUserList(ctx context.Context, taskID string) (R, error) {
-	return stub()
-}
-
 // SaveAgreeNextActivity 预存"同意"方向下一步节点与处理人（多节点逐个预存，
 // 目标为保留代号 end 或无执行人的节点跳过）。
 // @param ctx 上下文

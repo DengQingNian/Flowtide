@@ -11,14 +11,11 @@ import (
 // countEnabled 是父任务"计数启用"扩展变量名（对位 Java TaskEntity.countEnabled，加签父任务标记）。
 const varCountEnabled = "countEnabled"
 
-// AddSignRequest 是前后加签请求（对位 Java AddSignTaskVo：taskId/userCode/signPersoneds/flag/message）。
-type AddSignRequest struct {
-	TaskID    string   // 当前任务 Id（必填；首层加签时改造为父任务）
-	Operator  string   // 操作人（加签人身份 Id，必填）
-	Assignees []string // 被加签人身份 Id 列表（必填，至少一人）
-	ScopeType string   // 作用域：AddSignScopeAfter 后加签 / AddSignScopeBefore 前加签（必填）
-	Message   string   // 加签意见（必填，域服务意见留痕约束）
-}
+// 协议 DTO 归属 api 包（门面契约引用），此处保留包内别名以维持既有引用不变。
+type (
+	AddSignRequest = api.AddSignRequest // 前后加签请求（对位 Java AddSignTaskVo）
+	DelSignRequest = api.DelSignRequest // 减签请求（对位加签的逆操作语义）
+)
 
 // AddSignResult 是加签结果。
 type AddSignResult struct {
@@ -26,15 +23,6 @@ type AddSignResult struct {
 	SubTaskIDs        []string // 新建被加签人子任务 Id 列表
 	PlaceholderTaskID string   // 首层加签时为加签人创建并立即办结的占位子任务 Id
 	CommentType       string   // 意见类型代码（QJQ 前加签 / HJQ 后加签）
-}
-
-// DelSignRequest 是减签请求（对位任务级减签语义；Java 无任务级减签对位源码，
-// 行为按加签的逆操作定义：删子任务 + 意见 + 剩余为空时恢复父任务）。
-type DelSignRequest struct {
-	ParentTaskID string // 父任务 Id（必填）
-	SubTaskID    string // 待减掉的子任务 Id（必填）
-	Operator     string // 操作人身份 Id（必填）
-	Message      string // 减签意见，空时使用默认文案
 }
 
 // DelSignResult 是减签结果。
