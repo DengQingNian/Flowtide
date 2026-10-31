@@ -962,6 +962,19 @@ type StepDesignService struct {
 	newID func() string   // ID 生成函数
 }
 
+// GetByID 按主键查询设计时步骤（step/findById 门面数据面）。
+// @param ctx 操作上下文
+// @param id 步骤主键
+// @return 实体
+// @return 是否存在
+// @return 查询错误
+func (s *StepDesignService) GetByID(ctx context.Context, id string) (*StepDesign, bool, error) {
+	if strings.TrimSpace(id) == "" {
+		return nil, false, apiError(errCodeMMParamsBlank, "按 Id 取步骤缺少主键")
+	}
+	return s.store.GetByPK(ctx, id)
+}
+
 // NewStepDesignService 构造设计时步骤管理服务。
 // @param store 步骤存储端口
 // @param c 时间源，nil 时回退真实时钟
