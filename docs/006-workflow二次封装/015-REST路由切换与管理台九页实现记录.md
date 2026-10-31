@@ -15,21 +15,20 @@
 
 ### 1.2 端点面（路由表共 95 条）
 
-- **已接线 56 条**：发起/办结/退回/软终止（end、stop/{pid}）/删除（按实例、按业务键）/挂起/激活/待办/已办/任务详情/历史（按任务、按实例、按业务键分派）/处理人调整/会签结论/加签/减签/撤回/直送/部署（deplay+deploy→DeployModel 部署+快照链路）/模型与分类增删改查树/步骤增删改查/hisstep 快照查询/模板增删改查/委托 CRUD/催办五端点/异常两端点/高亮（highlight+normal）/字典。
-- **保留 501 共 39 条**（逐条注释待接线原因）：
+- **已接线 67 条**：发起/办结/退回/软终止/删除/挂起/激活（含批量 processes）/待办/已办/任务详情/历史/处理人调整/会签结论/加签/减签/签收/委派处理/撤回/直送/部署+快照/模型与分类 CRUD 树/步骤 CRUD/hisstep 快照查询/模板 CRUD/委托 CRUD/催办/异常/高亮/字典/审阅绑定（extend 两端点）/会签权重（weight/save+get）/实例分页/身份树/操作按钮聚合。
+- **保留 501 共 28 条**（逐条注释待接线原因）：
   | 类别 | 数量 | 说明 |
   | --- | --- | --- |
   | 设计器/导入导出 | 19 | add/model、getModelJsonByType、save/xml、export/import、exportProcess/importProcess、copyProcess、index、create、inject/node、exmple/wait、getUserTaskJsonInfo 等（P6 设计器阶段） |
-  | 批量与发布族 | 5 | suspend|activate processes（无批量方法）、public 三端点 |
-  | 实例分页 | 1 | instance/all/list（Service 无实例分页能力） |
-  | 引擎语义差异 | 3 | delegate/task（与委托规则 CRUD 语义不同）、resolve、claim |
-  | 域服务内部端口 | 5 | extend 两端点 + weight 三端点（审阅绑定/会签权重未走门面） |
-  | 其他 | 6 | operationButtonList、instance/list、hisstep 增删改（快照只读）、identity/tree 等 |
+  | public 发布族 | 3 | 无发布批量语义 |
+  | 快照只读 | 3 | hisstep 增删改（部署快照只读约定） |
+  | 其他 | 3 | instance/list（旧单路径，instance/all/list 已接）、delegate/task（引擎委托语义与委托规则 CRUD 不同）、weight/delete（节点级整存整取无单独删除语义） |
 
 ### 1.3 测试
 
-新增 8 个测试函数：核心生命周期全链路、管理链路 + 部署快照、加签减签会签族、委托/催办/异常/字典、
-保留 501 抽查 ×20、未注入服务回 501、参数读取器单测、防御分支直调 ×14。新文件行覆盖 90.2%。
+两批合计：核心生命周期全链路、管理链路 + 部署快照、加签减签会签族、委托/催办/异常/字典、
+收尾能力 11 端点正反例、保留 501 抽样、未注入服务回 501、参数读取器单测、防御分支直调。
+handler 文件行覆盖 90.4%。
 
 ## 2. 管理台九大页面（admin/）
 
@@ -49,6 +48,5 @@
 ## 4. 遗留与后续
 
 1. 设计器/导入导出 19 条端点（P6 后半：BPMN 设计器属性面板 + 模型 XML 存取链路）。
-2. 实例分页查询能力（Service 层补 QueryService 实例分页）。
-3. operationButtonList 按钮聚合、identity/tree 组树。
-4. 审阅绑定与权重保存走门面（当前为域服务内部端口）。
+2. public 发布族与 delegate/task 引擎委托语义评估。
+3. 内存模式待办数据源裸 SQL 补齐（SQL 模式 TodoSource 为空源占位）。
