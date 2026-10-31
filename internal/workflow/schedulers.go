@@ -117,20 +117,22 @@ func NewScheduler(cfg SchedulerConfig) *Scheduler {
 		remindInterval:       RemindScanInterval,
 		zombieInterval:       ZombieScanInterval,
 		timeoutHour:          TimeoutRemindHour,
-		stop:                 make(chan struct{}),
-		done:                 make(chan struct{}),
+		// stop/done 缺省 nil（未启动态），由 Start 创建、Stop 复位
 	}
 }
 
-// Start 启动调度器后台循环（重复调用幂等）。
+// Start 启动调度器后台循环（重复调用幂等；Stop 后可重启）。
 // @param ctx 上下文（传递给各 tick；取消后循环内的 tick 以取消态执行）
 func (s *Scheduler) Start(ctx context.Context) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	// 已启动则幂等返回
-	if s.stop == nil {
+	// 已启动则幂等返回（stop 非 nil 表示循环在跑，与 Stop 的 stop=nil 约定一致）
+	if s.stop != nil {
 		return
 	}
+	// 未启动（含 Stop 后重启）：重建停止/完成通道
+	s.stop = make(chan struct{})
+	s.done = make(chan struct{})
 	stop, done := s.stop, s.done
 	go func() {
 		defer close(done)

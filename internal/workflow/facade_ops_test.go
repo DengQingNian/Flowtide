@@ -27,7 +27,7 @@ const opsFixture = `<?xml version="1.0" encoding="UTF-8"?>
     <sequenceFlow id="f1" sourceRef="apply" targetRef="handle"/>
     <userTask id="handle" name="办理" flowable:assignee="${initiator}" stepCode="S01"/>
     <sequenceFlow id="f2" sourceRef="handle" targetRef="approve"/>
-    <userTask id="approve" name="批准" stepCode="S02"/>
+    <userTask id="approve" name="批准" flowable:assignee="u2" stepCode="S02"/>
     <sequenceFlow id="f3" sourceRef="approve" targetRef="end"/>
     <endEvent id="end"/>
   </process>
@@ -171,8 +171,8 @@ func TestOpsBackAndRollback(t *testing.T) {
 		t.Fatalf("退回后应回到 apply 节点")
 	}
 
-	// 撤回：u1 撤回自己已办的 apply 任务（回到待办）
-	rolled, err := env.service.DoRollbackTask(ctx, instanceID, env.currentTask(t, instanceID), "u1")
+	// 撤回：u1 撤回已办的 apply 任务（handle 换回的新任务未签收，回到待办）
+	rolled, err := env.service.DoRollbackTask(ctx, instanceID, applyTaskID, "u1")
 	if err != nil {
 		t.Fatalf("撤回失败: %v", err)
 	}
@@ -188,10 +188,15 @@ func TestOpsDirectAndReset(t *testing.T) {
 	ctx := tenant.With(context.Background(), "bizA")
 	instanceID, applyTaskID := env.start(t, "opsProc", "BIZ-OPS-2")
 
-	// 直送到 approve 节点
+	// 直送到 approve 节点（直送要求预存目标执行人：request 首条）
 	direct, err := env.service.CompleteToTargetActivity(ctx, &CompleteTaskVo{
 		BaseProcessVo:    BaseProcessVo{TaskID: applyTaskID, UserCode: "u1", Message: "直送", ProcessInstanceID: instanceID, Type: CommentTypeSP},
 		TargetActivityID: "approve",
+		Request: &NextActivityRequest{
+			TaskID:           applyTaskID,
+			NextActivityList: []*NextActivityVo{{ActivityID: "approve", ExecutorIDs: []string{"u2"}}},
+			SendIdentityID:   "u1",
+		},
 	})
 	if err != nil {
 		t.Fatalf("直送失败: %v", err)
@@ -321,6 +326,7 @@ func TestOpsDelegateAndRemind(t *testing.T) {
 	now := time.Date(2026, 10, 31, 8, 0, 0, 0, time.UTC)
 	rule := &DelegateRule{
 		OwnerID:     "u1",
+		SourceCode:  "bizA",
 		VaildFrom:   now,
 		VaildTo:     now.Add(24 * time.Hour),
 		ConsignType: ConsignTypeAll,
@@ -345,7 +351,7 @@ func TestOpsDelegateAndRemind(t *testing.T) {
 	}
 
 	// 催办配置：新增 → 查询 → 分页 → 更新 → 删除
-	saved, err := env.service.AddRemind(ctx, RemindSaveRequest{Remind: &Remind{BaseColumns: BaseColumns{TenantID: "bizA"}, PID: "P-OPS"}})
+	saved, err := env.service.AddRemind(ctx, RemindSaveRequest{Remind: &Remind{TenantID: "bizA", PID: "P-OPS"}})
 	if err != nil {
 		t.Fatalf("新增催办失败: %v", err)
 	}
