@@ -170,7 +170,7 @@ func registerWorkflowRoutes(s *Server) {
 }
 
 // workflowHandlerFor 返回路由路径对应的业务 handler。
-// 已接线端点经 guardWorkflow 包装（未注入 workflow 服务时回落 501）；
+// 已接线端点经 serveWorkflow 包装（未注入 workflow 服务时回落 501）；
 // 保留 501 的端点直接返回桩并注释"待接线原因"。
 // @param path 路由模板路径
 // @return HTTP 处理器
@@ -193,6 +193,16 @@ func (s *Server) workflowHandlerFor(path string) http.HandlerFunc {
 		return s.serveWorkflow(s.handleWorkflowSuspendInstance)
 	case "/workflow/process/activate/processInstance/{pid}": // 激活实例 → DoActivateProcessInstance
 		return s.serveWorkflow(s.handleWorkflowActivateInstance)
+	case "/workflow/process/suspend/processes": // 批量挂起实例 → SuspendProcessInstances
+		return s.serveWorkflow(s.handleWorkflowBatchSuspend)
+	case "/workflow/process/activate/processes": // 批量激活实例 → ActivateProcessInstances
+		return s.serveWorkflow(s.handleWorkflowBatchActivate)
+	case "/workflow/process/resolve/task": // 委派处理（处理人恢复为所有者）→ ResolveTask
+		return s.serveWorkflow(s.handleWorkflowResolveTask)
+	case "/workflow/process/claim/task": // 签收任务（组任务认领到个人）→ ClaimTask
+		return s.serveWorkflow(s.handleWorkflowClaimTask)
+	case "/workflow/process/instance/all/list": // 运行实例分页 → GetProcessInstancePageList
+		return s.serveWorkflow(s.handleWorkflowInstancePageList)
 	case "/workflow/process/task/list": // 任务详情（taskId 必填）→ GetTaskInfoByTaskID
 		return s.serveWorkflow(s.handleWorkflowTaskList)
 	case "/workflow/process/task/all/todoList": // 待办列表 → GetTodoTaskListByIdentityID
@@ -225,6 +235,22 @@ func (s *Server) workflowHandlerFor(path string) http.HandlerFunc {
 		return s.serveWorkflow(s.handleWorkflowRollback)
 	case "/workflow/task/completeToTargetActivity": // 直送 → CompleteToTargetActivity
 		return s.serveWorkflow(s.handleWorkflowCompleteToTargetActivity)
+	case "/workflow/task/operationButtonList/{processInstanceId}": // 操作按钮清单 → GetOperationButtons
+		return s.serveWorkflow(s.handleWorkflowOperationButtons)
+
+	// ── /extend/**、/weight/**：审阅人绑定与会签权重 ──
+	case "/workflow/extend/save": // 保存审阅人绑定（活动扩展）→ SaveActExtend
+		return s.serveWorkflow(s.handleWorkflowExtendSave)
+	case "/workflow/extend/getActByProcessDefKeyAndActId": // 按定义/节点查审阅绑定 → ListActExtends
+		return s.serveWorkflow(s.handleWorkflowExtendList)
+	case "/workflow/weight/save": // 保存节点会签权重 → SaveCountersignWeights
+		return s.serveWorkflow(s.handleWorkflowWeightSave)
+	case "/workflow/weight/getWeightByProcessDefKeyAndActId": // 查询节点会签权重 → ListCountersignWeights
+		return s.serveWorkflow(s.handleWorkflowWeightList)
+
+	// ── /identity/**：内置身份库树（D10）──
+	case "/workflow/identity/tree": // 用户/组两级身份树 → GetIdentityTree
+		return s.serveWorkflow(s.handleWorkflowIdentityTree)
 
 	// ── /model/**、/category/**：模型/分类管理（一表两页，同语义投影）──
 	case "/workflow/model/add", "/workflow/category/add": // 新增 → AddModelCategory
@@ -316,37 +342,22 @@ func (s *Server) workflowHandlerFor(path string) http.HandlerFunc {
 		"/workflow/model/findModelAndStepPageList",     // 模型+步骤联合分页（P6）
 		"/workflow/step/findById":                      // 步骤主键查询（P6）
 		return s.handleWorkflowNotImplemented
-	// 批量挂起/激活与 public 发布族：Service 未提供批量方法（单实例挂起/激活已接线），P6 补批量能力
-	case "/workflow/process/suspend/processes",
-		"/workflow/process/activate/processes",
-		"/workflow/process/public/model/id",
+	// public 发布族：Service 未提供发布批量语义（P6 评估）
+	case "/workflow/process/public/model/id",
 		"/workflow/process/public/deploymentId",
 		"/workflow/process/public/processes/id":
 		return s.handleWorkflowNotImplemented
-	// 实例分页查询：Service 无实例分页能力（走 /service/runtime/process-instances 兼容端点）
-	case "/workflow/process/instance/list", "/workflow/process/instance/all/list":
+	// 单实例分页查询：仅 instance/all/list 已接 GetProcessInstancePageList，旧路径维持桩
+	case "/workflow/process/instance/list":
 		return s.handleWorkflowNotImplemented
 	// 引擎委托语义（委派给他人办理）：Service 的 delegate 是委托规则 CRUD，语义不同（P6 评估）
 	case "/workflow/process/delegate/task":
 		return s.handleWorkflowNotImplemented
-	// 任务认领（resolve/claim）：Service 未提供签收能力（P6 评估）
-	case "/workflow/process/resolve/task", "/workflow/process/claim/task":
-		return s.handleWorkflowNotImplemented
-	// 审阅人绑定（act_extend）与会签权重：属域服务内部端口，未走门面（P6 评估）
-	case "/workflow/extend/save",
-		"/workflow/extend/getActByProcessDefKeyAndActId",
-		"/workflow/weight/save",
-		"/workflow/weight/delete",
-		"/workflow/weight/getWeightByProcessDefKeyAndActId":
-		return s.handleWorkflowNotImplemented
-	// 操作按钮清单（按实例计算可用按钮集）：Service 未提供该聚合（P6 评估）
-	case "/workflow/task/operationButtonList/{processInstanceId}":
+	// 会签权重删除：门面仅提供节点级整存整取（先删后插经 save 覆盖），无单独删除语义（P6 评估）
+	case "/workflow/weight/delete":
 		return s.handleWorkflowNotImplemented
 	// 快照只读：hisstep 增删改破坏部署快照一致性，仅开放 list
 	case "/workflow/hisstep/add", "/workflow/hisstep/edit", "/workflow/hisstep/delete/{ids}":
-		return s.handleWorkflowNotImplemented
-	// 内置身份库树（D10）：组树需聚合用户/组/成员关系，工作量另评（P6）
-	case "/workflow/identity/tree":
 		return s.handleWorkflowNotImplemented
 	default:
 		return s.handleWorkflowNotImplemented
