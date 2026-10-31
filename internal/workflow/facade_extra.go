@@ -89,8 +89,16 @@ func (s *Service) ListCountersignWeights(ctx context.Context, processDefinitionK
 	if err := requireCapable(s.comp); err != nil {
 		return R{}, err
 	}
+	if processDefinitionKey == "" || activityID == "" {
+		return R{}, api.NewError("WORKFLOW-0400", "权重查询缺少定义 Key 或节点 ID", api.ErrBadRequest)
+	}
 	key := CountersignWeightKey{ProcessDefinitionKey: processDefinitionKey, ActivityID: activityID, TenantID: tenantID}
-	configs, err := s.comp.counter.ListNodeWeights(ctx, key.ProcessDefinitionKey, key)
+	// 定义 Id（模型 weightList 降级来源解析用；按 Key 取最新版本）
+	definition, err := s.engine.RepositoryService().GetProcessDefinitionByKey(ctx, processDefinitionKey)
+	if err != nil {
+		return R{}, err
+	}
+	configs, err := s.comp.counter.ListNodeWeights(ctx, definition.ID, key)
 	if err != nil {
 		return R{}, err
 	}
