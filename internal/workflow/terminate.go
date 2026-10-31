@@ -1,9 +1,11 @@
 // terminate.go 实现终止/删除/挂起/激活/重激活门面服务（P2 波2-B）。
 // 对位 Java ProcessesUtil：
+//
 //	doStopProcessByTaskId:675 / doStopProcessByProcessInstanceId:726（软终止收尾）、
 //	deleteProcessInstanceById:5216（实例删除收尾）、deleteProcessByBusinessId:5970（业务键批量删除）、
 //	suspendProcessInstanceByProcessInstanceId:1300 / activateProcessInstanceByProcessInstanceId:1316
 //	（LCZT/LCJH 意见 + 操作记录，next_activity 不动）。
+//
 // 引擎级软终止（迁至结束事件）与历史实例复活由 api.WorkflowExtService 承载。
 package workflow
 
@@ -31,13 +33,13 @@ const (
 
 // 终止/删除/挂起激活/重激活的固定文案（对位 Java addComment/addOperationRecord 第 5 参）。
 const (
-	termCommentMessage      = "流程终止" // 软终止意见/操作记录文案
-	deleteCommentMessage    = "流程删除" // 实例删除操作记录文案
-	deleteDefaultReason     = "删除流程实例" // 运行级联删除的引擎删除原因（Java DeleteFlowableProcessInstanceCmd 第 2 参）
-	suspendCommentMessage   = "流程暂停" // 挂起意见/操作记录文案
-	activateCommentMessage  = "流程激活" // 激活意见/操作记录文案
-	reactivateCommentMsg    = "步骤激活" // 重激活意见/操作记录文案（BZJH）
-	instanceListPageSize    = 500       // 实例/任务列表批量查询上限（与 completeListSize 同口径）
+	termCommentMessage     = "流程终止"   // 软终止意见/操作记录文案
+	deleteCommentMessage   = "流程删除"   // 实例删除操作记录文案
+	deleteDefaultReason    = "删除流程实例" // 运行级联删除的引擎删除原因（Java DeleteFlowableProcessInstanceCmd 第 2 参）
+	suspendCommentMessage  = "流程暂停"   // 挂起意见/操作记录文案
+	activateCommentMessage = "流程激活"   // 激活意见/操作记录文案
+	reactivateCommentMsg   = "步骤激活"   // 重激活意见/操作记录文案（BZJH）
+	instanceListPageSize   = 500      // 实例/任务列表批量查询上限（与 completeListSize 同口径）
 )
 
 // TerminateService 是终止/删除/挂起/激活/重激活域服务（P2 波2-B）。
@@ -172,7 +174,7 @@ func (s *TerminateService) StopByInstance(ctx context.Context, processInstanceID
 		return err
 	}
 	// 删除下一步骤信息及历史信息（Java deleteNextActivityByProcessInstanceId 双表）
-	if err := s.deleteNextActivityAll(ctx, processInstanceID); err != nil {
+	if err := deleteNextActivityAll(ctx, s.next, processInstanceID); err != nil {
 		return err
 	}
 	// 删除待办消息及已办消息（Java deleteTaskMessageExtendByProcessInstanceId / deleteTaskHistoryExtendByProcessInstanceId）
@@ -187,9 +189,9 @@ func (s *TerminateService) StopByInstance(ctx context.Context, processInstanceID
 }
 
 // DeleteInstance 删除流程实例（对位 Java deleteProcessInstanceById:5216）：
-// LCSC 操作记录 → 运行实例引擎级联删除（DeleteProcessInstance+原因）或
-// 已结束实例历史删除（DeleteHistoricProcessInstance）→ next_activity 双表/待办/已办/
-// document（MarkDeleted）级联清理。
+// LCSC 操作记录 → 运行实例引擎级联删除（DeleteProcessInstance+原因 + 历史清除，
+// 对位 Java cascade=true）或已结束实例历史删除（DeleteHistoricProcessInstance）→
+// next_activity 双表/待办/已办/document（MarkDeleted）级联清理。
 // 与 Java 的对照差异：操作记录与直送记录无删除端口（且 Java 亦保留操作记录作审计轨迹），
 // 本服务保留 LCSC 及此前记录不删（差异已在注释与报告说明）。
 // @param ctx 操作上下文
@@ -219,17 +221,24 @@ func (s *TerminateService) DeleteInstance(ctx context.Context, processInstanceID
 	}
 	// 解析业务键与租户（document MarkDeleted 定位键，须在实例删除前解析）
 	businessKey, tenantID := s.resolveBusinessScope(ctx, processInstanceID)
-	// 运行实例：引擎级联删除（历史记 completed + 删除原因）；已结束实例：历史删除
-	if _, err := s.engine.RuntimeService().GetProcessInstance(ctx, processInstanceID); err == nil {
+	// 运行实例：引擎级联删除 + 历史清除（对位 Java DeleteFlowableProcessInstanceCmd
+	// cascade=true：运行数据与历史数据一并删除）；已结束实例（含运行表查不到、
+	// 仅存历史行）：历史删除（对位 Java deleteHistoricProcessInstance 分支）
+	instance, err := s.engine.RuntimeService().GetProcessInstance(ctx, processInstanceID)
+	if err == nil && !instance.Ended {
 		if err := s.engine.RuntimeService().DeleteProcessInstance(ctx, processInstanceID, text); err != nil {
 			return err
 		}
+		// cascade 语义补位：Go 引擎 DeleteProcessInstance 保留历史行，显式清除
+		if err := s.engine.HistoryService().DeleteHistoricProcessInstance(ctx, processInstanceID); err != nil {
+			return err
+		}
 	} else if err := s.engine.HistoryService().DeleteHistoricProcessInstance(ctx, processInstanceID); err != nil {
-		// 运行表查不到且历史删除失败（含历史也不存在）：对位 Java 历史分支
+		// 历史删除失败（含历史也不存在）：对位 Java 历史分支的报错
 		return err
 	}
 	// 级联清理：next_activity 双表 → 待办 → 已办 → document（MarkDeleted）
-	if err := s.deleteNextActivityAll(ctx, processInstanceID); err != nil {
+	if err := deleteNextActivityAll(ctx, s.next, processInstanceID); err != nil {
 		return err
 	}
 	if err := s.messages.DeleteByInstance(ctx, processInstanceID); err != nil {
@@ -425,16 +434,18 @@ func (s *TerminateService) writeStateTailChain(ctx context.Context, processInsta
 // deleteNextActivityAll 清理实例的下一步预生成双表（对位 Java
 // workflowNextActivityService + workflowHisNextActivityService 的 deleteNextActivityByProcessInstanceId）。
 // 存储端口无"历史表按实例全删"方法，先删运行态全量，再按历史行节点集合走双表删除达成同等净效果。
+// 供终止/删除与重置两个域服务共用（包级函数）。
 // @param ctx 操作上下文
+// @param next 下一步预生成域服务
 // @param processInstanceID 流程实例 Id
 // @return 错误
-func (s *TerminateService) deleteNextActivityAll(ctx context.Context, processInstanceID string) error {
+func deleteNextActivityAll(ctx context.Context, next *NextActivityService, processInstanceID string) error {
 	// 运行态全量删除
-	if err := s.next.DeleteByProcessInstance(ctx, processInstanceID); err != nil {
+	if err := next.DeleteByProcessInstance(ctx, processInstanceID); err != nil {
 		return err
 	}
 	// 历史表清理：按历史行归并目标节点集合后双表删除（运行态已空，删除为幂等）
-	hisRecords, err := s.next.ListHisByInstance(ctx, processInstanceID)
+	hisRecords, err := next.ListHisByInstance(ctx, processInstanceID)
 	if err != nil {
 		return err
 	}
@@ -452,7 +463,7 @@ func (s *TerminateService) deleteNextActivityAll(ctx context.Context, processIns
 	if len(activityIDs) == 0 {
 		return nil
 	}
-	return s.next.DeleteByProcessInstanceAndActivityIDs(ctx, processInstanceID, activityIDs)
+	return next.DeleteByProcessInstanceAndActivityIDs(ctx, processInstanceID, activityIDs)
 }
 
 // resolveBusinessScope 解析实例的业务键与租户（运行优先、历史回退；document MarkDeleted 定位键）。
@@ -512,7 +523,7 @@ func (s *TerminateService) rebuildDocument(ctx context.Context, historic api.His
 // @param operator 操作人身份 Id（审计列创建人）
 // @return 错误
 func (s *TerminateService) regenerateTodos(ctx context.Context, processInstanceID, operator string) error {
-	// 实例与定义联查数据源（循环外取一次）
+	// 实例联查数据源（待办字段补全）
 	instance, err := s.engine.RuntimeService().GetProcessInstance(ctx, processInstanceID)
 	if err != nil {
 		return err
@@ -522,43 +533,62 @@ func (s *TerminateService) regenerateTodos(ctx context.Context, processInstanceI
 		return err
 	}
 	for i := range page.Data {
-		task := page.Data[i]
-		// 幂等：已有待办的任务跳过
-		if _, found, err := s.messages.GetByTaskID(ctx, task.ID); err != nil {
-			return err
-		} else if found {
-			continue
-		}
-		// 无办理人（组任务等执行人未落定）暂不生成，待执行人重写钩子补齐
-		if task.Assignee == "" {
-			continue
-		}
-		// 组装待办扩展（实例/定义/任务三元补全）
-		message := &MessageExtend{
-			BaseColumns:       BaseColumns{TenantID: instance.TenantID, Creator: operator},
-			TaskID:            task.ID,
-			ProcessInstanceID: processInstanceID,
-			Title:             instance.Name,
-			BusinessID:        instance.BusinessKey,
-			TaskStepName:      task.Name,
-			TaskStepCode:      task.TaskDefinitionKey,
-			OwnerID:           task.Assignee,
-			TaskReceiptTime:   &task.CreateTime,
-		}
-		// 定义联查补流程分类（查不到给空，不阻断待办生成）
-		if definition, err := s.engine.RepositoryService().GetProcessDefinition(ctx, task.ProcessDefinitionID); err == nil {
-			message.FlowCategoryCode = definition.Key
-			message.FlowCategoryName = definition.Name
-		}
-		// 起草人 = 实例发起人
-		message.DocumentOwnerID = instance.StartUserID
-		if _, err := s.messages.CreateForTask(ctx, message); err != nil {
-			return err
-		}
-		// 已办镜像（待办整行复制语义，与发起/办结链一致）
-		if _, err := s.histories.CreateForTask(ctx, &HistoryExtend{MessageExtend: *message}); err != nil {
+		// 逐任务幂等补建（已有待办或无办理人的任务在共享辅助内跳过）
+		if _, err := createInstanceTaskTodo(ctx, s.engine, s.messages, s.histories, instance, page.Data[i], operator); err != nil {
 			return err
 		}
 	}
 	return nil
+}
+
+// createInstanceTaskTodo 为单个运行任务补建待办与已办镜像（终止/重置域共用辅助）。
+// 幂等：任务已有待办或无办理人时跳过（返回 false）；否则创建待办 + 已办镜像
+// （对位 Java saveMessageExtendInfo 的 count==0 才插入 + 历史行同步插入）。
+// @param ctx 操作上下文
+// @param engine 引擎门面（定义联查补流程分类）
+// @param messages 待办扩展域服务
+// @param histories 已办扩展域服务
+// @param instance 流程实例（待办字段补全数据源）
+// @param task 目标任务
+// @param operator 操作人身份 Id（审计列创建人）
+// @return 是否实际创建
+// @return 错误
+func createInstanceTaskTodo(ctx context.Context, engine api.Engine, messages *MessageExtendService, histories *HistoryExtendService, instance api.ProcessInstance, task api.Task, operator string) (bool, error) {
+	// 幂等：已有待办的任务跳过
+	if _, found, err := messages.GetByTaskID(ctx, task.ID); err != nil {
+		return false, err
+	} else if found {
+		return false, nil
+	}
+	// 无办理人（组任务等执行人未落定）暂不生成，待执行人重写钩子补齐
+	if task.Assignee == "" {
+		return false, nil
+	}
+	// 组装待办扩展（实例/任务字段补全）
+	message := &MessageExtend{
+		BaseColumns:       BaseColumns{TenantID: instance.TenantID, Creator: operator},
+		TaskID:            task.ID,
+		ProcessInstanceID: instance.ID,
+		Title:             instance.Name,
+		BusinessID:        instance.BusinessKey,
+		TaskStepName:      task.Name,
+		TaskStepCode:      task.TaskDefinitionKey,
+		OwnerID:           task.Assignee,
+		TaskReceiptTime:   &task.CreateTime,
+	}
+	// 定义联查补流程分类（查不到给空，不阻断待办生成）
+	if definition, err := engine.RepositoryService().GetProcessDefinition(ctx, task.ProcessDefinitionID); err == nil {
+		message.FlowCategoryCode = definition.Key
+		message.FlowCategoryName = definition.Name
+	}
+	// 起草人 = 实例发起人
+	message.DocumentOwnerID = instance.StartUserID
+	if _, err := messages.CreateForTask(ctx, message); err != nil {
+		return false, err
+	}
+	// 已办镜像（待办整行复制语义，与发起/办结链一致）
+	if _, err := histories.CreateForTask(ctx, &HistoryExtend{MessageExtend: *message}); err != nil {
+		return false, err
+	}
+	return true, nil
 }
