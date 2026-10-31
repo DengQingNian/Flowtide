@@ -391,16 +391,20 @@ func assertSameStrings(t *testing.T, got, want []string) {
 }
 
 // seedTaskMessage 为任务播种待办扩展（退回步骤 sender 信息）。
+// @param instanceID 实例 Id
 // @param task 任务
+// @param ownerID 处理人身份 Id
 // @param senderStepCode 发送步骤代号
 // @param senderStepName 发送步骤名称
-func (f *simFixture) seedTaskMessage(task api.Task, senderStepCode, senderStepName string) {
+func (f *simFixture) seedTaskMessage(instanceID string, task api.Task, ownerID, senderStepCode, senderStepName string) {
 	f.t.Helper()
 	if _, err := f.messages.CreateForTask(context.Background(), &MessageExtend{
-		BaseColumns:    BaseColumns{TenantID: "dev"},
-		TaskID:         task.ID,
-		SenderStepCode: senderStepCode,
-		SenderStepName: senderStepName,
+		BaseColumns:       BaseColumns{TenantID: "dev"},
+		TaskID:            task.ID,
+		ProcessInstanceID: instanceID,
+		OwnerID:           ownerID,
+		SenderStepCode:    senderStepCode,
+		SenderStepName:    senderStepName,
 	}); err != nil {
 		f.t.Fatalf("播种待办失败: %v", err)
 	}
@@ -530,26 +534,26 @@ func TestSimulateConsistencySubProcess(t *testing.T) {
 	assertSameStrings(t, fx.allTaskKeys(instance.ID), []string{"after"})
 }
 
-// TestSimulateConsistencyWithEntity 推演含 ${initiator} 与 entity 取值表达式的一致性。
+// TestSimulateConsistencyWithEntity 推演含 entity 取值表达式与实际流转的一致性。
 func TestSimulateConsistencyWithEntity(t *testing.T) {
 	fx := newSimFixture(t)
 	instance, task := fx.start("simVarExec", "alice", map[string]any{
 		"entity": map[string]any{"owner": "bob"},
 	})
+	// ${entity.owner} → 实际首任务执行人 = bob（与推演解析同源）
+	if task.Assignee != "bob" {
+		t.Fatalf("entity 取值执行人不符: %+v", task)
+	}
+	// varNode 推演 → 办结伪节点（结束无执行人）
 	views, err := fx.sim.SimulateByTask(context.Background(), task.ID, nil)
 	if err != nil {
 		t.Fatalf("推演失败: %v", err)
 	}
-	// ${entity.owner} → entity 表单取值 bob
-	assertSameStrings(t, viewIDs(views), []string{"varNode"})
-	if len(views[0].ExecutorIDs) != 1 || views[0].ExecutorIDs[0] != "bob" {
-		t.Fatalf("entity 取值执行人不符: %+v", views[0])
-	}
-	// 实际流转生成的任务执行人 = 推演结果
-	fx.complete(task.ID, "alice", nil)
-	next := fx.firstTask(instance.ID)
-	if next.TaskDefinitionKey != "varNode" || next.Assignee != "bob" {
-		t.Fatalf("实际流转与推演不符: %+v", next)
+	assertSameStrings(t, viewIDs(views), []string{SimEndActivityID})
+	// 实际办结后无任务（与 end 伪节点一致）
+	fx.complete(task.ID, "bob", nil)
+	if keys := fx.allTaskKeys(instance.ID); len(keys) != 0 {
+		t.Fatalf("实例应已办结: %v", keys)
 	}
 }
 
@@ -644,6 +648,189 @@ func TestSimulateExecutorShapes(t *testing.T) {
 	if views[0].ExecutorIDs[0] != "alice" || views[0].ExecutorIDs[1] != "bob" {
 		t.Fatalf("候选组成员不符: %+v", views[0])
 	}
-	// executorList 链：pNode → oNode → rNode → dNode 逐步推进
+	// executorList 链：按 Key 推演首节点 pNode（person 配置直用身份 Id）
 	views, err = fx.sim.SimulateByKey(ctx, "dev", "simExecutorList", "BIZ-1", nil)
-	
+	if err != nil {
+		t.Fatalf("executorList 按 Key 推演失败: %v", err)
+	}
+	if len(views) != 1 || views[0].ActivityID != "pNode" {
+		t.Fatalf("executorList 首节点不符: %+v", views)
+	}
+	assertSameStrings(t, views[0].ExecutorIDs, []string{"carl", "dave"})
+	// 真实实例逐步推进：pNode 办结后推演 oNode（org 配置 grpA 展开成员）
+	instance, task := fx.start("simExecutorList", "alice", map[string]any{"executor": "carl"})
+	views, err = fx.sim.SimulateByTask(ctx, task.ID, nil)
+	if err != nil {
+		t.Fatalf("pNode 推演失败: %v", err)
+	}
+	assertSameStrings(t, viewIDs(views), []string{"oNode"})
+	assertSameStrings(t, views[0].ExecutorIDs, []string{"alice", "bob"})
+	fx.complete(task.ID, "carl", nil)
+	oTask := fx.firstTask(instance.ID)
+	views, err = fx.sim.SimulateByTask(ctx, oTask.ID, nil)
+	if err != nil {
+		t.Fatalf("oNode 推演失败: %v", err)
+	}
+	assertSameStrings(t, viewIDs(views), []string{"rNode"})
+	// rNode：role 配置 grpB 展开成员 carl
+	assertSameStrings(t, views[0].ExecutorIDs, []string{"carl"})
+	fx.complete(oTask.ID, "carl", nil)
+	rTask := fx.firstTask(instance.ID)
+	views, err = fx.sim.SimulateByTask(ctx, rTask.ID, nil)
+	if err != nil {
+		t.Fatalf("rNode 推演失败: %v", err)
+	}
+	assertSameStrings(t, viewIDs(views), []string{"dNode"})
+	// dNode：role 配置 dynRole 无成员 → 动态角色标记（不产出执行人）
+	if len(views[0].ExecutorIDs) != 0 {
+		t.Fatalf("动态角色不应解析出执行人: %+v", views[0])
+	}
+	assertSameStrings(t, views[0].DynamicRoleIDs, []string{"dynRole"})
+	// 会签节点：多实例 ${executor} 人员配置按 executorList 展开
+	views, err = fx.sim.SimulateByKey(ctx, "dev", "simCounter", "BIZ-1", nil)
+	if err != nil {
+		t.Fatalf("会签按 Key 推演失败: %v", err)
+	}
+	if len(views) != 1 || views[0].ActivityID != "mtask" {
+		t.Fatalf("会签节点不符: %+v", views)
+	}
+	assertSameStrings(t, views[0].ExecutorIDs, []string{"alice", "bob"})
+	// 调用活动：边界节点不深入子定义，推演视图停在 call 本身
+	instance, task = fx.start("simCall", "alice", nil)
+	views, err = fx.sim.SimulateByTask(ctx, task.ID, nil)
+	if err != nil {
+		t.Fatalf("调用活动推演失败: %v", err)
+	}
+	assertSameStrings(t, viewIDs(views), []string{"call"})
+}
+
+// ─── 退回模式（his_step 退回审批步骤 + 待办扩展 sender_step）───
+
+// seedReturnScenario 构造"批准人退回后办理人再提交"场景：
+// 语料 simLinear（apply → handle），handle 任务挂待办扩展（sender=approve，排序 3 > 2 触发退回位），
+// approve 节点播种历史执行人 bob（his_next_activity）。
+// @param returnMode 退回审批模式原始值（"" / "1" / "3" / "4" / "5"）
+// @return 流程实例
+// @return 当前 handle 任务
+func (f *simFixture) seedReturnScenario(returnMode string) (api.ProcessInstance, api.Task) {
+	f.t.Helper()
+	// 步骤规则：apply(1) → handle(2, 退回模式) → approve(3)
+	for _, rule := range []*StepRule{
+		{DeploymentID: f.deploymentID, StepCode: "apply", StepName: "申请", Sort: 1},
+		{DeploymentID: f.deploymentID, StepCode: "handle", StepName: "办理", AllowReturn: "1", ReturnApprovalStep: returnMode, Sort: 2},
+		{DeploymentID: f.deploymentID, StepCode: "approve", StepName: "批准", Sort: 3},
+	} {
+		f.steps.Put(rule)
+	}
+	instance, applyTask := f.start("simLinear", "alice", nil)
+	// apply 正常办结，推进到 handle 任务（退回场景的持有者）
+	f.complete(applyTask.ID, "alice", nil)
+	task := f.firstTask(instance.ID)
+	f.seedTaskMessage(instance.ID, task, "alice", "approve", "批准")
+	f.seedNext(instance.ID, "approve", "bob", task.ID, "")
+	return instance, task
+}
+
+// TestSimulateReturnMode1OnlyBack 模式 1：只给退回步骤，人员取历史设置。
+func TestSimulateReturnMode1OnlyBack(t *testing.T) {
+	fx := newSimFixture(t)
+	_, task := fx.seedReturnScenario("1")
+	views, err := fx.sim.SimulateByTask(context.Background(), task.ID, nil)
+	if err != nil {
+		t.Fatalf("推演失败: %v", err)
+	}
+	assertSameStrings(t, viewIDs(views), []string{"approve"})
+	if !views[0].ReturnStep {
+		t.Fatalf("退回步骤应带 ReturnStep 标记: %+v", views[0])
+	}
+	assertSameStrings(t, views[0].ExecutorIDs, []string{"bob"})
+	assertSameStrings(t, views[0].ExecutorNames, []string{"李四"})
+}
+
+// TestSimulateReturnMode3BackFirst 模式 3 退回优先：退回步骤在前，常规下一步在后。
+func TestSimulateReturnMode3BackFirst(t *testing.T) {
+	fx := newSimFixture(t)
+	_, task := fx.seedReturnScenario("3")
+	views, err := fx.sim.SimulateByTask(context.Background(), task.ID, nil)
+	if err != nil {
+		t.Fatalf("推演失败: %v", err)
+	}
+	// handle 的常规下一步是办结伪节点；退回步骤 approve 排在最前
+	assertSameStrings(t, viewIDs(views), []string{"approve", SimEndActivityID})
+	if !views[0].ReturnStep || views[1].ReturnStep {
+		t.Fatalf("ReturnStep 标记不符: %+v", views)
+	}
+}
+
+// TestSimulateReturnMode4BackLast 模式 4 下一步优先：常规下一步在前，退回步骤在后。
+func TestSimulateReturnMode4BackLast(t *testing.T) {
+	fx := newSimFixture(t)
+	_, task := fx.seedReturnScenario("4")
+	views, err := fx.sim.SimulateByTask(context.Background(), task.ID, nil)
+	if err != nil {
+		t.Fatalf("推演失败: %v", err)
+	}
+	assertSameStrings(t, viewIDs(views), []string{SimEndActivityID, "approve"})
+	if views[0].ReturnStep || !views[1].ReturnStep {
+		t.Fatalf("ReturnStep 标记不符: %+v", views)
+	}
+}
+
+// TestSimulateReturnDefaultIgnoresBack 未配置退回模式：即使存在退回位也只给常规下一步。
+func TestSimulateReturnDefaultIgnoresBack(t *testing.T) {
+	fx := newSimFixture(t)
+	_, task := fx.seedReturnScenario("")
+	views, err := fx.sim.SimulateByTask(context.Background(), task.ID, nil)
+	if err != nil {
+		t.Fatalf("推演失败: %v", err)
+	}
+	assertSameStrings(t, viewIDs(views), []string{SimEndActivityID})
+}
+
+// TestSimulateReturnMode5HistoryChain 模式 5：沿 preTaskId 链上溯历史步骤（排除当前步骤）。
+func TestSimulateReturnMode5HistoryChain(t *testing.T) {
+	fx := newSimFixture(t)
+	// 步骤规则：handle 配置模式 5，approve 为发送步骤（排序 3 > 2 触发退回位）
+	fx.steps.Put(&StepRule{DeploymentID: fx.deploymentID, StepCode: "apply", StepName: "申请", Sort: 1})
+	fx.steps.Put(&StepRule{DeploymentID: fx.deploymentID, StepCode: "handle", StepName: "办理", ReturnApprovalStep: "5", Sort: 2})
+	fx.steps.Put(&StepRule{DeploymentID: fx.deploymentID, StepCode: "approve", StepName: "批准", Sort: 3})
+	instance, applyTask := fx.start("simLinear", "alice", nil)
+	fx.complete(applyTask.ID, "alice", nil)
+	handleTask := fx.firstTask(instance.ID)
+	fx.seedTaskMessage(instance.ID, handleTask, "alice", "approve", "批准")
+	// preTaskId 链：handle 任务记录指回 apply 任务
+	fx.seedNext(instance.ID, "handle", "alice", handleTask.ID, applyTask.ID)
+	views, err := fx.sim.SimulateByTask(context.Background(), handleTask.ID, nil)
+	if err != nil {
+		t.Fatalf("推演失败: %v", err)
+	}
+	// 链上溯只到 apply（流转过程中出现过），人员取其历史办理人
+	assertSameStrings(t, viewIDs(views), []string{"apply"})
+	if !views[0].ReturnStep {
+		t.Fatalf("历史步骤应带 ReturnStep 标记: %+v", views[0])
+	}
+	assertSameStrings(t, views[0].ExecutorIDs, []string{"alice"})
+}
+
+// TestSimulateWithoutStepsSkipsReturnBranch 未注入步骤规则：跳过退回分支，返回常规下一步。
+func TestSimulateWithoutStepsSkipsReturnBranch(t *testing.T) {
+	fx := newSimFixture(t)
+	_, task := fx.seedReturnScenario("1")
+	views, err := fx.simNoSteps.SimulateByTask(context.Background(), task.ID, nil)
+	if err != nil {
+		t.Fatalf("推演失败: %v", err)
+	}
+	assertSameStrings(t, viewIDs(views), []string{SimEndActivityID})
+}
+
+// TestSimulateUnknownTaskReturnsEmpty 不存在任务按 Java 语义返回空列表而非错误。
+func TestSimulateUnknownTaskReturnsEmpty(t *testing.T) {
+	fx := newSimFixture(t)
+	views, err := fx.sim.SimulateByTask(context.Background(), "no-such-task", nil)
+	if err != nil {
+		t.Fatalf("未知任务不应报错: %v", err)
+	}
+	if len(views) != 0 {
+		t.Fatalf("未知任务应返回空列表: %+v", views)
+	}
+}
