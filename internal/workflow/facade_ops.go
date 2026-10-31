@@ -20,6 +20,12 @@ type capabilityStores struct {
 	reminds       RemindStore             // 催办配置存储
 	remindTargets RemindTargetStore       // 催办对象存储
 	todos         TodoSource              // 待办数据源（调度扫描/催办；nil 时调度与催办扫描停用）
+	models        ModelMgmtStore          // 模型/分类主数据存储（P5.A）
+	designs       StepDesignStore         // 设计时步骤配置存储（P5.A）
+	templates     TemplateStore           // 设计器模板存储（P5.A）
+	hisSteps      HisStepStore            // 步骤部署快照存储（P5.A；需满足 StepStore 语义）
+	reviews       ReviewTaskStore         // 审阅影子任务存储（P5.B）
+	extends       ActExtendStore          // 审阅人绑定（活动扩展）存储（P5.B）
 }
 
 // assembleCapabilities 在基础组件之上装配 P2-C/P3/P4/P5 能力子服务与调度器。
@@ -69,6 +75,17 @@ func assembleCapabilities(comp *components, engine api.Engine, stores capability
 	comp.remind = NewRemindService(stores.reminds, stores.remindTargets, stores.todos,
 		NopScheduleRuleProvider{}, NopChannelProvider{}, nopStepResolver{},
 		engine.IdentityService(), runtimeVariableSource{runtime: engine.RuntimeService()}, c)
+	// ── P5.A 模型/步骤/模板管理与部署快照 ──
+	comp.modelMgmt = NewModelService(stores.models, c)
+	comp.stepDesign = NewStepDesignService(stores.designs, c)
+	comp.template = NewTemplateService(stores.templates, c)
+	if stores.models != nil && stores.designs != nil && stores.hisSteps != nil {
+		comp.snapshot = NewDeploySnapshotService(stores.models, stores.designs, stores.hisSteps, c)
+	}
+	// ── P5.B 审阅影子任务与流程图高亮 ──
+	comp.extendsStore = stores.extends
+	comp.review = NewReviewTaskService(engine, stores.reviews, stores.extends, c)
+	comp.highlight = NewHighlightService(engine)
 	// ── 调度器（不自动启动，由宿主调用 StartSchedulers；开关透传服务选项）──
 	comp.scheduler = NewScheduler(SchedulerConfig{
 		Engine:     engine,

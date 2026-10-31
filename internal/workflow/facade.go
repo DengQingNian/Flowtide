@@ -81,6 +81,13 @@ type components struct {
 	exception  *ExceptionService    // 任务异常服务
 	simulate   *SimulateService     // 下一步推演器
 	scheduler  *Scheduler           // 调度器（自动办结/超时提醒/催办扫描/僵尸监控）
+	modelMgmt  *ModelService        // 模型/分类管理（P5.A）
+	stepDesign *StepDesignService   // 设计时步骤管理（P5.A）
+	template   *TemplateService     // 设计器模板管理（P5.A）
+	snapshot   *DeploySnapshotService // 部署快照服务（P5.A）
+	review     *ReviewTaskService   // 审阅影子任务服务（P5.B）
+	highlight  *HighlightService    // 流程图高亮数据服务（P5.B）
+	extendsStore ActExtendStore     // 审阅人绑定存储直引（宿主/测试播种绑定用）
 }
 
 // assembleComponents 依据存储实现装配全部门面子服务。
@@ -129,15 +136,22 @@ func assembleMemoryComponents(engine api.Engine, opts Options, c clock.Clock) *c
 	completeTo := NewMemCompleteToActivityStore(c)
 	comp := assembleComponents(engine, stores.Next, stores.Message, stores.History, stores.Operation, stores.Document, completeTo, c)
 	// P2-C/P3/P4/P5 能力装配：内存存储族 + 引擎适配
-	steps := NewMemStepStore()
+	// hisSteps 同时满足 StepStore 语义（超集），同一实例兼供推演规则读取与快照写入
+	hisSteps := NewMemHisStepStore()
 	assembleCapabilities(comp, engine, capabilityStores{
-		steps:         steps,
+		steps:         hisSteps,
 		delegate:      NewMemTaskDelegateStore(c),
 		mirrors:       NewMemDelegateTaskMirrorStore(c),
 		exceptions:    NewMemTaskExceptionStore(c),
 		reminds:       NewMemRemindStore(c),
 		remindTargets: NewMemRemindTargetStore(c),
 		todos:         NewMemTodoSource(stores.Message),
+		models:        NewMemModelMgmtStore(c),
+		designs:       NewMemStepDesignStore(c),
+		templates:     NewMemTemplateStore(c),
+		hisSteps:      hisSteps,
+		reviews:       NewMemReviewTaskStore(c),
+		extends:       NewMemActExtendStore(),
 	}, opts, c)
 	return comp
 }
@@ -163,14 +177,22 @@ func assembleSQLComponents(engine api.Engine, store *pwf.Store, db *sql.DB, opts
 	completeTo := NewSQLCompleteToActivityStore(store)
 	comp := assembleComponents(engine, set.Next, set.Message, set.History, set.Operation, set.Document, completeTo, c)
 	// P2-C/P3/P4/P5 能力装配：SQL 适配器族（待办数据源暂缺裸 SQL 实现，传空源）
+	mgmt := NewSQLModelMgmtStoresWithDB(store, db)
+	reviewStores := NewSQLReviewStoresWithDB(store, db)
 	assembleCapabilities(comp, engine, capabilityStores{
-		steps:         NewSQLStepStore(store),
+		steps:         mgmt.HisStep,
 		delegate:      NewSQLTaskDelegateStore(store),
 		mirrors:       NewSQLDelegateTaskMirrorStore(store),
 		exceptions:    NewSQLTaskExceptionStore(store),
 		reminds:       NewSQLRemindStore(store, c),
 		remindTargets: NewSQLRemindTargetStore(store),
 		todos:         emptyTodoSource{},
+		models:        mgmt.Model,
+		designs:       mgmt.Step,
+		templates:     mgmt.Template,
+		hisSteps:      mgmt.HisStep,
+		reviews:       reviewStores.Tasks,
+		extends:       reviewStores.Extends,
 	}, opts, c)
 	return comp, nil
 }
