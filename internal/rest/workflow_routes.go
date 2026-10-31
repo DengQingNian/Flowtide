@@ -201,7 +201,7 @@ func (s *Server) workflowHandlerFor(path string) http.HandlerFunc {
 		return s.serveWorkflow(s.handleWorkflowResolveTask)
 	case "/workflow/process/claim/task": // 签收任务（组任务认领到个人）→ ClaimTask
 		return s.serveWorkflow(s.handleWorkflowClaimTask)
-	case "/workflow/process/instance/all/list": // 运行实例分页 → GetProcessInstancePageList
+	case "/workflow/process/instance/all/list", "/workflow/process/instance/list": // 运行实例分页 → GetProcessInstancePageList
 		return s.serveWorkflow(s.handleWorkflowInstancePageList)
 	case "/workflow/process/task/list": // 任务详情（taskId 必填）→ GetTaskInfoByTaskID
 		return s.serveWorkflow(s.handleWorkflowTaskList)
@@ -215,6 +215,8 @@ func (s *Server) workflowHandlerFor(path string) http.HandlerFunc {
 		return s.serveWorkflow(s.handleWorkflowHistoryTaskList)
 	case "/workflow/process/transfer/task": // 调整处理人 → DoTaskOwnerAdjustment
 		return s.serveWorkflow(s.handleWorkflowTransferTask)
+	case "/workflow/process/delegate/task": // 引擎委派（转他人办理，resolve 归还）→ DelegateTask
+		return s.serveWorkflow(s.handleWorkflowDelegateTask)
 	case "/workflow/process/complete/sign": // 会签比例结论 → CompleteSign
 		return s.serveWorkflow(s.handleWorkflowCompleteSign)
 	case "/workflow/process/add/execution": // 加签 → AddExecution
@@ -223,8 +225,24 @@ func (s *Server) workflowHandlerFor(path string) http.HandlerFunc {
 		return s.serveWorkflow(s.handleWorkflowDelExecution)
 	case "/workflow/process/deplay", "/workflow/process/deploy": // 部署模型 → DeployModel（D8 保留 deplay 拼写）
 		return s.serveWorkflow(s.handleWorkflowDeploy)
+	case "/workflow/process/public/model/id": // 按模型发布（部署）→ DeployModel
+		return s.serveWorkflow(s.handleWorkflowDeploy)
 	case "/workflow/process/model/list": // 模型列表 → ListModelCategory
 		return s.serveWorkflow(s.handleWorkflowModelList)
+	case "/workflow/process/index": // 流程设计首页数据（模型列表投影）→ ListModelCategory
+		return s.serveWorkflow(s.handleWorkflowModelList)
+	case "/workflow/process/add/model", "/workflow/process/create": // 设计器建模 → CreateProcessModel（create 为 Java ANY 方法）
+		return s.serveWorkflow(s.handleWorkflowCreateModel)
+	case "/workflow/process/getModelJsonByType", "/workflow/process/export/xml": // 读模型 XML（type=his 时读历史定义）→ GetModelXML/GetDefinitionXML
+		return s.serveWorkflow(s.handleWorkflowGetModelJSON)
+	case "/workflow/process/getHisModelJson": // 读历史定义 XML → GetDefinitionXML
+		return s.serveWorkflow(s.handleWorkflowGetDefinitionJSON)
+	case "/workflow/process/save/xml": // 保存模型 XML 编辑源 → SaveModelXML
+		return s.serveWorkflow(s.handleWorkflowSaveModelXML)
+	case "/workflow/process/updateHisModelXml": // 历史定义回填模型源 → UpdateModelFromDefinition
+		return s.serveWorkflow(s.handleWorkflowUpdateModelFromDefinition)
+	case "/workflow/process/copyProcess": // 复制源模型 XML 到目标模型 → CopyProcess
+		return s.serveWorkflow(s.handleWorkflowCopyProcess)
 	case "/workflow/process/model/delete/{id}": // 删除模型/分类 → DeleteModelCategory
 		return s.serveWorkflow(s.handleWorkflowModelDelete)
 	case "/workflow/process/highlight/img", "/workflow/process/normal/img": // 流程图高亮 → GetFlowHighlight（DELETE 保留 Java 兼容）
@@ -247,6 +265,8 @@ func (s *Server) workflowHandlerFor(path string) http.HandlerFunc {
 		return s.serveWorkflow(s.handleWorkflowWeightSave)
 	case "/workflow/weight/getWeightByProcessDefKeyAndActId": // 查询节点会签权重 → ListCountersignWeights
 		return s.serveWorkflow(s.handleWorkflowWeightList)
+	case "/workflow/weight/delete": // 清空节点会签权重（先删后插空集）→ DeleteCountersignWeights
+		return s.serveWorkflow(s.handleWorkflowWeightDelete)
 
 	// ── /identity/**：内置身份库树（D10）──
 	case "/workflow/identity/tree": // 用户/组两级身份树 → GetIdentityTree
@@ -263,6 +283,12 @@ func (s *Server) workflowHandlerFor(path string) http.HandlerFunc {
 		return s.serveWorkflow(s.handleWorkflowModelList)
 	case "/workflow/model/tree/list": // 分类树 → GetModelCategoryTree
 		return s.serveWorkflow(s.handleWorkflowModelTree)
+	case "/workflow/model/getUserTaskJsonInfo": // 定义用户任务节点元数据（设计器属性面板）→ GetUserTaskMetas
+		return s.serveWorkflow(s.handleWorkflowUserTaskMetas)
+	case "/workflow/model/getProcessDefinitionJsonInfo": // 定义 XML（设计器画布）→ GetDefinitionXML
+		return s.serveWorkflow(s.handleWorkflowGetDefinitionJSON)
+	case "/workflow/model/findModelAndStepPageList": // 模型+设计时步骤联查 → GetModelAndStepPage
+		return s.serveWorkflow(s.handleWorkflowModelAndStepPage)
 
 	// ── /step/**：设计时步骤 ──
 	case "/workflow/step/add": // 新增 → AddStepDesign
@@ -273,6 +299,8 @@ func (s *Server) workflowHandlerFor(path string) http.HandlerFunc {
 		return s.serveWorkflow(s.handleWorkflowStepDelete)
 	case "/workflow/step/list": // 按模型查步骤列表 → ListStepDesignByModel
 		return s.serveWorkflow(s.handleWorkflowStepList)
+	case "/workflow/step/findById": // 步骤主键详情 → GetStepDesign
+		return s.serveWorkflow(s.handleWorkflowStepGet)
 
 	// ── /hisstep/**：部署步骤快照（只读）──
 	case "/workflow/hisstep/list": // 按部署查快照 → ListHisSteps
@@ -321,40 +349,17 @@ func (s *Server) workflowHandlerFor(path string) http.HandlerFunc {
 		return s.serveWorkflow(s.handleWorkflowDict)
 
 	// ── 保留 501 的端点（服务已注入也维持桩，待后续阶段接线）──
-	// 设计器/导入导出（P6 阶段接线）：模型 JSON 读写、XML 导入导出、流程复制、节点注入与示例/等待节点清单
-	case "/workflow/process/add/model",
-		"/workflow/process/getModelJsonByType",
-		"/workflow/process/getHisModelJson",
-		"/workflow/process/save/xml",
-		"/workflow/process/updateHisModelXml",
-		"/workflow/process/export/xml",
-		"/workflow/process/import/xml",
-		"/workflow/process/exportProcess",
+	// 导入/导出/节点能力（P6 后续评估）：XML 与整流程导入、整流程导出、运行时节点注入、示例/等待节点清单
+	case "/workflow/process/import/xml",
 		"/workflow/process/importProcess",
-		"/workflow/process/copyProcess",
-		"/workflow/process/index",                      // 流程设计首页（P6）
-		"/workflow/process/create",                     // 新建流程（P6）
-		"/workflow/process/inject/node",                // 运行时节点注入（引擎直连能力，P6 评估）
-		"/workflow/process/exmple/node/list",           // 示例节点清单（P6）
-		"/workflow/process/wait/node/list",             // 等待节点清单（P6）
-		"/workflow/model/getUserTaskJsonInfo",          // 设计器用户任务元数据（P6）
-		"/workflow/model/getProcessDefinitionJsonInfo", // 设计器定义元数据（P6）
-		"/workflow/model/findModelAndStepPageList",     // 模型+步骤联合分页（P6）
-		"/workflow/step/findById":                      // 步骤主键查询（P6）
+		"/workflow/process/exportProcess",
+		"/workflow/process/inject/node",      // 运行时节点注入（引擎直连能力，P6 评估）
+		"/workflow/process/exmple/node/list", // 示例节点清单（P6）
+		"/workflow/process/wait/node/list":   // 等待节点清单（P6）
 		return s.handleWorkflowNotImplemented
-	// public 发布族：Service 未提供发布批量语义（P6 评估）
-	case "/workflow/process/public/model/id",
-		"/workflow/process/public/deploymentId",
+	// public 发布族：仅按模型发布（public/model/id）已接 DeployModel，其余发布语义未提供（P6 评估）
+	case "/workflow/process/public/deploymentId",
 		"/workflow/process/public/processes/id":
-		return s.handleWorkflowNotImplemented
-	// 单实例分页查询：仅 instance/all/list 已接 GetProcessInstancePageList，旧路径维持桩
-	case "/workflow/process/instance/list":
-		return s.handleWorkflowNotImplemented
-	// 引擎委托语义（委派给他人办理）：Service 的 delegate 是委托规则 CRUD，语义不同（P6 评估）
-	case "/workflow/process/delegate/task":
-		return s.handleWorkflowNotImplemented
-	// 会签权重删除：门面仅提供节点级整存整取（先删后插经 save 覆盖），无单独删除语义（P6 评估）
-	case "/workflow/weight/delete":
 		return s.handleWorkflowNotImplemented
 	// 快照只读：hisstep 增删改破坏部署快照一致性，仅开放 list
 	case "/workflow/hisstep/add", "/workflow/hisstep/edit", "/workflow/hisstep/delete/{ids}":
