@@ -152,6 +152,7 @@ func assembleMemoryComponents(engine api.Engine, opts Options, c clock.Clock) *c
 		hisSteps:      hisSteps,
 		reviews:       NewMemReviewTaskStore(c),
 		extends:       NewMemActExtendStore(),
+		weights:       NewMemCountersignWeightStore(),
 	}, opts, c)
 	return comp
 }
@@ -193,6 +194,7 @@ func assembleSQLComponents(engine api.Engine, store *pwf.Store, db *sql.DB, opts
 		hisSteps:      mgmt.HisStep,
 		reviews:       reviewStores.Tasks,
 		extends:       reviewStores.Extends,
+		weights:       NewSQLCountersignWeightStore(store),
 	}, opts, c)
 	return comp, nil
 }

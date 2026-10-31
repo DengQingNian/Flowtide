@@ -26,6 +26,7 @@ type capabilityStores struct {
 	hisSteps      HisStepStore            // 步骤部署快照存储（P5.A；需满足 StepStore 语义）
 	reviews       ReviewTaskStore         // 审阅影子任务存储（P5.B）
 	extends       ActExtendStore          // 审阅人绑定（活动扩展）存储（P5.B）
+	weights       CountersignWeightStore  // 会签权重存储（/weight 接口数据，nil 时仅模型 weightList）
 }
 
 // assembleCapabilities 在基础组件之上装配 P2-C/P3/P4/P5 能力子服务与调度器。
@@ -59,7 +60,11 @@ func assembleCapabilities(comp *components, engine api.Engine, stores capability
 	// ── P3.A 加签减签与会签 ──
 	comp.addSign = NewAddSignService(engine, comp.comments, comp.operations, comp.messages, comp.histories, c).
 		WithAddSignUsers(engine.IdentityService())
-	comp.counter = NewCountersignService(engine, comp.meta)
+	counterOpts := make([]CountersignOption, 0, 1)
+	if stores.weights != nil {
+		counterOpts = append(counterOpts, WithCountersignWeights(stores.weights))
+	}
+	comp.counter = NewCountersignService(engine, comp.meta, counterOpts...)
 	// ── P5.B 下一步推演器（注入步骤规则 → 退回模式分支可用）──
 	simOpts := make([]SimulateOption, 0, 1)
 	if stores.steps != nil {
