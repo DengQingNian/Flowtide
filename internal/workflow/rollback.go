@@ -72,7 +72,8 @@ func NewRollbackService(engine api.Engine, next *NextActivityService, comments *
 //     类型权威台账在操作记录 type=CH（意见服务既有约定）。
 //  2. 收尾新增待办遗留清理：引擎撤回会删除后继运行任务，其待办扩展成为悬挂行
 //     （Java 无任务删除监听，悬挂行残留；Go 侧按"删除原任务关联待办遗留"规格清理）。
-//     重做任务的新待办由执行人重写钩子与办结链生成，本服务不重复生成。
+//     重做任务的新待办由收尾链 generateTodosAfterRollback 重建（其待办镜像已在
+//     办结时消耗，执行人重写钩子只回填办理人不建待办）。
 //  3. processInstanceID 与历史任务归属不一致时拒绝（Java 静默覆盖为历史任务归属，
 //     Go 侧显式暴露调用方传参错误）。
 //
@@ -163,8 +164,119 @@ func (s *RollbackService) writeRollbackTailChain(ctx context.Context, hisTask ap
 	if err := s.cleanupStaleTodos(ctx, hisTask, beforeTaskIDs); err != nil {
 		return err
 	}
+	// 待办重建：撤回恢复的重做任务其待办镜像已在办结时消耗，需重建
+	// （与 BackService.generateTodosAfterBack 同构；执行人重写钩子只回填办理人不建待办）
+	if _, err := s.generateTodosAfterRollback(ctx, hisTask.ProcessInstanceID); err != nil {
+		return err
+	}
 	// 表单状态机刷新（Java 无显式调用，状态机按操作记录派生；Go 显式刷新对齐办结链）
 	return s.documents.UpdateByProcessInstanceOrTask(ctx, hisTask.ProcessInstanceID, "")
+}
+
+// generateTodosAfterRollback 为撤回后实例的当前运行任务重建待办镜像
+// （对位 BackService.generateTodosAfterBack 同构语义：幂等跳过已有待办、
+// 无处理人任务等待办补齐链路、待办与已办镜像双写）。
+// @param ctx 操作上下文
+// @param processInstanceID 流程实例 Id
+// @return 生成待办的任务 Id 列表（含已存在待办的任务）
+// @return 错误
+func (s *RollbackService) generateTodosAfterRollback(ctx context.Context, processInstanceID string) ([]string, error) {
+	page, err := s.engine.TaskService().ListTasks(ctx, api.TaskFilter{ProcessInstanceID: processInstanceID, Size: completeListSize})
+	if err != nil {
+		return nil, err
+	}
+	ids := make([]string, 0, len(page.Data))
+	for i := range page.Data {
+		current := page.Data[i]
+		// 幂等：同任务已有待办时跳过（Java count==0 才插入）
+		if _, found, err := s.messages.GetByTaskID(ctx, current.ID); err != nil {
+			return nil, err
+		} else if found {
+			ids = append(ids, current.ID)
+			continue
+		}
+		// 无处理人（组任务等执行人未落定场景）暂不生成待办，待执行人重写钩子补齐
+		if current.Assignee == "" {
+			continue
+		}
+		message, err := s.buildRollbackMessageExtend(ctx, processInstanceID, current)
+		if err != nil {
+			return nil, err
+		}
+		if _, err := s.messages.CreateForTask(ctx, message); err != nil {
+			return nil, err
+		}
+		// 已办镜像（Java saveMessageExtendInfo 同步插入历史行）
+		if _, err := s.histories.CreateForTask(ctx, &HistoryExtend{MessageExtend: *message}); err != nil {
+			return nil, err
+		}
+		ids = append(ids, current.ID)
+	}
+	return ids, nil
+}
+
+// buildRollbackMessageExtend 组装撤回重做任务的待办扩展（实例/定义/预存发送人信息联查补全，
+// 与 BackService.buildBackMessageExtend 同构）。
+// @param ctx 操作上下文
+// @param processInstanceID 流程实例 Id
+// @param task 重做任务
+// @return 待办扩展
+// @return 错误
+func (s *RollbackService) buildRollbackMessageExtend(ctx context.Context, processInstanceID string, task api.Task) (*MessageExtend, error) {
+	instance, err := s.engine.RuntimeService().GetProcessInstance(ctx, processInstanceID)
+	if err != nil {
+		return nil, err
+	}
+	definition, err := s.engine.RepositoryService().GetProcessDefinition(ctx, task.ProcessDefinitionID)
+	if err != nil {
+		return nil, err
+	}
+	message := &MessageExtend{
+		BaseColumns:       BaseColumns{TenantID: instance.TenantID},
+		TaskID:            task.ID,
+		ProcessInstanceID: processInstanceID,
+		Title:             instance.Name,
+		BusinessID:        instance.BusinessKey,
+		TaskStepName:      task.Name,
+		TaskStepCode:      task.TaskDefinitionKey,
+		FlowCategoryCode:  definition.Key,
+		FlowCategoryName:  definition.Name,
+		OwnerID:           task.Assignee,
+		OwnerName:         s.displayName(ctx, task.Assignee),
+		TaskReceiptTime:   &task.CreateTime,
+	}
+	// 发送人信息取该节点第一条未消耗预存记录（撤回预存记录/执行人重写未消耗记录均可追溯）
+	if record, found, err := s.next.GetFirstUnusedByActivity(ctx, processInstanceID, task.TaskDefinitionKey); err == nil && found {
+		message.SenderID = record.SendIdentityID
+		message.Sender = record.SendUserName
+		// 发送步骤取来源任务名（Java hisTask.getName/TaskDefinitionKey）
+		if record.PreTaskID != "" {
+			if his, err := s.engine.HistoryService().GetHistoricTaskInstance(ctx, record.PreTaskID); err == nil {
+				message.SenderStepName = his.Name
+				message.SenderStepCode = his.TaskDefinitionKey
+			}
+		}
+	}
+	// 起草人 = 实例发起人
+	message.DocumentOwnerID = instance.StartUserID
+	message.DocumentOwnerName = s.displayName(ctx, instance.StartUserID)
+	return message, nil
+}
+
+// displayName 查询用户展示名（查不到回退 Id 本身）。
+// @param ctx 操作上下文
+// @param userID 身份 Id
+// @return 展示名
+func (s *RollbackService) displayName(ctx context.Context, userID string) string {
+	if userID == "" {
+		return ""
+	}
+	if user, err := s.engine.IdentityService().GetUser(ctx, userID); err == nil {
+		if name := userDisplayName(user); name != "" {
+			return name
+		}
+	}
+	return userID
 }
 
 // listInstanceTaskIDs 快照实例当前全部运行任务 Id。
