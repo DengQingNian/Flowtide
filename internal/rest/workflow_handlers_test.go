@@ -38,6 +38,20 @@ const workflowFacadeBPMN = `<?xml version="1.0" encoding="UTF-8"?>
   </process>
 </definitions>`
 
+// workflowTravelBPMN 是设计器链路专用语料（process id 与模型代号 travelProc 一致）。
+const workflowTravelBPMN = `<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"
+             xmlns:flowable="http://flowable.org/bpmn"
+             targetNamespace="http://example.com">
+  <process id="travelProc" isExecutable="true">
+    <startEvent id="start"/>
+    <sequenceFlow id="f1" sourceRef="start" targetRef="apply"/>
+    <userTask id="apply" name="申请" flowable:assignee="${initiator}"/>
+    <sequenceFlow id="f2" sourceRef="apply" targetRef="end"/>
+    <endEvent id="end"/>
+  </process>
+</definitions>`
+
 // workflowFacadeEnv 是注入 workflow 门面服务的 REST 测试环境。
 type workflowFacadeEnv struct {
 	server  *httptest.Server  // REST 测试服务
@@ -765,6 +779,238 @@ func TestWorkflowHandlersDelegateRemindExceptionDict(t *testing.T) {
 	requireWorkflowBizFail(t, unknownDict)
 }
 
+// TestWorkflowHandlersDesignerChain 覆盖 P6 设计器 XML 存取链路：
+// 建模 → 存源 → 读源 → 发布 → 历史定义读取/回填 → 复制 → 联查/详情/元数据 → 委派/权重清空，
+// 含参数缺失反例。
+// @param t 测试上下文
+func TestWorkflowHandlersDesignerChain(t *testing.T) {
+	env := newWorkflowFacadeEnv(t)
+	base := env.server.URL
+
+	// ── 建模（正例 + 缺 name 反例）；create 路径（Java ANY）经 query 再建一个 ──
+	created := doWorkflowJSON(t, http.MethodPost, base+"/workflow/process/add/model?tenantId=bizA",
+		`{"name":"差旅模型","modelCode":"travelProc"}`)
+	createdBody := requireWorkflowOK(t, created)
+	createdData := rDataMap(t, createdBody)
+	modelBusinessID, _ := createdData["BusinessID"].(string)
+	if modelBusinessID == "" {
+		t.Fatalf("建模应返回业务模型主键: %+v", createdData)
+	}
+	missingCreate := doWorkflowJSON(t, http.MethodPost, base+"/workflow/process/add/model?tenantId=bizA", `{}`)
+	requireWorkflowParamFail(t, missingCreate)
+	missingCreateCode := doWorkflowJSON(t, http.MethodPost, base+"/workflow/process/add/model?tenantId=bizA", `{"name":"无名代号"}`)
+	requireWorkflowParamFail(t, missingCreateCode)
+	createViaQuery, err := http.Get(base + "/workflow/process/create?tenantId=bizA&name=copyModel&modelCode=travelProc2")
+	if err != nil {
+		t.Fatalf("create 建模失败: %v", err)
+	}
+	requireWorkflowOK(t, createViaQuery)
+
+	// ── 保存模型 XML（正例 + 缺 xml 反例；XML 经 JSON 编码转义）──
+	savePayload, _ := json.Marshal(map[string]string{"modelId": modelBusinessID, "xml": workflowTravelBPMN})
+	saveXML := doWorkflowJSON(t, http.MethodPost, base+"/workflow/process/save/xml?tenantId=bizA", string(savePayload))
+	requireWorkflowOK(t, saveXML)
+	missingSaveXML := doWorkflowJSON(t, http.MethodPost, base+"/workflow/process/save/xml?tenantId=bizA",
+		`{"modelId":"`+modelBusinessID+`"}`)
+	requireWorkflowParamFail(t, missingSaveXML)
+	missingSaveModel := doWorkflowJSON(t, http.MethodPost, base+"/workflow/process/save/xml?tenantId=bizA",
+		`{"xml":"<x/>"}`)
+	requireWorkflowParamFail(t, missingSaveModel)
+
+	// ── 读模型 XML（getModelJsonByType 与 export/xml 同数据面；缺 modelId 反例）──
+	modelJSON, err := http.Get(base + "/workflow/process/getModelJsonByType?tenantId=bizA&modelId=" + modelBusinessID)
+	if err != nil {
+		t.Fatalf("读模型 JSON 失败: %v", err)
+	}
+	modelJSONBody := requireWorkflowOK(t, modelJSON)
+	modelJSONData := rDataMap(t, modelJSONBody)
+	if code, _ := modelJSONData["modelCode"].(string); code != "travelProc" {
+		t.Fatalf("模型代号不符: %+v", modelJSONData)
+	}
+	if xml, _ := modelJSONData["xml"].(string); len(xml) == 0 {
+		t.Fatalf("模型源不应为空: %+v", modelJSONData)
+	}
+	exportXML, err := http.Get(base + "/workflow/process/export/xml?tenantId=bizA&modelId=" + modelBusinessID)
+	if err != nil {
+		t.Fatalf("导出 XML 失败: %v", err)
+	}
+	requireWorkflowOK(t, exportXML)
+	missingModelJSON, err := http.Get(base + "/workflow/process/getModelJsonByType?tenantId=bizA")
+	if err != nil {
+		t.Fatalf("请求失败: %v", err)
+	}
+	requireWorkflowParamFail(t, missingModelJSON)
+
+	// ── 发布（public/model/id → DeployModel；缺 modelId 反例）──
+	publish := doWorkflowJSON(t, http.MethodPost, base+"/workflow/process/public/model/id?tenantId=bizA&modelId="+modelBusinessID, "")
+	publishBody := requireWorkflowOK(t, publish)
+	publishData := rDataMap(t, publishBody)
+	definitionID, _ := publishData["definitionId"].(string)
+	if definitionID == "" {
+		t.Fatalf("发布应返回 definitionId: %+v", publishData)
+	}
+	missingPublish := doWorkflowJSON(t, http.MethodPost, base+"/workflow/process/public/model/id?tenantId=bizA", "")
+	requireWorkflowParamFail(t, missingPublish)
+
+	// ── 历史定义 XML（getHisModelJson 与 getProcessDefinitionJsonInfo 同数据面；缺 definitionId 反例）──
+	hisJSON, err := http.Get(base + "/workflow/process/getHisModelJson?tenantId=bizA&definitionId=" + definitionID)
+	if err != nil {
+		t.Fatalf("读历史定义失败: %v", err)
+	}
+	hisBody := requireWorkflowOK(t, hisJSON)
+	if key, _ := rDataMap(t, hisBody)["definitionKey"].(string); key != "travelProc" {
+		t.Fatalf("历史定义 Key 不符: %+v", hisBody)
+	}
+	defJSON, err := http.Get(base + "/workflow/model/getProcessDefinitionJsonInfo?tenantId=bizA&definitionId=" + definitionID)
+	if err != nil {
+		t.Fatalf("读定义 XML 失败: %v", err)
+	}
+	requireWorkflowOK(t, defJSON)
+	// getModelJsonByType type=his 分支同数据面
+	hisByType, err := http.Get(base + "/workflow/process/getModelJsonByType?tenantId=bizA&type=his&definitionId=" + definitionID)
+	if err != nil {
+		t.Fatalf("type=his 读历史定义失败: %v", err)
+	}
+	hisByTypeBody := requireWorkflowOK(t, hisByType)
+	if key, _ := rDataMap(t, hisByTypeBody)["definitionKey"].(string); key != "travelProc" {
+		t.Fatalf("type=his 定义 Key 不符: %+v", hisByTypeBody)
+	}
+	missingHis, err := http.Get(base + "/workflow/process/getHisModelJson?tenantId=bizA")
+	if err != nil {
+		t.Fatalf("请求失败: %v", err)
+	}
+	requireWorkflowParamFail(t, missingHis)
+
+	// ── 用户任务节点元数据（缺 definitionId 反例）──
+	metas, err := http.Get(base + "/workflow/model/getUserTaskJsonInfo?tenantId=bizA&definitionId=" + definitionID)
+	if err != nil {
+		t.Fatalf("读节点元数据失败: %v", err)
+	}
+	metasBody := requireWorkflowOK(t, metas)
+	if list := rDataSlice(t, metasBody); len(list) != 1 {
+		t.Fatalf("用户任务节点应为 1: %+v", metasBody)
+	}
+	missingMetas, err := http.Get(base + "/workflow/model/getUserTaskJsonInfo?tenantId=bizA")
+	if err != nil {
+		t.Fatalf("请求失败: %v", err)
+	}
+	requireWorkflowParamFail(t, missingMetas)
+
+	// ── 历史定义回填（正例 + 缺 definitionId 反例）──
+	updateHis := doWorkflowJSON(t, http.MethodPost, base+"/workflow/process/updateHisModelXml?tenantId=bizA",
+		`{"definitionId":"`+definitionID+`"}`)
+	requireWorkflowOK(t, updateHis)
+	missingUpdateHis := doWorkflowJSON(t, http.MethodPost, base+"/workflow/process/updateHisModelXml?tenantId=bizA", `{}`)
+	requireWorkflowParamFail(t, missingUpdateHis)
+
+	// ── 复制流程（目标未绑定引擎模型走自动创建；缺 resourceId/modelIdList 反例）──
+	targetAdd := doWorkflowJSON(t, http.MethodPost, base+"/workflow/model/add?tenantId=bizA",
+		`{"modelCode":"travelProc3","modelName":"复制目标","tenantId":"bizA"}`)
+	targetBody := requireWorkflowOK(t, targetAdd)
+	targetID, _ := rDataMap(t, targetBody)["ID"].(string)
+	copyProcess := doWorkflowJSON(t, http.MethodPost, base+"/workflow/process/copyProcess?tenantId=bizA",
+		`{"resourceId":"`+modelBusinessID+`","modelIdList":["`+targetID+`"]}`)
+	copyBody := requireWorkflowOK(t, copyProcess)
+	if copied := rDataMap(t, copyBody)["copied"]; copied != float64(1) {
+		t.Fatalf("复制数应为 1: %+v", copyBody)
+	}
+	missingCopySource := doWorkflowJSON(t, http.MethodPost, base+"/workflow/process/copyProcess?tenantId=bizA",
+		`{"modelIdList":["`+targetID+`"]}`)
+	requireWorkflowParamFail(t, missingCopySource)
+	missingCopyTargets := doWorkflowJSON(t, http.MethodPost, base+"/workflow/process/copyProcess?tenantId=bizA",
+		`{"resourceId":"`+modelBusinessID+`"}`)
+	requireWorkflowParamFail(t, missingCopyTargets)
+
+	// ── 流程设计首页（index → 模型列表投影；缺租户业务反例）──
+	index, err := http.Get(base + "/workflow/process/index?tenantId=bizA")
+	if err != nil {
+		t.Fatalf("流程设计首页失败: %v", err)
+	}
+	requireWorkflowOK(t, index)
+	missingIndex, err := http.Get(base + "/workflow/process/index")
+	if err != nil {
+		t.Fatalf("请求失败: %v", err)
+	}
+	requireWorkflowBizFail(t, missingIndex)
+
+	// ── 模型+步骤联查（缺租户业务反例）──
+	joined, err := http.Get(base + "/workflow/model/findModelAndStepPageList?tenantId=bizA")
+	if err != nil {
+		t.Fatalf("模型步骤联查失败: %v", err)
+	}
+	joinedBody := requireWorkflowOK(t, joined)
+	if rows := rDataSlice(t, joinedBody); len(rows) == 0 {
+		t.Fatalf("联查结果不应为空: %+v", joinedBody)
+	}
+	missingJoined, err := http.Get(base + "/workflow/model/findModelAndStepPageList")
+	if err != nil {
+		t.Fatalf("请求失败: %v", err)
+	}
+	requireWorkflowBizFail(t, missingJoined)
+
+	// ── 步骤详情（缺 id 反例）──
+	stepAdd := doWorkflowJSON(t, http.MethodPost, base+"/workflow/step/add?tenantId=bizA",
+		`{"modelId":"`+modelBusinessID+`","stepCode":"apply","name":"申请","tenantId":"bizA"}`)
+	stepBody := requireWorkflowOK(t, stepAdd)
+	stepID, _ := rDataMap(t, stepBody)["ID"].(string)
+	stepGet, err := http.Get(base + "/workflow/step/findById?tenantId=bizA&id=" + stepID)
+	if err != nil {
+		t.Fatalf("步骤详情失败: %v", err)
+	}
+	stepGetBody := requireWorkflowOK(t, stepGet)
+	if got, _ := rDataMap(t, stepGetBody)["ID"].(string); got != stepID {
+		t.Fatalf("步骤详情主键不符: %+v", stepGetBody)
+	}
+	missingStepGet, err := http.Get(base + "/workflow/step/findById?tenantId=bizA")
+	if err != nil {
+		t.Fatalf("请求失败: %v", err)
+	}
+	requireWorkflowParamFail(t, missingStepGet)
+
+	// ── 引擎委派（正例 + 缺 taskId 反例；引擎侧断言 PENDING 与被委派人）──
+	_, taskID := workflowApply(t, env, "BIZ-401")
+	delegate := doWorkflowJSON(t, http.MethodPost, base+"/workflow/process/delegate/task?tenantId=bizA",
+		`{"taskId":"`+taskID+`","userId":"u2"}`)
+	requireWorkflowOK(t, delegate)
+	ctx := tenant.With(context.Background(), "bizA")
+	assigned, err := env.engine.TaskService().GetTask(ctx, taskID)
+	if err != nil || assigned.Assignee != "u2" || assigned.DelegationState != "PENDING" {
+		t.Fatalf("委派未生效: %+v err=%v", assigned, err)
+	}
+	missingDelegate := doWorkflowJSON(t, http.MethodPost, base+"/workflow/process/delegate/task?tenantId=bizA", `{}`)
+	requireWorkflowParamFail(t, missingDelegate)
+
+	// ── 权重清空（先播种后清空；缺 activityId 反例）──
+	seedWeights := doWorkflowJSON(t, http.MethodPost, base+"/workflow/weight/save?tenantId=bizA",
+		`{"processDefinitionKey":"facadeProc","activityId":"apply","tenantId":"bizA",`+
+			`"configs":[{"identityId":"u1","agreeWeight":1}]}`)
+	requireWorkflowOK(t, seedWeights)
+	deleteWeights := doWorkflowJSON(t, http.MethodPost, base+"/workflow/weight/delete?tenantId=bizA&processDefinitionKey=facadeProc&activityId=apply", "")
+	requireWorkflowOK(t, deleteWeights)
+	weightsAfter, err := http.Get(base + "/workflow/weight/getWeightByProcessDefKeyAndActId?tenantId=bizA&processDefinitionKey=facadeProc&activityId=apply")
+	if err != nil {
+		t.Fatalf("权重复查失败: %v", err)
+	}
+	weightsBody := requireWorkflowOK(t, weightsAfter)
+	if items := rDataSlice(t, weightsBody); len(items) != 0 {
+		t.Fatalf("权重清空后应为空: %+v", weightsBody)
+	}
+	missingWeightDelete := doWorkflowJSON(t, http.MethodPost, base+"/workflow/weight/delete?tenantId=bizA&processDefinitionKey=facadeProc", "")
+	requireWorkflowParamFail(t, missingWeightDelete)
+	missingWeightDeleteKey := doWorkflowJSON(t, http.MethodPost, base+"/workflow/weight/delete?tenantId=bizA&activityId=apply", "")
+	requireWorkflowParamFail(t, missingWeightDeleteKey)
+
+	// ── 运行实例分页（instance/list 旧路径同数据面）──
+	instancePage, err := http.Get(base + "/workflow/process/instance/list?tenantId=bizA&start=0&size=10")
+	if err != nil {
+		t.Fatalf("实例分页失败: %v", err)
+	}
+	pageBody := requireWorkflowOK(t, instancePage)
+	if total, _ := rDataMap(t, pageBody)["total"].(float64); total < 1 {
+		t.Fatalf("实例分页 total 应≥1: %+v", pageBody)
+	}
+}
+
 // TestWorkflowHandlersExtraCapabilities 覆盖门面收尾能力端点：
 // 审阅绑定（extend）、会签权重（weight）、批量挂起激活、签收/委派处理（claim/resolve）、
 // 实例分页、身份树与操作按钮清单，含参数缺失反例。
@@ -925,21 +1171,16 @@ func TestWorkflowHandlersRetainedStub501(t *testing.T) {
 		method string // HTTP 方法
 		path   string // 端点路径
 	}{
-		{http.MethodPost, "/workflow/process/add/model"},                 // P6 设计器
-		{http.MethodGet, "/workflow/process/getModelJsonByType"},         // P6 设计器
-		{http.MethodGet, "/workflow/process/instance/list"},              // 仅 instance/all/list 已接线
-		{http.MethodPost, "/workflow/process/public/model/id"},           // P6 发布族
-		{http.MethodPost, "/workflow/process/public/deploymentId"},       // P6 发布族
-		{http.MethodPost, "/workflow/process/delegate/task"},             // 引擎委托语义，与规则 CRUD 不同
-		{http.MethodPost, "/workflow/process/inject/node"},               // P6 节点注入
-		{http.MethodPost, "/workflow/process/wait/node/list"},            // P6 等待节点
-		{http.MethodGet, "/workflow/model/getUserTaskJsonInfo"},          // P6 设计器元数据
-		{http.MethodGet, "/workflow/model/getProcessDefinitionJsonInfo"}, // P6 设计器元数据
-		{http.MethodGet, "/workflow/model/findModelAndStepPageList"},     // P6 联合分页
-		{http.MethodGet, "/workflow/step/findById"},                      // P6 步骤主键查询
-		{http.MethodPost, "/workflow/hisstep/add"},                       // 快照只读
-		{http.MethodDelete, "/workflow/hisstep/delete/h1"},               // 快照只读
-		{http.MethodPost, "/workflow/weight/delete"},                     // 权重整存整取，无单独删除语义
+		{http.MethodPost, "/workflow/process/import/xml"},          // XML 导入未提供（P6 后续评估）
+		{http.MethodPost, "/workflow/process/importProcess"},       // 整流程导入未提供（P6 后续评估）
+		{http.MethodGet, "/workflow/process/exportProcess"},        // 整流程导出聚合未提供（P6 后续评估）
+		{http.MethodPost, "/workflow/process/public/deploymentId"}, // 按部署发布语义未提供
+		{http.MethodPost, "/workflow/process/public/processes/id"}, // 按流程发布语义未提供
+		{http.MethodPost, "/workflow/process/inject/node"},         // 运行时节点注入（P6 评估）
+		{http.MethodPost, "/workflow/process/exmple/node/list"},    // 示例节点清单（P6）
+		{http.MethodPost, "/workflow/process/wait/node/list"},      // 等待节点清单（P6）
+		{http.MethodPost, "/workflow/hisstep/add"},                 // 快照只读
+		{http.MethodDelete, "/workflow/hisstep/delete/h1"},         // 快照只读
 	}
 	for _, testCase := range cases {
 		response := doWorkflowJSON(t, testCase.method, env.server.URL+testCase.path, "")

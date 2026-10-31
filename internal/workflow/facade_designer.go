@@ -323,3 +323,23 @@ func (s *Service) DeleteCountersignWeights(ctx context.Context, processDefinitio
 	}
 	return ROkMsg("删除成功", nil), nil
 }
+
+// GetUserTaskMetas 查询定义上全部用户任务节点元数据（getUserTaskJsonInfo 数据面：
+// 设计器属性面板按定义读取各节点的执行人/步骤/权重扩展配置）。
+// @param ctx 上下文
+// @param definitionID 流程定义 Id
+// @return 统一返回（data 为节点元数据列表）
+// @return 错误
+func (s *Service) GetUserTaskMetas(ctx context.Context, definitionID string) (R, error) {
+	if err := requireMgmt(s.comp); err != nil {
+		return R{}, err
+	}
+	if strings.TrimSpace(definitionID) == "" {
+		return R{}, api.NewError("WORKFLOW-0400", "参数 definitionId 为空", api.ErrBadRequest)
+	}
+	metas, err := s.comp.meta.ListUserTaskMetas(ctx, definitionID)
+	if err != nil {
+		return R{}, err
+	}
+	return ROk(metas), nil
+}
