@@ -123,6 +123,8 @@ type fakeStepRules struct {
 // @return 规则
 // @return 是否启用
 // @return 错误
+// @param _ 接口占位参数（实现不使用）
+// @param _ 接口占位参数（实现不使用）
 func (f *fakeStepRules) PercentReturnRule(_ context.Context, _ string) (*PercentReturnRule, bool, error) {
 	// 注入错误优先
 	if f.err != nil {

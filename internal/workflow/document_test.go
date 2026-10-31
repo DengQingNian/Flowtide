@@ -49,6 +49,7 @@ func clockTime(t time.Time) *time.Time { return &t }
 // @param stepCodes 待办步骤代号列表
 // @param opCount 操作记录条数
 // @return 错误
+// @param businessKey 参数 businessKey
 func seedPending(ctx context.Context, stores *MemStores, procInstID, businessKey string, stepCodes []string, opCount int) error {
 	for i, code := range stepCodes {
 		msg := &MessageExtend{

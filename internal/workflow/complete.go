@@ -3,6 +3,7 @@ package workflow
 import (
 	"context"
 	"encoding/json"
+	"log"
 	"strconv"
 	"strings"
 	"time"
@@ -121,11 +122,27 @@ func (s *CompleteService) Complete(ctx context.Context, vo *api.CompleteTaskVo) 
 	}
 	// 4. 预存下一步（Java saveAgreeNextActivity：PENDING 委派任务与 end 目标跳过）
 	nextTarget := firstNextActivityID(vo)
+	presaved := false
 	if task.DelegationState != "PENDING" && nextTarget != "" && !IsEndStep(nextTarget) {
 		if err := s.saveAgreeNextForComplete(ctx, vo, task); err != nil {
 			return CompleteResult{}, err
 		}
+		presaved = true
 	}
+	// 4.1 预存补偿（016 号审计）：后续引擎命令失败时清理本次预存的 used=0 记录。
+	// 引擎以内存状态为权威，办结失败会整体回滚，但 workflow_next_activity 已提交，
+	// 残留记录会在下次同节点任务创建时被当作执行人消费，导致错派。
+	// 补偿只在本函数返回错误时执行，成功路径由 defer 判定 committed 跳过。
+	committed := false
+	defer func() {
+		if !presaved || committed {
+			return
+		}
+		// 清理本次预存的目标节点记录（按实例+节点定位，失败只记日志不影响返回值）
+		if cleanupErr := s.next.DeleteByProcessInstanceAndActivityIDs(ctx, vo.ProcessInstanceID, []string{nextTarget}); cleanupErr != nil {
+			log.Printf("workflow-complete: 预存下一步补偿清理失败 instance=%s activity=%s: %v", vo.ProcessInstanceID, nextTarget, cleanupErr)
+		}
+	}()
 	// 5. 审批意见（Java 顺序在办结后；引擎评论 API 绑定运行态任务，故前置到办结命令前写入；
 	// 无法定位实例的孤儿任务跳过意见留痕，不阻断办结）
 	commentType := firstNonEmpty(vo.Type, CommentTypeSP)
@@ -205,6 +222,8 @@ func (s *CompleteService) Complete(ctx context.Context, vo *api.CompleteTaskVo) 
 	if err != nil {
 		return CompleteResult{}, err
 	}
+	// 收尾链完成即视为办结成功：预存记录保留给新任务消费，跳过补偿清理
+	committed = true
 	return CompleteResult{
 		NextTaskIDs: nextTaskIDs,
 		Finished:    s.isInstanceFinished(ctx, vo.ProcessInstanceID),

@@ -36,6 +36,7 @@ func (f *fakeListenerControl) SetVariableLocal(name string, value any) error {
 
 // Defer 记录延迟动作。
 // @param action 延迟动作
+// @param _ 接口占位参数（实现不使用）
 func (f *fakeListenerControl) Defer(_ func(ctx context.Context) error) {
 	f.deferred++
 }
@@ -48,6 +49,9 @@ type failingWeightStore struct{}
 // @param key 节点定位键
 // @param configs 权重配置
 // @return 错误
+// @param _ 接口占位参数（实现不使用）
+// @param _ 接口占位参数（实现不使用）
+// @param _ 接口占位参数（实现不使用）
 func (f *failingWeightStore) SaveByNode(_ context.Context, _ CountersignWeightKey, _ []CountersignWeight) error {
 	return nil
 }
@@ -57,6 +61,8 @@ func (f *failingWeightStore) SaveByNode(_ context.Context, _ CountersignWeightKe
 // @param key 节点定位键
 // @return 权重配置
 // @return 错误
+// @param _ 接口占位参数（实现不使用）
+// @param _ 接口占位参数（实现不使用）
 func (f *failingWeightStore) ListByNode(_ context.Context, _ CountersignWeightKey) ([]CountersignWeight, error) {
 	return nil, assertError("权重库不可用")
 }

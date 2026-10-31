@@ -657,6 +657,7 @@ func NewMemCountersignWeightStore() *MemCountersignWeightStore {
 // @param key 节点定位键
 // @param configs 权重配置列表
 // @return 错误
+// @param _ 接口占位参数（实现不使用）
 func (m *MemCountersignWeightStore) SaveByNode(_ context.Context, key CountersignWeightKey, configs []CountersignWeight) error {
 	// 定位键不完整时拒绝（对位 Java 唯一维度校验）
 	if key.ProcessDefinitionKey == "" || key.ActivityID == "" {
@@ -681,6 +682,7 @@ func (m *MemCountersignWeightStore) SaveByNode(_ context.Context, key Countersig
 // @param key 节点定位键
 // @return 权重配置列表（无记录返回空列表）
 // @return 错误
+// @param _ 接口占位参数（实现不使用）
 func (m *MemCountersignWeightStore) ListByNode(_ context.Context, key CountersignWeightKey) ([]CountersignWeight, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()

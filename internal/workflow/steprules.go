@@ -90,6 +90,7 @@ func (m *MemStepStore) Put(rule *StepRule) {
 // @return 步骤规则副本
 // @return 是否存在
 // @return 查询错误
+// @param _ 接口占位参数（实现不使用）
 func (m *MemStepStore) GetByDeploymentAndActivity(_ context.Context, deploymentID, activityID string) (*StepRule, bool, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
@@ -106,6 +107,7 @@ func (m *MemStepStore) GetByDeploymentAndActivity(_ context.Context, deploymentI
 // @param deploymentID 部署 ID
 // @return 步骤规则列表
 // @return 查询错误
+// @param _ 接口占位参数（实现不使用）
 func (m *MemStepStore) ListByDeployment(_ context.Context, deploymentID string) ([]*StepRule, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()

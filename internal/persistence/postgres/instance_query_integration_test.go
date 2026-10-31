@@ -23,7 +23,7 @@ func TestIntegrationPostgresInstanceQueryPushdown(t *testing.T) {
 	if os.Getenv("FLOWABLE_POSTGRES_INTEGRATION") != "1" {
 		t.Skip("设置 FLOWABLE_POSTGRES_INTEGRATION=1 启用 PostgreSQL 查询下推验收")
 	}
-	endpoint, err := url.Parse(os.Getenv("FLOWABLE_POSTGRES_DSN"))
+	endpoint, err := url.Parse(integrationDSN(t))
 	if err != nil || endpoint.Host == "" {
 		t.Fatal("需要有效的 FLOWABLE_POSTGRES_DSN 连接地址")
 	}
@@ -50,6 +50,8 @@ func TestIntegrationPostgresInstanceQueryPushdown(t *testing.T) {
 		}
 	}()
 	endpoint.Path = "/" + name
+	// 隔离库中 search_path 指向的 Schema 尚不存在，需先建 Schema 再建业务连接
+	prepareIsolatedDatabase(ctx, t, endpoint)
 	db, err := sql.Open("postgres", endpoint.String())
 	if err != nil {
 		t.Fatal("打开临时 PostgreSQL 库失败")

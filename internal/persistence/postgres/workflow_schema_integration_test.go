@@ -54,6 +54,8 @@ func newEnsureSchemaDB(t *testing.T) (context.Context, *sql.DB) {
 		t.Fatalf("连接地址非法: %v", err)
 	}
 	endpoint.Path = "/" + name
+	// 隔离库中 search_path 指向的 Schema 尚不存在，需先建 Schema 再建业务连接
+	prepareIsolatedDatabase(ctx, t, endpoint)
 	db, err := pgstore.Open(ctx, endpoint.String())
 	if err != nil {
 		t.Fatal(err)

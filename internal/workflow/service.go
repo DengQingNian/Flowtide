@@ -230,11 +230,6 @@ func (s *Service) GetDoneTaskListByIdentityID(ctx context.Context, identityID st
 	return ROk(page), nil
 }
 
-// GetNextUserTaskAndUserList 推演下一步节点与候选处理人（P5 实现）。
-// @param ctx 上下文
-// @param taskID 任务 ID
-// @return 统一返回
-// @return 未实现错误
 // SaveAgreeNextActivity 预存"同意"方向下一步节点与处理人（多节点逐个预存，
 // 目标为保留代号 end 或无执行人的节点跳过）。
 // @param ctx 上下文

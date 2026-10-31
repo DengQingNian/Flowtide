@@ -215,6 +215,7 @@ func hlAssertSet(t *testing.T, name string, got []string, want ...string) {
 // ─── 线性语料：运行态三阶段 + 已办结回退全历史 ───
 
 // TestHighlightLinearPhases 线性语料三阶段：发起、走两步、办结（回退全历史）。
+// @param t 测试上下文
 func TestHighlightLinearPhases(t *testing.T) {
 	fx := newHLFixture(t)
 	ctx := context.Background()
@@ -264,6 +265,7 @@ func TestHighlightLinearPhases(t *testing.T) {
 // ─── 网关 / 并行 / 子流程：与实际流转一致 ───
 
 // TestHighlightGatewayRoute 排他网关：只高亮实际命中的分支连线。
+// @param t 测试上下文
 func TestHighlightGatewayRoute(t *testing.T) {
 	fx := newHLFixture(t)
 	instance, task := fx.hlStart("hlGateway", nil)
@@ -281,6 +283,7 @@ func TestHighlightGatewayRoute(t *testing.T) {
 }
 
 // TestHighlightParallelBranches 并行网关：双分支任务同时活跃，未走分支连线不高亮。
+// @param t 测试上下文
 func TestHighlightParallelBranches(t *testing.T) {
 	fx := newHLFixture(t)
 	instance, task := fx.hlStart("hlParallel", nil)
@@ -298,6 +301,7 @@ func TestHighlightParallelBranches(t *testing.T) {
 }
 
 // TestHighlightSubProcessInner 子流程：内部节点与内部连线纳入高亮（拓扑递归）。
+// @param t 测试上下文
 func TestHighlightSubProcessInner(t *testing.T) {
 	fx := newHLFixture(t)
 	instance, task := fx.hlStart("hlSub", nil)
@@ -317,6 +321,7 @@ func TestHighlightSubProcessInner(t *testing.T) {
 // ─── 参数与边界 ───
 
 // TestHighlightErrors 参数缺失、未知实例/任务、未注入引擎的报错路径。
+// @param t 测试上下文
 func TestHighlightErrors(t *testing.T) {
 	fx := newHLFixture(t)
 	ctx := context.Background()
@@ -343,6 +348,7 @@ func TestHighlightErrors(t *testing.T) {
 
 // TestHighlightEndedInstanceFallback 已结束实例即使运行态仍可查（内存引擎 Ended 标记），
 // 也按回退语义输出：Active/Todo 为空。
+// @param t 测试上下文
 func TestHighlightEndedInstanceFallback(t *testing.T) {
 	fx := newHLFixture(t)
 	instance, task := fx.hlStart("hlLinear", nil)
@@ -361,6 +367,7 @@ func TestHighlightEndedInstanceFallback(t *testing.T) {
 }
 
 // TestHighlightStableOrdering 同一实例多次查询输出顺序稳定（排序幂等）。
+// @param t 测试上下文
 func TestHighlightStableOrdering(t *testing.T) {
 	fx := newHLFixture(t)
 	instance, task := fx.hlStart("hlParallel", nil)
@@ -524,6 +531,7 @@ func (e hlFailEngine) TaskService() api.TaskService {
 }
 
 // TestHighlightErrorBranches 高亮服务各引擎错误分支的传播路径。
+// @param t 测试上下文
 func TestHighlightErrorBranches(t *testing.T) {
 	fx := newHLFixture(t)
 	instance, task := fx.hlStart("hlLinear", nil)
@@ -566,6 +574,7 @@ func TestHighlightErrorBranches(t *testing.T) {
 }
 
 // TestHighlightHistoricFallback 运行态查不到实例（SQL 引擎已结束形态）时回退历史实例。
+// @param t 测试上下文
 func TestHighlightHistoricFallback(t *testing.T) {
 	fx := newHLFixture(t)
 	instance, task := fx.hlStart("hlLinear", nil)
@@ -586,6 +595,7 @@ func TestHighlightHistoricFallback(t *testing.T) {
 }
 
 // TestHlCollectTakenFlows 拓扑收集的防御分支：顺序与索引不一致时跳过。
+// @param t 测试上下文
 func TestHlCollectTakenFlows(t *testing.T) {
 	appeared := map[string]bool{"a": true, "b": true}
 	out := make([]string, 0, 2)

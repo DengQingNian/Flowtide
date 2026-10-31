@@ -97,6 +97,7 @@ func mmCloneRules(rules []*StepRule) []*StepRule {
 // @param deploymentID 部署 ID
 // @param rules 快照规则列表
 // @return 错误
+// @param _ 接口占位参数（实现不使用）
 func (m *MemHisStepStore) Put(_ context.Context, deploymentID string, rules []*StepRule) error {
 	// 部署 ID 是快照定位键，缺失即调用方违约
 	if strings.TrimSpace(deploymentID) == "" {
@@ -126,6 +127,7 @@ func (m *MemHisStepStore) Put(_ context.Context, deploymentID string, rules []*S
 // @return 快照规则副本
 // @return 是否存在
 // @return 查询错误
+// @param _ 接口占位参数（实现不使用）
 func (m *MemHisStepStore) GetByDeploymentAndActivity(_ context.Context, deploymentID, activityID string) (*StepRule, bool, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
@@ -142,6 +144,7 @@ func (m *MemHisStepStore) GetByDeploymentAndActivity(_ context.Context, deployme
 // @param deploymentID 部署 ID
 // @return 快照规则副本列表
 // @return 查询错误
+// @param _ 接口占位参数（实现不使用）
 func (m *MemHisStepStore) ListByDeployment(_ context.Context, deploymentID string) ([]*StepRule, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
@@ -152,6 +155,7 @@ func (m *MemHisStepStore) ListByDeployment(_ context.Context, deploymentID strin
 // @param ctx 操作上下文
 // @param deploymentID 部署 ID
 // @return 错误
+// @param _ 接口占位参数（实现不使用）
 func (m *MemHisStepStore) DeleteByDeployment(_ context.Context, deploymentID string) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()

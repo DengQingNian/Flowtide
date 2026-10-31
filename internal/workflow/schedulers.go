@@ -40,37 +40,37 @@ type AutoCompleteBackExecutor interface {
 
 // SchedulerConfig 是调度器装配配置（全部依赖注入，测试可用轻量桩）。
 type SchedulerConfig struct {
-	Engine     api.Engine // 引擎门面（僵尸监控实例查询）
-	Options    Options    // 调度开关与时钟（Service.Options() 透传）
-	TodoSource TodoSource // 待办数据源（自动办结/超时提醒/僵尸监控）
-	Rules      ScheduleRuleProvider // 步骤规则（autoComplete/timeLimit），nil 用空实现
-	Complete   *CompleteService     // 自动办结（同意型）执行器
-	Next       *NextActivityService // 下一步预存读取（自动办结的下一步来源）
+	Engine     api.Engine               // 引擎门面（僵尸监控实例查询）
+	Options    Options                  // 调度开关与时钟（Service.Options() 透传）
+	TodoSource TodoSource               // 待办数据源（自动办结/超时提醒/僵尸监控）
+	Rules      ScheduleRuleProvider     // 步骤规则（autoComplete/timeLimit），nil 用空实现
+	Complete   *CompleteService         // 自动办结（同意型）执行器
+	Next       *NextActivityService     // 下一步预存读取（自动办结的下一步来源）
 	Back       AutoCompleteBackExecutor // 退回执行器（P2-B 后接线，nil 跳过退回型）
-	Remind     *RemindService       // 催办服务（扫描 + 送达）
-	Notifier   Notifier             // 催办送达器，nil 用日志实现
-	Exceptions *ExceptionService    // 异常记录服务（僵尸监控落库）
+	Remind     *RemindService           // 催办服务（扫描 + 送达）
+	Notifier   Notifier                 // 催办送达器，nil 用日志实现
+	Exceptions *ExceptionService        // 异常记录服务（僵尸监控落库）
 }
 
 // Scheduler 是 workflow 调度器聚合：Start 启动后台 goroutine，Stop 优雅停止；
 // 四个 tick 方法可单独直调（测试不真 sleep），亦可经 AutoCompleteFn 等字段替换触发实现。
 type Scheduler struct {
-	opts       Options              // 调度开关与时钟
-	engine     api.Engine           // 引擎门面
-	todoSource TodoSource           // 待办数据源
-	rules      ScheduleRuleProvider // 步骤规则
-	complete   *CompleteService     // 自动办结执行器
-	next       *NextActivityService // 预存读取
+	opts       Options                  // 调度开关与时钟
+	engine     api.Engine               // 引擎门面
+	todoSource TodoSource               // 待办数据源
+	rules      ScheduleRuleProvider     // 步骤规则
+	complete   *CompleteService         // 自动办结执行器
+	next       *NextActivityService     // 预存读取
 	back       AutoCompleteBackExecutor // 退回执行器
-	remind     *RemindService       // 催办服务
-	notifier   Notifier             // 送达器
-	exceptions *ExceptionService    // 异常记录服务
+	remind     *RemindService           // 催办服务
+	notifier   Notifier                 // 送达器
+	exceptions *ExceptionService        // 异常记录服务
 
 	// 可注入触发函数（nil 时使用内置 tick；测试可替换以断言调度触发）
-	AutoCompleteFn func(ctx context.Context) error // 自动办结触发函数
+	AutoCompleteFn  func(ctx context.Context) error // 自动办结触发函数
 	TimeoutRemindFn func(ctx context.Context) error // 超时提醒触发函数
-	RemindScanFn   func(ctx context.Context) error // 催办扫描触发函数
-	ZombieScanFn   func(ctx context.Context) error // 僵尸监控触发函数
+	RemindScanFn    func(ctx context.Context) error // 催办扫描触发函数
+	ZombieScanFn    func(ctx context.Context) error // 僵尸监控触发函数
 
 	autoCompleteInterval time.Duration // 自动办结周期
 	remindInterval       time.Duration // 催办扫描周期

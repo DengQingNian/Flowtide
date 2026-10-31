@@ -139,6 +139,9 @@ type nopCategoryLookup struct{}
 // @param flowCategoryCode 分类代号（=定义 Key）
 // @return 模型 Id（恒空串）
 // @return 错误（恒 nil）
+// @param _ 接口占位参数（实现不使用）
+// @param _ 接口占位参数（实现不使用）
+// @param _ 接口占位参数（实现不使用）
 func (nopCategoryLookup) ResolveModelID(_ context.Context, _, _ string) (string, error) {
 	return "", nil
 }
@@ -152,6 +155,8 @@ type nopStepResolver struct{}
 // @param stepCode 步骤代号
 // @return 步骤 Id（恒空串）
 // @return 错误（恒 nil）
+// @param _ 接口占位参数（实现不使用）
+// @param _ 接口占位参数（实现不使用）
 func (nopStepResolver) ResolveStepID(_ context.Context, _ string) (string, error) {
 	return "", nil
 }
@@ -182,6 +187,7 @@ type emptyTodoSource struct{}
 // @param ctx 操作上下文
 // @return 空列表
 // @return 错误（恒 nil）
+// @param _ 接口占位参数（实现不使用）
 func (emptyTodoSource) ListAll(_ context.Context) ([]*MessageExtend, error) {
 	return []*MessageExtend{}, nil
 }
@@ -192,6 +198,8 @@ func (emptyTodoSource) ListAll(_ context.Context) ([]*MessageExtend, error) {
 // @return 待办扩展（恒 nil）
 // @return 是否存在（恒 false）
 // @return 错误（恒 nil）
+// @param _ 接口占位参数（实现不使用）
+// @param _ 接口占位参数（实现不使用）
 func (emptyTodoSource) GetByTaskID(_ context.Context, _ string) (*MessageExtend, bool, error) {
 	return nil, false, nil
 }

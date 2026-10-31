@@ -245,13 +245,13 @@ func newSimFixture(t *testing.T) *simFixture {
 		Name:     "simulate-test",
 		TenantID: "dev",
 		Resources: map[string][]byte{
-			"linear.bpmn20.xml":  []byte(simLinearProcess),
-			"gateway.bpmn20.xml": []byte(simGatewayProcess),
-			"parallel.bpmn20.xml": []byte(simParallelProcess),
-			"sub.bpmn20.xml":      []byte(simSubProcessProcess),
-			"exec.bpmn20.xml":     []byte(simExecutorProcess),
-			"varexec.bpmn20.xml":  []byte(simVarExecutorProcess),
-			"group.bpmn20.xml":    []byte(simGroupExecutorProcess),
+			"linear.bpmn20.xml":       []byte(simLinearProcess),
+			"gateway.bpmn20.xml":      []byte(simGatewayProcess),
+			"parallel.bpmn20.xml":     []byte(simParallelProcess),
+			"sub.bpmn20.xml":          []byte(simSubProcessProcess),
+			"exec.bpmn20.xml":         []byte(simExecutorProcess),
+			"varexec.bpmn20.xml":      []byte(simVarExecutorProcess),
+			"group.bpmn20.xml":        []byte(simGroupExecutorProcess),
 			"executorlist.bpmn20.xml": []byte(simExecutorListProcess),
 			"counter.bpmn20.xml":      []byte(simCountersignProcess),
 			"call.bpmn20.xml":         []byte(simCallProcess),
@@ -332,7 +332,7 @@ func (f *simFixture) firstTask(instanceID string) api.Task {
 	return page.Data[0]
 }
 
-// allTasks 返回实例当前全部任务 Key（一致性断言用）。
+// allTaskKeys 返回实例当前全部任务 Key（一致性断言用）。
 // @param instanceID 实例 Id
 // @return 任务 Key 列表
 func (f *simFixture) allTaskKeys(instanceID string) []string {
@@ -435,6 +435,7 @@ func (f *simFixture) seedNext(instanceID, activityID, identityID, taskID, preTas
 // ─── 一致性回归：推演的下一节点/人员 = 实际流转生成的任务（常驻★）───
 
 // TestSimulateConsistencyLinear 线性语料一致性：推演 handle → 实际流转生成 handle 任务。
+// @param t 测试上下文
 func TestSimulateConsistencyLinear(t *testing.T) {
 	fx := newSimFixture(t)
 	instance, task := fx.start("simLinear", "alice", nil)
@@ -471,6 +472,7 @@ func TestSimulateConsistencyLinear(t *testing.T) {
 }
 
 // TestSimulateConsistencyGateway 排他网关两条条件走向一致性。
+// @param t 测试上下文
 func TestSimulateConsistencyGateway(t *testing.T) {
 	fx := newSimFixture(t)
 	// 走向一：pass=true → approve
@@ -494,6 +496,7 @@ func TestSimulateConsistencyGateway(t *testing.T) {
 }
 
 // TestSimulateConsistencyParallel 并行网关一致性：推演双分支 = 实际生成双任务。
+// @param t 测试上下文
 func TestSimulateConsistencyParallel(t *testing.T) {
 	fx := newSimFixture(t)
 	instance, task := fx.start("simParallel", "alice", nil)
@@ -512,6 +515,7 @@ func TestSimulateConsistencyParallel(t *testing.T) {
 }
 
 // TestSimulateConsistencySubProcess 子流程一致性：进入子流程首节点、穿出后到 after。
+// @param t 测试上下文
 func TestSimulateConsistencySubProcess(t *testing.T) {
 	fx := newSimFixture(t)
 	instance, task := fx.start("simSub", "alice", nil)
@@ -535,6 +539,7 @@ func TestSimulateConsistencySubProcess(t *testing.T) {
 }
 
 // TestSimulateConsistencyWithEntity 推演含 entity 取值表达式与实际流转的一致性。
+// @param t 测试上下文
 func TestSimulateConsistencyWithEntity(t *testing.T) {
 	fx := newSimFixture(t)
 	instance, task := fx.start("simVarExec", "alice", map[string]any{
@@ -560,6 +565,7 @@ func TestSimulateConsistencyWithEntity(t *testing.T) {
 // ─── SimulateByKey：未发起实例按定义推演 ───
 
 // TestSimulateByKeyLinear 按 Key 推演线性语料：从开始事件得首任务 apply（含 initiator 注入）。
+// @param t 测试上下文
 func TestSimulateByKeyLinear(t *testing.T) {
 	fx := newSimFixture(t)
 	views, err := fx.sim.SimulateByKey(context.Background(), "dev", "simLinear", "BIZ-1", map[string]any{VarInitiator: "alice"})
@@ -573,6 +579,7 @@ func TestSimulateByKeyLinear(t *testing.T) {
 }
 
 // TestSimulateByKeyVarExecutor 按 Key 推演 ${entity.owner} 形态（表单 Map 与平铺变量两形态）。
+// @param t 测试上下文
 func TestSimulateByKeyVarExecutor(t *testing.T) {
 	fx := newSimFixture(t)
 	// entity 表单 Map 形态
@@ -596,6 +603,7 @@ func TestSimulateByKeyVarExecutor(t *testing.T) {
 }
 
 // TestSimulateByKeyNoEnd 按 Key 推演不包含办结伪节点（直达结束的语料应返回空）。
+// @param t 测试上下文
 func TestSimulateByKeyNoEnd(t *testing.T) {
 	fx := newSimFixture(t)
 	views, err := fx.sim.SimulateByKey(context.Background(), "dev", "simLinear", "BIZ-1", nil)
@@ -611,6 +619,7 @@ func TestSimulateByKeyNoEnd(t *testing.T) {
 }
 
 // TestSimulateByKeyErrors 按 Key 推演的参数与定义校验。
+// @param t 测试上下文
 func TestSimulateByKeyErrors(t *testing.T) {
 	fx := newSimFixture(t)
 	// 空 Key
@@ -626,6 +635,7 @@ func TestSimulateByKeyErrors(t *testing.T) {
 // ─── 执行人解析链 ───
 
 // TestSimulateExecutorShapes 全执行人形态：字面/变量/候选用户/候选组/动态角色/executorList 各型。
+// @param t 测试上下文
 func TestSimulateExecutorShapes(t *testing.T) {
 	fx := newSimFixture(t)
 	ctx := context.Background()
@@ -732,6 +742,7 @@ func (f *simFixture) seedReturnScenario(returnMode string) (api.ProcessInstance,
 }
 
 // TestSimulateReturnMode1OnlyBack 模式 1：只给退回步骤，人员取历史设置。
+// @param t 测试上下文
 func TestSimulateReturnMode1OnlyBack(t *testing.T) {
 	fx := newSimFixture(t)
 	_, task := fx.seedReturnScenario("1")
@@ -748,6 +759,7 @@ func TestSimulateReturnMode1OnlyBack(t *testing.T) {
 }
 
 // TestSimulateReturnMode3BackFirst 模式 3 退回优先：退回步骤在前，常规下一步在后。
+// @param t 测试上下文
 func TestSimulateReturnMode3BackFirst(t *testing.T) {
 	fx := newSimFixture(t)
 	_, task := fx.seedReturnScenario("3")
@@ -763,6 +775,7 @@ func TestSimulateReturnMode3BackFirst(t *testing.T) {
 }
 
 // TestSimulateReturnMode4BackLast 模式 4 下一步优先：常规下一步在前，退回步骤在后。
+// @param t 测试上下文
 func TestSimulateReturnMode4BackLast(t *testing.T) {
 	fx := newSimFixture(t)
 	_, task := fx.seedReturnScenario("4")
@@ -777,6 +790,7 @@ func TestSimulateReturnMode4BackLast(t *testing.T) {
 }
 
 // TestSimulateReturnDefaultIgnoresBack 未配置退回模式：即使存在退回位也只给常规下一步。
+// @param t 测试上下文
 func TestSimulateReturnDefaultIgnoresBack(t *testing.T) {
 	fx := newSimFixture(t)
 	_, task := fx.seedReturnScenario("")
@@ -788,6 +802,7 @@ func TestSimulateReturnDefaultIgnoresBack(t *testing.T) {
 }
 
 // TestSimulateReturnMode5HistoryChain 模式 5：沿 preTaskId 链上溯历史步骤（排除当前步骤）。
+// @param t 测试上下文
 func TestSimulateReturnMode5HistoryChain(t *testing.T) {
 	fx := newSimFixture(t)
 	// 步骤规则：handle 配置模式 5，approve 为发送步骤（排序 3 > 2 触发退回位）
@@ -813,6 +828,7 @@ func TestSimulateReturnMode5HistoryChain(t *testing.T) {
 }
 
 // TestSimulateWithoutStepsSkipsReturnBranch 未注入步骤规则：跳过退回分支，返回常规下一步。
+// @param t 测试上下文
 func TestSimulateWithoutStepsSkipsReturnBranch(t *testing.T) {
 	fx := newSimFixture(t)
 	_, task := fx.seedReturnScenario("1")
@@ -824,6 +840,7 @@ func TestSimulateWithoutStepsSkipsReturnBranch(t *testing.T) {
 }
 
 // TestSimulateUnknownTaskReturnsEmpty 不存在任务按 Java 语义返回空列表而非错误。
+// @param t 测试上下文
 func TestSimulateUnknownTaskReturnsEmpty(t *testing.T) {
 	fx := newSimFixture(t)
 	views, err := fx.sim.SimulateByTask(context.Background(), "no-such-task", nil)

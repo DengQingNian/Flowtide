@@ -21,6 +21,10 @@ type faultTaskSvc struct {
 }
 
 // GetTask 查询任务（可注入失败）。
+// @param ctx 参数 ctx
+// @param id 参数 id
+// @return 返回值
+// @return 返回值
 func (s *faultTaskSvc) GetTask(ctx context.Context, id string) (api.Task, error) {
 	if s.failGet {
 		return api.Task{}, assertError("任务查询故障")
@@ -32,6 +36,10 @@ func (s *faultTaskSvc) GetTask(ctx context.Context, id string) (api.Task, error)
 }
 
 // ListTasks 查询任务列表（可注入失败）。
+// @param ctx 参数 ctx
+// @param filter 参数 filter
+// @return 返回值
+// @return 返回值
 func (s *faultTaskSvc) ListTasks(ctx context.Context, filter api.TaskFilter) (api.Page[api.Task], error) {
 	if s.failList {
 		return api.Page[api.Task]{}, assertError("任务列表故障")
@@ -40,6 +48,11 @@ func (s *faultTaskSvc) ListTasks(ctx context.Context, filter api.TaskFilter) (ap
 }
 
 // UpdateTask 更新任务（可注入失败）。
+// @param ctx 参数 ctx
+// @param taskID 参数 taskID
+// @param update 参数 update
+// @return 返回值
+// @return 返回值
 func (s *faultTaskSvc) UpdateTask(ctx context.Context, taskID string, update api.TaskUpdate) (api.Task, error) {
 	if s.failUpdate {
 		return api.Task{}, assertError("任务更新故障")
@@ -95,6 +108,10 @@ type faultRepo struct {
 }
 
 // GetProcessDefinition 查询定义（可注入失败）。
+// @param ctx 参数 ctx
+// @param id 参数 id
+// @return 返回值
+// @return 返回值
 func (r *faultRepo) GetProcessDefinition(ctx context.Context, id string) (api.ProcessDefinition, error) {
 	if r.failDefs {
 		return api.ProcessDefinition{}, assertError("定义查询故障")
@@ -103,6 +120,10 @@ func (r *faultRepo) GetProcessDefinition(ctx context.Context, id string) (api.Pr
 }
 
 // GetBpmnModel 查询模型（可注入失败/空模型）。
+// @param ctx 参数 ctx
+// @param definitionID 参数 definitionID
+// @return 返回值
+// @return 返回值
 func (r *faultRepo) GetBpmnModel(ctx context.Context, definitionID string) (*model.BpmnModel, error) {
 	if r.failBpmn {
 		return nil, assertError("模型查询故障")
@@ -126,6 +147,10 @@ type faultHistory struct {
 }
 
 // QueryHistoricActivityInstances 查询历史活动（可注入失败）。
+// @param ctx 参数 ctx
+// @param filter 参数 filter
+// @return 返回值
+// @return 返回值
 func (h *faultHistory) QueryHistoricActivityInstances(ctx context.Context, filter api.HistoricActivityInstanceFilter) (api.Page[api.HistoricActivityInstance], error) {
 	if h.failAct {
 		return api.Page[api.HistoricActivityInstance]{}, assertError("历史活动查询故障")
@@ -134,6 +159,10 @@ func (h *faultHistory) QueryHistoricActivityInstances(ctx context.Context, filte
 }
 
 // QueryHistoricTaskInstances 分页查询历史任务（可注入失败，退回执行人预存用）。
+// @param ctx 参数 ctx
+// @param filter 参数 filter
+// @return 返回值
+// @return 返回值
 func (h *faultHistory) QueryHistoricTaskInstances(ctx context.Context, filter api.HistoricTaskInstanceFilter) (api.Page[api.HistoricTaskInstance], error) {
 	if h.failTaskQuery {
 		return api.Page[api.HistoricTaskInstance]{}, assertError("历史任务查询故障")
@@ -148,6 +177,11 @@ type faultExt struct {
 }
 
 // BackUserTaskToActivity 任意退回（可注入失败）。
+// @param ctx 参数 ctx
+// @param taskID 参数 taskID
+// @param targetActivityID 参数 targetActivityID
+// @return 返回值
+// @return 返回值
 func (f *faultExt) BackUserTaskToActivity(ctx context.Context, taskID, targetActivityID string) (string, error) {
 	if f.extErr != nil {
 		return "", f.extErr
@@ -156,6 +190,11 @@ func (f *faultExt) BackUserTaskToActivity(ctx context.Context, taskID, targetAct
 }
 
 // CompleteToTarget 直送（可注入失败）。
+// @param ctx 参数 ctx
+// @param taskID 参数 taskID
+// @param targetActivityID 参数 targetActivityID
+// @param variables 参数 variables
+// @return 返回值
 func (f *faultExt) CompleteToTarget(ctx context.Context, taskID, targetActivityID string, variables map[string]any) error {
 	if f.extErr != nil {
 		return f.extErr
@@ -174,6 +213,12 @@ type faultStepStore struct {
 }
 
 // GetByDeploymentAndActivity 按部署+节点定位（可注入失败）。
+// @param ctx 参数 ctx
+// @param deploymentID 参数 deploymentID
+// @param activityID 参数 activityID
+// @return 返回值
+// @return 返回值
+// @return 返回值
 func (s *faultStepStore) GetByDeploymentAndActivity(ctx context.Context, deploymentID, activityID string) (*StepRule, bool, error) {
 	s.getCalls++
 	if s.failGet || (s.failGetAfter > 0 && s.getCalls > s.failGetAfter) {
@@ -183,6 +228,10 @@ func (s *faultStepStore) GetByDeploymentAndActivity(ctx context.Context, deploym
 }
 
 // ListByDeployment 查询部署步骤（可注入失败）。
+// @param ctx 参数 ctx
+// @param deploymentID 参数 deploymentID
+// @return 返回值
+// @return 返回值
 func (s *faultStepStore) ListByDeployment(ctx context.Context, deploymentID string) ([]*StepRule, error) {
 	if s.failList {
 		return nil, assertError("步骤列表故障")
@@ -201,6 +250,10 @@ type faultNextStore struct {
 }
 
 // ListHisByTaskID 查询历史记录（可注入失败）。
+// @param ctx 参数 ctx
+// @param taskID 参数 taskID
+// @return 返回值
+// @return 返回值
 func (s *faultNextStore) ListHisByTaskID(ctx context.Context, taskID string) ([]*NextActivity, error) {
 	if s.failHisTask {
 		return nil, assertError("历史记录查询故障")
@@ -209,6 +262,10 @@ func (s *faultNextStore) ListHisByTaskID(ctx context.Context, taskID string) ([]
 }
 
 // DeleteByProcessInstanceAndActivityIDs 按节点集合删除（可注入失败）。
+// @param ctx 参数 ctx
+// @param processInstanceID 参数 processInstanceID
+// @param nextActivityIDs 参数 nextActivityIDs
+// @return 返回值
 func (s *faultNextStore) DeleteByProcessInstanceAndActivityIDs(ctx context.Context, processInstanceID string, nextActivityIDs []string) error {
 	if s.failDelete {
 		return assertError("预存删除故障")
@@ -217,6 +274,10 @@ func (s *faultNextStore) DeleteByProcessInstanceAndActivityIDs(ctx context.Conte
 }
 
 // ListByTaskID 按任务查询记录（可注入失败，直送当前预存清理用）。
+// @param ctx 参数 ctx
+// @param taskID 参数 taskID
+// @return 返回值
+// @return 返回值
 func (s *faultNextStore) ListByTaskID(ctx context.Context, taskID string) ([]*NextActivity, error) {
 	if s.failListByTask {
 		return nil, assertError("任务记录查询故障")
@@ -225,6 +286,11 @@ func (s *faultNextStore) ListByTaskID(ctx context.Context, taskID string) ([]*Ne
 }
 
 // LatestVersion 查询最大已消耗版本（可注入失败，预存版本推算用）。
+// @param ctx 参数 ctx
+// @param processInstanceID 参数 processInstanceID
+// @param nextActivityID 参数 nextActivityID
+// @return 返回值
+// @return 返回值
 func (s *faultNextStore) LatestVersion(ctx context.Context, processInstanceID, nextActivityID string) (int, error) {
 	if s.failLatest {
 		return 0, assertError("版本查询故障")
@@ -233,6 +299,12 @@ func (s *faultNextStore) LatestVersion(ctx context.Context, processInstanceID, n
 }
 
 // DeleteForResolve 按身份删除记录（可注入失败，直送当前预存清理用）。
+// @param ctx 参数 ctx
+// @param processInstanceID 参数 processInstanceID
+// @param nextActivityID 参数 nextActivityID
+// @param taskID 参数 taskID
+// @param identityID 参数 identityID
+// @return 返回值
 func (s *faultNextStore) DeleteForResolve(ctx context.Context, processInstanceID, nextActivityID, taskID, identityID string) error {
 	if s.failResolve {
 		return assertError("预存清理故障")
@@ -250,6 +322,10 @@ type faultMessageStore struct {
 }
 
 // DeleteByProcessInstanceAndActivityIDs 按节点集合删除待办（可注入失败）。
+// @param ctx 参数 ctx
+// @param processInstanceID 参数 processInstanceID
+// @param stepCodes 参数 stepCodes
+// @return 返回值
 func (s *faultMessageStore) DeleteByProcessInstanceAndActivityIDs(ctx context.Context, processInstanceID string, stepCodes []string) error {
 	if s.failDeleteActs {
 		return assertError("待办删除故障")
@@ -258,6 +334,9 @@ func (s *faultMessageStore) DeleteByProcessInstanceAndActivityIDs(ctx context.Co
 }
 
 // DeleteByTaskID 按任务删除待办（可注入失败）。
+// @param ctx 参数 ctx
+// @param taskID 参数 taskID
+// @return 返回值
 func (s *faultMessageStore) DeleteByTaskID(ctx context.Context, taskID string) error {
 	if s.failDeleteTask {
 		return assertError("待办删除故障")
@@ -266,6 +345,11 @@ func (s *faultMessageStore) DeleteByTaskID(ctx context.Context, taskID string) e
 }
 
 // GetByTaskID 按任务查询待办（可注入失败，重生成幂等检查用）。
+// @param ctx 参数 ctx
+// @param taskID 参数 taskID
+// @return 返回值
+// @return 返回值
+// @return 返回值
 func (s *faultMessageStore) GetByTaskID(ctx context.Context, taskID string) (*MessageExtend, bool, error) {
 	if s.failGet {
 		return nil, false, assertError("待办查询故障")
@@ -274,6 +358,9 @@ func (s *faultMessageStore) GetByTaskID(ctx context.Context, taskID string) (*Me
 }
 
 // Save 插入待办（可注入失败，待办重建分支经服务层 Save 触发）。
+// @param ctx 参数 ctx
+// @param msg 参数 msg
+// @return 返回值
 func (s *faultMessageStore) Save(ctx context.Context, msg *MessageExtend) error {
 	if s.failCreate {
 		return assertError("待办创建故障")
@@ -289,6 +376,11 @@ type faultHistoryStore struct {
 }
 
 // UpdateFinishTime 办结回写（可注入失败）。
+// @param ctx 参数 ctx
+// @param taskID 参数 taskID
+// @param ownerID 参数 ownerID
+// @param finishTime 参数 finishTime
+// @return 返回值
 func (s *faultHistoryStore) UpdateFinishTime(ctx context.Context, taskID, ownerID string, finishTime time.Time) error {
 	if s.failFinish {
 		return assertError("已办回写故障")
@@ -297,6 +389,9 @@ func (s *faultHistoryStore) UpdateFinishTime(ctx context.Context, taskID, ownerI
 }
 
 // Save 插入已办镜像（可注入失败）。
+// @param ctx 参数 ctx
+// @param h 参数 h
+// @return 返回值
 func (s *faultHistoryStore) Save(ctx context.Context, h *HistoryExtend) error {
 	if s.failCreate {
 		return assertError("已办创建故障")
@@ -311,6 +406,9 @@ type faultOperationStore struct {
 }
 
 // Save 保存操作记录（可注入失败）。
+// @param ctx 参数 ctx
+// @param r 参数 r
+// @return 返回值
 func (s *faultOperationStore) Save(ctx context.Context, r *OperationRecord) error {
 	if s.failSave {
 		return assertError("操作记录故障")
@@ -325,6 +423,10 @@ type faultModelStore struct {
 }
 
 // ReturnSortOf 读取退回排序方式（可注入失败）。
+// @param ctx 参数 ctx
+// @param processDefinitionKey 参数 processDefinitionKey
+// @return 返回值
+// @return 返回值
 func (s *faultModelStore) ReturnSortOf(ctx context.Context, processDefinitionKey string) (bool, error) {
 	if s.failQuery {
 		return false, assertError("模型主数据故障")
@@ -339,6 +441,9 @@ type faultCompleteToStore struct {
 }
 
 // Save 插入直送记录（可注入失败）。
+// @param ctx 参数 ctx
+// @param record 参数 record
+// @return 返回值
 func (s *faultCompleteToStore) Save(ctx context.Context, record *CompleteToActivity) error {
 	if s.failSave {
 		return assertError("直送记录故障")
@@ -350,11 +455,19 @@ func (s *faultCompleteToStore) Save(ctx context.Context, record *CompleteToActiv
 type errUsers struct{}
 
 // GetUser 查询用户（固定失败）。
+// @param ctx 参数 ctx
+// @param userID 参数 userID
+// @return 返回值
+// @return 返回值
 func (e errUsers) GetUser(ctx context.Context, userID string) (api.User, error) {
 	return api.User{}, assertError("身份查询故障")
 }
 
 // ListUserGroups 查询用户组（固定失败）。
+// @param ctx 参数 ctx
+// @param userID 参数 userID
+// @return 返回值
+// @return 返回值
 func (e errUsers) ListUserGroups(ctx context.Context, userID string) ([]api.Group, error) {
 	return nil, assertError("身份查询故障")
 }

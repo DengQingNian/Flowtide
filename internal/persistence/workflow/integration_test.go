@@ -13,9 +13,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/DengQingNian/Flowtide/internal/persistence/schema"
 	mysqlstore "github.com/DengQingNian/Flowtide/internal/persistence/mysql"
 	pgstore "github.com/DengQingNian/Flowtide/internal/persistence/postgres"
+	"github.com/DengQingNian/Flowtide/internal/persistence/schema"
 	_ "github.com/go-sql-driver/mysql"
 	_ "github.com/lib/pq"
 )
@@ -191,17 +191,33 @@ func newPostgresDB(t *testing.T) (context.Context, *Store, *sql.DB) {
 		t.Fatalf("连接地址非法: %v", err)
 	}
 	endpoint.Path = "/" + name
+	// 先建 search_path 指向的 Schema：连接 DSN 携带 search_path，Schema 不存在时
+	// 连接本身即失败（libpq 在建连阶段应用 search_path）。
+	if target := endpoint.Query().Get("search_path"); target != "" && target != "public" {
+		bootstrapEndpoint := *endpoint
+		bootstrapQuery := bootstrapEndpoint.Query()
+		bootstrapQuery.Del("search_path")
+		bootstrapEndpoint.RawQuery = bootstrapQuery.Encode()
+		bootstrap, err := pgstore.Open(ctx, bootstrapEndpoint.String())
+		if err != nil {
+			t.Fatalf("连接隔离测试库失败: %v", err)
+		}
+		// target 可能已带双引号（含连字符的 Schema 名由 LoadDSN 加引号），避免二次加引号
+		schemaIdent := target
+		if !strings.HasPrefix(schemaIdent, "\"") {
+			schemaIdent = strconv.Quote(schemaIdent)
+		}
+		if _, err := bootstrap.ExecContext(ctx, "CREATE SCHEMA IF NOT EXISTS "+schemaIdent); err != nil {
+			_ = bootstrap.Close()
+			t.Fatalf("创建测试 Schema 失败: %v", err)
+		}
+		_ = bootstrap.Close()
+	}
 	db, err := pgstore.Open(ctx, endpoint.String())
 	if err != nil {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { _ = db.Close() })
-	// 隔离库需要重建 search_path 指向的 Schema，保证 DDL 落在预期位置
-	if target := endpoint.Query().Get("search_path"); target != "" && target != "public" {
-		if _, err := db.ExecContext(ctx, "CREATE SCHEMA IF NOT EXISTS "+strconv.Quote(target)); err != nil {
-			t.Fatalf("创建测试 Schema 失败: %v", err)
-		}
-	}
 	ddl, err := schema.LoadFile("postgres", schema.WorkflowFile)
 	if err != nil {
 		t.Fatal(err)
@@ -287,13 +303,13 @@ func testNextActivityLifecycle(ctx context.Context, t *testing.T, store *Store) 
 	t.Helper()
 	repos := NewRepositories(store)
 	record := Row{
-		"id":                 "na-1",
-		"next_activity_id":   "act-approve",
-		"identity_id":        "user-1",
+		"id":                  "na-1",
+		"next_activity_id":    "act-approve",
+		"identity_id":         "user-1",
 		"process_instance_id": "pi-1",
-		"used":               0,
-		"version":            1,
-		"tenant_id":          "it-tenant",
+		"used":                0,
+		"version":             1,
+		"tenant_id":           "it-tenant",
 	}
 	if err := repos.NextActivities.InsertDual(ctx, record); err != nil {
 		t.Fatalf("双写失败: %v", err)

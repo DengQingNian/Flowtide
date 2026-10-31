@@ -173,6 +173,7 @@ func (f *rvFixture) rvComplete(taskID, operator string, vars map[string]any) {
 // ─── SyncForTask：person 直用 / org/role 展开 / 幂等 ───
 
 // TestReviewSyncPersonBinding person 绑定直用 owner_value，影子任务字段对齐任务与实例。
+// @param t 测试上下文
 func TestReviewSyncPersonBinding(t *testing.T) {
 	fx := newRVFixture(t)
 	fx.rvSeedBinding("apply", ActOwnerTypePerson, "carl")
@@ -207,6 +208,7 @@ func TestReviewSyncPersonBinding(t *testing.T) {
 }
 
 // TestReviewSyncIdempotent 同任务重复同步不产生重复影子任务（task_id + reviewer 幂等）。
+// @param t 测试上下文
 func TestReviewSyncIdempotent(t *testing.T) {
 	fx := newRVFixture(t)
 	fx.rvSeedBinding("apply", ActOwnerTypePerson, "carl")
@@ -231,6 +233,7 @@ func TestReviewSyncIdempotent(t *testing.T) {
 }
 
 // TestReviewSyncOrgAndRoleExpand org/role 绑定经身份服务展开为组成员。
+// @param t 测试上下文
 func TestReviewSyncOrgAndRoleExpand(t *testing.T) {
 	fx := newRVFixture(t)
 	fx.rvSeedBinding("apply", ActOwnerTypeOrg, "grpA")
@@ -255,6 +258,7 @@ func TestReviewSyncOrgAndRoleExpand(t *testing.T) {
 }
 
 // TestReviewSyncUnresolvedKeepsOriginal org/role 展开失败保留原值并置待解析。
+// @param t 测试上下文
 func TestReviewSyncUnresolvedKeepsOriginal(t *testing.T) {
 	fx := newRVFixture(t)
 	// noOrg 组不存在、dynRole 组存在但无成员，两种展开失败形态都保留原值
@@ -287,6 +291,7 @@ func TestReviewSyncUnresolvedKeepsOriginal(t *testing.T) {
 }
 
 // TestReviewSyncNoBindingAndParamErrors 节点无绑定为空列表；参数缺失/未知定义报错。
+// @param t 测试上下文
 func TestReviewSyncNoBindingAndParamErrors(t *testing.T) {
 	fx := newRVFixture(t)
 	_, task := fx.rvStart()
@@ -322,6 +327,7 @@ func TestReviewSyncNoBindingAndParamErrors(t *testing.T) {
 }
 
 // TestReviewSyncSameTaskMultipleNodes 同实例不同任务分别同步，互不串扰（幂等键含任务 Id）。
+// @param t 测试上下文
 func TestReviewSyncSameTaskMultipleNodes(t *testing.T) {
 	fx := newRVFixture(t)
 	fx.rvSeedBinding("apply", ActOwnerTypePerson, "carl")
@@ -353,6 +359,7 @@ func TestReviewSyncSameTaskMultipleNodes(t *testing.T) {
 // ─── Complete：办结回写 ───
 
 // TestReviewCompleteWriteBack 办结回写 review_time/opinion/status/updater。
+// @param t 测试上下文
 func TestReviewCompleteWriteBack(t *testing.T) {
 	fx := newRVFixture(t)
 	fx.rvSeedBinding("apply", ActOwnerTypePerson, "carl")
@@ -386,6 +393,7 @@ func TestReviewCompleteWriteBack(t *testing.T) {
 }
 
 // TestReviewCompleteErrors 空参数与未知影子任务报错。
+// @param t 测试上下文
 func TestReviewCompleteErrors(t *testing.T) {
 	fx := newRVFixture(t)
 	if _, err := fx.svc.Complete(context.Background(), "", "意见", "op"); err == nil {
@@ -404,6 +412,7 @@ func TestReviewCompleteErrors(t *testing.T) {
 // @param tenantID 租户
 // @param status 状态
 // @param startAt 生成时间
+// @param fx 参数 fx
 func rvSeedReview(fx *rvFixture, id, reviewer, tenantID string, status int, startAt time.Time) {
 	fx.t.Helper()
 	rt := &ReviewTask{
@@ -421,6 +430,7 @@ func rvSeedReview(fx *rvFixture, id, reviewer, tenantID string, status int, star
 }
 
 // TestReviewListByReviewerPaging 分页与租户隔离：start/size 切页、跨租户互不可见。
+// @param t 测试上下文
 func TestReviewListByReviewerPaging(t *testing.T) {
 	fx := newRVFixture(t)
 	base := time.Date(2026, 10, 31, 10, 0, 0, 0, time.UTC)
@@ -469,6 +479,7 @@ func TestReviewListByReviewerPaging(t *testing.T) {
 }
 
 // TestReviewCountUnread 未读计数：仅待审阅计入，办结后递减。
+// @param t 测试上下文
 func TestReviewCountUnread(t *testing.T) {
 	fx := newRVFixture(t)
 	base := time.Date(2026, 10, 31, 10, 0, 0, 0, time.UTC)
@@ -511,6 +522,7 @@ func TestReviewCountUnread(t *testing.T) {
 }
 
 // TestReviewListByInstanceAndDelete 实例列表按生成时间升序，删除按实例清理。
+// @param t 测试上下文
 func TestReviewListByInstanceAndDelete(t *testing.T) {
 	fx := newRVFixture(t)
 	base := time.Date(2026, 10, 31, 10, 0, 0, 0, time.UTC)
@@ -547,6 +559,7 @@ func TestReviewListByInstanceAndDelete(t *testing.T) {
 // ─── 内存存储语义：克隆 / 主键查询 / Update 缺行静默 ───
 
 // TestReviewMemStoreClone 内存存储克隆语义：返回副本修改不影响内部状态。
+// @param t 测试上下文
 func TestReviewMemStoreClone(t *testing.T) {
 	fx := newRVFixture(t)
 	base := time.Date(2026, 10, 31, 10, 0, 0, 0, time.UTC)
@@ -581,6 +594,7 @@ func TestReviewMemStoreClone(t *testing.T) {
 }
 
 // TestReviewMemStoreClockFallback 空时钟回退真实时钟（构造路径覆盖）。
+// @param t 测试上下文
 func TestReviewMemStoreClockFallback(t *testing.T) {
 	store := NewMemReviewTaskStore(nil)
 	if store.Now().IsZero() {
@@ -591,6 +605,7 @@ func TestReviewMemStoreClockFallback(t *testing.T) {
 // ─── ActExtendStore：绑定存取 ───
 
 // TestReviewActExtendStore 绑定保存/按节点查询/按定义查询/删除。
+// @param t 测试上下文
 func TestReviewActExtendStore(t *testing.T) {
 	fx := newRVFixture(t)
 	ctx := context.Background()
@@ -631,6 +646,7 @@ func TestReviewActExtendStore(t *testing.T) {
 // ─── 端到端：发起 → 首任务同步 → 影子任务生成 → 办结回写 ───
 
 // TestReviewEndToEnd 发起→首任务 SyncForTask→影子任务生成→办结回写 全链路。
+// @param t 测试上下文
 func TestReviewEndToEnd(t *testing.T) {
 	fx := newRVFixture(t)
 	fx.rvSeedBinding("apply", ActOwnerTypePerson, "carl")
@@ -774,6 +790,7 @@ func (f *rvFailingActExtendStore) GetByDefinitionKeyAndActivity(ctx context.Cont
 }
 
 // TestReviewServiceErrorPaths 服务层存储错误传播：绑定查询/实例列表/插入/主键查询/分页。
+// @param t 测试上下文
 func TestReviewServiceErrorPaths(t *testing.T) {
 	fx := newRVFixture(t)
 	fx.rvSeedBinding("apply", ActOwnerTypePerson, "carl")
@@ -868,6 +885,7 @@ func (e rvGoneInstanceEngine) HistoryService() api.HistoryService {
 }
 
 // TestReviewSyncHistoricFallback 运行态查不到实例（SQL 引擎已结束形态）时回退历史实例同步。
+// @param t 测试上下文
 func TestReviewSyncHistoricFallback(t *testing.T) {
 	fx := newRVFixture(t)
 	fx.rvSeedBinding("apply", ActOwnerTypePerson, "carl")
@@ -888,6 +906,7 @@ func TestReviewSyncHistoricFallback(t *testing.T) {
 }
 
 // TestReviewSyncInstanceGone 运行态与历史均查不到实例时报错（双查失败）。
+// @param t 测试上下文
 func TestReviewSyncInstanceGone(t *testing.T) {
 	fx := newRVFixture(t)
 	fx.rvSeedBinding("apply", ActOwnerTypePerson, "carl")
@@ -899,6 +918,7 @@ func TestReviewSyncInstanceGone(t *testing.T) {
 }
 
 // TestReviewServiceNilClock 空时钟回退真实时钟（构造路径覆盖）。
+// @param t 测试上下文
 func TestReviewServiceNilClock(t *testing.T) {
 	svc := NewReviewTaskService(nil, NewMemReviewTaskStore(nil), NewMemActExtendStore(), nil)
 	if svc == nil || svc.newID == nil {
@@ -932,6 +952,7 @@ func (e rvFailIdentityEngine) IdentityService() api.IdentityService {
 }
 
 // TestReviewSyncIdentityError org/role 展开遇身份库故障保留原值置待解析。
+// @param t 测试上下文
 func TestReviewSyncIdentityError(t *testing.T) {
 	fx := newRVFixture(t)
 	fx.rvSeedBinding("apply", ActOwnerTypeOrg, "grpA")
@@ -972,6 +993,7 @@ func (e rvEmptyIdentityEngine) IdentityService() api.IdentityService {
 }
 
 // TestReviewSyncIdentityEmptyMembers 展开成员全部无 Id 时按展开失败处理。
+// @param t 测试上下文
 func TestReviewSyncIdentityEmptyMembers(t *testing.T) {
 	fx := newRVFixture(t)
 	fx.rvSeedBinding("apply", ActOwnerTypeRole, "grpB")
@@ -987,6 +1009,7 @@ func TestReviewSyncIdentityEmptyMembers(t *testing.T) {
 }
 
 // TestReviewCompleteUpdateError 办结回写存储失败传播。
+// @param t 测试上下文
 func TestReviewCompleteUpdateError(t *testing.T) {
 	fx := newRVFixture(t)
 	fx.rvSeedBinding("apply", ActOwnerTypePerson, "carl")
@@ -1003,6 +1026,7 @@ func TestReviewCompleteUpdateError(t *testing.T) {
 }
 
 // TestReviewMemStoreUpdateDefaults 内存回写缺省：update_time 零值取存储时钟。
+// @param t 测试上下文
 func TestReviewMemStoreUpdateDefaults(t *testing.T) {
 	fx := newRVFixture(t)
 	base := time.Date(2026, 10, 31, 10, 0, 0, 0, time.UTC)

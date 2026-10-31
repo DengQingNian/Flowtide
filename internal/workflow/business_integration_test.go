@@ -131,10 +131,12 @@ func TestIntegrationBusinessSystemMySQL(t *testing.T) {
 	if err != nil || after.SystemName != "OA 二期" || after.Updater != "editor" || after.TaskCallAddr != "http://oa/task" {
 		t.Fatalf("更新结果不符: %+v %v", after, err)
 	}
-	// 回调 client 与 SQL 注册表联跑（空地址静默跳过，真实网络零请求）
+	// 回调 client 与 SQL 注册表联跑：未注册的租户静默跳过（真实网络零请求）。
+	// 已注册的 oa 指向不可达地址，发起真实回调会因 DNS 解析失败而重试 4 次，
+	// 与"真实网络零请求"的联跑意图不符，此处只验证查无注册的跳过语义。
 	client := NewCallbackClient(adapter)
-	if err := client.SendTaskCallback(ctx, &TaskCallback{TenantID: "oa"}); err != nil {
-		t.Errorf("注册表联跑回调失败: %v", err)
+	if err := client.SendTaskCallback(ctx, &TaskCallback{TenantID: "unregistered-tenant"}); err != nil {
+		t.Errorf("未注册租户的回调应静默跳过: %v", err)
 	}
 	// 列表与注销
 	all, err := svc.List(ctx)

@@ -54,11 +54,17 @@ func LoadDSN(path string) (string, error) {
 	if schemaName == "" {
 		schemaName = "public"
 	}
+	if !regexp.MustCompile(`^[a-zA-Z_][a-zA-Z_0-9-]*$`).MatchString(schemaName) {
+		return "", errors.New("PostgreSQL Schema 必须以字母或下划线开头，且只含字母、数字、下划线与连字符")
+	}
+	// search_path 中带连字符等特殊字符的 Schema 名必须加双引号，否则 libpq 解析为标识符时报错。
+	// 仅含合法标识符字符时不加引号，保持与既有部署一致的连接串形态。
+	searchPath := schemaName
 	if !regexp.MustCompile(`^[a-zA-Z_][a-zA-Z_0-9]*$`).MatchString(schemaName) {
-		return "", errors.New("PostgreSQL Schema 必须是单个合法标识符")
+		searchPath = `"` + schemaName + `"`
 	}
 	endpoint := url.URL{Scheme: "postgres", Host: net.JoinHostPort(host, strconv.Itoa(port)), Path: "/" + database, User: url.UserPassword(user, get("db_pg_pwd"))}
-	query := url.Values{"search_path": {schemaName}, "connect_timeout": {"5"}}
+	query := url.Values{"search_path": {searchPath}, "connect_timeout": {"5"}}
 	if mode := get("db_pg_sslmode"); mode != "" {
 		query.Set("sslmode", mode)
 	}

@@ -78,6 +78,7 @@ func (h *BusinessCallbackHook) Warmup(ctx context.Context, definitionID string) 
 // WarmupAll 预热全部已部署定义的节点元数据缓存（启动期调用，锁外）。
 // @param engine 引擎门面
 // @return 预热错误
+// @param ctx 参数 ctx
 func (h *BusinessCallbackHook) WarmupAll(ctx context.Context, engine api.Engine) error {
 	if engine == nil {
 		return nil

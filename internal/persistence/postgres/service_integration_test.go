@@ -26,7 +26,7 @@ func postgresServiceDatabase(t *testing.T) (context.Context, *sql.DB) {
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 	t.Cleanup(cancel)
-	endpoint, err := url.Parse(os.Getenv("FLOWABLE_POSTGRES_DSN"))
+	endpoint, err := url.Parse(integrationDSN(t))
 	if err != nil || endpoint.Host == "" {
 		t.Fatal("需要 PostgreSQL 验收 URI")
 	}
@@ -47,6 +47,8 @@ func postgresServiceDatabase(t *testing.T) (context.Context, *sql.DB) {
 		}
 	})
 	endpoint.Path = "/" + name
+	// 隔离库中 search_path 指向的 Schema 尚不存在，需先建 Schema 再建业务连接
+	prepareIsolatedDatabase(ctx, t, endpoint)
 	db, err := pgstore.Open(ctx, endpoint.String())
 	if err != nil {
 		t.Fatal(err)

@@ -21,6 +21,7 @@ type fakeGroupMembers struct {
 // @param groupID 组 ID
 // @return 用户列表
 // @return 错误
+// @param _ 接口占位参数（实现不使用）
 func (f *fakeGroupMembers) ListMembers(_ context.Context, groupID string) ([]api.User, error) {
 	// 注入错误优先
 	if err, ok := f.err[groupID]; ok {

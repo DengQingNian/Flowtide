@@ -489,6 +489,7 @@ type fakeMemberPort struct {
 // @param activityID 活动 ID
 // @param assignee 新成员
 // @return 错误
+// @param _ 接口占位参数（实现不使用）
 func (f *fakeMemberPort) AddMember(_ context.Context, processInstanceID, activityID, assignee string) error {
 	if f.err != nil {
 		return f.err
@@ -502,6 +503,7 @@ func (f *fakeMemberPort) AddMember(_ context.Context, processInstanceID, activit
 // @param executionID 执行 ID
 // @param completed 是否视作完成
 // @return 错误
+// @param _ 接口占位参数（实现不使用）
 func (f *fakeMemberPort) RemoveMember(_ context.Context, executionID string, completed bool) error {
 	if f.err != nil {
 		return f.err

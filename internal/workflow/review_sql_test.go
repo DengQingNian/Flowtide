@@ -47,7 +47,7 @@ func rvNewSQLFixture(t *testing.T) (*SQLReviewStores, sqlmock.Sqlmock) {
 	return NewSQLReviewStoresWithDB(store, db), mock
 }
 
-// TestSQLReviewAdapterSkeleton 验证审阅域适配器骨架：聚合完整、裸 SQL 缺连接池报错、编译期断言成立。
+// TestReviewSQLAdapterSkeleton 验证审阅域适配器骨架：聚合完整、裸 SQL 缺连接池报错、编译期断言成立。
 // @param t 测试上下文
 func TestReviewSQLAdapterSkeleton(t *testing.T) {
 	// 无 DB 构造（编译期装配路径）
@@ -78,7 +78,7 @@ func TestReviewSQLAdapterSkeleton(t *testing.T) {
 	}
 }
 
-// TestSQLReviewRowRoundtrip 验证审阅影子任务实体的行往返一致性（含可空时间列与审计列）。
+// TestReviewSQLRowRoundtrip 验证审阅影子任务实体的行往返一致性（含可空时间列与审计列）。
 // @param t 测试上下文
 func TestReviewSQLRowRoundtrip(t *testing.T) {
 	stamped := time.Date(2026, 10, 31, 10, 0, 0, 0, time.Local)
@@ -144,7 +144,7 @@ func TestReviewSQLRowRoundtrip(t *testing.T) {
 	}
 }
 
-// TestSQLActExtendRowRoundtrip 验证审阅人绑定实体的行往返一致性。
+// TestReviewSQLActExtendRowRoundtrip 验证审阅人绑定实体的行往返一致性。
 // @param t 测试上下文
 func TestReviewSQLActExtendRowRoundtrip(t *testing.T) {
 	stamped := time.Date(2026, 10, 31, 10, 0, 0, 0, time.Local)

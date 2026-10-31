@@ -322,7 +322,7 @@ func TestRemindScanTick(t *testing.T) {
 	reminds := NewMemRemindStore(fx.fakeClock)
 	targets := NewMemRemindTargetStore(fx.fakeClock)
 	if _, err := NewRemindService(reminds, targets, scheduler.todoSource, rules, nil, nil, nil, nil, fx.fakeClock).Add(ctx, RemindSaveRequest{
-		Remind: &Remind{PID: "model-1", StepIDs: "apply", TenantID: "dev"},
+		Remind:  &Remind{PID: "model-1", StepIDs: "apply", TenantID: "dev"},
 		Targets: []*RemindTarget{{ExecutorID: RemindExecutorCurrentHandler, Type: RemindTypeAhead, Ahead: 5, TimeUnit: "分钟"}},
 	}); err != nil {
 		t.Fatalf("催办配置失败: %v", err)
