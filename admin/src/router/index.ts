@@ -43,6 +43,16 @@ export const routes: RouteRecordRaw[] = [
   { path: '/identity/groups', name: 'groups', component: () => import('@/pages/identity/GroupsPage.vue'), meta: { title: '组', group: '身份' } },
   { path: '/identity/roles', name: 'roles', component: () => import('@/pages/identity/RolesPage.vue'), meta: { title: '角色', group: '身份' } },
   { path: '/system/metrics', name: 'metrics', component: () => import('@/pages/system/MetricsPage.vue'), meta: { title: '指标', group: '系统' } },
+  // ── 工作流（二次封装门面，006 系列九大页面）──
+  { path: '/workflow/category', name: 'workflow-category', component: () => import('@/pages/workflow/CategoryPage.vue'), meta: { title: '流程分类', group: '工作流' } },
+  { path: '/workflow/model', name: 'workflow-model', component: () => import('@/pages/workflow/ModelPage.vue'), meta: { title: '流程模型', group: '工作流' } },
+  { path: '/workflow/template', name: 'workflow-template', component: () => import('@/pages/workflow/TemplateConfigPage.vue'), meta: { title: '流程配置', group: '工作流' } },
+  { path: '/workflow/message/todo', name: 'workflow-todo', component: () => import('@/pages/workflow/TodoPage.vue'), meta: { title: '待办任务', group: '工作流' } },
+  { path: '/workflow/message/done', name: 'workflow-done', component: () => import('@/pages/workflow/DonePage.vue'), meta: { title: '已办任务', group: '工作流' } },
+  { path: '/workflow/instance', name: 'workflow-instance', component: () => import('@/pages/workflow/InstancePage.vue'), meta: { title: '流程实例', group: '工作流' } },
+  { path: '/workflow/entrust', name: 'workflow-entrust', component: () => import('@/pages/workflow/EntrustPage.vue'), meta: { title: '委托配置', group: '工作流' } },
+  { path: '/workflow/remind', name: 'workflow-remind', component: () => import('@/pages/workflow/RemindPage.vue'), meta: { title: '催办配置', group: '工作流' } },
+  { path: '/workflow/exception', name: 'workflow-exception', component: () => import('@/pages/workflow/ExceptionPage.vue'), meta: { title: '流程异常', group: '工作流' } },
   { path: '/system/about', name: 'about', component: () => import('@/pages/system/AboutPage.vue'), meta: { title: '关于', group: '系统' } },
   { path: '/:pathMatch(.*)*', name: 'not-found', component: () => import('@/pages/NotFoundPage.vue'), meta: { title: '页面不存在' } },
 ]

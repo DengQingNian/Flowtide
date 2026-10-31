@@ -16,6 +16,8 @@ async function createRouterForShell() {
       { path: '/dashboard', component: Page, meta: { title: '仪表盘', group: '概览' } },
       { path: '/system/about', component: Page, meta: { title: '关于', group: '系统' } },
       { path: '/system/metrics', component: Page, meta: { title: '指标', group: '系统' } },
+      // 兜底路由：侧栏新增的工作流链接在此测试路由中不产生 No match 告警
+      { path: '/:pathMatch(.*)*', component: Page },
     ],
   })
   await router.push('/dashboard')

@@ -5,16 +5,24 @@ import { useRoute } from 'vue-router'
 import type { Component } from 'vue'
 import {
   Activity,
+  BellRing,
   Boxes,
+  CircleCheck,
+  CirclePlay,
   Database,
   FileClock,
+  FolderTree,
   GitBranch,
   History,
+  Inbox,
   LayoutDashboard,
   ListChecks,
   Package,
   PlayCircle,
   Settings,
+  SlidersHorizontal,
+  TriangleAlert,
+  UserCheck,
   Users,
   Wrench,
 } from '@lucide/vue'
@@ -41,6 +49,20 @@ const logoUrl = `${import.meta.env.BASE_URL}favicon.svg`
 /** 导航分组定义 */
 const groups: NavGroup[] = [
   { label: '概览', items: [{ label: '仪表盘', to: '/dashboard', icon: LayoutDashboard }] },
+  {
+    label: '工作流',
+    items: [
+      { label: '流程分类', to: '/workflow/category', icon: FolderTree },
+      { label: '流程模型', to: '/workflow/model', icon: Boxes },
+      { label: '流程配置', to: '/workflow/template', icon: SlidersHorizontal },
+      { label: '待办任务', to: '/workflow/message/todo', icon: Inbox },
+      { label: '已办任务', to: '/workflow/message/done', icon: CircleCheck },
+      { label: '流程实例', to: '/workflow/instance', icon: CirclePlay },
+      { label: '委托配置', to: '/workflow/entrust', icon: UserCheck },
+      { label: '催办配置', to: '/workflow/remind', icon: BellRing },
+      { label: '流程异常', to: '/workflow/exception', icon: TriangleAlert },
+    ],
+  },
   {
     label: '仓库',
     items: [
