@@ -45,7 +45,7 @@ const dcAverageJavaClass = `<?xml version="1.0" encoding="UTF-8"?>
     <userTask id="t1" name="Java类名会签" flowable:assignee="${signer}" weightType="average"
               executorList='[{"identityId":"u1"}]'>
       <extensionElements>
-        <flowable:executionListener event="start" class="com.example.base.workflow.listener.CountersignCollectionConfigExecutionListener"/>
+        <flowable:executionListener event="start" class="example.workflow.listener.CountersignCollectionConfigExecutionListener"/>
       </extensionElements>
       <multiInstanceLoopCharacteristics isSequential="false" flowable:collection="executorList" flowable:elementVariable="signer"/>
     </userTask>

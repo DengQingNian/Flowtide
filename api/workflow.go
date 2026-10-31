@@ -1,6 +1,6 @@
 // Package api — workflow.go 定义 workflow 二次封装的门面接口与线上协议类型。
 //
-// 本文件对位 Java 侧 example-base-workflow-api 模块：StartProcessInstanceVo /
+// 本文件对位 Java 侧工作流业务 API：StartProcessInstanceVo /
 // CompleteTaskVo / NextActivityRequest / R 等协议类型与 Dubbo 门面
 // ProcessesService 的方法分组，全部为嵌入业务系统直接依赖的公共契约。
 // 字段命名与 005 接口清单 §4、006 流程变量与意见类型约定保持逐字兼容。

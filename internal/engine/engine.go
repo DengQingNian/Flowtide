@@ -28,6 +28,7 @@ const (
 
 // Config 是引擎配置。
 type Config struct {
+	StartupContext context.Context         // 仅用于初始化和恢复的上下文；为空使用 Background
 	HistoryLevel   string                  // 历史级别，默认 audit
 	Clock          clock.Clock             // 时钟，默认真实时钟
 	IDs            idgen.Generator         // ID 生成器，默认 UUIDv7
@@ -130,6 +131,14 @@ func (cc *commandContext) nextTransactionOrder() int {
 // @return 引擎
 // @return 创建错误
 func New(cfg Config) (*Engine, error) {
+	startupCtx := cfg.StartupContext
+	if startupCtx == nil {
+		startupCtx = context.Background()
+	}
+	if err := startupCtx.Err(); err != nil {
+		return nil, err
+	}
+	cfg.StartupContext = nil
 	// 快照与行仓储必须只有一个权威来源，避免任一介质失败后形成分叉。
 	if cfg.RowRepository != nil && (cfg.StateStore != nil || cfg.StatePath != "") {
 		return nil, api.NewError("ENGINE-0916", "快照存储与行仓储不能同时配置", api.ErrBadRequest)
@@ -172,19 +181,19 @@ func New(cfg Config) (*Engine, error) {
 	engine.state.RecordSequenceFlowHistory = cfg.RecordSequenceFlowHistory
 	if cfg.LoadRows && cfg.RowRepository != nil {
 		engine.rowSource = true
-		rows, err := loadRowsForTenant(cfg, context.Background())
+		rows, err := loadRowsForTenant(cfg, startupCtx)
 		if err != nil {
 			return nil, err
 		}
 		engine.lastRows = copyValue(rows).([]flowablerow.Row)
 		if len(rows) > 0 {
 			engine.suppressPersist = true
-			if err := engine.RestoreRows(context.Background(), rows); err != nil {
+			if err := engine.RestoreRows(startupCtx, rows); err != nil {
 				return nil, err
 			}
 			engine.suppressPersist = false
 		}
-	} else if err := engine.loadState(context.Background()); err != nil {
+	} else if err := engine.loadState(startupCtx); err != nil {
 		return nil, err
 	}
 	return engine, nil

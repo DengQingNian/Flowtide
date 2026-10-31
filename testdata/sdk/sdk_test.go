@@ -25,3 +25,21 @@ func TestPublicSDK(t *testing.T) {
 		t.Fatalf("公共 SDK 服务调用失败: %v", err)
 	}
 }
+
+// TestPublicEmbeddedSDK 验证独立模块能够使用完整 workflow 门面与 HTTP 入口。
+// @param t 测试上下文
+// @return 无
+func TestPublicEmbeddedSDK(t *testing.T) {
+	app, err := flowtide.NewEmbedded(context.Background(), flowtide.EmbeddedConfig{InMemory: true, TenantID: "oa"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer app.Close(context.Background())
+	if app.Engine() == nil || app.Workflow() == nil || app.Handler() == nil {
+		t.Fatal("完整公共 SDK 入口缺失")
+	}
+	result, err := app.Workflow().IsProcessDeployed(flowtide.WithExecutionContext(context.Background(), "oa", "101"), "oa", "missing")
+	if err != nil || !result.Success {
+		t.Fatalf("门面调用失败：%+v %v", result, err)
+	}
+}

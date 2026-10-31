@@ -1,4 +1,4 @@
-// Package workflow 提供"复杂流程二次封装"能力（对标 example-base-workflow）：
+// Package workflow 提供复杂流程的业务封装能力：
 // 发起/办结/退回/撤回/直送/加签/会签/委托/催办/调度/推演等门面服务。
 //
 // 依赖方向：本包仅依赖 api.Engine（七服务）+ api hooks + internal/persistence/workflow，

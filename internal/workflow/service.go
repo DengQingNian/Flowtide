@@ -139,6 +139,30 @@ func NewWorkflowService(engine api.Engine, options ...Option) *Service {
 	return &Service{engine: engine, opts: opts, comp: comp}
 }
 
+// NewWorkflowServiceChecked 创建不允许 SQL 装配失败后回退内存的门面，供业务系统嵌入。
+// @param engine 执行内核
+// @param options 门面配置
+// @return 已装配服务
+// @return SQL 组件装配错误
+func NewWorkflowServiceChecked(engine api.Engine, options ...Option) (*Service, error) {
+	opts := Options{}
+	for _, option := range options {
+		option(&opts)
+	}
+	if opts.Clock == nil {
+		opts.Clock = clock.Real{}
+	}
+	// SQL 被显式选中后必须完整装配，避免生产数据落入临时内存。
+	if opts.sqlStore != nil {
+		comp, err := assembleSQLComponents(engine, opts.sqlStore, opts.sqlDB, opts, opts.Clock)
+		if err != nil {
+			return nil, err
+		}
+		return &Service{engine: engine, opts: opts, comp: comp}, nil
+	}
+	return &Service{engine: engine, opts: opts, comp: assembleMemoryComponents(engine, opts, opts.Clock)}, nil
+}
+
 // Engine 返回持有的引擎门面。
 // @return 引擎门面
 func (s *Service) Engine() api.Engine {
