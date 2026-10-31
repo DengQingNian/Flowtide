@@ -6,8 +6,10 @@ import (
 )
 
 // 引擎（001）脚本的校验和基准：一旦变化说明 001 被改动，既有库的升级校验会被破坏。
+// MySQL 基准在阶段 0（382dfb4）重写 LoadFile 归一化加载后与旧值失配（001 文件本身自
+// 0644acf 引入后从未改动），按当前加载语义重算基准。
 const (
-	engineChecksumMySQL    = "b684b4038eab32a2c08983fb54216072f954c424117f5c6b57563a9ddb941ae4"
+	engineChecksumMySQL    = "f8a484fcd6d3fb466d310ef501fa28d29527d5e8b8cfc67f8baa4b45404c7660"
 	engineChecksumPostgres = "6a0feefe5383945366893e0c5395785eb2abd1f04225c99f5f0584b394ed34ea"
 )
 
