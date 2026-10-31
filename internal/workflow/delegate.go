@@ -64,30 +64,30 @@ type DelegateConsigner struct {
 
 // DelegateConsignObj 是 workflow_task_consign_obj（委托对象）的领域实体。
 type DelegateConsignObj struct {
-	ID        string // 行主键（空时由存储生成）
+	ID         string // 行主键（空时由存储生成）
 	DelegateID string // 委托规则 Id（主表外键）
-	OwnerType string // 对象类型（=主表委托范围：SingleProject/SingleFlowCategory…）
-	OwnerID   string // 对象 Id（项目 Id 或 workflow_model.id）
-	OwnerName string // 对象名称
+	OwnerType  string // 对象类型（=主表委托范围：SingleProject/SingleFlowCategory…）
+	OwnerID    string // 对象 Id（项目 Id 或 workflow_model.id）
+	OwnerName  string // 对象名称
 }
 
 // DelegateRule 是 workflow_task_delegate（委托规则主表）的领域实体，
 // 级联携带被委托人与委托对象（三表模型）。
 type DelegateRule struct {
-	BaseColumns          // 公共审计列
-	ConsignType string   // 委托范围（ConsignType* 常量）
-	OwnerID     string   // 委托人身份 Id
-	OwnerName   string   // 委托人姓名
-	Source      string   // 来源系统 Id
-	SourceCode  string   // 来源系统代号（= 租户，必填）
-	SourceName  string   // 来源系统名称
-	Type        string   // 类型（协议保留列）
-	Condition   string   // 条件串（保留字列，"@ProjId='...'" / "@FlowCategory='...'"）
-	VaildFrom   time.Time // 生效时间（保留 Java 拼写）
-	VaildTo     time.Time // 失效时间（保留 Java 拼写）
-	Enable      int      // 启用：0 停用、1 启用
-	Retire      int      // 退休：0 正常、1 退休
-	Remark      string   // 备注
+	BaseColumns                      // 公共审计列
+	ConsignType string               // 委托范围（ConsignType* 常量）
+	OwnerID     string               // 委托人身份 Id
+	OwnerName   string               // 委托人姓名
+	Source      string               // 来源系统 Id
+	SourceCode  string               // 来源系统代号（= 租户，必填）
+	SourceName  string               // 来源系统名称
+	Type        string               // 类型（协议保留列）
+	Condition   string               // 条件串（保留字列，"@ProjId='...'" / "@FlowCategory='...'"）
+	VaildFrom   time.Time            // 生效时间（保留 Java 拼写）
+	VaildTo     time.Time            // 失效时间（保留 Java 拼写）
+	Enable      int                  // 启用：0 停用、1 启用
+	Retire      int                  // 退休：0 正常、1 退休
+	Remark      string               // 备注
 	Consigners  []DelegateConsigner  // 被委托人（级联）
 	ConsignObjs []DelegateConsignObj // 委托对象（级联）
 }
@@ -95,9 +95,9 @@ type DelegateRule struct {
 // DelegateTaskMirror 是 workflow_delegate_task（委托镜像待办）的领域实体：
 // 待办整行复制 + 被委托人信息（docs 003 §3.8）。
 type DelegateTaskMirror struct {
-	MessageExtend           // 与待办扩展同构（整行复制）
-	EntrustID    string     // 被委托人 Id（多值逗号串）
-	EntrustName  string     // 被委托人姓名（多值逗号串）
+	MessageExtend        // 与待办扩展同构（整行复制）
+	EntrustID     string // 被委托人 Id（多值逗号串）
+	EntrustName   string // 被委托人姓名（多值逗号串）
 }
 
 // ─── 存储端口 ─────────────────────────────────────────────
@@ -186,10 +186,10 @@ type CategoryLookup interface {
 
 // MemTaskDelegateStore 是委托规则端口的内存实现（线程安全 map + 行克隆存取）。
 type MemTaskDelegateStore struct {
-	mu    sync.RWMutex                // 读写锁
-	rules map[string]*DelegateRule    // id → 规则
-	clock clock.Clock                 // 时间源（审计列填充）
-	newID func() string               // ID 生成函数
+	mu    sync.RWMutex             // 读写锁
+	rules map[string]*DelegateRule // id → 规则
+	clock clock.Clock              // 时间源（审计列填充）
+	newID func() string            // ID 生成函数
 }
 
 // NewMemTaskDelegateStore 创建内存委托规则存储。
@@ -358,10 +358,10 @@ func sortDelegateRules(rules []*DelegateRule) {
 
 // MemDelegateTaskMirrorStore 是委托镜像待办端口的内存实现。
 type MemDelegateTaskMirrorStore struct {
-	mu     sync.RWMutex                 // 读写锁
+	mu     sync.RWMutex                   // 读写锁
 	mirror map[string]*DelegateTaskMirror // id → 镜像行
-	clock  clock.Clock                  // 时间源
-	newID  func() string                // ID 生成函数
+	clock  clock.Clock                    // 时间源
+	newID  func() string                  // ID 生成函数
 }
 
 // NewMemDelegateTaskMirrorStore 创建内存委托镜像存储。
@@ -532,9 +532,9 @@ func (s *SQLTaskDelegateStore) saveChildren(ctx context.Context, rule *DelegateR
 	}
 	for _, consigner := range rule.Consigners {
 		row := pwf.Row{
-			"id":            consigner.ID,
-			"delegate_id":   rule.ID,
-			"consigner_id":  consigner.ConsignerID,
+			"id":             consigner.ID,
+			"delegate_id":    rule.ID,
+			"consigner_id":   consigner.ConsignerID,
 			"consigner_name": consigner.ConsignerName,
 		}
 		if err := s.repos.TaskConsigners.Insert(ctx, row); err != nil {
@@ -600,11 +600,11 @@ func (s *SQLTaskDelegateStore) loadChildren(ctx context.Context, rule *DelegateR
 	}
 	for _, row := range objRows {
 		rule.ConsignObjs = append(rule.ConsignObjs, DelegateConsignObj{
-			ID:        rowString(row, "id"),
+			ID:         rowString(row, "id"),
 			DelegateID: rowString(row, "delegate_id"),
-			OwnerType: rowString(row, "owner_type"),
-			OwnerID:   rowString(row, "owner_id"),
-			OwnerName: rowString(row, "owner_name"),
+			OwnerType:  rowString(row, "owner_type"),
+			OwnerID:    rowString(row, "owner_id"),
+			OwnerName:  rowString(row, "owner_name"),
 		})
 	}
 	return nil

@@ -16,7 +16,7 @@ import (
 
 // fakeRuleProvider 是步骤规则提供方桩（可注入催办时限与自动办结规则）。
 type fakeRuleProvider struct {
-	limits   map[string]float64         // 步骤代号 → 催办时限（分钟）
+	limits   map[string]float64          // 步骤代号 → 催办时限（分钟）
 	autoRule map[string]AutoCompleteRule // 步骤代号 → 自动办结规则
 }
 
@@ -379,7 +379,7 @@ func TestScanDueAheadBoundaries(t *testing.T) {
 	_ = seedTodo(t, store, "task-1", "step-1", "carl")
 	// 预警型：提前量 10 分钟；接收=08:00，到期=09:00；08:50 恰等命中
 	remind, err := svc.Add(ctx, RemindSaveRequest{
-		Remind: &Remind{PID: "model-1", StepIDs: "step-1", EnablePre: 1, TenantID: "dev"},
+		Remind:  &Remind{PID: "model-1", StepIDs: "step-1", EnablePre: 1, TenantID: "dev"},
 		Targets: []*RemindTarget{{ExecutorID: RemindExecutorCurrentHandler, Type: RemindTypeAhead, Ahead: 10, TimeUnit: "分钟"}},
 	})
 	if err != nil {
@@ -440,7 +440,7 @@ func TestScanDueAheadByPlanTime(t *testing.T) {
 		t.Fatalf("更新计划时间失败: %v", err)
 	}
 	remind, err := svc.Add(ctx, RemindSaveRequest{
-		Remind: &Remind{PID: "model-1", StepIDs: "step-1", TenantID: "dev"},
+		Remind:  &Remind{PID: "model-1", StepIDs: "step-1", TenantID: "dev"},
 		Targets: []*RemindTarget{{ExecutorID: RemindExecutorCurrentHandler, Type: RemindTypeAhead, Ahead: 10, TimeUnit: "分钟", ByPlanCompleteTime: 1}},
 	})
 	if err != nil {
@@ -479,7 +479,7 @@ func TestScanDueDelayBoundaries(t *testing.T) {
 	todo := seedTodo(t, store, "task-delay", "step-1", "carl")
 	// 延时型：延迟量 10 分钟
 	remind, err := svc.Add(ctx, RemindSaveRequest{
-		Remind: &Remind{PID: "model-1", StepIDs: "step-1", EnablePost: 1, TenantID: "dev"},
+		Remind:  &Remind{PID: "model-1", StepIDs: "step-1", EnablePost: 1, TenantID: "dev"},
 		Targets: []*RemindTarget{{ExecutorID: RemindExecutorCurrentHandler, Type: RemindTypeDelay, Delay: 10, TimeUnit: "分钟"}},
 	})
 	if err != nil {
@@ -519,7 +519,7 @@ func TestScanDueDelayBoundaries(t *testing.T) {
 		t.Fatalf("更新计划时间失败: %v", err)
 	}
 	remindTarget, err := svc.Add(ctx, RemindSaveRequest{
-		Remind: &Remind{PID: "model-1", StepIDs: "step-1", TenantID: "dev"},
+		Remind:  &Remind{PID: "model-1", StepIDs: "step-1", TenantID: "dev"},
 		Targets: []*RemindTarget{{ExecutorID: RemindExecutorCurrentHandler, Type: RemindTypeDelay, Delay: 10, TimeUnit: "分钟", ByPlanCompleteTime: 1}},
 	})
 	if err != nil {
@@ -641,7 +641,7 @@ func TestDeliver(t *testing.T) {
 	svc, reminds, targets, _, _, notifier, _ := newRemindFixture(t)
 	ctx := context.Background()
 	remind, err := svc.Add(ctx, RemindSaveRequest{
-		Remind: &Remind{PID: "model-1", StepIDs: "step-1", TenantID: "dev"},
+		Remind:  &Remind{PID: "model-1", StepIDs: "step-1", TenantID: "dev"},
 		Targets: []*RemindTarget{{ExecutorID: "role-1", TargetType: RemindTargetTypeRole, Type: RemindTypeAhead, Ahead: 5, TimeUnit: "分钟", Retry: 1, RetryTimes: 2}},
 	})
 	if err != nil {
@@ -738,7 +738,7 @@ func TestSendNow(t *testing.T) {
 	}
 	// 配置白名单包含该步骤：命中（手动催办不受 sent/retry 限制）
 	if _, err := svc.Add(ctx, RemindSaveRequest{
-		Remind: &Remind{PID: "model-1", StepIDs: "step-1", TenantID: "dev", Sent: 1},
+		Remind:  &Remind{PID: "model-1", StepIDs: "step-1", TenantID: "dev", Sent: 1},
 		Targets: []*RemindTarget{{ExecutorID: RemindExecutorCurrentHandler, Type: RemindTypeAhead, Ahead: 5, TimeUnit: "分钟"}},
 	}); err != nil {
 		t.Fatalf("配置失败: %v", err)

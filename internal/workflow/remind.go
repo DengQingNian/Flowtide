@@ -56,18 +56,18 @@ const (
 // Remind 是 workflow_remind（催办配置主表）的领域实体
 // （不继承 BaseEntity，自带 creator/create_time/deleted，docs 003 §3.18）。
 type Remind struct {
-	ID         string    // 主键
-	Creator    string    // 创建人
-	CreateTime time.Time // 创建时间
-	Updater    string    // 更新人
-	UpdateTime time.Time // 更新时间
-	TenantID   string    // 租户
-	PID        string    // 模型 Id（→ workflow_model.id）
-	StepIDs    string    // 步骤 Id 逗号串（白名单；空表示无可催步骤，Java 同款跳过）
-	EnablePre  int       // 启用预警：0/1
-	EnablePost int       // 启用延时：0/1
-	Sent       int       // 已发送：0 未发送、1 已发送
-	Deleted    int       // 逻辑删除：0 正常、1 已删除
+	ID         string          // 主键
+	Creator    string          // 创建人
+	CreateTime time.Time       // 创建时间
+	Updater    string          // 更新人
+	UpdateTime time.Time       // 更新时间
+	TenantID   string          // 租户
+	PID        string          // 模型 Id（→ workflow_model.id）
+	StepIDs    string          // 步骤 Id 逗号串（白名单；空表示无可催步骤，Java 同款跳过）
+	EnablePre  int             // 启用预警：0/1
+	EnablePost int             // 启用延时：0/1
+	Sent       int             // 已发送：0 未发送、1 已发送
+	Deleted    int             // 逻辑删除：0 正常、1 已删除
 	Targets    []*RemindTarget // 级联对象（Get 时填充）
 }
 
@@ -343,10 +343,10 @@ func (n LogNotifier) Notify(ctx context.Context, notification *RemindNotificatio
 
 // MemRemindStore 是催办配置端口的内存实现（线程安全 map + 行克隆存取）。
 type MemRemindStore struct {
-	mu     sync.RWMutex         // 读写锁
-	rows   map[string]*Remind   // id → 配置
-	clock  clock.Clock          // 时间源
-	newID  func() string        // ID 生成函数
+	mu    sync.RWMutex       // 读写锁
+	rows  map[string]*Remind // id → 配置
+	clock clock.Clock        // 时间源
+	newID func() string      // ID 生成函数
 }
 
 // NewMemRemindStore 创建内存催办配置存储。
@@ -511,10 +511,10 @@ func sortReminds(rows []*Remind) {
 
 // MemRemindTargetStore 是催办对象端口的内存实现。
 type MemRemindTargetStore struct {
-	mu    sync.RWMutex          // 读写锁
+	mu    sync.RWMutex             // 读写锁
 	rows  map[string]*RemindTarget // id → 对象
-	clock clock.Clock           // 时间源
-	newID func() string         // ID 生成函数
+	clock clock.Clock              // 时间源
+	newID func() string            // ID 生成函数
 }
 
 // NewMemRemindTargetStore 创建内存催办对象存储。
@@ -1029,16 +1029,16 @@ type RemindInstanceContext struct {
 
 // RemindService 是催办域服务：配置维护、对象展开、到期扫描与手动催办。
 type RemindService struct {
-	reminds   RemindStore          // 配置主表
-	targets   RemindTargetStore    // 对象表
-	todos     TodoSource           // 待办数据源
-	rules     ScheduleRuleProvider     // 步骤规则（催办时限）
-	channels  ChannelProvider      // 渠道来源
-	resolver  StepResolver         // 步骤代号解析（白名单匹配）
-	members   RoleMemberLookup     // 角色成员（静态角色展开）
-	vars      InstanceVariableSource // 流程变量（${initiator} 展开）
-	clock     clock.Clock          // 时间源
-	newID     func() string        // ID 生成函数
+	reminds  RemindStore            // 配置主表
+	targets  RemindTargetStore      // 对象表
+	todos    TodoSource             // 待办数据源
+	rules    ScheduleRuleProvider   // 步骤规则（催办时限）
+	channels ChannelProvider        // 渠道来源
+	resolver StepResolver           // 步骤代号解析（白名单匹配）
+	members  RoleMemberLookup       // 角色成员（静态角色展开）
+	vars     InstanceVariableSource // 流程变量（${initiator} 展开）
+	clock    clock.Clock            // 时间源
+	newID    func() string          // ID 生成函数
 }
 
 // NewRemindService 创建催办域服务。
@@ -1071,9 +1071,9 @@ func NewRemindService(reminds RemindStore, targets RemindTargetStore, todos Todo
 
 // RemindSaveRequest 是催办配置保存请求（Add/Update 共用）。
 type RemindSaveRequest struct {
-	Remind        *Remind         // 主表数据（必填 PID）
-	Targets       []*RemindTarget // 对象列表；Add 时为空则生成默认"当前处理人"（-1111）预警行
-	ReplaceStepIDs bool           // Update 时白名单允许清空（true 表示用 Remind.StepIDs 覆盖，含清空）
+	Remind         *Remind         // 主表数据（必填 PID）
+	Targets        []*RemindTarget // 对象列表；Add 时为空则生成默认"当前处理人"（-1111）预警行
+	ReplaceStepIDs bool            // Update 时白名单允许清空（true 表示用 Remind.StepIDs 覆盖，含清空）
 }
 
 // Add 新增催办配置（pid + 步骤白名单 + 对象列表；对象缺省生成 -1111 当前处理人预警行）。

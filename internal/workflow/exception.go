@@ -43,21 +43,21 @@ const exceptionMessageLimit = 1000
 
 // TaskException 是 workflow_task_exception（任务异常）的领域实体。
 type TaskException struct {
-	BaseColumns              // 公共审计列
-	TaskID              string // 任务 Id
-	ProcessInstanceID   string // 流程实例 Id
-	ProcessInstanceName string // 流程实例名称
-	ClassName           string // 异常发生类名
-	MethodName          string // 异常发生方法名
-	Message             string // 异常消息（>1000 截断）
-	Params              string // 方法入参 JSON 串
-	ExceptionType       string // 异常类型（四类常量）
-	ExceptionClass      string // 异常类全名
+	BaseColumns                  // 公共审计列
+	TaskID                string // 任务 Id
+	ProcessInstanceID     string // 流程实例 Id
+	ProcessInstanceName   string // 流程实例名称
+	ClassName             string // 异常发生类名
+	MethodName            string // 异常发生方法名
+	Message               string // 异常消息（>1000 截断）
+	Params                string // 方法入参 JSON 串
+	ExceptionType         string // 异常类型（四类常量）
+	ExceptionClass        string // 异常类全名
 	ProcessDefinitionID   string // 流程定义 Id
 	ProcessDefinitionKey  string // 流程定义 Key
 	ProcessDefinitionName string // 流程定义名称
-	StartUserID          string // 发起人
-	HandleStatus         int    // 处理状态：0 未处理、1 已处理
+	StartUserID           string // 发起人
+	HandleStatus          int    // 处理状态：0 未处理、1 已处理
 }
 
 // ─── 存储端口 ─────────────────────────────────────────────
@@ -112,10 +112,10 @@ type TaskExceptionStore interface {
 
 // MemTaskExceptionStore 是任务异常端口的内存实现（线程安全 map + 行克隆存取）。
 type MemTaskExceptionStore struct {
-	mu    sync.RWMutex            // 读写锁
+	mu    sync.RWMutex              // 读写锁
 	rows  map[string]*TaskException // id → 记录
-	clock clock.Clock             // 时间源
-	newID func() string           // ID 生成函数
+	clock clock.Clock               // 时间源
+	newID func() string             // ID 生成函数
 }
 
 // NewMemTaskExceptionStore 创建内存任务异常存储。
@@ -650,12 +650,12 @@ func (s *ExceptionService) RecordCallbackFailure(ctx context.Context, exception 
 		message = exception.Cause.Error()
 	}
 	_, err := s.Record(ctx, &ExceptionRequest{
-		MethodName:    "postWithRetry",
-		Message:       message,
-		Params:        exception.Payload,
-		ExceptionType: ExceptionTypeRuntime,
+		MethodName:     "postWithRetry",
+		Message:        message,
+		Params:         exception.Payload,
+		ExceptionType:  ExceptionTypeRuntime,
 		ExceptionClass: "CallbackException",
-		TenantID:      exception.TenantID,
+		TenantID:       exception.TenantID,
 	})
 	return err
 }

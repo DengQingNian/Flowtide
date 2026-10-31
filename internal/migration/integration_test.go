@@ -17,6 +17,7 @@ import (
 	"github.com/DengQingNian/Flowtide/internal/migration"
 	flowablerow "github.com/DengQingNian/Flowtide/internal/persistence/flowable"
 	mysqlstore "github.com/DengQingNian/Flowtide/internal/persistence/mysql"
+	pgstore "github.com/DengQingNian/Flowtide/internal/persistence/postgres"
 	"github.com/DengQingNian/Flowtide/internal/persistence/schema"
 	_ "github.com/lib/pq"
 )
@@ -77,9 +78,20 @@ func preflightDatabase(t *testing.T, dialect string) (context.Context, *sql.DB) 
 		cfg.Database = name
 		db, err = mysqlstore.Open(ctx, cfg)
 	} else {
-		endpoint, parseErr := url.Parse(os.Getenv("FLOWABLE_POSTGRES_DSN"))
+		// DSN 解析：环境变量优先，未设置时退回仓库根 .env（与 workflow 包集成测试一致）
+		dsn := os.Getenv("FLOWABLE_POSTGRES_DSN")
+		if dsn == "" {
+			envPath := os.Getenv("FLOWABLE_ENV")
+			if envPath == "" {
+				envPath = "../../.env"
+			}
+			if resolved, loadErr := pgstore.LoadDSN(envPath); loadErr == nil {
+				dsn = resolved
+			}
+		}
+		endpoint, parseErr := url.Parse(dsn)
 		if parseErr != nil || endpoint.Host == "" {
-			t.Fatal("需要有效的 FLOWABLE_POSTGRES_DSN 连接地址")
+			t.Fatal("需要有效的 FLOWABLE_POSTGRES_DSN 连接地址或可读的 .env 配置")
 		}
 		admin, err = sql.Open("postgres", endpoint.String())
 		if err != nil {
@@ -90,6 +102,26 @@ func preflightDatabase(t *testing.T, dialect string) (context.Context, *sql.DB) 
 			t.Fatal("创建 PostgreSQL 临时库失败")
 		}
 		endpoint.Path = "/" + name
+		// 临时库中 search_path 指向的 Schema 尚不存在，需先建 Schema 再建业务连接
+		if target := endpoint.Query().Get("search_path"); target != "" && target != "public" {
+			bootstrapEndpoint := *endpoint
+			bootstrapQuery := bootstrapEndpoint.Query()
+			bootstrapQuery.Del("search_path")
+			bootstrapEndpoint.RawQuery = bootstrapQuery.Encode()
+			bootstrap, openErr := sql.Open("postgres", bootstrapEndpoint.String())
+			if openErr != nil {
+				t.Fatalf("连接 PostgreSQL 临时库失败: %v", openErr)
+			}
+			schemaIdent := target
+			if !strings.HasPrefix(schemaIdent, "\"") {
+				schemaIdent = "\"" + schemaIdent + "\""
+			}
+			if _, execErr := bootstrap.ExecContext(ctx, "CREATE SCHEMA IF NOT EXISTS "+schemaIdent); execErr != nil {
+				_ = bootstrap.Close()
+				t.Fatalf("创建 PostgreSQL 测试 Schema 失败: %v", execErr)
+			}
+			_ = bootstrap.Close()
+		}
 		db, err = sql.Open("postgres", endpoint.String())
 	}
 	t.Cleanup(func() {

@@ -159,7 +159,7 @@ func (erroringStepResolver) ResolveStepID(ctx context.Context, stepCode string) 
 
 // erroringMembers 是成员查询失败的成员桩。
 type erroringMembers struct {
-	err    error      // 注入错误
+	err    error                 // 注入错误
 	groups map[string][]api.User // 组成员
 }
 
@@ -177,8 +177,8 @@ func (e *erroringMembers) ListMembers(ctx context.Context, groupID string) ([]ap
 
 // erroringVariables 是变量读取失败的变量桩。
 type erroringVariables struct {
-	err   error         // 注入错误
-	value any           // 注入返回值
+	err   error // 注入错误
+	value any   // 注入返回值
 }
 
 // GetVariable 返回注入错误或值。

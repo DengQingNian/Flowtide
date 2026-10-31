@@ -307,6 +307,8 @@ var _ ModelMgmtStore = (*MemModelMgmtStore)(nil)
 // @param ctx 操作上下文
 // @param m 实体
 // @return 错误
+// @param _ 接口占位参数（实现不使用）
+// @param row 参数 row
 func (m *MemModelMgmtStore) Insert(_ context.Context, row *ModelCategory) error {
 	// 空实体/缺主键与 pwf 仓储 WF-0006/WF-0008 契约一致
 	if row == nil {
@@ -333,6 +335,7 @@ func (m *MemModelMgmtStore) Insert(_ context.Context, row *ModelCategory) error 
 // @param ctx 操作上下文
 // @param row 实体
 // @return 错误
+// @param _ 接口占位参数（实现不使用）
 func (m *MemModelMgmtStore) Update(_ context.Context, row *ModelCategory) error {
 	// 空实体/缺主键防御
 	if row == nil || mmBlankID(row.ID) {
@@ -355,6 +358,7 @@ func (m *MemModelMgmtStore) Update(_ context.Context, row *ModelCategory) error 
 // @return 实体副本
 // @return 是否存在
 // @return 查询错误
+// @param _ 接口占位参数（实现不使用）
 func (m *MemModelMgmtStore) GetByPK(_ context.Context, id string) (*ModelCategory, bool, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
@@ -372,6 +376,7 @@ func (m *MemModelMgmtStore) GetByPK(_ context.Context, id string) (*ModelCategor
 // @return 实体副本
 // @return 是否存在
 // @return 查询错误
+// @param _ 接口占位参数（实现不使用）
 func (m *MemModelMgmtStore) GetByCode(_ context.Context, tenantID, modelCode string) (*ModelCategory, bool, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
@@ -389,6 +394,7 @@ func (m *MemModelMgmtStore) GetByCode(_ context.Context, tenantID, modelCode str
 // @param tenantID 租户
 // @return 实体副本列表
 // @return 查询错误
+// @param _ 接口占位参数（实现不使用）
 func (m *MemModelMgmtStore) ListByTenant(_ context.Context, tenantID string) ([]*ModelCategory, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
@@ -407,6 +413,7 @@ func (m *MemModelMgmtStore) ListByTenant(_ context.Context, tenantID string) ([]
 // @param id 模型主键
 // @param deployTime 部署时间
 // @return 错误
+// @param _ 接口占位参数（实现不使用）
 func (m *MemModelMgmtStore) UpdateLastDeployTime(_ context.Context, id string, deployTime time.Time) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -425,6 +432,7 @@ func (m *MemModelMgmtStore) UpdateLastDeployTime(_ context.Context, id string, d
 // @param ctx 操作上下文
 // @param ids 主键集合
 // @return 错误
+// @param _ 接口占位参数（实现不使用）
 func (m *MemModelMgmtStore) DeleteByIDs(_ context.Context, ids []string) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -480,6 +488,7 @@ var _ StepDesignStore = (*MemStepDesignStore)(nil)
 // @param ctx 操作上下文
 // @param s 实体
 // @return 错误
+// @param _ 接口占位参数（实现不使用）
 func (m *MemStepDesignStore) Insert(_ context.Context, s *StepDesign) error {
 	// 空实体/缺主键与 pwf 仓储契约一致
 	if s == nil {
@@ -506,6 +515,7 @@ func (m *MemStepDesignStore) Insert(_ context.Context, s *StepDesign) error {
 // @param ctx 操作上下文
 // @param s 实体
 // @return 错误
+// @param _ 接口占位参数（实现不使用）
 func (m *MemStepDesignStore) Update(_ context.Context, s *StepDesign) error {
 	// 空实体/缺主键防御
 	if s == nil || mmBlankID(s.ID) {
@@ -528,6 +538,7 @@ func (m *MemStepDesignStore) Update(_ context.Context, s *StepDesign) error {
 // @return 实体副本
 // @return 是否存在
 // @return 查询错误
+// @param _ 接口占位参数（实现不使用）
 func (m *MemStepDesignStore) GetByPK(_ context.Context, id string) (*StepDesign, bool, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
@@ -545,6 +556,7 @@ func (m *MemStepDesignStore) GetByPK(_ context.Context, id string) (*StepDesign,
 // @return 实体副本
 // @return 是否存在
 // @return 查询错误
+// @param _ 接口占位参数（实现不使用）
 func (m *MemStepDesignStore) GetByModelAndCode(_ context.Context, modelID, stepCode string) (*StepDesign, bool, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
@@ -562,6 +574,7 @@ func (m *MemStepDesignStore) GetByModelAndCode(_ context.Context, modelID, stepC
 // @param modelID 模型 ID
 // @return 实体副本列表
 // @return 查询错误
+// @param _ 接口占位参数（实现不使用）
 func (m *MemStepDesignStore) ListByModel(_ context.Context, modelID string) ([]*StepDesign, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
@@ -584,6 +597,7 @@ func (m *MemStepDesignStore) ListByModel(_ context.Context, modelID string) ([]*
 // @param ctx 操作上下文
 // @param ids 主键集合
 // @return 错误
+// @param _ 接口占位参数（实现不使用）
 func (m *MemStepDesignStore) DeleteByIDs(_ context.Context, ids []string) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -629,6 +643,7 @@ var _ TemplateStore = (*MemTemplateStore)(nil)
 // @param ctx 操作上下文
 // @param t 实体
 // @return 错误
+// @param _ 接口占位参数（实现不使用）
 func (m *MemTemplateStore) Insert(_ context.Context, t *TemplateDef) error {
 	// 空实体/缺主键与 pwf 仓储契约一致
 	if t == nil {
@@ -655,6 +670,7 @@ func (m *MemTemplateStore) Insert(_ context.Context, t *TemplateDef) error {
 // @param ctx 操作上下文
 // @param t 实体
 // @return 错误
+// @param _ 接口占位参数（实现不使用）
 func (m *MemTemplateStore) Update(_ context.Context, t *TemplateDef) error {
 	// 空实体/缺主键防御
 	if t == nil || mmBlankID(t.ID) {
@@ -677,6 +693,7 @@ func (m *MemTemplateStore) Update(_ context.Context, t *TemplateDef) error {
 // @return 实体副本
 // @return 是否存在
 // @return 查询错误
+// @param _ 接口占位参数（实现不使用）
 func (m *MemTemplateStore) GetByPK(_ context.Context, id string) (*TemplateDef, bool, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
@@ -692,6 +709,7 @@ func (m *MemTemplateStore) GetByPK(_ context.Context, id string) (*TemplateDef, 
 // @param tenantID 租户
 // @return 实体副本列表
 // @return 查询错误
+// @param _ 接口占位参数（实现不使用）
 func (m *MemTemplateStore) ListByTenant(_ context.Context, tenantID string) ([]*TemplateDef, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
@@ -715,6 +733,7 @@ func (m *MemTemplateStore) ListByTenant(_ context.Context, tenantID string) ([]*
 // @param categoryID 分类 ID
 // @return 实体副本列表
 // @return 查询错误
+// @param _ 接口占位参数（实现不使用）
 func (m *MemTemplateStore) ListByCategory(_ context.Context, categoryID string) ([]*TemplateDef, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
@@ -737,6 +756,7 @@ func (m *MemTemplateStore) ListByCategory(_ context.Context, categoryID string) 
 // @param ctx 操作上下文
 // @param ids 主键集合
 // @return 错误
+// @param _ 接口占位参数（实现不使用）
 func (m *MemTemplateStore) DeleteByIDs(_ context.Context, ids []string) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -991,6 +1011,7 @@ func NewStepDesignService(store StepDesignStore, c clock.Clock) *StepDesignServi
 // @param s 步骤数据（必填 model_id/step_code/tenant_id）
 // @return 落库后的步骤实体
 // @return 错误
+// @param d 参数 d
 func (s *StepDesignService) Add(ctx context.Context, d *StepDesign) (*StepDesign, error) {
 	// 空请求/缺模型/缺代号/缺租户统一参数错误
 	if d == nil || strings.TrimSpace(d.ModelID) == "" || strings.TrimSpace(d.StepCode) == "" || strings.TrimSpace(d.TenantID) == "" {
@@ -1015,6 +1036,7 @@ func (s *StepDesignService) Add(ctx context.Context, d *StepDesign) (*StepDesign
 // @param s 步骤数据（必填主键）
 // @return 编辑后的步骤实体
 // @return 错误
+// @param d 参数 d
 func (s *StepDesignService) Edit(ctx context.Context, d *StepDesign) (*StepDesign, error) {
 	// 空请求/缺主键统一参数错误
 	if d == nil || mmBlankID(d.ID) {

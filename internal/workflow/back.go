@@ -81,6 +81,7 @@ func (m *MemModelStore) PutReturnSort(processDefinitionKey string, returnSort bo
 // @param processDefinitionKey 流程定义 Key
 // @return 退回排序方式
 // @return 查询错误
+// @param _ 接口占位参数（实现不使用）
 func (m *MemModelStore) ReturnSortOf(_ context.Context, processDefinitionKey string) (bool, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
