@@ -179,6 +179,19 @@ func TestOpsBackAndRollback(t *testing.T) {
 	if !rolled.Success {
 		t.Fatalf("撤回返回异常: %+v", rolled)
 	}
+
+	// 撤回后重做任务的待办镜像必须重建（否则待办中心不可见）
+	todo, err := env.service.GetTodoTaskListByIdentityID(ctx, "u1", PageQuery{})
+	if err != nil {
+		t.Fatalf("待办查询失败: %v", err)
+	}
+	todos := todo.Data.(PageResult[*TodoTaskView])
+	for _, item := range todos.Data {
+		if item.ProcessInstanceID == instanceID {
+			return
+		}
+	}
+	t.Fatalf("撤回后待办中心应可见重做任务: %+v", todos)
 }
 
 // TestOpsDirectAndReset 直送与重置门面链路。
