@@ -8,6 +8,7 @@ import (
 	"sync"
 
 	flowablerow "github.com/DengQingNian/Flowtide/internal/persistence/flowable"
+	pwf "github.com/DengQingNian/Flowtide/internal/persistence/workflow"
 	mysqlstore "github.com/DengQingNian/Flowtide/internal/persistence/mysql"
 	pgstore "github.com/DengQingNian/Flowtide/internal/persistence/postgres"
 	"github.com/DengQingNian/Flowtide/internal/persistence/sqlstate"
@@ -19,6 +20,7 @@ type storageSetup struct {
 	Store      statestore.Store        // 快照存储；行模式为空
 	Repository *flowablerow.Repository // 按表行仓储；快照模式为空
 	LoadRows   bool                    // 启动时是否从行仓储恢复
+	WFStore    *pwf.Store              // workflow 行仓储入口（/workflow/** SQL 模式；nil 时 workflow 走内存）
 	once       sync.Once               // 保证资源释放只执行一次
 	closeFn    func() error            // 释放独占锁并关闭连接池
 	closeErr   error                   // 首次释放结果
@@ -153,7 +155,12 @@ func newPostgresRowStorage(ctx context.Context, db *sql.DB) (*storageSetup, erro
 	if err != nil {
 		return nil, errors.Join(err, cleanup())
 	}
-	return &storageSetup{Repository: repository, LoadRows: true, closeFn: cleanup}, nil
+	// workflow 行仓储与引擎行仓储共用连接池（closeFn 统一释放）
+	wfStore, wfErr := pwf.NewStore(db, "postgres")
+	if wfErr != nil {
+		return nil, errors.Join(wfErr, cleanup())
+	}
+	return &storageSetup{Repository: repository, LoadRows: true, WFStore: wfStore, closeFn: cleanup}, nil
 }
 
 // newRowStorage 在已校验 Schema 的连接池上建立行仓储及其独占锁。
@@ -185,7 +192,12 @@ func newRowStorage(ctx context.Context, db *sql.DB, database string) (*storageSe
 	if err != nil {
 		return nil, errors.Join(err, cleanup())
 	}
-	return &storageSetup{Repository: repository, LoadRows: true, closeFn: cleanup}, nil
+	// workflow 行仓储与引擎行仓储共用连接池（closeFn 统一释放）
+	wfStore, wfErr := pwf.NewStore(db, "mysql")
+	if wfErr != nil {
+		return nil, errors.Join(wfErr, cleanup())
+	}
+	return &storageSetup{Repository: repository, LoadRows: true, WFStore: wfStore, closeFn: cleanup}, nil
 }
 
 // Close 释放独占锁并关闭连接池，重复调用返回首次结果。
