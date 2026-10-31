@@ -506,6 +506,37 @@ func simSubScope(sub *model.SubProcess) *simScope {
 	return &simScope{elements: sub.Elements, order: sub.Order, isSub: true, id: sub.ID}
 }
 
+// simFindElement 在主流程与各层子流程容器中查找元素（跨容器定位任务节点，含嵌套子流程）。
+// @param process 主流程
+// @param id 元素 Id
+// @return 元素
+// @return 所在容器
+// @return 是否找到
+func simFindElement(process *model.Process, id string) (model.FlowElement, *simScope, bool) {
+	return simFindElementInScope(simRootScope(process), id)
+}
+
+// simFindElementInScope 在单一容器及嵌套子流程容器中递归查找元素。
+// @param scope 当前容器
+// @param id 元素 Id
+// @return 元素
+// @return 所在容器
+// @return 是否找到
+func simFindElementInScope(scope *simScope, id string) (model.FlowElement, *simScope, bool) {
+	if element, ok := scope.elements[id]; ok {
+		return element, scope, true
+	}
+	// 递归下钻嵌套子流程容器
+	for _, key := range scope.order {
+		if sub, isSub := scope.elements[key].(*model.SubProcess); isSub {
+			if found, inner, ok := simFindElementInScope(simSubScope(sub), id); ok {
+				return found, inner, true
+			}
+		}
+	}
+	return nil, scope, false
+}
+
 // lookup 在当前容器查找元素，未命中回退主流程（与 Java getFlowElementById 的递归查找等价）。
 // @param root 主流程
 // @param id 元素 Id
@@ -541,6 +572,7 @@ func simCollectFromStarts(process *model.Process, vars map[string]any, includeEn
 }
 
 // simCollectNext 从指定节点遍历静态图收集下一步候选（FlowUtils.next 对位）：
+// 起始为用户任务时沿其出线继续（当前任务自身不作为候选，Java next() 取出线语义）；
 // 停在用户任务与调用活动；穿网关（排他/并行/包容）、服务/接收任务、子流程边界；
 // 主流程结束事件产出"办结"伪节点；子流程结束事件上溯到子流程出线继续。
 // @param process 流程
@@ -550,7 +582,18 @@ func simCollectFromStarts(process *model.Process, vars map[string]any, includeEn
 // @return 候选节点列表
 func simCollectNext(process *model.Process, startID string, vars map[string]any, includeEnd bool) []simCandidate {
 	cands := make([]simCandidate, 0, 4)
-	simWalk(process, simRootScope(process), startID, vars, includeEnd, map[string]bool{}, &cands)
+	element, scope, ok := simFindElement(process, startID)
+	if !ok {
+		return cands
+	}
+	// 起始为用户任务：从其出线继续遍历，不把自身收进候选
+	if _, isUserTask := element.(*model.UserTask); isUserTask {
+		if node, isNode := element.(model.FlowNode); isNode {
+			simTakeOutgoing(process, scope, node, vars, includeEnd, map[string]bool{}, &cands)
+			return cands
+		}
+	}
+	simWalk(process, scope, startID, vars, includeEnd, map[string]bool{}, &cands)
 	return cands
 }
 
@@ -707,8 +750,10 @@ func simFollow(process *model.Process, container *simScope, flow *model.Sequence
 	}
 	// 子流程边界：进入其首个开始事件（Java getFlowElementById 返回子流程开始节点）
 	if sub, isSub := element.(*model.SubProcess); isSub {
-		for _, start := range simSubScope(sub).startEvents() {
-			simWalk(process, scope, start.ID, vars, includeEnd, visited, cands)
+		// 以子流程自身容器递归，父容器查不到子流程内部元素
+		subScope := simSubScope(sub)
+		for _, start := range subScope.startEvents() {
+			simWalk(process, subScope, start.ID, vars, includeEnd, visited, cands)
 		}
 		return
 	}
