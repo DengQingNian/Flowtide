@@ -110,6 +110,62 @@ func TestAsyncFlags(t *testing.T) {
 	}
 }
 
+// TestElementExtensionsAccess 验证扩展属性与扩展字段的读取语义（含 nil 接收者与缺失键）。
+// @param t 测试上下文
+func TestElementExtensionsAccess(t *testing.T) {
+	var nilExt *ElementExtensions
+	if nilExt.Attr("stepCode") != "" || nilExt.Field("weightType") != "" {
+		t.Fatalf("nil 扩展应返回空串")
+	}
+	ext := &ElementExtensions{
+		Attributes: map[string]string{"stepCode": "S01"},
+		Fields:     []ExtensionField{{Name: "weightType", Value: "custom"}},
+	}
+	if ext.Attr("stepCode") != "S01" || ext.Attr("missing") != "" {
+		t.Fatalf("扩展属性读取错误")
+	}
+	if ext.Field("weightType") != "custom" || ext.Field("missing") != "" {
+		t.Fatalf("扩展字段读取错误")
+	}
+}
+
+// TestMoreElementTypes 验证业务规则任务、中间捕获事件与事务子流程的元素类型。
+// @param t 测试上下文
+func TestMoreElementTypes(t *testing.T) {
+	if got := (&BusinessRuleTask{}).ElementType(); got != "businessRuleTask" {
+		t.Fatalf("业务规则任务类型错误: %s", got)
+	}
+	if got := (&IntermediateCatchEvent{}).ElementType(); got != "intermediateCatchEvent" {
+		t.Fatalf("中间捕获事件类型错误: %s", got)
+	}
+	if got := (&SubProcess{Transaction: true}).ElementType(); got != "transaction" {
+		t.Fatalf("事务子流程类型错误: %s", got)
+	}
+	if got := (&SubProcess{}).ElementType(); got != "subProcess" {
+		t.Fatalf("普通子流程类型错误: %s", got)
+	}
+}
+
+// TestContainerLookupMissing 验证容器按不存在的 Id 查询节点与顺序流时返回未命中。
+// @param t 测试上下文
+func TestContainerLookupMissing(t *testing.T) {
+	sub := &SubProcess{}
+	if _, ok := sub.GetFlowNode("missing"); ok {
+		t.Fatalf("子流程不存在的节点应返回 false")
+	}
+	if _, ok := sub.GetSequenceFlow("missing"); ok {
+		t.Fatalf("子流程不存在的顺序流应返回 false")
+	}
+	process := &Process{}
+	process.AddElement(&StartEvent{FlowNodeBase: FlowNodeBase{BaseElement: BaseElement{ID: "s"}}})
+	if _, ok := process.GetFlowNode("missing"); ok {
+		t.Fatalf("流程不存在的节点应返回 false")
+	}
+	if _, ok := process.GetSequenceFlow("missing"); ok {
+		t.Fatalf("流程不存在的顺序流应返回 false")
+	}
+}
+
 // TestExecutionListenerDefinitions 验证模型对执行监听器声明的公开读取契约。
 // @param t 测试上下文
 // @return 无

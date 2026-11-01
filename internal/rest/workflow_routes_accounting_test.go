@@ -8,17 +8,17 @@ import (
 // 该清单与 workflowHandlerFor 中"保留 501 的端点"分支严格对应，口径由
 // 016 号审计记录固定：路由表 95 条 = 已接线 84 条 + 保留 501 11 条。
 var workflowRetainedStubPaths = map[string]bool{
-	"/workflow/process/import/xml":             true,
-	"/workflow/process/importProcess":          true,
-	"/workflow/process/exportProcess":          true,
-	"/workflow/process/inject/node":            true,
-	"/workflow/process/exmple/node/list":       true,
-	"/workflow/process/wait/node/list":         true,
-	"/workflow/process/public/deploymentId":    true,
-	"/workflow/process/public/processes/id":    true,
-	"/workflow/hisstep/add":                    true,
-	"/workflow/hisstep/edit":                   true,
-	"/workflow/hisstep/delete/{ids}":           true,
+	"/workflow/process/import/xml":          true,
+	"/workflow/process/importProcess":       true,
+	"/workflow/process/exportProcess":       true,
+	"/workflow/process/inject/node":         true,
+	"/workflow/process/exmple/node/list":    true,
+	"/workflow/process/wait/node/list":      true,
+	"/workflow/process/public/deploymentId": true,
+	"/workflow/process/public/processes/id": true,
+	"/workflow/hisstep/add":                 true,
+	"/workflow/hisstep/edit":                true,
+	"/workflow/hisstep/delete/{ids}":        true,
 }
 
 // TestWorkflowRouteTableAccounting 锁定 workflow 路由表口径，防止文档与实现的数字漂移。
