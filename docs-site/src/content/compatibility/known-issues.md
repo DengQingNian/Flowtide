@@ -55,9 +55,11 @@ tags: [已知问题, 限制, 风险]
 ## 6. SDK 与公共 API
 
 - API 未承诺 semver 稳定性。
-- 仓库外模块无法配置数据库，<code>Config</code> 引用内部包类型。
+- <code>Config</code> 仍引用内部包类型；数据库接入改用 <code>NewEmbedded</code> 与 <code>EmbeddedConfig</code>。
+- 嵌入模式只有一个写者，缺集群、租约与故障转移。
+- workflow 后台扫描未在嵌入模式暴露，SQL 行仓储缺少待办数据源。
 - 委托/监听器不持久化，重启需重新注册。
-- 无发布 tag 与正式依赖分发策略。
+- 模块已发布 v0.1.1，但 API 未承诺 semver，也没有长期支持分支。
 
 ## 7. 安全
 

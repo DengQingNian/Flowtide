@@ -32,7 +32,7 @@ require github.com/DengQingNian/Flowtide v0.0.0
 replace github.com/DengQingNian/Flowtide => /path/to/Flowtide
 ~~~
 
-正式分发依赖版本管理策略尚未确定，当前没有发布 tag 与稳定 API 承诺。
+模块已发布 <code>v0.1.1</code> 供依赖引用；API 仍未承诺 semver，升级时需重新编译验证。
 
 ## 步骤 2：准备 BPMN
 
@@ -146,7 +146,7 @@ ended: true state: completed
 2. **状态文件可恢复**：<code>StatePath</code> 保存定义、实例、任务与历史；重开引擎后可继续查询与操作。
 3. **委托内可读写变量**：<code>execution.SetVariable</code> 写入流程作用域，<code>SetVariableLocal</code> 只写当前作用域。
 4. **关闭时刷盘**：<code>app.Close(ctx)</code> 负责最终持久化，不要省略。
-5. **外部模块的数据库配置受限**：<code>Config</code> 引用内部包类型，仓库外目前只能使用内存或 <code>StatePath</code>；MySQL/PostgreSQL 需服务端模式。
+5. **需要数据库时改用嵌入入口**：<code>Config</code> 仍引用内部包类型，生产接入用 <code>NewEmbedded</code>（MySQL 行仓储），见 [30 分钟接入宿主应用](/docs/getting-started/quickstart-embed)。
 
 ## 常见问题
 
@@ -159,6 +159,7 @@ ended: true state: completed
 
 ## 下一步
 
+- [30 分钟接入宿主应用](/docs/getting-started/quickstart-embed)
 - [SDK 概览](/docs/sdk)
 - [引擎配置](/docs/sdk/config)
 - [委托与监听器](/docs/sdk/delegates)

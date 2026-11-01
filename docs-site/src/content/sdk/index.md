@@ -15,7 +15,8 @@ tags: [SDK, Go, 服务接口]
 | 使用方式 | 适用场景 | 入口 |
 | --- | --- | --- |
 | 独立服务 | 多语言客户端、集中运维 | <code>cmd/flowtide-server</code> |
-| Go 嵌入 | 单进程业务、测试、工具 | <code>flowtide.New</code> + <code>api</code> |
+| 宿主嵌入（完整） | 业务进程内跑审批，复用宿主连接池 | <code>flowtide.NewEmbedded</code> |
+| 轻量嵌入 | 只要原生引擎、自行搭 HTTP | <code>flowtide.New</code> + <code>api</code> |
 | 迁移 CLI | 存量库预检与状态准备 | <code>cmd/flowtide-migrate</code> |
 
 ## 公共包
@@ -23,6 +24,7 @@ tags: [SDK, Go, 服务接口]
 | 包 | 内容 |
 | --- | --- |
 | <code>github.com/DengQingNian/Flowtide</code> | <code>New</code>、<code>Config</code>、<code>Engine</code>、<code>Delegate</code>、<code>Execution</code> |
+| 同上（嵌入入口） | <code>NewEmbedded</code>、<code>EmbeddedConfig</code>、<code>Embedded</code>、<code>WithExecutionContext</code>、<code>EnsureMySQLSchema</code> |
 | <code>.../api</code> | 请求/响应类型与服务接口 |
 | <code>.../bpmn/model</code> | BPMN 模型类型 |
 
@@ -74,10 +76,10 @@ func main() {
 
 ## 生命周期
 
-1. <code>flowtide.New</code> 构造引擎；若配置了状态文件或行仓储，会在此恢复状态。
+1. <code>flowtide.New</code> 构造引擎；配置状态文件或行仓储时在此恢复状态。<code>NewEmbedded</code> 还会校验结构、取得数据库写者锁并装配 workflow 门面。
 2. 注册委托、任务监听器、执行监听器。
 3. 通过服务接口执行命令；每个命令串行提交。
-4. <code>Close</code> 刷盘并释放资源；行仓储模式还会释放数据库锁。
+4. <code>Close</code> 刷盘并释放资源；行仓储与嵌入模式还会释放数据库锁，但不会关闭宿主连接池。
 
 ## 与 REST 的关系
 
@@ -85,6 +87,8 @@ SDK 不经过 HTTP，因此不涉及 Basic/JWT/mTLS/租户头；租户通过请�
 
 ## 相关阅读
 
+- [宿主嵌入 SDK](/docs/sdk/embedding)
+- [workflow 业务门面](/docs/sdk/workflow)
 - [引擎配置](/docs/sdk/config)
 - [服务接口](/docs/sdk/services)
 - [委托与监听器](/docs/sdk/delegates)

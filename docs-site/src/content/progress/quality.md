@@ -12,17 +12,25 @@ tags: [测试, 覆盖率, CI, 门禁]
 
 | 指标 | 数值 | 口径 |
 | --- | ---: | --- |
-| 全仓语句覆盖率 | 90.81% | <code>coverage.out</code> 加权总量 |
-| 已覆盖语句 | 17,081 | 共 18,809，包含命令及工具入口 |
-| 核心库覆盖率门禁 | 91.88% | 16,659 / 18,131；各核心包均 ≥ 90% |
-| 测试/基准函数 | 1024 | <code>*_test.go</code> 声明 |
-| 公开 API 覆盖率 | 100% | <code>api</code> 包历史采样 |
+| 全仓语句覆盖率 | 91.21% | <code>coverage.out</code> 加权总量 |
+| 已覆盖语句 | 18,699 | 共 20,500，包含命令、工具与示例入口 |
+| 核心库覆盖率 | 92.21% | 18,277 / 19,822，排除命令、工具与示例入口 |
+| 测试/基准函数 | 1,796 | <code>*_test.go</code> 声明 |
 | 双库验收 | MySQL 8.0.35 / PostgreSQL 16.3 | 临时库、显式启用 |
-| 文档规模 | 93 篇 / 15,439 行 | <code>docs/</code> |
+| 文档规模 | 123 篇 | <code>docs/</code> 目录 Markdown |
 
 ::: info 覆盖率口径
 Go 原生工具衡量语句覆盖率，不是逐物理行覆盖率。90% 总量与逐核心库包阈值是当前门禁；95% 关键包与新增代码覆盖率是后续目标，尚未作为已实现能力宣称。
 :::
+
+## 当前测试状态
+
+当前提交上 <code>go test ./...</code> 仍有两处失败，均不是文档改动引入：
+
+1. <code>TestChecksumStable</code>：001 脚本校验和基准按 CRLF 内容计算，而仓库统一 LF 检出，实际 SHA-256 与基准不一致。
+2. <code>TestSchedulerTriggerFunctions</code>：固定假时钟与真实计时混用，016 号整改记录已注明未修。
+
+在此之前不放行 <code>make check</code> 绿灯的结论；修复计划见 [文档站记录](https://github.com/DengQingNian/Flowtide/blob/master/docs/004-文档站/006-宿主嵌入与workflow接入文档更新.md)。
 
 ## M5 验收结果
 
@@ -32,7 +40,7 @@ Go 原生工具衡量语句覆盖率，不是逐物理行覆盖率。90% 总量�
 
 | 命令 | 内容 |
 | --- | --- |
-| <code>make check</code> | 格式、中文函数注释、vet、普通测试、覆盖率、基线摘要、端点清单、独立 SDK、无 CGO 构建 |
+| <code>make check</code> | 格式、中文函数注释、vet、普通测试、覆盖率、基线摘要、端点清单、独立 SDK、管理台测试与构建、无 CGO 构建 |
 | <code>make race</code> | 独立竞争检测；环境不可用必须失败 |
 | <code>make test-mysql</code> | 读取 <code>.env</code>，创建并删除临时库 |
 | <code>make test-postgres</code> | 通过 <code>FLOWABLE_POSTGRES_DSN</code> 注入连接 |

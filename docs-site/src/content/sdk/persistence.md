@@ -14,10 +14,10 @@ tags: [SDK, 持久化, 状态文件]
 | --- | --- | --- | --- | --- |
 | 内存 | 是 | 无 | 无 | 不适用 |
 | JSON 状态文件 | 是 | 全量原子快照 | 启动恢复 | 禁止 |
-| MySQL 快照 | 仓库外不可配置 | 全量 SQL 快照 | 启动恢复 | 禁止 |
-| MySQL 行仓储 | 仓库外不可配置 | 命令后增量行 | 启动恢复 | 禁止 |
+| MySQL 快照 | 仅服务端 <code>-storage mysql</code> | 全量 SQL 快照 | 启动恢复 | 禁止 |
+| MySQL 行仓储 | <code>NewEmbedded</code> 或 <code>-storage mysql-rows</code> | 命令后增量行 | 启动恢复 | 禁止 |
 
-数据库模式当前通过 <code>cmd/flowtide-server -storage mysql</code> 或 <code>mysql-rows</code> 使用。原因是 <code>Config</code> 中的 <code>StateStore</code> 与 <code>RowRepository</code> 引用内部包类型。
+数据库模式有两个入口：独立服务 <code>-storage mysql</code> / <code>-storage mysql-rows</code>，以及宿主嵌入的 <code>NewEmbedded</code>（只支持行仓储）。<code>Config</code> 的 <code>StateStore</code> 与 <code>RowRepository</code> 引用内部包类型，仓库外不要直接给它们赋值。
 
 ## JSON 状态文件
 
@@ -34,6 +34,17 @@ defer app.Close(ctx)
 - 启动时若文件存在则恢复，不存在则创建空状态。
 - 文件包含业务值，权限应由部署环境限制；不要提交到 Git。
 - 同一文件只能被一个引擎实例打开。
+
+## 嵌入模式的行仓储
+
+~~~go
+app, err := flowtide.NewEmbedded(ctx, flowtide.EmbeddedConfig{DB: db, Database: "flowtide"})
+~~~
+
+- 启动前只读校验 41 张 <code>ACT_*</code> 与 22 张 <code>workflow_*</code> 表、版本完成标记与快照互斥。
+- 对数据库名加 <code>GET_LOCK</code>，第二写者直接失败；连接池上限为一也会被拒绝。
+- <code>Close</code> 先关闭引擎再释放持锁会话，连接池仍归宿主所有。
+- 快照与行仓储仍是互斥关系，嵌入模式不允许回退到快照。
 
 ## 关闭与刷盘
 
@@ -55,6 +66,7 @@ defer app.Close(ctx)
 
 ## 相关阅读
 
+- [宿主嵌入 SDK](/docs/sdk/embedding)
 - [引擎配置](/docs/sdk/config)
 - [持久化架构](/docs/architecture/persistence)
 - [备份、恢复与状态校验](/docs/operations/backup)

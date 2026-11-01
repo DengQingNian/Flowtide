@@ -24,7 +24,13 @@ func newTestEngine(t *testing.T) *flowtide.Engine {
 
 每个测试独立构造引擎，避免状态串扰。内存模式无持久化，适合快速反馈。
 
-## 临时状态文件
+## 嵌入运行时
+
+~~~go
+app, err := flowtide.NewEmbedded(ctx, flowtide.EmbeddedConfig{InMemory: true, TenantID: "test"})
+~~~
+
+内存嵌入模式不需要数据库，可以覆盖 workflow 门面、HTTP 处理器与身份装饰。它同样只允许单写者，测试之间不要共享同一路径的状态文件。
 
 ~~~go
 dir := t.TempDir()
@@ -66,7 +72,7 @@ HOME=/root go test -race ./...
 HOME=/root make check
 ~~~
 
-<code>make check</code> 包含覆盖率、注释、vet、端点清单与独立 SDK 模块验收。新增行为应先写失败测试。
+<code>make check</code> 包含覆盖率、注释、vet、端点清单与独立 SDK 模块验收；仓库内嵌入路径由根包测试覆盖，仓库外由 <code>testdata/sdk</code> 验证。新增行为应先写失败测试。
 
 ## 相关阅读
 

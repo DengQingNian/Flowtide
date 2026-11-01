@@ -119,7 +119,24 @@ func main() {
 }
 ```
 
-公共入口为 `flowtide.New(flowtide.Config{})`，服务接口位于 `api`；仓库外模块验收位于 `testdata/sdk`。
+生产接入使用嵌入入口，复用宿主连接池并装配 workflow 门面与 HTTP 处理器：
+
+```go
+app, err := flowtide.NewEmbedded(ctx, flowtide.EmbeddedConfig{
+	DB:           db,
+	Database:     "flowtide",
+	TenantID:     "oa",
+	HistoryLevel: "audit",
+})
+if err != nil {
+	log.Fatal(err)
+}
+defer app.Close(ctx)
+
+http.Handle("/flowtide/", http.StripPrefix("/flowtide", app.Handler()))
+```
+
+轻量入口为 `flowtide.New(flowtide.Config{})`，服务接口位于 `api`；需要 MySQL 行仓储、workflow 门面与 HTTP 处理器的生产接入用 `flowtide.NewEmbedded`，可运行示例见 `examples/host-embedding`，接入说明见 [宿主嵌入 SDK](docs-site/src/content/sdk/embedding.md) 与 [workflow 业务门面](docs-site/src/content/sdk/workflow.md)。仓库外模块验收位于 `testdata/sdk`。
 
 ## 能力范围
 
@@ -293,6 +310,7 @@ internal/migration/       预检、转换、静默检查与恢复校验
 docs/                     设计与实施文档
 admin/                    单二进制内嵌的 Vue 3 管理台
 docs-site/                Vue 3 文档站
+examples/                 宿主嵌入可运行示例
 testdata/                 兼容基线、BPMN 语料与独立 SDK 验收
 ```
 
