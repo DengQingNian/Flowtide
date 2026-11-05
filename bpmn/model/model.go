@@ -266,6 +266,7 @@ type MultiInstanceLoopCharacteristics struct {
 // UserTask 表示用户任务。
 type UserTask struct {
 	FlowNodeBase
+	DefaultFlow         string                            // 条件均未命中时使用的默认出线ID
 	LoopCharacteristics *MultiInstanceLoopCharacteristics // 多实例配置
 	Assignee            string                            // 处理人表达式
 	CandidateUsers      []string                          // 候选用户

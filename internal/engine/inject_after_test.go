@@ -170,6 +170,42 @@ func TestInjectUserTaskAfterRollback(t *testing.T) {
 	}
 }
 
+// TestInjectUserTaskAfterUsesDefaultFlow 验证移到新节点后的默认出线只在条件出线未命中时使用。
+// @param t 测试上下文
+// @return 无
+func TestInjectUserTaskAfterUsesDefaultFlow(t *testing.T) {
+	const xml = `<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:f="http://flowable.org/bpmn"><process id="conditional" isExecutable="true"><startEvent id="start"/><sequenceFlow id="in" sourceRef="start" targetRef="approve"/><userTask id="approve" default="fallback" f:assignee="a"/><sequenceFlow id="matched" sourceRef="approve" targetRef="yes"><conditionExpression>${accepted}</conditionExpression></sequenceFlow><sequenceFlow id="fallback" sourceRef="approve" targetRef="no"/><userTask id="yes"/><userTask id="no"/></process></definitions>`
+	e := newTestEngine(t)
+	deployXML(t, e, xml)
+	for _, tc := range []struct {
+		accepted bool
+		want     string
+	}{{true, "yes"}, {false, "no"}} {
+		ctx := t.Context()
+		instance, err := e.StartProcessInstance(ctx, api.StartRequest{ProcessDefinitionKey: "conditional", Variables: []api.Variable{{Name: "accepted", Value: tc.accepted}}})
+		if err != nil {
+			t.Fatal(err)
+		}
+		_, err = e.InjectUserTaskAfter(ctx, instance.ID, api.InsertUserTaskRequest{AfterActivityID: "approve", ID: "extra", Name: "复核", Assignee: "b"})
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, step := range []struct{ key, user string }{{"approve", "a"}, {"extra", "b"}} {
+			page, err := e.ListTasks(ctx, api.TaskFilter{ProcessInstanceID: instance.ID, Size: 10})
+			if err != nil || len(page.Data) != 1 || page.Data[0].TaskDefinitionKey != step.key {
+				t.Fatalf("顺序节点错误：%+v %v", page, err)
+			}
+			if err := e.Complete(ctx, page.Data[0].ID, api.CompleteTaskRequest{UserID: step.user}); err != nil {
+				t.Fatal(err)
+			}
+		}
+		page, err := e.ListTasks(ctx, api.TaskFilter{ProcessInstanceID: instance.ID, Size: 10})
+		if err != nil || len(page.Data) != 1 || page.Data[0].TaskDefinitionKey != tc.want {
+			t.Fatalf("accepted=%v 应仅选择 %s：%+v %v", tc.accepted, tc.want, page, err)
+		}
+	}
+}
+
 // TestInjectUserTaskAfterValidation 验证非法节点、租户、参数和挂起实例不产生部分派生数据。
 // @param t 测试上下文
 // @return 无

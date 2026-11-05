@@ -132,7 +132,7 @@ func parseElement(node *Node) (model.FlowElement, error) {
 		parseFlowNodeBase(node, &event.FlowNodeBase)
 		return event, nil
 	case "userTask":
-		task := &model.UserTask{}
+		task := &model.UserTask{DefaultFlow: node.Attr("default")}
 		parseFlowNodeBase(node, &task.FlowNodeBase)
 		task.Assignee = attrAny(node, "assignee")
 		task.CandidateUsers = splitList(attrAny(node, "candidateUsers"))
@@ -520,6 +520,11 @@ func linkFlows(elements map[string]model.FlowElement, order []string) error {
 	// 标记默认流，供排他网关与条件分支使用
 	for _, id := range order {
 		switch gateway := elements[id].(type) {
+		case *model.UserTask:
+			// 默认边必须属于当前用户节点；顺序插入后该引用随原出线一起迁移。
+			if flow, exists := elements[gateway.DefaultFlow].(*model.SequenceFlow); exists && flow.SourceRef == id {
+				flow.IsDefault = true
+			}
 		case *model.ExclusiveGateway:
 			if gateway.DefaultFlow != "" {
 				if flow, exists := elements[gateway.DefaultFlow].(*model.SequenceFlow); exists {
