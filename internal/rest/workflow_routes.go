@@ -348,12 +348,13 @@ func (s *Server) workflowHandlerFor(path string) http.HandlerFunc {
 	case "/workflow/dict/{code}": // 字典码表 → workflow.DictService（无状态可直接使用）
 		return s.serveWorkflow(s.handleWorkflowDict)
 
+	case "/workflow/process/inject/node":
+		return s.serveWorkflow(s.handleWorkflowInjectAfter)
 	// ── 保留 501 的端点（服务已注入也维持桩，待后续阶段接线）──
-	// 导入/导出/节点能力（P6 后续评估）：XML 与整流程导入、整流程导出、运行时节点注入、示例/等待节点清单
+	// 导入/导出/节点能力：XML 与整流程导入、整流程导出、示例/等待节点清单
 	case "/workflow/process/import/xml",
 		"/workflow/process/importProcess",
 		"/workflow/process/exportProcess",
-		"/workflow/process/inject/node",      // 运行时节点注入（引擎直连能力，P6 评估）
 		"/workflow/process/exmple/node/list", // 示例节点清单（P6）
 		"/workflow/process/wait/node/list":   // 等待节点清单（P6）
 		return s.handleWorkflowNotImplemented

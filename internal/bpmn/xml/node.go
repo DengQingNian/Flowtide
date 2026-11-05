@@ -22,12 +22,34 @@ type Node struct {
 // @return 根节点
 // @return 解码错误
 func Decode(r io.Reader, limit int64) (*Node, error) {
+	return decode(r, limit, false)
+}
+
+// DecodeWithPrefixes 保留原XML前缀及声明，用于修改后写回且不破坏属性值中的限定名。
+// @param r 输入流
+// @param limit 最大字节数
+// @return 根节点，Name.Space 保存前缀而非命名空间URI
+// @return 解码错误
+func DecodeWithPrefixes(r io.Reader, limit int64) (*Node, error) {
+	return decode(r, limit, true)
+}
+
+// decode 解析通用节点，按调用方式保留前缀或展开命名空间。
+// @param r 输入流
+// @param limit 最大字节数
+// @param keepPrefix 是否保留原始前缀
+// @return 根节点与解码错误
+func decode(r io.Reader, limit int64, keepPrefix bool) (*Node, error) {
 	decoder := xml.NewDecoder(io.LimitReader(r, limit))
+	next := decoder.Token
+	if keepPrefix {
+		next = decoder.RawToken
+	}
 	var root *Node
 	stack := make([]*Node, 0, 16)
 	depth := 0
 	for {
-		token, err := decoder.Token()
+		token, err := next()
 		if err == io.EOF {
 			break
 		}
@@ -53,7 +75,7 @@ func Decode(r io.Reader, limit int64) (*Node, error) {
 			}
 			stack = append(stack, node)
 		case xml.EndElement:
-			if len(stack) == 0 {
+			if len(stack) == 0 || stack[len(stack)-1].Name != t.Name {
 				return nil, fmt.Errorf("XML 结束标签不匹配")
 			}
 			stack = stack[:len(stack)-1]
@@ -68,6 +90,9 @@ func Decode(r io.Reader, limit int64) (*Node, error) {
 				return nil, fmt.Errorf("不允许 DTD 声明")
 			}
 		}
+	}
+	if len(stack) != 0 {
+		return nil, fmt.Errorf("XML 缺少结束标签")
 	}
 	if root == nil {
 		return nil, fmt.Errorf("XML 为空")

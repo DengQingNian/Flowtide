@@ -6,19 +6,18 @@ import (
 
 // workflowRetainedStubPaths 是保留 501（服务已注入也维持桩）的端点集合。
 // 该清单与 workflowHandlerFor 中"保留 501 的端点"分支严格对应，口径由
-// 016 号审计记录固定：路由表 95 条 = 已接线 84 条 + 保留 501 11 条。
+// 当前口径：路由表95条 = 已接线85条 + 保留501共10条。
 var workflowRetainedStubPaths = map[string]bool{
-	"/workflow/process/import/xml":             true,
-	"/workflow/process/importProcess":          true,
-	"/workflow/process/exportProcess":          true,
-	"/workflow/process/inject/node":            true,
-	"/workflow/process/exmple/node/list":       true,
-	"/workflow/process/wait/node/list":         true,
-	"/workflow/process/public/deploymentId":    true,
-	"/workflow/process/public/processes/id":    true,
-	"/workflow/hisstep/add":                    true,
-	"/workflow/hisstep/edit":                   true,
-	"/workflow/hisstep/delete/{ids}":           true,
+	"/workflow/process/import/xml":          true,
+	"/workflow/process/importProcess":       true,
+	"/workflow/process/exportProcess":       true,
+	"/workflow/process/exmple/node/list":    true,
+	"/workflow/process/wait/node/list":      true,
+	"/workflow/process/public/deploymentId": true,
+	"/workflow/process/public/processes/id": true,
+	"/workflow/hisstep/add":                 true,
+	"/workflow/hisstep/edit":                true,
+	"/workflow/hisstep/delete/{ids}":        true,
 }
 
 // TestWorkflowRouteTableAccounting 锁定 workflow 路由表口径，防止文档与实现的数字漂移。
@@ -26,8 +25,8 @@ var workflowRetainedStubPaths = map[string]bool{
 // @param t 测试上下文
 func TestWorkflowRouteTableAccounting(t *testing.T) {
 	const wantTotal = 95
-	const wantRetained = 11
-	const wantWired = 84
+	const wantRetained = 10
+	const wantWired = 85
 
 	if len(workflowRouteTable) != wantTotal {
 		t.Fatalf("路由表条目数变化：期望 %d，实际 %d（请同步修订文档 015 并更新本基准）", wantTotal, len(workflowRouteTable))

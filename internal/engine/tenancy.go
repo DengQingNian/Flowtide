@@ -93,7 +93,7 @@ func (e *Engine) findTenantDefinition(ctx context.Context, key string) (*definit
 	var latest *definitionState
 	for _, definition := range e.state.Definitions {
 		// 不同租户的同名定义必须分别选择，不能先选全局最新版本再鉴权。
-		if definition.Info.Key != key || e.allowTenant(ctx, definition.Info.TenantID) != nil {
+		if definition.Info.DerivedFrom != "" || definition.Info.Key != key || e.allowTenant(ctx, definition.Info.TenantID) != nil {
 			continue
 		}
 		if latest == nil || latest.Info.Version < definition.Info.Version {

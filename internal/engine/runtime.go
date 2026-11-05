@@ -57,6 +57,9 @@ func (e *Engine) startProcess(cc *commandContext, req api.StartRequest) (api.Pro
 	if err := e.allowTenant(cc.ctx, definition.Info.TenantID); err != nil {
 		return api.ProcessInstance{}, err
 	}
+	if definition.Info.DerivedFrom != "" {
+		return api.ProcessInstance{}, api.NewError("ENGINE-0681", "实例专用定义不能用于发起新实例", api.ErrConflict)
+	}
 	if definition.Info.Suspended {
 		return api.ProcessInstance{}, api.NewError("ENGINE-0102", "流程定义已挂起", api.ErrConflict)
 	}

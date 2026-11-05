@@ -33,9 +33,12 @@ func (e *Engine) ImportRows(ctx context.Context, rows []flowablerow.Row) error {
 			if process == nil {
 				return nil, api.NewError("ENGINE-0501", "流程定义不包含流程", nil)
 			}
-			e.createStartSubscriptions(cc, e.state.Definitions[definition.ID], process)
-			if timerErr := e.scheduleStartTimers(cc, e.state.Definitions[definition.ID], process); timerErr != nil {
-				return nil, timerErr
+			// 实例派生定义只服务既有实例，不产生新的启动订阅或启动定时器。
+			if definition.DerivedFrom == "" {
+				e.createStartSubscriptions(cc, e.state.Definitions[definition.ID], process)
+				if timerErr := e.scheduleStartTimers(cc, e.state.Definitions[definition.ID], process); timerErr != nil {
+					return nil, timerErr
+				}
 			}
 			if current := e.state.Versions[definition.Key]; definition.Version > current {
 				e.state.Versions[definition.Key] = definition.Version

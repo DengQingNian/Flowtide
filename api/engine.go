@@ -524,6 +524,13 @@ type RuntimeService interface {
 	// @return 任务
 	// @return 注入错误
 	InjectUserTask(ctx context.Context, processInstanceID string, req InjectRequest) (Task, error)
+	// InjectUserTaskAfter 为指定实例派生定义，在用户节点后插入新用户节点。
+	// @param ctx 上下文
+	// @param processInstanceID 运行实例ID
+	// @param req 节点及预期定义
+	// @return 实例专用派生定义
+	// @return 校验或持久化错误
+	InjectUserTaskAfter(ctx context.Context, processInstanceID string, req InsertUserTaskRequest) (ProcessDefinition, error)
 }
 
 // MigrationRequest 是流程实例迁移请求。

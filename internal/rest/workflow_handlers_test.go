@@ -1176,7 +1176,6 @@ func TestWorkflowHandlersRetainedStub501(t *testing.T) {
 		{http.MethodGet, "/workflow/process/exportProcess"},        // 整流程导出聚合未提供（P6 后续评估）
 		{http.MethodPost, "/workflow/process/public/deploymentId"}, // 按部署发布语义未提供
 		{http.MethodPost, "/workflow/process/public/processes/id"}, // 按流程发布语义未提供
-		{http.MethodPost, "/workflow/process/inject/node"},         // 运行时节点注入（P6 评估）
 		{http.MethodPost, "/workflow/process/exmple/node/list"},    // 示例节点清单（P6）
 		{http.MethodPost, "/workflow/process/wait/node/list"},      // 等待节点清单（P6）
 		{http.MethodPost, "/workflow/hisstep/add"},                 // 快照只读

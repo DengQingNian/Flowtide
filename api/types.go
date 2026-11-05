@@ -71,15 +71,18 @@ type ModelUpdate struct {
 
 // ProcessDefinition 是流程定义。
 type ProcessDefinition struct {
-	ID           string `json:"id"`                    // 流程定义 ID
-	Key          string `json:"key"`                   // 流程定义 Key
-	Name         string `json:"name"`                  // 名称
-	Description  string `json:"description,omitempty"` // 流程说明
-	Version      int    `json:"version"`               // 版本
-	DeploymentID string `json:"deploymentId"`          // 部署 ID
-	ResourceName string `json:"resourceName"`          // 资源名
-	TenantID     string `json:"tenantId"`              // 租户
-	Suspended    bool   `json:"suspended"`             // 是否挂起
+	ID              string `json:"id"`                        // 流程定义 ID
+	Key             string `json:"key"`                       // 流程定义 Key
+	Name            string `json:"name"`                      // 名称
+	Description     string `json:"description,omitempty"`     // 流程说明
+	Version         int    `json:"version"`                   // 版本
+	DeploymentID    string `json:"deploymentId"`              // 部署 ID
+	ResourceName    string `json:"resourceName"`              // 资源名
+	TenantID        string `json:"tenantId"`                  // 租户
+	Suspended       bool   `json:"suspended"`                 // 是否挂起
+	DerivedFrom     string `json:"derivedFrom,omitempty"`     // 直接来源定义，非空表示实例专用派生定义
+	DerivedFromRoot string `json:"derivedFromRoot,omitempty"` // 最初来源定义
+	DerivedVersion  int    `json:"derivedVersion,omitempty"`  // 派生次数，不参与普通定义版本选择
 }
 
 // ProcessInstance 是流程实例。
@@ -165,6 +168,15 @@ type InjectRequest struct {
 	Name          string `json:"name"`                    // 任务名称
 	Assignee      string `json:"assignee,omitempty"`      // 处理人
 	TaskID        string `json:"taskId,omitempty"`        // 并行注入的参考任务 ID
+}
+
+// InsertUserTaskRequest 是在实例专用派生定义中追加用户节点的请求，不会立即创建运行任务。
+type InsertUserTaskRequest struct {
+	AfterActivityID     string `json:"afterActivityId"`               // 原用户任务节点ID
+	ID                  string `json:"id,omitempty"`                  // 新节点ID，留空自动生成
+	Name                string `json:"name"`                          // 新节点名称
+	Assignee            string `json:"assignee"`                      // 新节点办理人或表达式
+	ProcessDefinitionID string `json:"processDefinitionId,omitempty"` // 可选预期定义，防止在旧版本上误操作
 }
 
 // TaskUpdate 是任务属性更新，nil 表示不修改。

@@ -82,6 +82,12 @@ func TestIntegrationEmbeddedMySQL(t *testing.T) {
 		t.Fatalf("任务不存在：%v %v", tasks, err)
 	}
 	task := tasks.Data[0]
+	derived, err := app.Engine().RuntimeService().InjectUserTaskAfter(callCtx, task.ProcessInstanceID, api.InsertUserTaskRequest{
+		AfterActivityID: task.TaskDefinitionKey, ID: "review", Name: "复核", Assignee: "101", ProcessDefinitionID: task.ProcessDefinitionID,
+	})
+	if err != nil {
+		t.Fatalf("插入节点失败：%v", err)
+	}
 	if err := app.Close(ctx); err != nil {
 		t.Fatal(err)
 	}
@@ -93,15 +99,27 @@ func TestIntegrationEmbeddedMySQL(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer restarted.Close(context.Background())
-	if _, err := restarted.Engine().TaskService().GetTask(callCtx, task.ID); err != nil {
-		t.Fatalf("任务重启恢复失败：%v", err)
+	if resumed, err := restarted.Engine().TaskService().GetTask(callCtx, task.ID); err != nil || resumed.ProcessDefinitionID != derived.ID {
+		t.Fatalf("任务重启恢复失败：%+v %v", resumed, err)
 	}
-	result, err = restarted.Workflow().Complete(callCtx, &api.CompleteTaskVo{BaseProcessVo: api.BaseProcessVo{TaskID: task.ID, ProcessInstanceID: task.ProcessInstanceID, UserCode: "101", Message: "同意", Type: "SP"}, TargetActivityID: "end"})
+	result, err = restarted.Workflow().Complete(callCtx, &api.CompleteTaskVo{BaseProcessVo: api.BaseProcessVo{TaskID: task.ID, ProcessInstanceID: task.ProcessInstanceID, UserCode: "101", Message: "同意", Type: "SP"}})
 	if err != nil || !result.Success {
 		t.Fatalf("workflow 办结失败：%+v %v", result, err)
+	}
+	tasks, err = restarted.Engine().TaskService().ListTasks(callCtx, api.TaskFilter{ProcessInstanceID: task.ProcessInstanceID})
+	if err != nil || len(tasks.Data) != 1 || tasks.Data[0].TaskDefinitionKey != "review" {
+		t.Fatalf("重启后原节点办结未流转至插入节点：%+v %v", tasks, err)
+	}
+	result, err = restarted.Workflow().Complete(callCtx, &api.CompleteTaskVo{BaseProcessVo: api.BaseProcessVo{TaskID: tasks.Data[0].ID, ProcessInstanceID: task.ProcessInstanceID, UserCode: "101", Message: "复核完成", Type: "SP"}})
+	if err != nil || !result.Success {
+		t.Fatalf("插入节点办结失败：%+v %v", result, err)
+	}
+	ended, err := restarted.Engine().HistoryService().GetHistoricProcessInstance(callCtx, task.ProcessInstanceID)
+	if err != nil || ended.EndTime == nil {
+		t.Fatalf("插入节点办结后未结束：%+v %v", ended, err)
 	}
 	if _, err := restarted.RunDueJobs(callCtx); err != nil {
 		t.Fatal(err)
 	}
-	t.Log("已验证：SQL门面发起/办结、独占拒绝、宿主连接池保留、停启恢复")
+	t.Log("已验证：SQL门面发起/办结、派生节点续办、独占拒绝、宿主连接池保留、停启恢复")
 }

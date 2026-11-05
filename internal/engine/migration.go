@@ -90,6 +90,9 @@ func (e *Engine) prepareMigration(ctx context.Context, req api.MigrationRequest)
 	if err := e.allowTenant(ctx, target.Info.TenantID); err != nil {
 		return nil, nil, err
 	}
+	if target.Info.DerivedFrom != "" && instance.ProcessDefinitionID != target.Info.ID {
+		return nil, nil, api.NewError("ENGINE-0682", "不能迁入其他实例的专用定义", api.ErrConflict)
+	}
 	if target.Info.Suspended {
 		return nil, nil, api.NewError("ENGINE-0641", "目标流程定义已挂起", api.ErrConflict)
 	}

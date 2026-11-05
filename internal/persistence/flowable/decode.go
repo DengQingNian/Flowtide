@@ -271,16 +271,34 @@ func decodeDefinition(row Row) (api.ProcessDefinition, error) {
 	if err != nil {
 		return api.ProcessDefinition{}, err
 	}
+	derivedFrom, err := optionalStringValue(row, "DERIVED_FROM_")
+	if err != nil {
+		return api.ProcessDefinition{}, err
+	}
+	derivedRoot, err := optionalStringValue(row, "DERIVED_FROM_ROOT_")
+	if err != nil {
+		return api.ProcessDefinition{}, err
+	}
+	derivedVersion := 0
+	if row.Values["DERIVED_VERSION_"] != nil {
+		derivedVersion, err = intValue(row, "DERIVED_VERSION_")
+		if err != nil {
+			return api.ProcessDefinition{}, err
+		}
+	}
 	return api.ProcessDefinition{
-		ID:           id,
-		Key:          key,
-		Name:         name,
-		Description:  description,
-		Version:      version,
-		DeploymentID: deploymentID,
-		ResourceName: resourceName,
-		TenantID:     tenant,
-		Suspended:    suspension == 2,
+		ID:              id,
+		Key:             key,
+		Name:            name,
+		Description:     description,
+		Version:         version,
+		DeploymentID:    deploymentID,
+		ResourceName:    resourceName,
+		TenantID:        tenant,
+		Suspended:       suspension == 2,
+		DerivedFrom:     derivedFrom,
+		DerivedFromRoot: derivedRoot,
+		DerivedVersion:  derivedVersion,
 	}, nil
 }
 

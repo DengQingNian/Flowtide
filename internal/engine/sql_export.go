@@ -93,9 +93,9 @@ func (e *Engine) repositoryRowsLocked() ([]flowablerow.Row, error) {
 		_ = procRow.Set("SUSPENSION_STATE_", suspension)
 		_ = procRow.Set("TENANT_ID_", definition.Info.TenantID)
 		_ = procRow.Set("ENGINE_VERSION_", "8.1.0.3")
-		_ = procRow.Set("DERIVED_FROM_", "")
-		_ = procRow.Set("DERIVED_FROM_ROOT_", "")
-		_ = procRow.Set("DERIVED_VERSION_", 0)
+		_ = procRow.Set("DERIVED_FROM_", definition.Info.DerivedFrom)
+		_ = procRow.Set("DERIVED_FROM_ROOT_", definition.Info.DerivedFromRoot)
+		_ = procRow.Set("DERIVED_VERSION_", definition.Info.DerivedVersion)
 		rows = append(rows, *procRow)
 	}
 	models := make([]*modelState, 0, len(e.state.Models))
