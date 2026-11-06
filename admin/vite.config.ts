@@ -43,6 +43,7 @@ export default defineConfig({
     port: 5174,
     proxy: {
       '/service': { target: 'http://localhost:8080', changeOrigin: false },
+      '/workflow': { target: 'http://localhost:8080', changeOrigin: false },
       '/healthz': { target: 'http://localhost:8080', changeOrigin: false },
       '/readyz': { target: 'http://localhost:8080', changeOrigin: false },
       '/metrics': { target: 'http://localhost:8080', changeOrigin: false },

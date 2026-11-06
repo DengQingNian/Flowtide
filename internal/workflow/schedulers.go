@@ -72,10 +72,11 @@ type Scheduler struct {
 	RemindScanFn    func(ctx context.Context) error // 催办扫描触发函数
 	ZombieScanFn    func(ctx context.Context) error // 僵尸监控触发函数
 
-	autoCompleteInterval time.Duration // 自动办结周期
-	remindInterval       time.Duration // 催办扫描周期
-	zombieInterval       time.Duration // 僵尸监控周期
-	timeoutHour          int           // 超时提醒每日时刻
+	autoCompleteInterval time.Duration        // 自动办结周期
+	remindInterval       time.Duration        // 催办扫描周期
+	zombieInterval       time.Duration        // 僵尸监控周期
+	timeoutHour          int                  // 超时提醒每日时刻
+	timeoutWait          func() time.Duration // 超时提醒等待时长（默认按真实时间对齐，测试可替换）
 
 	stop chan struct{} // 停止信号
 	done chan struct{} // 停止完成信号
@@ -170,7 +171,7 @@ func (s *Scheduler) loop(ctx context.Context, stop <-chan struct{}) {
 	zbTicker := time.NewTicker(s.zombieInterval)
 	defer zbTicker.Stop()
 	// 超时提醒对齐每日 timeoutHour 点（启动即计算下次触发；wall-clock 真实等待，测试经直调 tick 绕过）
-	timeoutTimer := time.NewTimer(time.Until(nextDailyRun(s.clockNow(), s.timeoutHour)))
+	timeoutTimer := time.NewTimer(s.timeoutWaitDuration())
 	defer timeoutTimer.Stop()
 	for {
 		select {
@@ -185,7 +186,7 @@ func (s *Scheduler) loop(ctx context.Context, stop <-chan struct{}) {
 		case <-timeoutTimer.C:
 			_ = s.runTimeoutRemind(ctx)
 			// 触发后重排到下一个每日时刻
-			timeoutTimer.Reset(time.Until(nextDailyRun(s.clockNow(), s.timeoutHour)))
+			timeoutTimer.Reset(s.timeoutWaitDuration())
 		}
 	}
 }
@@ -194,6 +195,19 @@ func (s *Scheduler) loop(ctx context.Context, stop <-chan struct{}) {
 // @return 当前时间
 func (s *Scheduler) clockNow() time.Time {
 	return s.opts.Clock.Now()
+}
+
+// timeoutWaitDuration 计算超时提醒定时器距下一次每日触发时刻的等待时长。
+// time.Timer 只认真实流逝时间：注入时钟（固定时钟或滞后于真实时间的时钟）求差可能得到
+// 非正时长，使定时器立即触发、触发后又立刻重排，形成忙循环；故默认按真实时钟对齐，
+// 测试可替换 timeoutWait 直接控制等待时长。
+// @return 等待时长
+func (s *Scheduler) timeoutWaitDuration() time.Duration {
+	// 测试注入的等待时长优先
+	if s.timeoutWait != nil {
+		return s.timeoutWait()
+	}
+	return time.Until(nextDailyRun(time.Now(), s.timeoutHour))
 }
 
 // runAutoComplete 调用注入的触发函数或内置自动办结 tick。

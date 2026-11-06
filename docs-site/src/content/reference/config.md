@@ -48,6 +48,7 @@ PostgreSQL 迁移工具从 <code>FLOWABLE_POSTGRES_DSN</code> 读取连接。仓
 
 | 字段 | 说明 |
 | --- | --- |
+| <code>StartupContext</code> | 初始化与恢复上下文（嵌入模式传宿主超时） |
 | <code>HistoryLevel</code> | 历史级别 |
 | <code>Clock</code> | 时钟注入（内部类型） |
 | <code>IDs</code> | ID 生成器（内部类型） |
@@ -60,11 +61,12 @@ PostgreSQL 迁移工具从 <code>FLOWABLE_POSTGRES_DSN</code> 读取连接。仓
 | <code>LoadTenant</code> | 恢复租户 |
 | <code>RecordSequenceFlowHistory</code> | 顺序流历史标记 |
 
-仓库外模块只能稳定使用字符串/布尔字段；内部类型字段无法从外部命名。详见 [引擎配置](/docs/sdk/config)。
+仓库外模块只能稳定使用字符串/布尔字段；内部类型字段无法从外部命名。需要数据库与 workflow 门面时使用 <code>NewEmbedded</code> 的 <code>EmbeddedConfig</code>，详见 [宿主嵌入 SDK](/docs/sdk/embedding)。
 
 ## 配置组合约束
 
 - <code>-storage</code> 与 <code>-state</code> 不能混用。
+- 嵌入模式的 <code>InMemory</code> 与数据库字段二选一，连接池上限不能为 1。
 - 行仓储与快照互斥。
 - TLS 证书与私钥必须同时提供。
 - 客户端身份要求 <code>require-verify</code>。

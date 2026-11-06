@@ -64,7 +64,7 @@ tags: [持久化, MySQL, PostgreSQL, 行仓储]
 2. 集群租约、作业抢占、故障转移与幂等。
 3. 异步历史写入与定期清理。
 4. 真实数据库上的容量基线与长稳测试。
-5. 从仓库外模块配置行仓储：<code>flowtide.Config</code> 字段引用内部包类型，外部模块目前只能使用内存或 <code>StatePath</code>。
+5. 仓库外配置行仓储：已由 <code>NewEmbedded</code> 补齐（v0.1.1）；<code>flowtide.Config.RowRepository</code> 仍是仓库内用法。
 
 ## 相关阅读
 

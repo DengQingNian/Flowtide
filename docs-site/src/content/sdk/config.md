@@ -24,6 +24,7 @@ app, err := flowtide.New(flowtide.Config{
 
 | 字段 | 类型 | 默认 | 说明 |
 | --- | --- | --- | --- |
+| <code>StartupContext</code> | context.Context | 空 | 仅用于初始化与恢复，完成后不保留 |
 | <code>HistoryLevel</code> | string | <code>audit</code> | none/instance/task/activity/audit/full |
 | <code>Clock</code> | internal 接口 | 真实时钟 | 测试可注入假时钟 |
 | <code>IDs</code> | internal 接口 | UUIDv7 | 测试可注入确定性 ID |
@@ -56,7 +57,7 @@ app, err := flowtide.New(flowtide.Config{StatePath: "./data/engine.json"})
 
 ### 行仓储
 
-行仓储字段引用 <code>internal/persistence/flowable.Repository</code>，仓库外模块无法直接构造。当前只能通过服务端 <code>-storage mysql-rows</code> 使用。这是已知的 SDK 边界，不是推荐用法。
+行仓储字段引用 <code>internal/persistence/flowable.Repository</code>，仓库外模块无法直接构造。需要数据库的生产接入使用 <code>NewEmbedded</code>：接入方只提供 <code>*sql.DB</code>，行仓储、写者锁与恢复由 SDK 装配。独立服务对应 <code>-storage mysql-rows</code>。
 
 ## 仓库外模块限制
 
@@ -64,7 +65,7 @@ app, err := flowtide.New(flowtide.Config{StatePath: "./data/engine.json"})
 
 - 仓库外可以设置 <code>HistoryLevel</code>、<code>TenantID</code>、<code>StatePath</code>、<code>MaxAgendaSteps</code>、<code>LoadTenant</code>、<code>LoadRows</code> 与 <code>RecordSequenceFlowHistory</code>。
 - 仓库外不能命名 <code>Clock</code>、<code>IDs</code>、<code>StateStore</code>、<code>RowRepository</code> 的类型来注入实现。
-- 需要数据库时使用服务端模式，或等待后续公共持久化抽象。
+- 需要数据库、workflow 门面或 HTTP 处理器时使用 [宿主嵌入 SDK](/docs/sdk/embedding) 的 <code>NewEmbedded</code>。
 
 ::: warning 不要依赖别名
 类型别名可能随重构调整。外部模块应只使用稳定字段，并在升级时重新编译验证。

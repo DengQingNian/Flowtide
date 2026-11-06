@@ -419,6 +419,8 @@ func TestSchedulerTriggerFunctions(t *testing.T) {
 	scheduler.autoCompleteInterval = 20 * time.Millisecond
 	scheduler.remindInterval = 20 * time.Millisecond
 	scheduler.zombieInterval = 20 * time.Millisecond
+	// 超时提醒默认按真实时间对齐每日 8 点，测试窗口内不触发；固定为一天避免墙钟恰好落在触发点
+	scheduler.timeoutWait = func() time.Duration { return 24 * time.Hour }
 	// Start → 等待触发 → Stop
 	scheduler.Start(context.Background())
 	time.Sleep(120 * time.Millisecond)
@@ -429,12 +431,27 @@ func TestSchedulerTriggerFunctions(t *testing.T) {
 		t.Errorf("触发计数错误: ac=%d timeout=%d remind=%d zombie=%d",
 			autoCompleteCalls.Load(), timeoutCalls.Load(), remindCalls.Load(), zombieCalls.Load())
 	}
-	// 超时提醒未到 8 点不触发（假时钟 08:00 整排次日，真实计时器在测试窗口内不触发）
+	// 超时提醒在测试窗口内不触发（等待时长固定为一天）
 	_ = fx
 	// 重复 Start 幂等（已 Stop 后允许再启动一轮）
 	scheduler.Start(context.Background())
 	time.Sleep(40 * time.Millisecond)
 	scheduler.Stop()
+}
+
+// TestTimeoutWaitDuration 验证超时提醒等待时长按真实时间对齐且可被测试替换。
+// @param t 测试上下文
+func TestTimeoutWaitDuration(t *testing.T) {
+	// 注入的固定时钟停留在过去：默认时长按真实时间计算，必须为正（否则定时器会忙转）
+	scheduler := NewScheduler(SchedulerConfig{Options: Options{Clock: clock.NewFake(completeFixtureTime)}})
+	if wait := scheduler.timeoutWaitDuration(); wait <= 0 || wait > 24*time.Hour {
+		t.Fatalf("默认等待时长错误: %v", wait)
+	}
+	// 测试替换后直接返回替换值
+	scheduler.timeoutWait = func() time.Duration { return time.Minute }
+	if wait := scheduler.timeoutWaitDuration(); wait != time.Minute {
+		t.Fatalf("替换等待时长错误: %v", wait)
+	}
 }
 
 // TestSchedulerTickDependenciesMissing 验证依赖缺失时各 tick 不报错。

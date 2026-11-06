@@ -1,3 +1,5 @@
 # 命令入口由构建、外部 SDK 和数据库验收覆盖，不计入核心库语句覆盖率。
 github.com/DengQingNian/Flowtide/cmd/
 github.com/DengQingNian/Flowtide/tools/
+# 示例入口由文档构建与手工冒烟覆盖，不计入核心库覆盖率。
+github.com/DengQingNian/Flowtide/examples/
