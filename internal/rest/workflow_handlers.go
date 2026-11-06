@@ -14,6 +14,7 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
+	"strings"
 
 	"github.com/DengQingNian/Flowtide/api"
 	"github.com/DengQingNian/Flowtide/internal/workflow"
@@ -602,26 +603,32 @@ func (s *Server) handleWorkflowDeploy(w http.ResponseWriter, r *http.Request, pa
 	writeWorkflowResult(w, result, err)
 }
 
-// handleWorkflowHighlightImg 查询流程图高亮数据（DELETE /workflow/process/highlight/img 与 /normal/img，
-// DELETE 方法保留 Java 兼容）。
+// handleWorkflowHighlightImg 流程图 PNG 输出（DELETE /workflow/process/highlight/img 与 /normal/img，
+// DELETE 方法保留 Java 兼容；对位 Java FlowableController.java:562/582 → ProcessesUtil.genHightProcessDiagram/
+// genProcessImage 向 HttpServletResponse 写 image/png 二进制）。
+// highlight 输出当前活动高亮图；normal 输出无高亮普通流程图。
 // 参数：query/body processInstanceId 或 taskId 分派，都缺 → 参数错误。
 // @param w 响应
 // @param r 请求
 // @param params 参数读取器
 func (s *Server) handleWorkflowHighlightImg(w http.ResponseWriter, r *http.Request, params *workflowParams) {
 	instanceID := params.get("processInstanceId")
-	if instanceID != "" {
-		result, err := s.workflow.GetFlowHighlight(r.Context(), instanceID)
-		writeWorkflowResult(w, result, err)
+	// 圈复杂度 >= 3：实例直传与按 taskId 反查两条入参链路。
+	if instanceID == "" {
+		if taskID := params.get("taskId"); taskID != "" {
+			task, err := s.engine.TaskService().GetTask(r.Context(), taskID)
+			if err != nil {
+				writeWorkflowParamError(w, err)
+				return
+			}
+			instanceID = task.ProcessInstanceID
+		}
+	}
+	if instanceID == "" {
+		writeWorkflowParamError(w, api.NewError("REST-0115", "缺少必填参数 processInstanceId 或 taskId", api.ErrBadRequest))
 		return
 	}
-	taskID := params.get("taskId")
-	if taskID != "" {
-		result, err := s.workflow.GetFlowHighlightByTask(r.Context(), taskID)
-		writeWorkflowResult(w, result, err)
-		return
-	}
-	writeWorkflowParamError(w, api.NewError("REST-0115", "缺少必填参数 processInstanceId 或 taskId", api.ErrBadRequest))
+	s.writeInstanceDiagram(w, r, instanceID, strings.Contains(r.URL.Path, "highlight"))
 }
 
 // ─── /task/**：撤回/直送 ────────────────────────────────────────

@@ -40,12 +40,13 @@ type TransferTaskRequest struct {
 	Message  string // 转办意见（必填）
 }
 
-// ResolveTaskRequest 是归还（处理委派）请求（对位 Java ProcessesUtil#resolveTask:1904）。
+// ResolveTaskRequest 是归还（处理委派）请求（对位 Java ProcessesUtil#resolveTask:2318）。
 type ResolveTaskRequest struct {
-	TaskID   string // 任务 Id（必填）
-	UserCode string // 操作人身份 Id（空时按任务所有者留痕）
-	Message  string // 归还意见（必填）
-	Type     string // 意见类型代码，空时默认 SP
+	TaskID    string         // 任务 Id（必填）
+	UserCode  string         // 操作人身份 Id（空时按任务所有者留痕）
+	Message   string         // 归还意见（必填）
+	Type      string         // 意见类型代码，空时默认 SP
+	Variables map[string]any // 任务局部变量（对位 Activiti resolveTask(taskId, variables)，可空）
 }
 
 // CompleteService 是任务办结域服务（P1-E）。
@@ -971,7 +972,8 @@ func (s *CompleteService) ResolveTask(ctx context.Context, req *ResolveTaskReque
 		return err
 	}
 	// Java resolveTask 无操作人校验；引擎非空操作人必须为所有者，故传空跳过
-	if err := s.engine.TaskService().Resolve(ctx, req.TaskID, ""); err != nil {
+	// 局部变量随归还同一命令写入（ResolveWithVariables），变量写入失败时归还同样不生效。
+	if err := s.engine.TaskService().ResolveWithVariables(ctx, req.TaskID, "", mapToVariables(req.Variables)); err != nil {
 		return err
 	}
 	// 留痕操作人：请求操作人缺省取任务所有者

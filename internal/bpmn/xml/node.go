@@ -38,7 +38,8 @@ func DecodeWithPrefixes(r io.Reader, limit int64) (*Node, error) {
 // @param r 输入流
 // @param limit 最大字节数
 // @param keepPrefix 是否保留原始前缀
-// @return 根节点与解码错误
+// @return 根节点
+// @return 解码错误
 func decode(r io.Reader, limit int64, keepPrefix bool) (*Node, error) {
 	decoder := xml.NewDecoder(io.LimitReader(r, limit))
 	next := decoder.Token

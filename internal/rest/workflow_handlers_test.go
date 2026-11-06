@@ -7,6 +7,7 @@ package rest
 import (
 	"context"
 	"encoding/json"
+	"image/png"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -26,6 +27,8 @@ import (
 const workflowFacadeBPMN = `<?xml version="1.0" encoding="UTF-8"?>
 <definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"
              xmlns:flowable="http://flowable.org/bpmn"
+             xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+             xmlns:omgdc="http://www.omg.org/spec/DD/20100524/DC"
              targetNamespace="http://example.com">
   <process id="facadeProc" isExecutable="true">
     <startEvent id="start"/>
@@ -36,6 +39,14 @@ const workflowFacadeBPMN = `<?xml version="1.0" encoding="UTF-8"?>
     <sequenceFlow id="f3" sourceRef="approve" targetRef="end"/>
     <endEvent id="end"/>
   </process>
+  <bpmndi:BPMNDiagram id="facadeDiagram">
+    <bpmndi:BPMNPlane bpmnElement="facadeProc">
+      <bpmndi:BPMNShape bpmnElement="start"><omgdc:Bounds x="10" y="20" width="36" height="36"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="apply"><omgdc:Bounds x="80" y="10" width="80" height="56"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="approve"><omgdc:Bounds x="200" y="10" width="80" height="56"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="end"><omgdc:Bounds x="315" y="20" width="36" height="36"/></bpmndi:BPMNShape>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
 </definitions>`
 
 // workflowTravelBPMN 是设计器链路专用语料（process id 与模型代号 travelProc 一致）。
@@ -140,6 +151,21 @@ func requireWorkflowOK(t *testing.T, response *http.Response) workflowRBody {
 		t.Fatalf("应成功，实际失败: %+v", body)
 	}
 	return body
+}
+
+// requireWorkflowPNG 断言流程图端点返回有效 PNG。
+// @param t 测试上下文
+// @param response HTTP 响应
+func requireWorkflowPNG(t *testing.T, response *http.Response) {
+	t.Helper()
+	defer func() { _ = response.Body.Close() }()
+	if response.StatusCode != http.StatusOK || response.Header.Get("Content-Type") != "image/png" {
+		body, _ := io.ReadAll(response.Body)
+		t.Fatalf("应返回 PNG，实际 %d %s: %s", response.StatusCode, response.Header.Get("Content-Type"), body)
+	}
+	if _, err := png.Decode(response.Body); err != nil {
+		t.Fatalf("无法解码流程图 PNG: %v", err)
+	}
 }
 
 // requireWorkflowBizFail 断言响应为 HTTP 200 的业务失败（success=false + ErrorMessage）。
@@ -388,9 +414,9 @@ func TestWorkflowHandlersProcessLifecycle(t *testing.T) {
 	requireWorkflowParamFail(t, missingHistory)
 
 	highlight := doWorkflowJSON(t, http.MethodDelete, base+"/workflow/process/highlight/img?tenantId=bizA&processInstanceId="+instanceID, "")
-	requireWorkflowOK(t, highlight)
+	requireWorkflowPNG(t, highlight)
 	highlightByTask := doWorkflowJSON(t, http.MethodDelete, base+"/workflow/process/normal/img?tenantId=bizA&taskId="+nextTaskID, "")
-	requireWorkflowOK(t, highlightByTask)
+	requireWorkflowPNG(t, highlightByTask)
 	missingHighlight := doWorkflowJSON(t, http.MethodDelete, base+"/workflow/process/highlight/img?tenantId=bizA", "")
 	requireWorkflowParamFail(t, missingHighlight)
 
@@ -659,7 +685,7 @@ func TestWorkflowHandlersSignFamily(t *testing.T) {
 
 	// 减签后实例状态应仍可查询（流程图高亮作为存活探针）
 	stillAlive := doWorkflowJSON(t, http.MethodDelete, base+"/workflow/process/highlight/img?tenantId=bizA&processInstanceId="+instanceID, "")
-	requireWorkflowOK(t, stillAlive)
+	requireWorkflowPNG(t, stillAlive)
 }
 
 // TestWorkflowHandlersDelegateRemindExceptionDict 覆盖 /delegate、/remind、/exception、/dict 端点。
@@ -1106,12 +1132,16 @@ func TestWorkflowHandlersExtraCapabilities(t *testing.T) {
 		t.Fatalf("引擎委派失败: %v", err)
 	}
 	resolve := doWorkflowJSON(t, http.MethodPost, base+"/workflow/process/resolve/task?tenantId=bizA",
-		`{"taskId":"`+taskID+`","userId":"u1"}`)
+		`{"taskId":"`+taskID+`","userId":"u1","variables":{"remark":"已核实"}}`)
 	requireWorkflowOK(t, resolve)
 	resolved, err := env.engine.TaskService().GetTask(ctx, taskID)
 	// Flowable 语义：resolve 后处理人恢复为所有者，委派态置为 RESOLVED
 	if err != nil || resolved.Assignee != "u1" || resolved.DelegationState != "RESOLVED" {
 		t.Fatalf("委派处理未恢复所有者: %+v err=%v", resolved, err)
+	}
+	remark, err := env.engine.TaskService().GetTaskVariable(ctx, taskID, "remark")
+	if err != nil || remark != "已核实" {
+		t.Fatalf("委派归还未写入任务局部变量: %v，错误 %v", remark, err)
 	}
 	missingResolve := doWorkflowJSON(t, http.MethodPost, base+"/workflow/process/resolve/task?tenantId=bizA", `{}`)
 	requireWorkflowParamFail(t, missingResolve)

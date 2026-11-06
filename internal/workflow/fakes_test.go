@@ -15,29 +15,23 @@ type fakeCommentTasks struct {
 	failListInstance bool          // 查询评论时返回错误
 }
 
-// AddComment 记录任务级评论调用。
+// AddCommentDetail 记录任务级或流程级评论调用。
 // @param ctx 上下文
-// @param taskID 任务 ID
-// @param userID 作者
-// @param message 内容
-// @return 评论
-// @return 错误
-func (f *fakeCommentTasks) AddComment(ctx context.Context, taskID, userID, message string) (api.Comment, error) {
-	comment := api.Comment{ID: "cmt", TaskID: taskID, ProcessInstanceID: "pi", Type: "comment", Message: message, UserID: userID, Time: time.Now()}
-	f.addComments = append(f.addComments, comment)
-	return comment, nil
-}
-
-// AddProcessComment 记录流程级评论调用。
-// @param ctx 上下文
+// @param taskID 任务 ID，可空
 // @param processInstanceID 实例 ID
 // @param userID 作者
-// @param message 内容
+// @param typ 类型
+// @param message 展示内容
+// @param fullMessage 原始内容
 // @return 评论
 // @return 错误
-func (f *fakeCommentTasks) AddProcessComment(ctx context.Context, processInstanceID, userID, message string) (api.Comment, error) {
-	comment := api.Comment{ID: "cmt", ProcessInstanceID: processInstanceID, Type: "comment", Message: message, UserID: userID, Time: time.Now()}
-	f.addProcess = append(f.addProcess, comment)
+func (f *fakeCommentTasks) AddCommentDetail(ctx context.Context, taskID, processInstanceID, userID, typ, message, fullMessage string) (api.Comment, error) {
+	comment := api.Comment{ID: "cmt", TaskID: taskID, ProcessInstanceID: processInstanceID, Type: typ, Message: message, FullMessage: fullMessage, UserID: userID, Time: time.Now()}
+	if taskID == "" {
+		f.addProcess = append(f.addProcess, comment)
+	} else {
+		f.addComments = append(f.addComments, comment)
+	}
 	return comment, nil
 }
 

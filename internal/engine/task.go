@@ -579,6 +579,19 @@ func (e *Engine) Delegate(ctx context.Context, taskID, userID string) error {
 // @param userID 操作人，非空时必须为所有者
 // @return 处理错误
 func (e *Engine) Resolve(ctx context.Context, taskID, userID string) error {
+	return e.ResolveWithVariables(ctx, taskID, userID, nil)
+}
+
+// ResolveWithVariables 处理委派任务并同步写入任务局部变量（对位 Activiti resolveTask(taskId, variables)，
+// Java 契约见 ProcessesUtil#resolveTask:2318；宿主桥接此前静默丢弃 variables，本命令补齐该端口）。
+// 校验链与 Resolve 一致：任务存在 → 租户 → 实例未挂起 → 委派状态 → 所有者校验；
+// 局部变量在归还状态变更前写入同一命令事务，任一步失败整体回滚（不产生半写入）。
+// @param ctx 上下文
+// @param taskID 任务 ID
+// @param userID 操作人，非空时必须为所有者
+// @param variables 任务局部变量集合，可空
+// @return 处理错误
+func (e *Engine) ResolveWithVariables(ctx context.Context, taskID, userID string, variables []api.Variable) error {
 	_, err := e.execute(ctx, func(cc *commandContext) (any, error) {
 		task, ok := e.findTask(taskID)
 		if !ok {
@@ -596,6 +609,14 @@ func (e *Engine) Resolve(ctx context.Context, taskID, userID string) error {
 		}
 		if strings.TrimSpace(userID) != "" && userID != task.Task.Owner {
 			return nil, api.NewError("ENGINE-0813", "只有任务所有者可以处理委派", api.ErrForbidden)
+		}
+		// Java resolveTask(taskId, variables) 的变量为任务局部作用域；先写变量再改委派状态，失败整体回滚。
+		for _, variable := range variables {
+			if variable.Name == "" {
+				return nil, api.NewError("ENGINE-1103", "变量名不能为空", api.ErrBadRequest)
+			}
+			task.LocalVariables[variable.Name] = copyValue(variable.Value)
+			e.recordTaskHistoricVariable(task, variable.Name, variable.Value, cc.now)
 		}
 		task.Task.Assignee = task.Task.Owner
 		task.Task.DelegationState = "RESOLVED"

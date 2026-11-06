@@ -6,7 +6,7 @@ import (
 
 // workflowRetainedStubPaths 是保留 501（服务已注入也维持桩）的端点集合。
 // 该清单与 workflowHandlerFor 中"保留 501 的端点"分支严格对应，口径由
-// 当前口径：路由表95条 = 已接线85条 + 保留501共10条。
+// 当前口径：路由表100条 = 已接线90条 + 保留501共10条。
 var workflowRetainedStubPaths = map[string]bool{
 	"/workflow/process/import/xml":          true,
 	"/workflow/process/importProcess":       true,
@@ -24,9 +24,9 @@ var workflowRetainedStubPaths = map[string]bool{
 // 口径：路由表条目 = 已接线 + 保留 501；任一变化都会使本用例失败并要求同步修订文档 015。
 // @param t 测试上下文
 func TestWorkflowRouteTableAccounting(t *testing.T) {
-	const wantTotal = 95
+	const wantTotal = 100
 	const wantRetained = 10
-	const wantWired = 85
+	const wantWired = 90
 
 	if len(workflowRouteTable) != wantTotal {
 		t.Fatalf("路由表条目数变化：期望 %d，实际 %d（请同步修订文档 015 并更新本基准）", wantTotal, len(workflowRouteTable))

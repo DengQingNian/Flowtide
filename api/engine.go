@@ -449,6 +449,20 @@ type RuntimeService interface {
 	// @param activityIDs 目标活动 ID 列表
 	// @return 迁移错误
 	ChangeActivityState(ctx context.Context, executionID string, activityIDs []string) error
+	// DoMoveActivity 普通节点跳转（对位 Java moveActivity：按来源活动定位执行并迁移到目标活动；
+	// 挂起实例拒绝，多条并行分支收拢显式拒绝）。
+	// @param ctx 上下文
+	// @param processInstanceID 实例 ID
+	// @param fromActivityID 来源活动 ID
+	// @param toActivityID 目标活动 ID
+	// @return 迁移错误
+	DoMoveActivity(ctx context.Context, processInstanceID, fromActivityID, toActivityID string) error
+	// DoMoveExecution 执行迁移（对位 Java moveExecution：无来源节点，把实例根执行迁移到目标活动）。
+	// @param ctx 上下文
+	// @param processInstanceID 实例 ID
+	// @param toActivityID 目标活动 ID
+	// @return 迁移错误
+	DoMoveExecution(ctx context.Context, processInstanceID, toActivityID string) error
 	// ChangeProcessInstanceState 将实例根执行移动到新的活动。
 	// @param ctx 上下文
 	// @param processInstanceID 实例 ID
@@ -695,6 +709,22 @@ type TaskService interface {
 	// @param userID 操作人，非空时必须为所有者
 	// @return 处理错误
 	Resolve(ctx context.Context, taskID, userID string) error
+	// ResolveWithVariables 处理委派任务并同步写入任务局部变量（对位 Activiti resolveTask(taskId, variables)，
+	// 供 Java 契约 ProcessesUtil#resolveTask:2318 使用；变量写入与归还状态变更在同一命令事务内生效）。
+	// @param ctx 上下文
+	// @param taskID 任务 ID
+	// @param userID 操作人，非空时必须为所有者
+	// @param variables 任务局部变量集合（可空）
+	// @return 处理错误
+	ResolveWithVariables(ctx context.Context, taskID, userID string, variables []Variable) error
+	// IsMultiInstanceLastPerson 判断任务是否为其节点的最后一名待办成员（对位 Java
+	// ProcessesUtil#isMultiInstanceLastPerson：非会签用户任务恒 true；会签按完成条件比例
+	// 以 (completed+1)/all 整数除法判定；无完成条件或非用户任务返回 false；任务不存在返回 false）。
+	// @param ctx 上下文
+	// @param taskID 任务 ID
+	// @return 是否最后一名待办成员
+	// @return 查询错误
+	IsMultiInstanceLastPerson(ctx context.Context, taskID string) (bool, error)
 	// AddComment 添加任务评论。
 	// @param ctx 上下文
 	// @param taskID 任务 ID
@@ -703,6 +733,18 @@ type TaskService interface {
 	// @return 评论
 	// @return 添加错误
 	AddComment(ctx context.Context, taskID, userID, message string) (Comment, error)
+	// AddCommentDetail 添加评论并显式指定类型与完整原文（对位 Java AddHisCommentCmd：
+	// TYPE_ 缺省 SP、MESSAGE_ 存归一化内容、FULL_MSG_ 存原文、ACTION_='AddComment'）。
+	// @param ctx 上下文
+	// @param taskID 任务 ID（任务级评论，可为空）
+	// @param processInstanceID 流程实例 ID（taskID 为空时必填）
+	// @param userID 作者
+	// @param typ 类型代码（空时默认 SP）
+	// @param message 归一化后的展示内容
+	// @param fullMessage 原始内容
+	// @return 评论
+	// @return 添加错误
+	AddCommentDetail(ctx context.Context, taskID, processInstanceID, userID, typ, message, fullMessage string) (Comment, error)
 	// AddProcessComment 添加流程实例评论。
 	// @param ctx 上下文
 	// @param processInstanceID 实例 ID

@@ -22,6 +22,9 @@ func TestCommentAdd(t *testing.T) {
 	if len(tasks.addComments) != 1 || tasks.addComments[0].TaskID != "task-1" {
 		t.Fatalf("任务级意见未走 AddComment: %+v", tasks.addComments)
 	}
+	if comment.Type != CommentTypeSP || comment.FullMessage != " 同意  本单。 " {
+		t.Fatalf("评论类型或原文丢失: %+v", comment)
+	}
 	// 空白折叠为单空格
 	if comment.Message != " 同意 本单。 " {
 		t.Fatalf("空白折叠语义错误: %q", comment.Message)

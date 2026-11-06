@@ -490,4 +490,33 @@ type WorkflowFacade interface {
 	// @return 统一返回（data 为节点与用户视图列表）
 	// @return 错误
 	GetNextUserTaskAndUserListByKey(ctx context.Context, tenantID, processDefinitionKey, businessKey string, vars map[string]any) (R, error)
+
+	// ── 引擎能力缺口批次──
+
+	// DoAddComment 写入审批意见（对位 Java addComment → AddHisCommentCmd：TYPE_ 缺省 SP、
+	// MESSAGE_ 压平截断 3900、FULL_MSG_ 存原文）。
+	// @param ctx 上下文
+	// @param taskID 任务 ID（可为空）
+	// @param userID 作者身份 Id
+	// @param processInstanceID 流程实例 ID（taskID 为空时必填）
+	// @param typ 意见类型代码（空时默认 SP）
+	// @param msg 意见内容
+	// @return 统一返回（data 为落库评论）
+	// @return 错误
+	DoAddComment(ctx context.Context, taskID, userID, processInstanceID, typ, msg string) (R, error)
+	// IsMultiInstanceLastPerson 判断会签任务是否为最后一名待办成员（对位
+	// ProcessesUtil#isMultiInstanceLastPerson：非会签用户任务恒 true；会签按完成条件比例整数除法判定）。
+	// @param ctx 上下文
+	// @param taskID 任务 ID
+	// @return 统一返回（data 为布尔值）
+	// @return 错误
+	IsMultiInstanceLastPerson(ctx context.Context, taskID string) (R, error)
+
+	// TriggerDelegateScan 触发一次定时委托扫描（对位 Java
+	// FlowableScheduleTask.scheduledDelegatedTask：扫描未委托活跃待办，getTaskConsignerId
+	// 三级命中后按 doTaskOwnerAdjustmentById 语义改派）。
+	// @param ctx 上下文
+	// @return 统一返回（data 为扫描汇总 scanned/adjusted/failed/errors）
+	// @return 错误
+	TriggerDelegateScan(ctx context.Context) (R, error)
 }

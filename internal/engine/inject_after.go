@@ -185,7 +185,8 @@ func encodeXMLNode(encoder *xml.Encoder, node *bpmnxml.Node) error {
 // findXMLScope 找到包含指定活动的流程或子流程作用域。
 // @param root 当前XML节点
 // @param activityID 活动ID
-// @return 直接包含活动的作用域与活动，未找到返回nil
+// @return 直接包含活动的作用域，未找到返回 nil
+// @return 指定活动，未找到返回 nil
 func findXMLScope(root *bpmnxml.Node, activityID string) (*bpmnxml.Node, *bpmnxml.Node) {
 	for _, child := range root.Children {
 		if child.Attr("id") == activityID {

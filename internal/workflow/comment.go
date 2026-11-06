@@ -19,8 +19,8 @@ var whitespacePattern = regexp.MustCompile(`\s+`)
 // 行为规格对位 Java WorkflowCommentServiceImpl + AddHisCommentCmd：
 // 任务级意见经引擎 TaskService.AddComment、流程级意见经 AddProcessComment 落
 // ACT_HI_COMMENT 等价存储；message 折叠空白并按 3900 截断。
-// 说明：引擎 AddComment 不透出自定义 type（引擎侧固定 comment），
-// 意见类型的权威台账为 workflow_operation_record.type（P1.2 办结流程同时写两者）。
+// 说明：type 与 FULL_MSG_ 经 AddCommentDetail 透出（对位 Java AddHisCommentCmd），
+// 办结/退回等动作链的意见类型台账仍同步写 workflow_operation_record.type。
 type CommentService struct {
 	tasks   TaskCommentEngine // 任务评论能力
 	history TaskHistoryQuery  // 历史任务查询（补任务名）
@@ -65,15 +65,11 @@ func (s *CommentService) Add(ctx context.Context, req CommentRequest) (api.Comme
 	if strings.TrimSpace(req.Message) == "" {
 		return api.Comment{}, apiError("WORKFLOW-1102", "意见内容不能为空")
 	}
-	// Type 空时按 Java AddHisCommentCmd 默认 SP；引擎 API 不透出自定义 type，
-	// 类型权威台账在 workflow_operation_record.type（由 OperationRecordService 落库）
-	_ = firstNonEmpty(req.Type, CommentTypeSP)
+	// Type 空时按 Java AddHisCommentCmd 默认 SP；MESSAGE_ 存归一化内容、FULL_MSG_ 存原文
 	message := normalizeCommentMessage(req.Message)
-	// 任务级意见挂任务，流程级意见挂实例（Java 直插 ACT_HI_COMMENT 的两条路径）
-	if req.TaskID != "" {
-		return s.tasks.AddComment(ctx, req.TaskID, req.UserID, message)
-	}
-	return s.tasks.AddProcessComment(ctx, req.ProcessInstanceID, req.UserID, message)
+	commentType := firstNonEmpty(req.Type, CommentTypeSP)
+	// 任务级意见挂任务，流程级意见挂实例（Java 直插 ACT_HI_COMMENT 的两条路径同走 AddCommentDetail）
+	return s.tasks.AddCommentDetail(ctx, req.TaskID, req.ProcessInstanceID, req.UserID, commentType, message, req.Message)
 }
 
 // ListByProcessInstance 查询实例全部意见并补全展示字段：

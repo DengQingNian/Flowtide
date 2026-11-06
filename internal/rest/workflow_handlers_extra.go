@@ -139,7 +139,8 @@ func (s *Server) handleWorkflowBatchActivate(w http.ResponseWriter, r *http.Requ
 }
 
 // handleWorkflowResolveTask 处理委派任务（POST /workflow/process/resolve/task）。
-// 参数：query/body taskId（必填）、userId（回退认证身份）。
+// 参数：query/body taskId（必填）、userId（回退认证身份）、body variables（任务局部变量对象，可空；
+// 对位 Java resolveTask(taskId, variables)，此前调用方 variables 被静默丢弃）。
 // @param w 响应
 // @param r 请求
 // @param params 参数读取器
@@ -149,7 +150,65 @@ func (s *Server) handleWorkflowResolveTask(w http.ResponseWriter, r *http.Reques
 		writeWorkflowParamError(w, err)
 		return
 	}
-	result, err := s.workflow.ResolveTask(r.Context(), taskID, firstNonEmpty(params.get("userId"), requestUserID(r)))
+	// 圈复杂度 >= 3：body variables 可能缺省、非对象、嵌套非标量，均按可空对象宽松解析。
+	var variables map[string]any
+	if params.body != nil {
+		if raw, ok := params.body["variables"].(map[string]any); ok {
+			variables = raw
+		}
+	}
+	result, err := s.workflow.ResolveTaskWithVariables(r.Context(), taskID, firstNonEmpty(params.get("userId"), requestUserID(r)), variables)
+	writeWorkflowResult(w, result, err)
+}
+
+// handleWorkflowMILastPerson 会签最后一名待办成员判定（POST /workflow/process/isMultiInstanceLastPerson）。
+// 参数：query/body taskId（必填）。
+// @param w 响应
+// @param r 请求
+// @param params 参数读取器
+func (s *Server) handleWorkflowMILastPerson(w http.ResponseWriter, r *http.Request, params *workflowParams) {
+	taskID, err := params.getRequired("taskId")
+	if err != nil {
+		writeWorkflowParamError(w, err)
+		return
+	}
+	result, err := s.workflow.IsMultiInstanceLastPerson(r.Context(), taskID)
+	writeWorkflowResult(w, result, err)
+}
+
+// handleWorkflowAddComment 审批意见写入（POST /workflow/process/comment/add）。
+// 参数：body taskId（可空）/processInstanceId（taskId 为空时必填）/userId（回退认证身份）/type（缺省 SP）/message（必填）。
+// 对位 Java WorkflowCommentService.addComment → AddHisCommentCmd（TYPE_ 缺省 SP、MESSAGE_ 归一化截断、FULL_MSG_ 存原文）。
+// @param w 响应
+// @param r 请求
+// @param params 参数读取器
+func (s *Server) handleWorkflowAddComment(w http.ResponseWriter, r *http.Request, params *workflowParams) {
+	taskID := params.get("taskId")
+	userID := firstNonEmpty(params.get("userId"), requestUserID(r))
+	instanceID := params.get("processInstanceId")
+	typ := params.get("type")
+	message := params.get("message")
+	result, err := s.workflow.DoAddComment(r.Context(), taskID, userID, instanceID, typ, message)
+	writeWorkflowResult(w, result, err)
+}
+
+// handleWorkflowMoveActivity 普通节点跳转（POST /workflow/process/move/activity）。
+// 参数：body processInstanceId/nodeId/toNodeId（对位 Java moveActivity 的 proInstId/nodeId/toNodeId）。
+// @param w 响应
+// @param r 请求
+// @param params 参数读取器
+func (s *Server) handleWorkflowMoveActivity(w http.ResponseWriter, r *http.Request, params *workflowParams) {
+	result, err := s.workflow.DoMoveActivity(r.Context(), params.get("processInstanceId"), params.get("nodeId"), params.get("toNodeId"))
+	writeWorkflowResult(w, result, err)
+}
+
+// handleWorkflowMoveExecution 执行迁移（POST /workflow/process/move/execution）。
+// 参数：body processInstanceId/toNodeId（对位 Java moveExecution 的 proInstId/toNodeId）。
+// @param w 响应
+// @param r 请求
+// @param params 参数读取器
+func (s *Server) handleWorkflowMoveExecution(w http.ResponseWriter, r *http.Request, params *workflowParams) {
+	result, err := s.workflow.DoMoveExecution(r.Context(), params.get("processInstanceId"), params.get("toNodeId"))
 	writeWorkflowResult(w, result, err)
 }
 

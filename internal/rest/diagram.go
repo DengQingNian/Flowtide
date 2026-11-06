@@ -38,7 +38,16 @@ func (s *Server) handleDefinitionImage(w http.ResponseWriter, r *http.Request) {
 // @param w 响应
 // @param r 请求
 func (s *Server) handleInstanceDiagram(w http.ResponseWriter, r *http.Request) {
-	instance, err := s.engine.RuntimeService().GetProcessInstance(r.Context(), r.PathValue("id"))
+	s.writeInstanceDiagram(w, r, r.PathValue("id"), true)
+}
+
+// writeInstanceDiagram 按实例渲染并输出流程图（Accept 含 svg 输出 SVG，否则 PNG）。
+// @param w 响应
+// @param r 请求
+// @param instanceID 流程实例 ID
+// @param highlit true 时叠加当前活动实例高亮；false 输出普通流程图
+func (s *Server) writeInstanceDiagram(w http.ResponseWriter, r *http.Request, instanceID string, highlit bool) {
+	instance, err := s.engine.RuntimeService().GetProcessInstance(r.Context(), instanceID)
 	if err != nil {
 		writeError(w, err)
 		return
@@ -63,14 +72,17 @@ func (s *Server) handleInstanceDiagram(w http.ResponseWriter, r *http.Request) {
 		writeError(w, err)
 		return
 	}
-	items, err := s.engine.RuntimeService().ListActivityInstances(r.Context(), instance.ID)
-	if err != nil {
-		writeError(w, err)
-		return
-	}
-	highlights := make(map[string]bool, len(items))
-	for _, item := range items {
-		highlights[item.ActivityID] = true
+	highlights := map[string]bool{}
+	// 高亮口径与 Java DefaultProcessDiagramGenerator 的 activeActivityIds 一致：当前活动实例集合
+	if highlit {
+		items, err := s.engine.RuntimeService().ListActivityInstances(r.Context(), instance.ID)
+		if err != nil {
+			writeError(w, err)
+			return
+		}
+		for _, item := range items {
+			highlights[item.ActivityID] = true
+		}
 	}
 	writeDiagram(w, r, parsed, highlights)
 }

@@ -13,25 +13,28 @@ import (
 
 // ─── 错误注入桩（仅注入本文件用例所需的端口方法） ─────────────────────
 
-// ctaErrCommentTasks 是注入 AddComment 错误的任务评论能力桩。
+// ctaErrCommentTasks 是注入 AddCommentDetail 错误的任务评论能力桩。
 type ctaErrCommentTasks struct {
 	TaskCommentEngine // 内嵌真实引擎评论能力
 	failAdd           bool
 }
 
-// AddComment 按开关返回错误。
+// AddCommentDetail 按开关返回错误。
 // @param ctx 上下文
 // @param taskID 任务 ID
+// @param processInstanceID 实例 ID
 // @param userID 作者
-// @param message 内容
+// @param typ 类型
+// @param message 展示内容
+// @param fullMessage 原始内容
 // @return 评论
 // @return 错误
-func (f *ctaErrCommentTasks) AddComment(ctx context.Context, taskID, userID, message string) (api.Comment, error) {
+func (f *ctaErrCommentTasks) AddCommentDetail(ctx context.Context, taskID, processInstanceID, userID, typ, message, fullMessage string) (api.Comment, error) {
 	// 错误注入点
 	if f.failAdd {
 		return api.Comment{}, context.DeadlineExceeded
 	}
-	return f.TaskCommentEngine.AddComment(ctx, taskID, userID, message)
+	return f.TaskCommentEngine.AddCommentDetail(ctx, taskID, processInstanceID, userID, typ, message, fullMessage)
 }
 
 // ctaErrNextStore 是注入 ListByTaskID/DeleteForResolve 错误的下一步存储桩。

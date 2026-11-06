@@ -308,6 +308,17 @@ func (s *Server) handleWorkflowDelegateList(w http.ResponseWriter, r *http.Reque
 	writeWorkflowResult(w, result, err)
 }
 
+// handleWorkflowDelegateTrigger 定时委托运维触发（POST /workflow/delegate/scheduled/trigger）。
+// 参数：无必填（扫描范围为当前数据租户内全部未委托活跃待办；对位旧 scheduledDelegatedTask
+// 的手动补偿入口）。
+// @param w 响应
+// @param r 请求
+// @param params 参数读取器
+func (s *Server) handleWorkflowDelegateTrigger(w http.ResponseWriter, r *http.Request, params *workflowParams) {
+	result, err := s.workflow.TriggerDelegateScan(r.Context())
+	writeWorkflowResult(w, result, err)
+}
+
 // ─── /remind/**：催办配置 ───────────────────────────────────────
 
 // handleWorkflowRemindPageList 分页查询催办配置（GET /workflow/remind/getPageList）。

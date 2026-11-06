@@ -16,10 +16,9 @@ import (
 
 // TaskCommentEngine 是评论域服务所需的任务评论能力（api.TaskService 子集）。
 type TaskCommentEngine interface {
-	// AddComment 添加任务评论（ACT_HI_COMMENT 等价存储）。
-	AddComment(ctx context.Context, taskID, userID, message string) (api.Comment, error)
-	// AddProcessComment 添加流程实例评论（流程级意见，无任务上下文）。
-	AddProcessComment(ctx context.Context, processInstanceID, userID, message string) (api.Comment, error)
+	// AddCommentDetail 添加评论并显式指定类型与完整原文（对位 Java AddHisCommentCmd；
+	// taskID 为空时按流程级落库）。
+	AddCommentDetail(ctx context.Context, taskID, processInstanceID, userID, typ, message, fullMessage string) (api.Comment, error)
 	// ListInstanceComments 返回流程实例下的全部评论，含任务评论。
 	ListInstanceComments(ctx context.Context, processInstanceID string) ([]api.Comment, error)
 }

@@ -86,7 +86,12 @@ func assembleCapabilities(comp *components, engine api.Engine, stores capability
 		engine.IdentityService(), c, simOpts...)
 	// ── P4 委托/异常/催办 ──
 	comp.delegate = NewDelegateRuleService(stores.delegate, stores.mirrors, comp.messages, comp.nextSvc,
-		comp.operations, engine, engine.IdentityService(), nopCategoryLookup{}, c)
+		comp.operations, engine, engine.IdentityService(), nopCategoryLookup{}, stores.todos, c)
+	// 待办创建委托接线（对位 Java saveMessageExtendInfo 自动委托段）：
+	// 新建待办落库后同步触发规则判定改派；失败不阻断待办创建
+	if comp.messages != nil {
+		comp.messages.InstallDelegateHook(comp.delegate.onTodoCreate)
+	}
 	comp.exception = NewExceptionService(stores.exceptions, c)
 	// ── P1-C 业务系统注册与业务回调（016 号审计：此前业务系统存储未装配，
 	// CallbackClient 在生产代码零调用点，D5"回调失败→异常表→管理台重发"实际不生效）──
@@ -655,6 +660,23 @@ func (s *Service) DoTaskOwnerAdjustmentByID(ctx context.Context, taskID, toOwner
 		return R{}, err
 	}
 	return ROkMsg("调整成功", nil), nil
+}
+
+// TriggerDelegateScan 触发一次定时委托扫描（对位 Java
+// FlowableScheduleTask.scheduledDelegatedTask）：扫描未委托活跃待办，三级命中
+// 委托规则后按 doTaskOwnerAdjustmentById 语义改派；返回扫描汇总。
+// @param ctx 上下文
+// @return 统一返回（data 为 DelegateScanResult：scanned/adjusted/failed/errors）
+// @return 错误（扫描数据源未接入等）
+func (s *Service) TriggerDelegateScan(ctx context.Context) (R, error) {
+	if err := requireCapable(s.comp); err != nil {
+		return R{}, err
+	}
+	summary, err := s.comp.delegate.TriggerScan(ctx)
+	if err != nil {
+		return R{}, err
+	}
+	return ROk(summary), nil
 }
 
 // AddDelegateTask 新增委托规则。

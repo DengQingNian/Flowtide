@@ -136,14 +136,17 @@ type startFailingCommentTasks struct {
 	TaskCommentEngine
 }
 
-// AddComment 返回注入错误。
+// AddCommentDetail 返回注入错误。
 // @param ctx 操作上下文
 // @param taskID 任务 ID
+// @param processInstanceID 实例 ID
 // @param userID 作者
-// @param message 内容
+// @param typ 类型
+// @param message 展示内容
+// @param fullMessage 原始内容
 // @return 评论
 // @return 错误
-func (f *startFailingCommentTasks) AddComment(ctx context.Context, taskID, userID, message string) (api.Comment, error) {
+func (f *startFailingCommentTasks) AddCommentDetail(ctx context.Context, taskID, processInstanceID, userID, typ, message, fullMessage string) (api.Comment, error) {
 	return api.Comment{}, errors.New("注入意见写失败")
 }
 

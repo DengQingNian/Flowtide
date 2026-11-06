@@ -275,27 +275,18 @@ type p2bFailingCommentTasks struct {
 	failAddProcess bool // AddProcessComment 注入错误
 }
 
-// AddComment 透传（不做任务级评论）。
+// AddCommentDetail 为任务级评论和指定的流程级评论注入写入错误。
 // @param ctx 操作上下文
 // @param taskID 任务 ID
-// @param userID 作者
-// @param message 内容
-// @return 评论
-// @return 错误
-func (f *p2bFailingCommentTasks) AddComment(ctx context.Context, taskID, userID, message string) (api.Comment, error) {
-	return api.Comment{}, errors.New("注入错误")
-}
-
-// AddProcessComment 按开关返回错误。
-// @param ctx 操作上下文
 // @param processInstanceID 实例 ID
 // @param userID 作者
-// @param message 内容
+// @param typ 类型
+// @param message 展示内容
+// @param fullMessage 原始内容
 // @return 评论
 // @return 错误
-func (f *p2bFailingCommentTasks) AddProcessComment(ctx context.Context, processInstanceID, userID, message string) (api.Comment, error) {
-	// 错误注入点
-	if f.failAddProcess {
+func (f *p2bFailingCommentTasks) AddCommentDetail(ctx context.Context, taskID, processInstanceID, userID, typ, message, fullMessage string) (api.Comment, error) {
+	if taskID != "" || f.failAddProcess {
 		return api.Comment{}, errors.New("注入错误")
 	}
 	return api.Comment{}, nil

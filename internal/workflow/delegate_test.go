@@ -91,7 +91,7 @@ func newDelegateFixture(t *testing.T) (*completeFixture, *DelegateRuleService, *
 	store := NewMemTaskDelegateStore(fx.fakeClock)
 	mirrors := NewMemDelegateTaskMirrorStore(fx.fakeClock)
 	categories := &fakeCategoryLookup{models: map[string]string{"flowComplete": "model-1"}}
-	svc := NewDelegateRuleService(store, mirrors, fx.messages, fx.next, fx.operations, fx.engine, fx.engine.IdentityService(), categories, fx.fakeClock)
+	svc := NewDelegateRuleService(store, mirrors, fx.messages, fx.next, fx.operations, fx.engine, fx.engine.IdentityService(), categories, nil, fx.fakeClock)
 	return fx, svc, store, mirrors
 }
 
@@ -511,7 +511,7 @@ func TestHitConsignerCategoryResolver(t *testing.T) {
 	store := NewMemTaskDelegateStore(fx.fakeClock)
 	// 解析端口返回空 → 回退代号直匹配
 	emptyResolver := &fakeCategoryLookup{models: map[string]string{}}
-	svc := NewDelegateRuleService(store, nil, nil, nil, nil, nil, nil, emptyResolver, fx.fakeClock)
+	svc := NewDelegateRuleService(store, nil, nil, nil, nil, nil, nil, emptyResolver, nil, fx.fakeClock)
 	ctx := context.Background()
 	rule := baseRule()
 	rule.ConsignType = ConsignTypeSingleFlowCategory
@@ -527,7 +527,7 @@ func TestHitConsignerCategoryResolver(t *testing.T) {
 		t.Fatalf("移除失败: %v", err)
 	}
 	resolver := &fakeCategoryLookup{models: map[string]string{"flowComplete": "model-9"}}
-	svc2 := NewDelegateRuleService(store, nil, nil, nil, nil, nil, nil, resolver, fx.fakeClock)
+	svc2 := NewDelegateRuleService(store, nil, nil, nil, nil, nil, nil, resolver, nil, fx.fakeClock)
 	rule2 := baseRule()
 	rule2.ConsignType = ConsignTypeSingleFlowCategory
 	rule2.ConsignObjs = []DelegateConsignObj{{OwnerID: "model-9"}}
@@ -608,7 +608,7 @@ func TestApplyOnTodoCreate(t *testing.T) {
 func TestApplyOnTodoCreateWithoutMirror(t *testing.T) {
 	fx := newCompleteFixture(t)
 	store := NewMemTaskDelegateStore(fx.fakeClock)
-	svc := NewDelegateRuleService(store, nil, nil, nil, nil, nil, nil, nil, fx.fakeClock)
+	svc := NewDelegateRuleService(store, nil, nil, nil, nil, nil, nil, nil, nil, fx.fakeClock)
 	ctx := context.Background()
 	rule := baseRule()
 	rule.ConsignType = ConsignTypeAll

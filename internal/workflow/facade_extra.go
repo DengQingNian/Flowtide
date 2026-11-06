@@ -124,23 +124,135 @@ func (s *Service) ClaimTask(ctx context.Context, taskID, userID string) (R, erro
 	return ROkMsg("签收成功", nil), nil
 }
 
-// ResolveTask 处理委派任务（处理人恢复为所有者）。
+// ResolveTask 处理委派任务并将处理人恢复为所有者。
 // @param ctx 上下文
 // @param taskID 任务 ID
-// @param userID 处理人身份 Id
+// @param userID 处理人 ID
 // @return 统一返回
 // @return 错误
 func (s *Service) ResolveTask(ctx context.Context, taskID, userID string) (R, error) {
+	return s.ResolveTaskWithVariables(ctx, taskID, userID, nil)
+}
+
+// ResolveTaskWithVariables 处理委派任务并写入任务局部变量。
+// @param ctx 上下文
+// @param taskID 任务 ID
+// @param userID 处理人身份 Id
+// @param variables 任务局部变量（对位 Java resolveTask(taskId, variables)，可空）
+// @return 统一返回
+// @return 错误
+func (s *Service) ResolveTaskWithVariables(ctx context.Context, taskID, userID string, variables map[string]any) (R, error) {
 	if err := requireCapable(s.comp); err != nil {
 		return R{}, err
 	}
 	if taskID == "" || userID == "" {
 		return R{}, api.NewError("WORKFLOW-0400", "委派处理缺少任务或处理人", api.ErrBadRequest)
 	}
-	if err := s.engine.TaskService().Resolve(ctx, taskID, userID); err != nil {
+	// 变量与归还同一命令事务生效；此前 REST 层静默丢弃调用方 variables。
+	if err := s.engine.TaskService().ResolveWithVariables(ctx, taskID, userID, mapToVariables(variables)); err != nil {
 		return R{}, err
 	}
 	return ROkMsg("委派处理成功", nil), nil
+}
+
+// DoAddComment 添加审批意见（对位 Java WorkflowCommentService.addComment → AddHisCommentCmd：
+// 任务级/流程级二选一，TYPE_ 缺省 SP，MESSAGE_ 归一化截断 3900，FULL_MSG_ 存原文）。
+// @param ctx 上下文
+// @param taskID 任务 ID（可为空）
+// @param userID 作者身份 Id
+// @param processInstanceID 流程实例 Id（taskID 为空时必填）
+// @param typ 意见类型代码（CommentTypeEnum，空时默认 SP）
+// @param msg 意见内容
+// @return 统一返回（data 为落库评论）
+// @return 错误
+func (s *Service) DoAddComment(ctx context.Context, taskID, userID, processInstanceID, typ, msg string) (R, error) {
+	if err := requireCapable(s.comp); err != nil {
+		return R{}, err
+	}
+	if s.comp.comments == nil {
+		return R{}, api.NewError("WORKFLOW-0601", "意见服务未装配", nil)
+	}
+	comment, err := s.comp.comments.Add(ctx, CommentRequest{
+		TaskID:            taskID,
+		ProcessInstanceID: processInstanceID,
+		UserID:            userID,
+		Message:           msg,
+		Type:              typ,
+	})
+	if err != nil {
+		return R{}, err
+	}
+	return ROkMsg("评论添加成功", comment), nil
+}
+
+// IsMultiInstanceLastPerson 判断会签任务是否为最后一名待办成员（对位 Java
+// ProcessesUtil#isMultiInstanceLastPerson：非会签用户任务恒 true；会签按完成条件比例
+// 以 (completed+1)/all 整数除法判定；无完成条件或非用户任务返回 false）。
+// @param ctx 上下文
+// @param taskID 任务 ID
+// @return 统一返回（data 为布尔值）
+// @return 错误
+func (s *Service) IsMultiInstanceLastPerson(ctx context.Context, taskID string) (R, error) {
+	if err := requireCapable(s.comp); err != nil {
+		return R{}, err
+	}
+	if taskID == "" {
+		return R{}, api.NewError("WORKFLOW-0400", "参数 taskId 为空", api.ErrBadRequest)
+	}
+	last, err := s.engine.TaskService().IsMultiInstanceLastPerson(ctx, taskID)
+	if err != nil {
+		return R{}, err
+	}
+	return ROk(last), nil
+}
+
+// DoMoveActivity 普通节点跳转（对位 Java ProcessesUtil#moveActivity:3526-3548）。
+// @param ctx 上下文
+// @param processInstanceID 实例 Id（Java 入参 proInstId）
+// @param fromActivityID 来源活动 Id（Java 入参 nodeId）
+// @param toActivityID 目标活动 Id（Java 入参 toNodeId）
+// @return 统一返回
+// @return 错误
+func (s *Service) DoMoveActivity(ctx context.Context, processInstanceID, fromActivityID, toActivityID string) (R, error) {
+	if err := requireCapable(s.comp); err != nil {
+		return R{}, err
+	}
+	// 校验文案与顺序对位 Java：proInstId → nodeId → toNodeId → 挂起（引擎内校验）
+	if processInstanceID == "" {
+		return R{}, api.NewError("WORKFLOW-0400", "参数 proInstId 为空", api.ErrBadRequest)
+	}
+	if fromActivityID == "" {
+		return R{}, api.NewError("WORKFLOW-0400", "参数 nodeId 为空", api.ErrBadRequest)
+	}
+	if toActivityID == "" {
+		return R{}, api.NewError("WORKFLOW-0400", "参数 toNodeId 为空", api.ErrBadRequest)
+	}
+	if err := s.engine.RuntimeService().DoMoveActivity(ctx, processInstanceID, fromActivityID, toActivityID); err != nil {
+		return R{}, err
+	}
+	return ROkMsg("节点跳转成功", nil), nil
+}
+
+// DoMoveExecution 执行迁移（对位 Java ProcessesUtil#moveExecution:3610-3632 moveExecutionToActivityId）。
+// @param ctx 上下文
+// @param processInstanceID 实例 Id（Java 入参 proInstId）
+// @param toActivityID 目标活动 Id（Java 入参 toNodeId）
+// @return 统一返回
+// @return 错误
+func (s *Service) DoMoveExecution(ctx context.Context, processInstanceID, toActivityID string) (R, error) {
+	if err := requireCapable(s.comp); err != nil {
+		return R{}, err
+	}
+	if processInstanceID == "" {
+		return R{}, api.NewError("WORKFLOW-0400", "参数 proInstId 为空", api.ErrBadRequest)
+	}
+	if toActivityID == "" {
+		return R{}, api.NewError("WORKFLOW-0400", "参数 toNodeId 为空", api.ErrBadRequest)
+	}
+	if err := s.engine.RuntimeService().DoMoveExecution(ctx, processInstanceID, toActivityID); err != nil {
+		return R{}, err
+	}
+	return ROkMsg("节点跳转成功", nil), nil
 }
 
 // SuspendProcessInstances 批量挂起流程实例（逐个挂起，失败即中断并返回已处理数）。

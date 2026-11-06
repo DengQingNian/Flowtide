@@ -63,6 +63,10 @@ var workflowRouteTable = []workflowRoute{
 	{method: http.MethodPost, path: "/workflow/process/delegate/task"},
 	{method: http.MethodPost, path: "/workflow/process/transfer/task"},
 	{method: http.MethodPost, path: "/workflow/process/resolve/task"},
+	{method: http.MethodPost, path: "/workflow/process/isMultiInstanceLastPerson"}, // 会签最后一名判定
+	{method: http.MethodPost, path: "/workflow/process/comment/add"},               // 审批意见写入
+	{method: http.MethodPost, path: "/workflow/process/move/activity"},             // 普通节点跳转
+	{method: http.MethodPost, path: "/workflow/process/move/execution"},            // 执行迁移
 	{method: http.MethodPost, path: "/workflow/process/inject/node"},
 	{method: http.MethodPost, path: "/workflow/process/complete/sign"},
 	{method: http.MethodPost, path: "/workflow/process/claim/task"},
@@ -121,6 +125,8 @@ var workflowRouteTable = []workflowRoute{
 	{method: http.MethodPost, path: "/workflow/delegate/edit"},
 	{method: "", path: "/workflow/delegate/delete/{ids}"},
 	{method: http.MethodGet, path: "/workflow/delegate/list"},
+	// 定时委托运维触发（对位旧 scheduledDelegatedTask 的手动补偿入口）
+	{method: http.MethodPost, path: "/workflow/delegate/scheduled/trigger"},
 
 	// ── /task/**：WorkflowTaskController 中非桩且非遗留表端点 ──
 	{method: http.MethodPost, path: "/workflow/task/rollback"},
@@ -199,6 +205,14 @@ func (s *Server) workflowHandlerFor(path string) http.HandlerFunc {
 		return s.serveWorkflow(s.handleWorkflowBatchActivate)
 	case "/workflow/process/resolve/task": // 委派处理（处理人恢复为所有者）→ ResolveTask
 		return s.serveWorkflow(s.handleWorkflowResolveTask)
+	case "/workflow/process/isMultiInstanceLastPerson": // 会签最后一名待办成员判定 → IsMultiInstanceLastPerson
+		return s.serveWorkflow(s.handleWorkflowMILastPerson)
+	case "/workflow/process/comment/add": // 审批意见写入（AddHisCommentCmd 语义）→ DoAddComment
+		return s.serveWorkflow(s.handleWorkflowAddComment)
+	case "/workflow/process/move/activity": // 普通节点跳转 → DoMoveActivity
+		return s.serveWorkflow(s.handleWorkflowMoveActivity)
+	case "/workflow/process/move/execution": // 执行迁移（无来源节点）→ DoMoveExecution
+		return s.serveWorkflow(s.handleWorkflowMoveExecution)
 	case "/workflow/process/claim/task": // 签收任务（组任务认领到个人）→ ClaimTask
 		return s.serveWorkflow(s.handleWorkflowClaimTask)
 	case "/workflow/process/instance/all/list", "/workflow/process/instance/list": // 运行实例分页 → GetProcessInstancePageList
@@ -325,6 +339,8 @@ func (s *Server) workflowHandlerFor(path string) http.HandlerFunc {
 		return s.serveWorkflow(s.handleWorkflowDelegateDelete)
 	case "/workflow/delegate/list": // 规则列表（ownerId+tenantId）→ ListDelegateTask
 		return s.serveWorkflow(s.handleWorkflowDelegateList)
+	case "/workflow/delegate/scheduled/trigger": // 定时委托运维触发 → TriggerDelegateScan
+		return s.serveWorkflow(s.handleWorkflowDelegateTrigger)
 
 	// ── /remind/**：催办配置 ──
 	case "/workflow/remind/getPageList": // 分页列表 → GetRemindPageList

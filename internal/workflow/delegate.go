@@ -849,6 +849,7 @@ type DelegateRuleService struct {
 	engine     api.Engine              // 引擎门面（待办调整时改写任务 assignee）
 	users      UserQuery               // 身份查询（补姓名展示）
 	categories CategoryLookup          // 分类代号解析（可 nil）
+	todos      TodoSource              // 待办扫描数据源（TriggerDelegateScan 用，nil 时扫描停用）
 	clock      clock.Clock             // 时间源
 	newID      func() string           // ID 生成函数
 }
@@ -862,16 +863,91 @@ type DelegateRuleService struct {
 // @param engine 引擎门面（任务 assignee 改写用，可 nil）
 // @param users 身份查询（可 nil，姓名留空）
 // @param categories 分类代号解析（可 nil，按 Id 直接匹配）
+// @param todos 待办扫描数据源（可 nil，TriggerDelegateScan 停用）
 // @param c 时间源，nil 时回退真实时钟
 // @return 域服务
-func NewDelegateRuleService(store TaskDelegateStore, mirrors DelegateTaskMirrorStore, messages *MessageExtendService, next *NextActivityService, operations *OperationRecordService, engine api.Engine, users UserQuery, categories CategoryLookup, c clock.Clock) *DelegateRuleService {
+func NewDelegateRuleService(store TaskDelegateStore, mirrors DelegateTaskMirrorStore, messages *MessageExtendService, next *NextActivityService, operations *OperationRecordService, engine api.Engine, users UserQuery, categories CategoryLookup, todos TodoSource, c clock.Clock) *DelegateRuleService {
 	if c == nil {
 		c = clock.Real{}
 	}
 	return &DelegateRuleService{
 		store: store, mirrors: mirrors, messages: messages, next: next, operations: operations,
-		engine: engine, users: users, categories: categories, clock: c, newID: DefaultIDGen(),
+		engine: engine, users: users, categories: categories, todos: todos, clock: c, newID: DefaultIDGen(),
 	}
+}
+
+// onTodoCreate 是待办新建钩子的委托适配器（挂接 MessageExtendService.InstallDelegateHook）：
+// 已是委托任务的待办不再委托（Java：「不支持第三人再将工作委托」，consigner 非空即跳过），
+// 同时阻断改派重建待办造成的钩子递归；其余交 ApplyOnTodoCreate 按规则改派。
+// @param ctx 操作上下文
+// @param msg 新落库的待办
+// @return 改派后的待办（未命中或已委托时原样返回）
+// @return 错误
+func (s *DelegateRuleService) onTodoCreate(ctx context.Context, msg *MessageExtend) (*MessageExtend, error) {
+	// 已委托待办（consigner 非空）不再参与委托判定
+	if msg == nil || msg.ConsignerID != "" {
+		return msg, nil
+	}
+	return s.ApplyOnTodoCreate(ctx, msg)
+}
+
+// DelegateScanResult 是委托扫描的执行汇总（TriggerDelegateScan 运维端点返回体）。
+type DelegateScanResult struct {
+	Scanned  int      // 扫描的未委托活跃待办条数
+	Adjusted int      // 命中规则并完成改派的条数
+	Failed   int      // 改派失败条数（单条失败不阻断后续扫描，对位 Java 逐条 try-catch）
+	Errors   []string // 失败明细（任务 Id + 错误信息）
+}
+
+// TriggerScan 扫描未委托的活跃待办并对命中规则执行改派。
+// 对位 Java FlowableScheduleTask.scheduledDelegatedTask 批扫（@Scheduled 已注释停用）+
+// WorkflowTaskDelegateServiceImpl.scheduledDelegatedTask(entity) 单条链路：
+// getDelegatedMessageList（consigner_id IS NULL）→ getTaskConsignerId 三级命中
+// → doTaskOwnerAdjustmentById(taskId, ownerId, [consignerId], false, 1)。
+// 扫描范围为当前引擎实例（数据租户）内的活跃待办；单条失败记录后继续。
+// @param ctx 操作上下文
+// @return 扫描汇总
+// @return 错误（数据源未接入时返回，逐条改派失败不返回错误）
+func (s *DelegateRuleService) TriggerScan(ctx context.Context) (*DelegateScanResult, error) {
+	// 待办扫描数据源未接入（SQL 模式裸 SQL 数据源待主控补齐）时显式报错，不静默空扫
+	if s.todos == nil {
+		return nil, apiError("WORKFLOW-1709", "待办扫描数据源未接入，无法执行委托扫描")
+	}
+	list, err := s.todos.ListAll(ctx)
+	if err != nil {
+		return nil, err
+	}
+	result := &DelegateScanResult{}
+	for _, msg := range list {
+		// 只扫未委托且可判定的待办（Java getDelegatedMessageList：consigner_id IS NULL）
+		if msg == nil || msg.ConsignerID != "" || msg.OwnerID == "" || msg.TenantID == "" || msg.TaskID == "" {
+			continue
+		}
+		result.Scanned++
+		consignerID, hitErr := s.HitConsigner(ctx, msg.OwnerID, msg.TenantID, msg.ExtendS1, msg.FlowCategoryCode)
+		if hitErr != nil {
+			// 单条命中失败：记录后继续（Java 逐条 try-catch 仅日志）
+			result.Failed++
+			result.Errors = append(result.Errors, msg.TaskID+": 命中委托失败: "+hitErr.Error())
+			continue
+		}
+		// 未命中或命中为本人的规则跳过（AdjustTaskOwner 拒绝改派给当前办理人）
+		if consignerID == "" || consignerID == msg.OwnerID {
+			continue
+		}
+		// doTaskOwnerAdjustmentById 对位：userCode=原处理人、keepCurrentTask=false
+		keep := false
+		if adjustErr := s.AdjustTaskOwner(ctx, AdjustOwnerRequest{
+			TaskID: msg.TaskID, CurrentOwnerID: msg.OwnerID, UserCode: msg.OwnerID,
+			OwnerIDs: []string{consignerID}, KeepCurrentTask: &keep,
+		}); adjustErr != nil {
+			result.Failed++
+			result.Errors = append(result.Errors, msg.TaskID+": 改派失败: "+adjustErr.Error())
+			continue
+		}
+		result.Adjusted++
+	}
+	return result, nil
 }
 
 // Add 新增委托规则（对位 Java WorkflowTaskDelegateServiceImpl#add:58）：

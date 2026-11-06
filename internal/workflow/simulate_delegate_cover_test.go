@@ -733,7 +733,7 @@ func TestSimCovDelegateServiceBranches(t *testing.T) {
 		t.Fatalf("处理人姓名回退不符: %v", names)
 	}
 	// 时钟未注入时回退真实时钟
-	withRealClock := NewDelegateRuleService(store, mirrors, fx.messages, fx.next, fx.operations, fx.engine, fx.engine.IdentityService(), nil, nil)
+	withRealClock := NewDelegateRuleService(store, mirrors, fx.messages, fx.next, fx.operations, fx.engine, fx.engine.IdentityService(), nil, nil, nil)
 	if withRealClock.clock == nil {
 		t.Fatal("时钟未注入应回退真实时钟")
 	}

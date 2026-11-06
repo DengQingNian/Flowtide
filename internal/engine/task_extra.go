@@ -45,6 +45,74 @@ func (e *Engine) AddComment(ctx context.Context, taskID, userID, message string)
 	return result.(api.Comment), nil
 }
 
+// AddCommentDetail 添加评论并显式指定类型与完整原文（对位 Java AddHisCommentCmd：
+// TYPE_ 缺省 SP、MESSAGE_ 存归一化内容、FULL_MSG_ 存原文、ACTION_='AddComment'）。
+// taskID 非空走任务级（校验任务与租户），否则按流程级（实例必须存在，对位 Java
+// HistoricProcessInstance 不存在抛 FlowableObjectNotFoundException）。
+// @param ctx 上下文
+// @param taskID 任务 ID，可空
+// @param processInstanceID 实例 ID，taskID 为空时必填
+// @param userID 作者
+// @param typ 类型代码，默认 SP
+// @param message 归一化后的展示内容
+// @param fullMessage 原始内容
+// @return 创建的评论
+// @return 写入错误
+func (e *Engine) AddCommentDetail(ctx context.Context, taskID, processInstanceID, userID, typ, message, fullMessage string) (api.Comment, error) {
+	result, err := e.execute(ctx, func(cc *commandContext) (any, error) {
+		if strings.TrimSpace(message) == "" {
+			return nil, api.NewError("ENGINE-1101", "评论内容不能为空", api.ErrBadRequest)
+		}
+		comment := &api.Comment{
+			ID:          e.newID(),
+			Type:        firstNonEmptyOr(typ, "SP"),
+			Action:      "AddComment",
+			Message:     message,
+			FullMessage: fullMessage,
+			UserID:      userID,
+			Time:        cc.now,
+		}
+		// 圈复杂度 >= 3：任务级与流程级两条定位分支共用同一落库口径。
+		if strings.TrimSpace(taskID) != "" {
+			task, ok := e.findTask(taskID)
+			if !ok {
+				return nil, api.NewError("ENGINE-0805", "任务不存在", api.ErrNotFound)
+			}
+			if err := e.allowTask(ctx, task.Task.ID); err != nil {
+				return nil, err
+			}
+			comment.TaskID = taskID
+			comment.ProcessInstanceID = task.Task.ProcessInstanceID
+		} else {
+			instance, ok := e.findInstance(processInstanceID)
+			if !ok {
+				return nil, api.NewError("ENGINE-0404", "流程实例不存在", api.ErrNotFound)
+			}
+			if err := e.allowTenant(ctx, instance.TenantID); err != nil {
+				return nil, err
+			}
+			comment.ProcessInstanceID = processInstanceID
+		}
+		e.state.Comments[comment.ID] = comment
+		return *comment, nil
+	})
+	if err != nil {
+		return api.Comment{}, err
+	}
+	return result.(api.Comment), nil
+}
+
+// firstNonEmptyOr 返回首个非空串，全部为空时回退 def。
+// @param value 待选值
+// @param def 缺省值
+// @return 非空值或缺省值
+func firstNonEmptyOr(value, def string) string {
+	if strings.TrimSpace(value) != "" {
+		return value
+	}
+	return def
+}
+
 // AddProcessComment 添加流程实例评论。
 // @param ctx 上下文
 // @param processInstanceID 实例 ID

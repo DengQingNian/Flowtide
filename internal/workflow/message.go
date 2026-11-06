@@ -2,6 +2,7 @@ package workflow
 
 import (
 	"context"
+	"log/slog"
 	"time"
 
 	"github.com/DengQingNian/Flowtide/internal/clock"
@@ -15,6 +16,10 @@ type MessageExtendService struct {
 	store MessageExtendStore // 存储端口
 	clock clock.Clock        // 时间源
 	newID func() string      // ID 生成函数
+	// delegateHook 是待办新建委托钩子：新建待办落库后同步触发一次
+	// 委托判定（对位 Java saveMessageExtendInfo 尾部对 delegateTaskMessageList 的自动委托段）。
+	// 失败仅记告警日志、不阻断待办创建；幂等重建（同任务已有待办直接返回既有行）不触发。
+	delegateHook func(ctx context.Context, msg *MessageExtend) (*MessageExtend, error)
 }
 
 // NewMessageExtendService 创建待办扩展域服务。
@@ -26,6 +31,16 @@ func NewMessageExtendService(store MessageExtendStore, c clock.Clock) *MessageEx
 		c = clock.Real{}
 	}
 	return &MessageExtendService{store: store, clock: c, newID: DefaultIDGen()}
+}
+
+// InstallDelegateHook 注入待办新建委托钩子（由装配层在 DelegateRuleService 构建后调用，
+// 挂接 DelegateRuleService.onTodoCreate；重复注入覆盖旧钩子，nil 卸载）。
+// 钩子契约：仅对新建待办触发一次；钩子内如重建待办（改派）必须保证重建行已带
+// ConsignerID 并在钩子入口跳过该类待办（对位 Java「不支持第三人再将工作委托」），
+// 否则会因重建再次触发钩子造成递归。
+// @param hook 钩子函数：入参为已落库的待办，返回改派后的待办（未命中原样返回）与错误
+func (s *MessageExtendService) InstallDelegateHook(hook func(ctx context.Context, msg *MessageExtend) (*MessageExtend, error)) {
+	s.delegateHook = hook
 }
 
 // CreateForTask 为任务创建一条待办扩展（含业务字段与 extend 透传）。
@@ -55,6 +70,18 @@ func (s *MessageExtendService) CreateForTask(ctx context.Context, req *MessageCr
 	fillBase(&entity.BaseColumns, s.newID, s.clock.Now, firstNonEmpty(entity.SenderID, entity.OwnerID), entity.TenantID)
 	if err := s.store.Save(ctx, &entity); err != nil {
 		return nil, err
+	}
+	// 待办新建委托钩子（对位 Java saveMessageExtendInfo 自动委托段）：
+	// 仅新建行触发（幂等重建已在上方 return）；失败记告警不阻断待办创建——
+	// 与 Java 异步委托段 try-catch 后仅日志的口径一致，补偿走 TriggerDelegateScan 运维端点；
+	// 失败时回滚钩子对实体字段的就地改写，保证调用方拿到的待办与存储行一致
+	if s.delegateHook != nil {
+		snapshot := entity
+		if _, hookErr := s.delegateHook(ctx, &entity); hookErr != nil {
+			entity = snapshot
+			slog.Warn("workflow-message: 待办委托钩子执行失败（不阻断待办创建，可经 delegate/scheduled/trigger 补偿）",
+				"taskId", entity.TaskID, "owner", entity.OwnerID, "error", hookErr)
+		}
 	}
 	return &entity, nil
 }
