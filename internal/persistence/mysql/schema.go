@@ -15,6 +15,13 @@ const (
 	workflowChecksumKey = "flowtide.workflow.schema.checksum" // workflow Schema 完成标记
 )
 
+// legacyCRLFChecksums 只接受与当前 001 和 002 脚本内容相同、行尾为 CRLF 的历史摘要。
+// 键是内置 LF 脚本的摘要，升级脚本后不会沿用旧版的兼容值。
+var legacyCRLFChecksums = map[string]string{
+	"f8a484fcd6d3fb466d310ef501fa28d29527d5e8b8cfc67f8baa4b45404c7660": "b684b4038eab32a2c08983fb54216072f954c424117f5c6b57563a9ddb941ae4",
+	"da891d8fcf32e21553d8988f787fb16a96671b866379560e6552463533e18a02": "67cf26b44149d69e617facab55ba7de5e040ff25bfab8d292e19fef749c64dbe",
+}
+
 // EnsureSchema 校验已有 Schema（引擎表与 workflow 表分别判断），或在显式允许时初始化缺失部分。
 // @param ctx 操作上下文
 // @param db 数据库连接池
@@ -162,7 +169,9 @@ func checkMarker(ctx context.Context, db *sql.DB, key, expected string) error {
 	if err := db.QueryRowContext(ctx, "SELECT VALUE_ FROM ACT_GE_PROPERTY WHERE NAME_ = ?", key).Scan(&value); err != nil {
 		return fmt.Errorf("读取 MySQL Schema 标识 %s 失败，拒绝自动接管: %w", key, err)
 	}
-	if value != expected {
+	// 完整库仅因脚本行尾不同可能留下旧摘要。其他不匹配或空标记仍拒绝接管。
+	legacy, known := legacyCRLFChecksums[expected]
+	if value != expected && (!known || value != legacy) {
 		return fmt.Errorf("MySQL Schema 标识 %s 不匹配，请检查版本与迁移状态", key)
 	}
 	return nil

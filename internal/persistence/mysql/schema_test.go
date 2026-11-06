@@ -131,6 +131,36 @@ func TestEnsureSchema(t *testing.T) {
 	}
 }
 
+// TestEnsureSchemaAcceptsLegacyCRLF 验证 Windows 初始化的完整库可以只读打开。
+// @param t 测试上下文
+func TestEnsureSchemaAcceptsLegacyCRLF(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+
+	engineTables, _ := schema.Tables("mysql")
+	workflowTables, _ := schema.FileTables("mysql", schema.WorkflowFile)
+	mock.ExpectQuery("SELECT COUNT.*information_schema.tables").
+		WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(len(engineTables)))
+	mock.ExpectQuery("SELECT VALUE_ FROM ACT_GE_PROPERTY").WithArgs("schema.version").
+		WillReturnRows(sqlmock.NewRows([]string{"VALUE_"}).AddRow(schema.Version))
+	mock.ExpectQuery("SELECT VALUE_ FROM ACT_GE_PROPERTY").WithArgs(checksumKey).
+		WillReturnRows(sqlmock.NewRows([]string{"VALUE_"}).AddRow("b684b4038eab32a2c08983fb54216072f954c424117f5c6b57563a9ddb941ae4"))
+	mock.ExpectQuery("SELECT COUNT.*information_schema.tables").
+		WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(len(workflowTables)))
+	mock.ExpectQuery("SELECT VALUE_ FROM ACT_GE_PROPERTY").WithArgs(workflowChecksumKey).
+		WillReturnRows(sqlmock.NewRows([]string{"VALUE_"}).AddRow("67cf26b44149d69e617facab55ba7de5e040ff25bfab8d292e19fef749c64dbe"))
+
+	if err := EnsureSchema(context.Background(), db, false); err != nil {
+		t.Fatalf("应识别旧版行尾生成的标记: %v", err)
+	}
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Fatal(err)
+	}
+}
+
 // engineReady 判断引擎段是否已通过校验，workflow 段期望只在引擎就绪后设置。
 // @param scenario 场景名
 // @param engineCount 引擎表计数
